@@ -14,6 +14,8 @@ export const mockProjects: AdminProject[] = [
     status: "online",
     lastAccessAt: "2026-07-28T14:32:00-03:00",
     updatedAt: "2026-07-28T09:10:00-03:00",
+    views: 12480,
+    downloads: 1032,
   },
   {
     id: "elenita",
@@ -23,6 +25,8 @@ export const mockProjects: AdminProject[] = [
     status: "development",
     lastAccessAt: "2026-07-27T18:00:00-03:00",
     updatedAt: "2026-07-26T11:00:00-03:00",
+    views: 340,
+    downloads: 12,
   },
   {
     id: "grupo-vitoria",
@@ -32,6 +36,8 @@ export const mockProjects: AdminProject[] = [
     status: "paused",
     lastAccessAt: "2026-07-10T10:00:00-03:00",
     updatedAt: "2026-07-15T16:00:00-03:00",
+    views: 890,
+    downloads: 54,
   },
   {
     id: "oficina-mmr",
@@ -41,5 +47,7 @@ export const mockProjects: AdminProject[] = [
     status: "development",
     lastAccessAt: "2026-07-25T09:45:00-03:00",
     updatedAt: "2026-07-24T20:30:00-03:00",
+    views: 156,
+    downloads: 3,
   },
 ];

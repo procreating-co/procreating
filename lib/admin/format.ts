@@ -8,3 +8,8 @@ export function formatDateTime(iso: string): string {
     minute: "2-digit",
   }).format(new Date(iso));
 }
+
+/** Formata um número em pt-BR (ex.: 12480 -> "12.480"). */
+export function formatNumber(value: number): string {
+  return new Intl.NumberFormat("pt-BR").format(value);
+}

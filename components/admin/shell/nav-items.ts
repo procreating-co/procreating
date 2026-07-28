@@ -1,4 +1,4 @@
-import { LayoutDashboard, type LucideIcon } from "lucide-react";
+import { FolderKanban, LayoutDashboard, type LucideIcon } from "lucide-react";
 
 export type AdminNavItem = {
   label: string;
@@ -7,7 +7,10 @@ export type AdminNavItem = {
 };
 
 /**
- * Só itens com rota real entram aqui. Cada etapa nova do admin (Projetos na Etapa 5, etc.)
- * adiciona uma linha — a sidebar em si não muda.
+ * Só itens com rota real entram aqui. Cada etapa nova do admin adiciona uma linha — a
+ * sidebar em si não muda.
  */
-export const ADMIN_NAV_ITEMS: AdminNavItem[] = [{ label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard }];
+export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
+  { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
+  { label: "Projetos", href: "/admin/projetos", icon: FolderKanban },
+];

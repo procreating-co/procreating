@@ -16,4 +16,8 @@ export type AdminProject = {
   lastAccessAt: string;
   /** ISO 8601 */
   updatedAt: string;
+  /** Total de visualizações — futuramente vem de `Analytics` (lib/supabase/types/database.ts). */
+  views: number;
+  /** Total de downloads — futuramente vem de `Download` (lib/supabase/types/database.ts). */
+  downloads: number;
 };
