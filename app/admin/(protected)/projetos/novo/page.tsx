@@ -1,28 +1,23 @@
 import type { Metadata } from "next";
-import { WizardStepper } from "@/components/admin/projects/wizard-stepper";
+import { mockClients } from "@/lib/admin/clients/mock-data";
+import { mockTemplates } from "@/lib/admin/templates/mock-data";
+import { getMockProjectSlugs } from "@/lib/admin/projects/mock-data";
+import { ProjectWizard } from "@/components/admin/projects/project-wizard";
 
 export const metadata: Metadata = { title: "Novo Projeto | Painel Procreating" };
 
 /**
- * Casca do assistente de criação — só o indicador de passos. O formulário funcional de cada
- * passo (Cliente, Projeto, Template, Produtos vendidos, Estrutura, Fotos, Vídeos, Revisão,
- * Criar Projeto) é trabalho de uma etapa futura; ver o documento de arquitetura da conversa
- * pro fluxo completo previsto.
+ * Wizard funcional (11 passos, ver `docs/project-creation.md` seção 19): navegação + formulário
+ * real em cada passo, validação, e ao final uma Server Action mock (`./actions.ts`) que grava o
+ * projeto em memória — nada disso é Supabase/R2 de verdade ainda (FASES 3–4 do roadmap).
  */
 export default function AdminNovoProjetoPage() {
   return (
-    <main className="mx-auto max-w-[1400px] px-6 py-10 lg:px-10">
+    <main className="mx-auto max-w-[1000px] px-6 py-10 lg:px-10">
       <p className="font-mono text-xs uppercase tracking-wide text-muted-foreground">Projetos</p>
       <h1 className="mt-1 mb-8 font-display text-3xl">Novo Projeto</h1>
 
-      <WizardStepper />
-
-      <div className="mt-10 flex min-h-[40vh] items-center justify-center rounded-lg border border-dashed border-border/60 px-6 py-16 text-center">
-        <p className="max-w-sm text-sm text-muted-foreground">
-          O formulário de cada passo do assistente ainda não foi implementado — esta página mostra só a estrutura dos 9 passos
-          previstos.
-        </p>
-      </div>
+      <ProjectWizard clients={mockClients} templates={mockTemplates} existingSlugs={getMockProjectSlugs()} />
     </main>
   );
 }

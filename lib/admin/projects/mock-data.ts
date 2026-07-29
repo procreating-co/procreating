@@ -1,4 +1,5 @@
 import type { AdminProject } from "@/lib/admin/projects/types";
+import { slugify } from "@/lib/admin/format";
 
 /**
  * Dados mockados — nenhuma consulta real acontece aqui, e isto NÃO importa de
@@ -78,4 +79,46 @@ export function getMockProjectsByClient(clientId: string): AdminProject[] {
 /** Um projeto por id — usado em `/admin/projetos/[id]`. */
 export function getMockProjectById(id: string): AdminProject | null {
   return mockProjects.find((project) => project.id === id) ?? null;
+}
+
+/** Todos os slugs já em uso — usado pelo passo "Projeto" do Wizard pra validar unicidade. */
+export function getMockProjectSlugs(): string[] {
+  return mockProjects.map((project) => project.slug);
+}
+
+/**
+ * Cria um projeto e o adiciona à lista mock em memória — usado pela Server Action de conclusão
+ * do Wizard (`app/admin/(protected)/projetos/novo/actions.ts`). Nesta fase o Wizard mock já
+ * simula o pipeline completo (Draft → Preview → Deploy → Publicado, ver
+ * `docs/project-creation.md` seção 19) então o projeto nasce direto com `status: "published"` —
+ * não há Supabase/R2 reais por trás, só esta mutação de módulo em memória (some se o processo
+ * do servidor reiniciar).
+ */
+export function createMockProject(input: {
+  name: string;
+  clientId: string;
+  templateId: string;
+}): AdminProject {
+  const base = slugify(input.name);
+  let slug = base || "projeto";
+  let suffix = 2;
+  while (mockProjects.some((project) => project.slug === slug)) {
+    slug = `${base}-${suffix}`;
+    suffix += 1;
+  }
+  const now = new Date().toISOString();
+  const project: AdminProject = {
+    id: slug,
+    slug,
+    name: input.name,
+    clientId: input.clientId,
+    templateId: input.templateId,
+    status: "published",
+    lastAccessAt: now,
+    updatedAt: now,
+    views: 0,
+    downloads: 0,
+  };
+  mockProjects.push(project);
+  return project;
 }
