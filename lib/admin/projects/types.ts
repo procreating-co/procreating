@@ -1,4 +1,11 @@
-export type ProjectStatus = "online" | "development" | "paused";
+/**
+ * Espelha `ProjectStatus` de `lib/supabase/types/database.ts` — ver o diagrama de transições
+ * completo em `docs/project-creation.md`. Resumo: `creating` (transitório, durante o INSERT) →
+ * `draft` (config sendo preenchido, autosave) → `ready_for_preview` (já tem uma
+ * `project_versions`, pode ser revisado via `/preview/[id]`) → `published` (no ar) →
+ * `archived` (reversível, fora do ar).
+ */
+export type ProjectStatus = "creating" | "draft" | "ready_for_preview" | "published" | "archived";
 
 /**
  * Forma "achatada" pra UI do admin (cards, tabela) — não confundir com `ClientConfig`

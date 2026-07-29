@@ -2,15 +2,19 @@ import type { ProjectStatus } from "@/lib/admin/projects/types";
 import { cn } from "@/lib/utils";
 
 const STATUS_LABEL: Record<ProjectStatus, string> = {
-  online: "Online",
-  development: "Em desenvolvimento",
-  paused: "Pausado",
+  creating: "Criando",
+  draft: "Rascunho",
+  ready_for_preview: "Pronto p/ Preview",
+  published: "Publicado",
+  archived: "Arquivado",
 };
 
 const STATUS_CLASSES: Record<ProjectStatus, string> = {
-  online: "border-emerald-500/20 bg-emerald-500/10 text-emerald-400",
-  development: "border-amber-500/20 bg-amber-500/10 text-amber-400",
-  paused: "border-border bg-foreground/5 text-muted-foreground",
+  creating: "border-border bg-foreground/5 text-muted-foreground animate-pulse",
+  draft: "border-border bg-foreground/5 text-muted-foreground",
+  ready_for_preview: "border-sky-500/20 bg-sky-500/10 text-sky-400",
+  published: "border-emerald-500/20 bg-emerald-500/10 text-emerald-400",
+  archived: "border-border bg-foreground/5 text-muted-foreground/70",
 };
 
 export function ProjectStatusBadge({ status }: { status: ProjectStatus }) {
