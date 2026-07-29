@@ -22,10 +22,18 @@ ao lado de `registrySource`, sem exigir mudança em `app/p/[client]/**`.
 revisão 5 formalizou como **congelado**, mantido só pra Pascoal, nunca usado por projeto novo),
 os componentes de `components/landing|gallery|prospeccao/**`, as rotas em `app/p/[client]/`.
 
+## Schema real (SQL pronto, ainda não aplicado)
+
+`supabase/migrations/20260729000000_initial_schema.sql` — as 11 tabelas + a view
+`published_projects`, geradas direto dos tipos já congelados em `lib/supabase/types/
+database.ts`. RLS habilitado em toda tabela, sem policy nenhuma ainda (fail-closed — ver nota no
+topo do arquivo). Não inclui `previews` (fora do domínio congelado, de propósito) nem seed data.
+Ainda não foi rodado contra nenhum projeto Supabase real — cole no SQL Editor ou `supabase db
+push` quando o projeto existir.
+
 ## Checklist de migração (quando for a hora — não decidido, só documentado)
 
-1. Criar o schema real no Supabase seguindo `docs/project-creation.md` (schema consolidado,
-   revisão 5).
+1. Aplicar `supabase/migrations/20260729000000_initial_schema.sql` num projeto Supabase real.
 2. Escrever `lib/clients/sources/supabase-source.ts` satisfazendo `ClientDataProvider`
    (`lib/clients/provider.ts`) — consulta o Supabase, valida contra `ClientConfig`, devolve
    `null` se o slug não existir. Segue o mesmo padrão de `registry-source.ts` (adaptador puro,
