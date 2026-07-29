@@ -62,15 +62,18 @@ function AnimatedTitle({ lines }: { lines: [string, string] }) {
   );
 }
 
+/** Duração compartilhada por toda animação de entrada do bloco (parágrafo + números + rótulos),
+ *  para que tudo aparece junto, de forma fluida e padronizada. */
+const STATS_REVEAL_MS = 900;
+
 /** Contador em passos discretos, cada um com um leve "rolar" — como o marcador de um posto de gasolina. */
-function AnimatedNumber({ value, pad = 0, start, duration = 1700, linear = false, onDone }: { value: number; pad?: number; start: boolean; duration?: number; linear?: boolean; onDone?: () => void }) {
+function AnimatedNumber({ value, pad = 0, start, duration = STATS_REVEAL_MS }: { value: number; pad?: number; start: boolean; duration?: number }) {
   const [count, setCount] = useState(0);
 
   useEffect(() => {
     if (!start) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       setCount(value);
-      onDone?.();
       return;
     }
     const steps = Math.max(Math.min(value, 40), 1);
@@ -79,18 +82,14 @@ function AnimatedNumber({ value, pad = 0, start, duration = 1700, linear = false
     const tick = () => {
       step++;
       const progress = Math.min(step / steps, 1);
-      const eased = linear ? progress : 1 - Math.pow(1 - progress, 3);
+      const eased = 1 - Math.pow(1 - progress, 3);
       setCount(Math.round(value * eased));
-      if (step < steps) {
-        timeoutId = setTimeout(tick, duration / steps);
-      } else {
-        onDone?.();
-      }
+      if (step < steps) timeoutId = setTimeout(tick, duration / steps);
     };
     timeoutId = setTimeout(tick, duration / steps);
     return () => clearTimeout(timeoutId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [start, value, duration, linear]);
+  }, [start, value, duration]);
 
   return (
     <span key={count} className="animate-char-in inline-block">
@@ -109,8 +108,6 @@ export type HeroSectionProps = {
 export function HeroSection({ welcomeLines, backgroundVideo, paragraph, stats }: HeroSectionProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [statsVisible, setStatsVisible] = useState(false);
-  const [videosDone, setVideosDone] = useState(false);
-  const [photosDone, setPhotosDone] = useState(false);
   const statsRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -157,18 +154,19 @@ export function HeroSection({ welcomeLines, backgroundVideo, paragraph, stats }:
       </div>
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 z-[5] h-44 bg-gradient-to-b from-transparent via-black/55 to-background" />
       <div ref={statsRef} className={`absolute bottom-10 left-0 right-0 z-10 transition-all delay-500 duration-1000 sm:bottom-[57px] ${isVisible ? "translate-y-0 opacity-100" : "translate-y-5 opacity-0"}`}>
-        <div className="mx-auto flex max-w-[1400px] flex-col gap-4 px-6 sm:grid sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-baseline sm:gap-x-8 sm:gap-y-0 lg:gap-x-12 lg:pl-12 lg:pr-[88px]">
-          <p className="text-balance text-center font-display text-2xl font-light leading-snug tracking-tight sm:truncate sm:text-left sm:text-3xl sm:leading-none md:text-4xl">
-            {statsVisible && <span className="inline-block animate-wipe-breathe">{paragraph}</span>}
-          </p>
+        <div
+          className={`mx-auto flex max-w-[1400px] flex-col gap-4 px-6 transition-all ease-out sm:grid sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-baseline sm:gap-x-8 sm:gap-y-0 lg:gap-x-12 lg:pl-12 lg:pr-[88px] ${statsVisible ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"}`}
+          style={{ transitionDuration: `${STATS_REVEAL_MS}ms` }}
+        >
+          <p className="text-balance text-center font-display text-2xl font-light leading-snug tracking-tight sm:truncate sm:text-left sm:text-3xl sm:leading-none md:text-4xl">{paragraph}</p>
           <div className="flex items-start justify-center gap-8 sm:contents">
             <div className="flex shrink-0 flex-col items-center gap-1 text-center sm:flex-row sm:items-baseline sm:gap-2 sm:text-left">
-              <span className="font-display text-3xl leading-none text-[var(--client-accent)] sm:text-4xl"><AnimatedNumber value={stats.videos.count} pad={2} start={statsVisible} duration={3000} onDone={() => setVideosDone(true)} /></span>
-              <span className={`whitespace-nowrap text-xs leading-none text-white/50 transition-all duration-500 ease-out sm:text-sm ${videosDone ? "translate-x-0 opacity-100" : "translate-x-1 opacity-0"}`}>{stats.videos.label}</span>
+              <span className="font-display text-3xl leading-none text-[var(--client-accent)] sm:text-4xl"><AnimatedNumber value={stats.videos.count} pad={2} start={statsVisible} /></span>
+              <span className="whitespace-nowrap text-xs leading-none text-white/50 sm:text-sm">{stats.videos.label}</span>
             </div>
             <div className="flex shrink-0 flex-col items-center gap-1 text-center sm:flex-row sm:items-baseline sm:gap-2 sm:text-left">
-              <span className="font-display text-3xl leading-none text-[var(--client-accent)] sm:text-4xl"><AnimatedNumber value={stats.photos.count} start={statsVisible} duration={1300} linear onDone={() => setPhotosDone(true)} /></span>
-              <span className={`whitespace-nowrap text-xs leading-none text-white/50 transition-all duration-500 ease-out sm:text-sm ${photosDone ? "translate-x-0 opacity-100" : "translate-x-1 opacity-0"}`}>{stats.photos.label}</span>
+              <span className="font-display text-3xl leading-none text-[var(--client-accent)] sm:text-4xl"><AnimatedNumber value={stats.photos.count} start={statsVisible} /></span>
+              <span className="whitespace-nowrap text-xs leading-none text-white/50 sm:text-sm">{stats.photos.label}</span>
             </div>
           </div>
         </div>

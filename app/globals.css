@@ -167,25 +167,6 @@
     to { opacity: 1; transform: translate(-50%, 0) scale(1); }
   }
 
-  @keyframes fade-wipe-right {
-    from { clip-path: inset(0 100% 0 0); opacity: 0; }
-    to { clip-path: inset(0 0 0 0); opacity: 1; }
-  }
-
-  @keyframes shimmer-gold {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
-  }
-
-  .animate-wipe-breathe {
-    animation: fade-wipe-right 1100ms ease-out both, shimmer-gold 3500ms linear 1100ms infinite;
-    background-image: linear-gradient(90deg, #8a6d3b 0%, #d4af6a 25%, #f5dfa8 50%, #d4af6a 75%, #8a6d3b 100%);
-    background-size: 200% 100%;
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
-
   @keyframes hint-pulse {
     0%, 100% { transform: scale(1); }
     20% { transform: scale(1.08); }
