@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { ChevronRight, Clock, Download, ExternalLink, Eye, SquarePen } from "lucide-react";
+import { ChevronRight, Clock, Download, ExternalLink, Eye, Link2, SquarePen } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { ProjectStatusBadge } from "@/components/admin/dashboard/project-status-badge";
 import { MetricCard } from "@/components/admin/dashboard/metric-card";
 import { getMockProjectById } from "@/lib/admin/projects/mock-data";
 import { getMockClientById } from "@/lib/admin/clients/mock-data";
 import { getMockTemplateById } from "@/lib/admin/templates/mock-data";
+import { getMockPreviewsByProject, isPreviewUsable } from "@/lib/admin/previews/mock-data";
+import { generatePreviewAction, revokePreviewAction } from "@/app/admin/(protected)/projetos/[id]/preview-actions";
 import { formatDateTime, formatNumber } from "@/lib/admin/format";
 
 type Params = { id: string };
@@ -28,6 +31,7 @@ export default async function AdminProjetoDetalhePage({ params }: { params: Prom
 
   const client = getMockClientById(project.clientId);
   const template = getMockTemplateById(project.templateId);
+  const previews = getMockPreviewsByProject(project.id);
 
   return (
     <main className="mx-auto max-w-[1000px] px-6 py-10 lg:px-10">
@@ -103,6 +107,69 @@ export default async function AdminProjetoDetalhePage({ params }: { params: Prom
           </CardContent>
         </Card>
       )}
+
+      <Card className="mt-6 border-border/60 bg-card/40">
+        <CardHeader>
+          <CardTitle>Preview</CardTitle>
+          <CardDescription>
+            Links de pré-visualização — mock, válidos por 14 dias, revogáveis a qualquer momento. Não é o site público
+            de verdade.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {previews.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhum link de preview gerado ainda.</p>
+          ) : (
+            <ul className="mb-4 flex flex-col gap-2">
+              {previews.map((preview) => {
+                const usable = isPreviewUsable(preview);
+                return (
+                  <li
+                    key={preview.token}
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/60 px-4 py-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate font-mono text-xs">/admin/preview/{preview.token}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {usable ? "Ativo" : preview.status === "revoked" ? "Revogado" : "Expirado"} · gerado por{" "}
+                        {preview.createdBy} em {formatDateTime(preview.createdAt)} · expira em{" "}
+                        {formatDateTime(preview.expiresAt)}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 gap-2">
+                      {usable && (
+                        <a
+                          href={`/admin/preview/${preview.token}`}
+                          className="inline-flex items-center gap-1.5 rounded-md border border-border/60 px-3 py-1.5 text-xs transition-colors hover:bg-foreground/5"
+                        >
+                          <Link2 className="size-3.5" />
+                          Abrir
+                        </a>
+                      )}
+                      {preview.status === "active" && (
+                        <form action={revokePreviewAction.bind(null, preview.token, project.id)}>
+                          <button
+                            type="submit"
+                            className="rounded-md border border-border/60 px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                          >
+                            Revogar
+                          </button>
+                        </form>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          <form action={generatePreviewAction.bind(null, project.id)}>
+            <Button type="submit" variant="outline" size="sm" className="gap-2">
+              <Link2 className="size-4" />
+              Gerar link de Preview
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
 
       <div className="mt-6 flex gap-2">
         <a
