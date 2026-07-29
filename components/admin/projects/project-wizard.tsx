@@ -4,7 +4,6 @@ import { useState } from "react";
 import type { AdminClient } from "@/lib/admin/clients/types";
 import type { AdminTemplate } from "@/lib/admin/templates/types";
 import { createInitialWizardData, type WizardData } from "@/lib/admin/projects/wizard-types";
-import { createProjectAction } from "@/app/admin/(protected)/projetos/novo/actions";
 import { WizardStepper } from "@/components/admin/projects/wizard-stepper";
 import { WizardPublishing, type PublishingPhase } from "@/components/admin/projects/wizard-publishing";
 import { StepClient } from "@/components/admin/projects/wizard-steps/step-client";
@@ -84,6 +83,12 @@ export function ProjectWizard({
     setStepIndex(index);
   }
 
+  /**
+   * Etapa 4 (Wizard) é só interface — nada é salvo aqui. A sequência abaixo é puramente uma
+   * animação client-side (sem chamar Server Action nenhuma, sem tocar `mockProjects`/
+   * `mockClients`); a gravação de verdade (ainda mock, mas persistida) volta na Etapa 7
+   * (Publicação).
+   */
   async function startPublishing() {
     setPhase("publishing");
     setError(null);
@@ -92,24 +97,9 @@ export function ProjectWizard({
     setPublishIndex(8);
     await sleep(500);
     setPublishIndex(9);
-
-    const result = await createProjectAction({
-      clientMode: data.clientMode,
-      clientId: data.clientId,
-      newClientName: data.newClientName,
-      projectName: data.projectName,
-      templateId: data.templateId,
-    });
-
-    if (!result.ok) {
-      setPhase("failed");
-      setError(result.error);
-      return;
-    }
-
-    await sleep(400);
+    await sleep(500);
     setPublishIndex(10);
-    setCreatedProject({ id: result.projectId, name: data.projectName, slug: data.slug });
+    setCreatedProject({ id: data.slug, name: data.projectName, slug: data.slug });
     setPhase("done");
   }
 

@@ -13,9 +13,10 @@ const PUBLISH_SUBSTEPS = [
 
 /**
  * Painel dos últimos 4 passos do Wizard (Draft/Preview/Deploy/Publicado, `docs/
- * project-creation.md` seção 19) — sequência automática, sem input do usuário. Nesta fase é
- * simulado (delays artificiais + a Server Action `createProjectAction`); quando Supabase/R2/
- * deploy real existirem, os mesmos 4 passos passam a refletir progresso de verdade.
+ * project-creation.md` seção 19) — sequência automática, sem input do usuário. Etapa 4: só
+ * interface, puramente uma animação client-side (delays artificiais, sem Server Action, sem
+ * gravar nada) — a gravação mock volta na Etapa 7 (Publicação); deploy/analytics de verdade só
+ * depois de Supabase/R2 conectados.
  */
 export function WizardPublishing({
   phase,
@@ -36,15 +37,14 @@ export function WizardPublishing({
         <div className="rounded-full border border-emerald-500/30 bg-emerald-500/10 p-3">
           <Check className="size-6 text-emerald-400" />
         </div>
-        <h2 className="font-display text-2xl">Projeto publicado</h2>
+        <h2 className="font-display text-2xl">Fim do fluxo</h2>
         <p className="max-w-sm text-sm text-muted-foreground">
-          &quot;{project.name}&quot; foi criado com sucesso. Como o Supabase e o Cloudflare R2 ainda não estão conectados
-          (FASES 3–4 do roadmap), isto é uma simulação em memória — <code>/p/{project.slug}</code> ainda não existe de
-          verdade.
+          Esta é a demonstração completa da interface do Wizard para &quot;{project.name}&quot; — <b>nada foi salvo</b>.
+          A gravação mock chega na Etapa 7 (Publicação); <code>/p/{project.slug}</code> não existe de verdade.
         </p>
         <div className="mt-2 flex gap-2">
           <Button asChild>
-            <Link href={`/admin/projetos/${project.id}`}>Ver projeto</Link>
+            <Link href="/admin/projetos/novo">Recomeçar</Link>
           </Button>
           <Button variant="outline" asChild>
             <Link href="/admin/projetos">Voltar pra lista</Link>

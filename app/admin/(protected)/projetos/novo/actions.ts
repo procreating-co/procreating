@@ -19,6 +19,10 @@ export type CreateProjectResult = { ok: true; projectId: string } | { ok: false;
  * `createMockClient`/`createMockProject`, nada gravado em banco real (Supabase/R2 ainda não
  * conectados, ver `docs/project-creation.md`). Revalida server-side o que o client já validou,
  * porque Server Actions são uma superfície pública — nunca confiar só na validação do form.
+ *
+ * **Não chamada por `ProjectWizard` na Etapa 4** (Wizard = só interface, "sem salvar nada",
+ * ver `components/admin/projects/project-wizard.tsx`) — fica pronta aqui, sem uso, até a
+ * Etapa 7 (Publicação) religar essa chamada.
  */
 export async function createProjectAction(input: CreateProjectInput): Promise<CreateProjectResult> {
   const projectName = input.projectName.trim();
