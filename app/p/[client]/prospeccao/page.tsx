@@ -4,7 +4,7 @@ import { getClientConfig } from "@/lib/clients";
 
 export default async function ClientProspeccaoPage({ params }: { params: Promise<{ client: string }> }) {
   const { client } = await params;
-  const config = getClientConfig(client);
+  const config = await getClientConfig(client);
   if (!config || !config.prospeccao) notFound();
 
   return (

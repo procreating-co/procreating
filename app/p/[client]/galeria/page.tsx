@@ -5,8 +5,7 @@ import { getClientConfig, getClientGalleryFolderDefs } from "@/lib/clients";
 
 export default async function ClientGaleriaPage({ params }: { params: Promise<{ client: string }> }) {
   const { client } = await params;
-  const config = getClientConfig(client);
-  const folderDefs = getClientGalleryFolderDefs(client);
+  const [config, folderDefs] = await Promise.all([getClientConfig(client), getClientGalleryFolderDefs(client)]);
   if (!config || !folderDefs) notFound();
 
   const folders = await getGalleryFolders(client, folderDefs);

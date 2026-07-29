@@ -9,8 +9,7 @@ import { getClientConfig, getClientVideos } from "@/lib/clients";
 
 export default async function ClientHome({ params }: { params: Promise<{ client: string }> }) {
   const { client } = await params;
-  const config = getClientConfig(client);
-  const videos = getClientVideos(client);
+  const [config, videos] = await Promise.all([getClientConfig(client), getClientVideos(client)]);
   if (!config || !videos) notFound();
 
   const homeHref = `/p/${client}`;
