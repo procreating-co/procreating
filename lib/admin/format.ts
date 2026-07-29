@@ -14,6 +14,19 @@ export function formatNumber(value: number): string {
   return new Intl.NumberFormat("pt-BR").format(value);
 }
 
+/** Formata bytes num tamanho legível (ex.: 1536 -> "1,5 KB"). */
+export function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  const units = ["KB", "MB", "GB"];
+  let value = bytes / 1024;
+  let unitIndex = 0;
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024;
+    unitIndex += 1;
+  }
+  return `${value.toFixed(1).replace(".", ",")} ${units[unitIndex]}`;
+}
+
 /** Sem acento, minúsculo, `-` no lugar de espaço/símbolo — mesma convenção de `data/<slug>/`. */
 export function slugify(value: string): string {
   return value
