@@ -1,807 +1,882 @@
 # Arquitetura da plataforma Procreating (Wizard → Draft → Preview → Deploy → Produção)
 
-> **Revisão 4 — versão definitiva desta fase.** Revisão 1 propunha resolução de dados dentro
-> do registry e um fluxo todo em memória do navegador. Revisão 2 corrigiu isso com
-> `ClientResolver`, Draft persistido, Versionamento e Assets aditivos. Revisão 3 introduziu
-> Deployment como entidade própria, Preview como tabela completa, Template versioning, ciclo de
-> vida de Assets e uma primeira análise crítica do acoplamento a `ClientConfig`. **Esta revisão
-> 4 é a consolidação definitiva**: fecha as 4 decisões que a revisão 3 deixou como
-> recomendação (`ProjectConfig`/Blocks, Assets unificado, Deployments, expiração de Draft) e as
-> torna código real — `lib/clients/resolver.ts`, `lib/platform/{blocks,capabilities,theme,
-> asset-manifest}.ts`, `lib/supabase/types/database.ts` reescrito. Acrescenta Asset Manifest,
-> Themes/Design Tokens e Capabilities como conceitos formais, e fecha o Wizard em 11 passos.
-> Preview continua **documentado apenas** (pedido explícito) — nenhum tipo `Preview`/`previews`
-> foi criado. Nada em `Pascoal`, `Galeria`, `Prospecção`, no template atual ou nas rotas
-> públicas mudou — todo o código novo desta revisão vive isolado em `lib/clients/resolver.ts`,
-> `lib/clients/sources/registry-source.ts`, `lib/platform/**`, `lib/supabase/**` e nos tipos
-> mockados do admin (`lib/admin/projects/**`, `components/admin/dashboard/
-> project-status-badge.tsx`).
+> **Revisão 5 — nível enterprise, última revisão antes da implementação definitiva do Wizard.**
+> Puramente documental: nenhuma rota mudou, nenhum arquivo de código foi tocado, Pascoal/
+> Galeria/Prospecção continuam 100% intocados. Revisão 1 propunha resolução de dados dentro do
+> registry. Revisão 2 introduziu `ClientResolver`, Draft persistido, Versionamento, Assets
+> aditivos. Revisão 3 separou Deployment de Version, formalizou Preview como tabela, analisou o
+> acoplamento a `ClientConfig`. Revisão 4 consolidou tudo em código real — `ClientResolver`
+> ligado, Assets unificados, `ProjectConfig`/`Block`, Themes/Tokens, Capabilities, Wizard de 11
+> passos funcional (mock). **Esta revisão 5 muda a visão de fundo**: a plataforma deixa de ser
+> pensada como "gerador de páginas de posicionamento" e passa a ser desenhada como o **sistema
+> operacional interno da Procreating** — capaz de sustentar PosicionamentoPRO, Landing Pages,
+> Eventos, Cursos, Áreas de Membros, Portais, Sites Institucionais, Microsites e produtos ainda
+> não definidos, sem retrabalho estrutural em nenhum deles.
+>
+> Isso força a superação de decisões da revisão 4 que eram corretas para "um projeto = uma
+> página" mas não escalam para "um projeto = N páginas independentes, cada uma com sua própria
+> composição". A mudança mais profunda é a seção 1 (Page Engine): `ProjectConfig.blocks: Block[]`
+> (lista plana, revisão 4) é **superada** por `ProjectConfig.pages: Page[]` (revisão 5). Como
+> nenhum projeto real foi escrito nesse formato ainda (Wizard continua mock), a troca custa zero
+> migração — mesmo raciocínio já usado na revisão 4 para justificar o modelo `Asset` unificado.
 
 ---
 
-## Mapa geral — o que é código real nesta revisão vs. só documentado
+## Mapa de leitura — o que muda, o que fica
 
-| Seção do pedido | Está implementado (código real, committed) | Está só documentado |
+| Conceito | Revisão 4 | Revisão 5 |
 |---|---|---|
-| 1. Client Resolver | ✅ `lib/clients/resolver.ts`, `lib/clients/sources/registry-source.ts` | — |
-| 2. Draft | Tipos (`ProjectStatus`, `Project.expires_at`) | Política de expiração completa |
-| 3. Preview | — (pedido explícito: não implementar) | ✅ Estrutura completa |
-| 4. Deployments | Tipos (`Deployment`, `DeploymentStatus`) | Fluxo, rollback, retry |
-| 5. Template | Tipos (`Template.version`/`schema_version`) | Relação Template→Instância |
-| 6. Versionamento | Tipos (`ProjectVersion`) | Rollback/preview-by-version futuros |
-| 7. Assets | ✅ `Asset`/`AssetType`/`AssetStatus` unificados em `database.ts` | Ciclo de vida completo |
-| 8. Asset Manifest | ✅ `lib/platform/asset-manifest.ts` (`buildAssetManifest`, função pura e real) | Convenção de `category` |
-| 9. Blocks | ✅ `lib/platform/blocks.ts` (`BlockType`, `Block`, `ProjectConfig`) | Montador/adaptador futuro |
-| 10. Themes | ✅ `lib/platform/theme.ts` (`ProjectTheme`) | — |
-| 11. Design Tokens | ✅ `lib/platform/theme.ts` (`DesignTokens`) | Consumo futuro pelos componentes |
-| 12. Capabilities | ✅ `lib/platform/capabilities.ts` (`CAPABILITY_CATALOG`), tipos em `database.ts` | — |
-| 13. Eventos | ✅ `Event`/`EventType` em `database.ts` | Separação Events vs. Analytics |
-| 14. Analytics | Tipos (`Analytics`, `duration_seconds`) | Arquitetura de rollup/agregação |
-| 15. Paginação | — | ✅ Cursor pagination |
-| 16. Background Jobs | — | ✅ Lista de jobs + `job_runs` |
-| 17. Pipeline de Upload | — | ✅ Fluxo presigned URL |
-| 18. Escalabilidade | — | ✅ Tabela 10→5000 clientes |
-| 19. Wizard | `PROJECT_WIZARD_STEPS` (11 passos, só dado — pedido explícito: não implementar UI) | ✅ O que acontece em cada passo |
-| 20. Roadmap | — | ✅ 10 fases |
+| Composição de página | `Project → Block[]` (lista plana) | `Project → Page[] → Section[] → Block[] → Component` |
+| Quem renderiza | Implícito, futuro "montador" | `Render Engine` formal: Project Resolver → Page Resolver → Renderer |
+| Template | Define `blocks: string[]` | Define Pages, Blocks, Capabilities, Theme, Tokens, estrutura inicial |
+| Capabilities | Só no Projeto | Template define padrão → Projeto só habilita/desabilita/sobrescreve |
+| `ProjectConfig` | `{ metadata, theme, blocks }` | `{ metadata, theme, pages }` — `ClientConfig` congelado, só legado |
+| Asset | Unificado, sem variantes | Unificado **+ Variants** (thumbnail/preview/webp/mobile/compressed/poster) |
+| Agrupamento de mídia | `AssetManifest` a partir de `category` (string livre) | `AssetCollection` (entidade) — Manifest passa a ser **derivado** da Collection |
+| Storage | `StorageProvider` (só R2 em mente) | `StorageDriver`, mesmo contrato, documentado como plugável (R2/S3/Supabase/Local) |
+| Resolução de dados | Só `ClientResolver` | `Resolver Layer` — padrão generalizado pra Project/Template/Asset/Page/Analytics/Deployment |
+| Analytics | Tabela de eventos direta | Event Sourcing — `AnalyticsEvent` bruto, rollups **derivados**, nunca autoritativos |
+| Eventos | `Event` (audit) vs `Analytics` (comportamento) | 3 vias: Audit / System / Analytics, cada um com dono e retenção próprios |
+| Deployment | Sem noção de destino | `DeploymentTarget` (production/preview/internal/client_review/staging/qa/sandbox) |
+| Jobs | Lista de jobs isolados | `Workflow` — sequência nomeada de `Job`s com dependência entre passos |
+| Theme | Tokens de cor + tipografia básica | Design System completo — spacing/typography/radius/elevation/motion/ícones |
+| Extensibilidade | Nenhuma prevista | `Plugins` — módulos registram Pages/Blocks/Capabilities/Rotas/Assets sem tocar o núcleo |
+| Tenancy | Implícito (1 processo, 1 admin) | Multi-tenancy documentada — isolamento por client_id em toda entidade |
+| Cache | Não desenhado | Estratégia formal, vive dentro do Resolver Layer |
+| Segurança | Preview token só | RBAC, auditoria, tokens temporários (preview/download/upload), rate limit, anti-enumeração |
 
 ---
 
-## 1. Client Resolver
+## 1. Page Engine
+
+### O problema que a revisão 4 não resolvia
+
+`ProjectConfig.blocks: Block[]` (revisão 4) modela um projeto como **uma única página** composta
+de blocos. Isso é exatamente PosicionamentoPRO (uma home só). Mas Downloads, Prospecção, uma
+Área de Membros — qualquer produto com mais de uma tela — não cabe nesse formato sem um campo
+`page` inventado ad-hoc em cada bloco, o que é exatamente o tipo de "inflar o formato pra cada
+caso novo" que a revisão 4 já tinha identificado como o erro de `ClientConfig`.
+
+### A hierarquia definitiva
+
+```
+Projeto
+ └─ Página (N por projeto, independentes)
+     └─ Seção (região nomeada da página — Hero, CTA, Downloads, Script...)
+         └─ Bloco (unidade de conteúdo configurado dentro da seção)
+             └─ Componente (implementação React que renderiza o bloco — não é dado, é código)
+```
+
+**Página** é a unidade de rota dentro do projeto — Home, Downloads, Prospecção são páginas
+independentes, cada uma com seu próprio conjunto de seções, sem nenhuma dependência entre si.
+**Seção** é uma região nomeada da página (`type: "hero" | "downloads" | "script" | ...`) —
+generaliza o que a revisão 4 chamava de `Block` diretamente no nível do Projeto. **Bloco** é a
+unidade configurável de conteúdo dentro de uma seção — é aqui que os `*BlockData` já desenhados
+na revisão 4 (`HeroBlockData`, `CtaBlockData`, etc.) continuam existindo, só que aninhados um
+nível mais fundo. **Componente** não é uma entidade de dado — é a implementação (`HeroSection`,
+`CtaButton`) que o Render Engine (seção 2) escolhe pra desenhar um Bloco de um dado `type`.
 
 ```ts
-// lib/clients/resolver.ts
-export class ClientResolver implements ClientDataProvider {
-  constructor(private readonly sources: ClientDataProvider[]) {}
-  async getClientConfig(slug: string) { /* tenta cada source em ordem, primeiro não-null vence */ }
-  async getClientVideos(slug: string) { /* idem */ }
-  async getClientGalleryFolderDefs(slug: string) { /* idem */ }
-  async getRegisteredClientSlugs() { /* união de todas as sources */ }
-}
-```
-
-`ClientResolver` é a única camada que sabe que existe mais de uma fonte de dados possível
-(Registry hoje; Supabase, Cache, API amanhã). É construído com uma **lista ordenada** de
-`ClientDataProvider` — cada fonte é tentada em sequência, a primeira que responder não-null
-vence. Rotas (`app/p/[client]/**`) e qualquer código futuro nunca falam com Registry ou
-Supabase diretamente — falam com o `ClientResolver`, ou (hoje, ainda) com `lib/clients/index.ts`
-que por sua vez usa uma única fonte.
-
-**`registry.ts` deixou de ter qualquer responsabilidade de fallback** — essa era a inconsistência
-da revisão 2/3 que este pedido corrigiu explicitamente. Em vez de o `ClientResolver` conhecer
-`registry.ts` por dentro, existe um adaptador dedicado:
-
-```ts
-// lib/clients/sources/registry-source.ts
-export const registrySource: ClientDataProvider = {
-  getClientConfig: (slug) => getClientEntry(slug)?.config ?? null,
-  // ...
-};
-```
-
-`registry.ts` (arquivo protegido, intocado) não sabe que `ClientResolver` existe. Amanhã, uma
-`supabaseSource: ClientDataProvider` nasce do mesmo jeito, e o resolver vira
-`new ClientResolver([registrySource, supabaseSource])` — zero mudança em `registry.ts` ou em
-qualquer rota pública.
-
-### Por que ainda não está ligado a `lib/clients/index.ts`
-
-`getClientConfig`/`getClientVideos`/etc. em `lib/clients/index.ts` são hoje **síncronos** (leem
-de um objeto em memória). `ClientResolver` é assíncrono por natureza (uma fonte futura pode ser
-uma query Supabase). Trocar `index.ts` pra usar o resolver tornaria essas funções `Promise`-
-retornando, o que exige adicionar `await` em cada call site — e call sites incluem
-`app/p/[client]/**`, uma rota pública protegida por regra explícita desta rodada. Essa troca é
-mecânica e segura, mas **precisa de aprovação própria**, por tocar (ainda que só com um
-`await`) um arquivo de rota pública. Fica marcada como próximo passo natural, não decidida aqui.
-
-```mermaid
-flowchart LR
-  Route["app/p/[client]/page.tsx"] -->|"hoje"| Index["lib/clients/index.ts\n(síncrono)"]
-  Index --> Registry["lib/clients/registry.ts"]
-  Resolver["ClientResolver\n(pronto, não ligado)"] --> RegSource["registry-source.ts"] --> Registry
-  Resolver --> SupaSource["supabase-source.ts\n(futuro)"]
-  style Resolver stroke-dasharray: 5 5
-  style SupaSource stroke-dasharray: 5 5
-```
-
----
-
-## 2. Draft — consolidado, sem Draft Session
-
-**Decisão final (revisão 3 recomendou, revisão 4 confirma explicitamente): não usar Draft
-Session.** O projeto nasce cedo, no wizard passo 2 (nome + slug confirmados) — não existe uma
-entidade efêmera intermediária. Ver a comparação completa A vs. B na revisão 3 (mantida por
-referência; a decisão não mudou, só deixou de ser "recomendação" para ser "definitiva").
-
-```mermaid
-stateDiagram-v2
-  [*] --> creating: INSERT inicial\n(passo 2 do wizard)
-  creating --> draft: linha confirmada,\nautosave começa
-  draft --> ready_for_preview: primeira\nproject_versions criada
-  ready_for_preview --> published: primeiro\ndeployment succeeded
-  published --> archived: arquivamento manual
-  archived --> published: reativação
-  draft --> [*]: expirado e limpo\n(job diário)
-```
-
-### Política de expiração (dois níveis, definitiva)
-
-- **Sem nenhuma `project_versions` ainda** (`status = 'draft'` ou `'creating'`):
-  `expires_at = created_at + 7 dias`, renovado a cada autosave.
-- **Com pelo menos uma versão** (`status = 'ready_for_preview'` em diante, ou qualquer draft que
-  já gerou uma versão): `expires_at = agora + 60 dias` de inatividade.
-- **Publicado ou arquivado**: `expires_at = null`, nunca expira.
-- Job de limpeza diário (seção 16): `DELETE FROM projects WHERE expires_at < now()` — cascade
-  cuida de `project_capabilities`/`assets`/`project_versions`/`deployments` órfãos.
-
-### `published_projects` — a VIEW pedida
-
-```sql
-create view published_projects as
-select * from projects where status in ('published', 'archived');
-```
-
-Já modelada em `Database.public.Views.published_projects` (`lib/supabase/types/database.ts`).
-Todo dashboard, contagem ("cliente tem N projetos") ou listagem que não deveria enxergar
-rascunho consulta essa view por padrão — a tabela `projects` crua fica reservada pra quem
-precisa ver rascunhos de propósito (o próprio Wizard, "meus rascunhos" no admin).
-
----
-
-## 3. Preview — estrutura completa (documentado apenas, sem código)
-
-> Por pedido explícito desta rodada, esta seção **não gerou nenhum tipo ou tabela** —
-> `Preview`/`previews` não existe em `lib/supabase/types/database.ts`. O desenho abaixo é o
-> mesmo já validado na revisão 3, reafirmado aqui como a estrutura a implementar quando a vez
-> chegar.
-
-```sql
-create table previews (
-  id uuid primary key default gen_random_uuid(),
-  project_id uuid not null references projects(id) on delete cascade,
-  version_id uuid references project_versions(id),  -- null = sempre a versão corrente
-  preview_token text not null unique,
-  status text not null default 'active' check (status in ('active', 'revoked', 'expired')),
-  expires_at timestamptz not null,
-  created_by uuid not null references auth.users(id),
-  created_at timestamptz not null default now()
-);
-```
-
-**Campos exigidos pelo pedido, todos presentes**: `previewToken`, `expiresAt`, `createdBy`,
-`createdAt`, `versionId`, `projectId`, `status`.
-
-- **Múltiplos previews por projeto**: natural — `project_id` se repete; um preview "interno"
-  (expira em 1 dia) e um "pro cliente" (expira em 14 dias) coexistem.
-- **Aprovação do cliente / revisão da equipe**: modelado via `status` (`active`/`revoked`) mais
-  metadado futuro (`approved_at`/`approved_by`, não incluído no v1 mínimo acima, mas encaixa sem
-  mudança estrutural — só colunas a mais).
-- **Histórico**: a tabela em si já é o histórico — nunca se apaga uma linha, só se revoga/expira.
-- **Token**: alta entropia (32 bytes, base64url), nunca sequencial, comparação em tempo
-  constante, nunca logado em analytics.
-- **Renderização**: `app/preview/[id]/page.tsx` (arquivo novo, fora de `app/p/[client]/**`),
-  reaproveitando os mesmos componentes de seção — sem tocar a rota pública.
-
----
-
-## 4. Deployments — entidade própria, separada de Version
-
-```ts
-// lib/supabase/types/database.ts
-export type DeploymentStatus = "pending" | "in_progress" | "succeeded" | "failed";
-
-export type Deployment = {
+// Documentação — não é lib/platform/blocks.ts ainda; ver "Migração" no fim desta seção.
+type ProjectPage = {
   id: string;
-  project_id: string;
-  version_id: string;
-  status: DeploymentStatus;
-  triggered_by: string | null;  // null = sistema (retry automático)
-  error_message: string | null;
-  started_at: string;
-  finished_at: string | null;
+  projectId: string;
+  slug: string;              // "", "downloads", "prospeccao" — "" = home do projeto
+  title: string;
+  sections: PageSection[];   // ordem da lista = ordem de exibição
 };
-```
 
-```mermaid
-erDiagram
-  PROJECT ||--o{ PROJECT_VERSION : "tem N versões (append-only)"
-  PROJECT_VERSION ||--o{ DEPLOYMENT : "pode ser implantada N vezes"
-  PROJECT ||--o| DEPLOYMENT : "current_deployment_id aponta pra 1"
-```
-
-`ProjectVersion` = **o quê** (snapshot imutável de conteúdo, `INSERT` quando o config muda).
-`Deployment` = **quando/se funcionou** (`INSERT` toda vez que se tenta pôr uma versão no ar —
-pode coincidir com a criação da versão ou não). Essa separação é o que permite, sem lógica
-especial:
-
-- **Rollback**: novo `Deployment` apontando pra um `version_id` já existente e mais antigo.
-- **Múltiplos deploys da mesma versão**: `version_id` se repete livremente entre linhas de
-  `deployments` — o histórico mostra "essa versão foi implantada 3 vezes, 2 falharam".
-- **Falha e retry**: `status = 'failed'` fica registrado; "tentar de novo" cria um **novo**
-  `Deployment` (idempotente), nunca reescreve o antigo. `projects.current_deployment_id` só
-  avança quando `status = 'succeeded'`.
-- **Histórico completo**: `deployments` é a linha do tempo definitiva de "o que esteve no ar,
-  quando" — mais preciso que reconstruir a partir de `created_at` de versões (que só diz quando
-  o conteúdo foi escrito, não publicado).
-
----
-
-## 5. Template — consolidado: Template → Instância → Projeto → Cliente
-
-```mermaid
-flowchart LR
-  Template["Template\n(molde, ex.: PosicionamentoPRO)"] -->|"instancia em"| Project["Project\n(cópia independente)"]
-  Project -->|"pertence a"| Client["Client\n(Pascoal Bombas)"]
-```
-
-`Template.blocks: string[]` declara **quais** `BlockType` (seção 9) esse template usa por
-padrão. Ao criar um `Project` a partir de um `Template`, o `config` inicial é uma **cópia**
-desses blocos com dados reais preenchidos pelo wizard — nunca uma referência viva. A partir
-desse instante, o Template deixa de controlar aquele Project: mudar o Template depois (subir
-`Template.version`) não afeta nenhum projeto já criado, só instanciações futuras.
-
-```ts
-export type Template = {
-  id: string; slug: string; name: string; description: string;
-  blocks: string[];
-  version: number;         // conteúdo/blocos padrão mudou
-  schema_version: number;  // a FORMA do config mudou (raro, mais sério)
-  created_at: string; updated_at: string;
-};
-```
-
-`schema_version` existe pra um cenário específico: se o *shape* do config precisar mudar de
-verdade (campo obrigatório novo/renomeado), a camada de leitura normaliza config antigo via uma
-função `normalizeConfig(config, schemaVersion)` por versão — não uma reescrita de dados em
-massa. Reservado, não implementado.
-
----
-
-## 6. Versionamento — `project_versions`
-
-```ts
-export type ProjectVersion = {
+type PageSection = {
   id: string;
-  project_id: string;
-  config: Record<string, unknown>;
-  label: string | null;
-  created_by: string;
-  created_at: string;
-};
-```
-
-**Append-only** — nunca há `UPDATE`, só `INSERT`. `Project.current_version_id` aponta pra qual é
-a corrente (nullable — `null` até a primeira versão existir, o que também é o gatilho de
-`draft → ready_for_preview`). Prepara, sem implementar agora:
-
-- **Rollback**: apontar `current_version_id` (ou, via Deployment, `current_deployment_id`) pra
-  uma versão antiga — zero lógica nova, é o mesmo fluxo de qualquer deploy.
-- **Preview por versão**: `previews.version_id` (seção 3) já referencia `project_versions.id`.
-- **Histórico completo**: `SELECT * FROM project_versions WHERE project_id = $1 ORDER BY
-  created_at` já é o diff completo de todo conteúdo que o projeto já teve.
-
----
-
-## 7. Assets — modelo unificado (mudança definitiva, substitui `videos`/`gallery_files`)
-
-Decisão desta rodada, explicitamente overturning a recomendação "aditivo" da revisão 3: o schema
-**nasce** com um único conceito de mídia, sem tabelas por tipo.
-
-```ts
-export type AssetType = "PHOTO" | "VIDEO" | "LOGO" | "PDF" | "DOCUMENT" | "ZIP" | "FILE" | "OTHER";
-export type AssetStatus = "created" | "uploading" | "uploaded" | "processing" | "ready" | "archived" | "deleted" | "failed";
-
-export type Asset = {
-  id: string; project_id: string;
-  type: AssetType;
-  category: string;               // chave de agrupamento — ver Asset Manifest, seção 8
-  label: string; key: string; url: string;
-  metadata: Record<string, unknown>;  // específico por tipo (format/duration pra vídeo etc.)
-  status: AssetStatus;
-  sort_order: number;
-  size_bytes: number | null;
-  created_by: string; created_at: string;
-};
-```
-
-**Por que isso não é migração**: nenhum dos tipos antigos (`Video`, `GalleryFolder`,
-`GalleryFile`, dentro de `lib/supabase/types/database.ts`) jamais foi lido por código real — são
-puro contrato, sem tabela criada, sem dado gravado. Trocar o tipo custa zero. Extensibilidade:
-um novo `AssetType` (ex.: `AUDIO`, pra um Curso futuro) é um valor a mais no union — nenhuma
-tabela nova, nenhuma migração, nenhum componente a alterar.
-
-### Ciclo de vida
-
-```mermaid
-stateDiagram-v2
-  [*] --> created: URL de upload gerada,\nlinha reservada
-  created --> uploading: navegador começa o PUT
-  uploading --> uploaded: PUT concluído,\nservidor confirma (HEAD no R2)
-  uploading --> failed: rede caiu / abandonado
-  uploaded --> processing: tipo precisa\npós-processamento
-  uploaded --> ready: não precisa\nprocessamento
-  processing --> ready: processamento OK
-  processing --> failed: falhou (retry,\ndepois manual)
-  ready --> archived: removido do projeto\n(mas versão antiga referencia)
-  archived --> ready: restaurado
-  archived --> deleted: expurgo definitivo\n(tombstone, deleted_at)
-  failed --> created: nova tentativa
-```
-
-- `created`: reservado no instante em que a presigned URL é gerada — rastro pro job de limpeza
-  de órfãos mesmo se o upload nunca acontecer.
-- `uploaded`: **nunca confiar só no navegador** — Server Action confirma via `HEAD` no R2.
-- `ready`: único estado em que um asset pode aparecer no Asset Manifest (seção 8) e ser
-  referenciado por um projeto publicado.
-- `archived` (não `deleted` direto): `project_versions` guarda snapshots imutáveis que podem
-  referenciar um asset "removido" da versão atual — apagar o arquivo quebraria a integridade de
-  uma visualização de versão antiga.
-- `deleted`: expurgo real (bytes apagados do R2); linha vira tombstone, não some do banco —
-  mantém `events` coerente ("asset X apagado em Y por Z") mesmo depois do arquivo sumir.
-
-**Pascoal nunca entra nessa conversa** — arquivo local, filesystem, fora do alcance de qualquer
-schema Supabase, pra sempre.
-
----
-
-## 8. Asset Manifest — novo conceito, implementado
-
-```ts
-// lib/platform/asset-manifest.ts
-export type AssetManifest = {
-  hero: Asset | null;
-  logo: Asset | null;
-  ogImage: Asset | null;
-  photos: Record<string, Asset[]>;   // categoria (ex.: "equipe") → lista
-  videos: { social: Asset[]; acquisition: Asset | null; presentation: Asset | null };
-  pdfs: Asset[]; documents: Asset[]; files: Asset[];
+  pageId: string;
+  type: string;               // "hero" | "downloads" | "script" | "checklist" | "crm" | ...
+  order: number;
+  blocks: Block[];             // 1+ blocos dentro da seção
 };
 
-export function buildAssetManifest(assets: Asset[]): AssetManifest { /* pura, real, sem I/O */ }
+// Block continua com a mesma forma desenhada na revisão 4 (BlockType, BlockDataByType),
+// só que agora vive dentro de uma Seção, não direto no Projeto.
 ```
 
-**O contrato central**: componentes nunca conhecem a organização física do bucket R2 (prefixo,
-convenção de pasta, nome de chave) — sempre consomem o Manifest, já agrupado por categoria de
-uso. `buildAssetManifest` é a única função que sabe interpretar `Asset.category` (uma string
-livre: `"hero"`, `"logo"`, `"og_image"`, `"gallery:<pasta>"`, `"social"`, `"acquisition"`,
-`"presentation"`, ou nada — cai no `type` pra PDF/DOCUMENT/outros) e produzir a árvore agrupada.
+### Exemplos completos (os 3 do pedido, formalizados)
 
-```mermaid
-flowchart TD
-  Assets["Asset[] plano\n(WHERE project_id=X AND status='ready')"] --> Build["buildAssetManifest()"]
-  Build --> Manifest["AssetManifest\nhero / logo / photos{} / videos{} / pdfs / documents / files"]
-  Manifest --> Hero["HeroSection"]
-  Manifest --> Gallery["GallerySection"]
-  Manifest --> Videos["VideosSection"]
-```
+| Página | Seções (nesta ordem) | Blocos por seção |
+|---|---|---|
+| Home | Hero → Vídeos → Galeria | Hero: `[HeroBlock]`. Vídeos: `[VideosBlock]`. Galeria: `[GalleryBlock, CtaBlock]` |
+| Downloads | Downloads | `[FilesBlock, CtaBlock]` |
+| Prospecção | Script → Checklist → CRM | Script: `[ScriptBlock]`. Checklist: `[ChecklistBlock]`. CRM: `[CrmEmbedBlock]` |
 
-Filtra por `status === "ready"` e ordena por `sort_order` antes de agrupar — nenhum asset
-`archived`/`processing`/`failed` chega a um componente. É a mesma função que, no futuro, alimenta
-tanto a renderização em produção quanto o preview (seção 3) — o Manifest é agnóstico a quem o
-consome.
+O exemplo do pedido ("Página Inicial → Hero → CTA → Vídeos → Galeria") lista nomes de Seção e
+Bloco misturados no mesmo nível — proposital na formulação do pedido, mas ambíguo pra
+implementar sem uma regra clara. A regra formalizada acima (Seção = região nomeada; Bloco =
+conteúdo configurável dentro dela, podendo haver mais de um bloco por seção) resolve essa
+ambiguidade sem perder nenhum dos exemplos dados.
 
----
-
-## 9. Blocks — `ProjectConfig`, desacoplado de `ClientConfig`
+### Migração de `ProjectConfig.blocks[]` (revisão 4) para `pages[]` (revisão 5)
 
 ```ts
-// lib/platform/blocks.ts
-export type BlockType = "hero" | "gallery" | "videos" | "cta" | "downloads" | "infrastructure"
-  | "timeline" | "faq" | "team" | "testimonials" | "prospection" | "traffic" | "custom";
-
-export type Block = { [K in BlockType]: { type: K; data: BlockDataByType[K] } }[BlockType];
-
-export type ProjectConfig = {
+type ProjectConfig = {
   metadata: { title: string; description: string; ogImage?: string };
-  theme: { accentColor: string };
-  blocks: Block[];  // ordem da lista = ordem de exibição
+  theme: ProjectTheme;          // ver seção 14 — Design System completo, não só accentColor
+  pages: ProjectPage[];          // substitui blocks: Block[] da revisão 4
 };
 ```
 
-**`ClientConfig` (`lib/clients/types.ts`) não muda, não é renomeado, não é depreciado** — continua
-alimentando a Pascoal por tempo indeterminado, campos fixos nomeados (`hero`, `features`,
-`videosSection`, `gallery`, `prospeccao`, `footer`), exatamente como hoje. `ProjectConfig` é o
-formato que **projetos novos** (Supabase-backed) gravam em `Project.config`/
-`ProjectVersion.config` a partir de agora.
+Zero custo de migração: nenhum projeto real foi persistido no formato da revisão 4 (o Wizard
+mock ainda não grava um `ProjectConfig` de verdade em lugar nenhum durável). `lib/platform/
+blocks.ts` (código real, revisão 4) precisa ganhar `ProjectPage`/`PageSection` e mudar
+`ProjectConfig.blocks` para `ProjectConfig.pages` — isso é trabalho de implementação, fora do
+escopo desta rodada (documentação apenas), mas fica registrado aqui como pré-requisito antes do
+Wizard gravar qualquer config de verdade.
 
-Um Template declara `blocks: string[]` (seção 5) — quais `BlockType` usa. Cada Project instanciado
-copia esses blocos com dados reais. Cada `*BlockData` cobre um caso do que hoje é fixo
-(`HeroBlockData`, `VideosBlockData`, `TimelineBlockData`, `FaqBlockData`, `TeamBlockData`,
-`TestimonialsBlockData`, `ProspectionBlockData`, `TrafficBlockData`, `CtaBlockData`,
-`DownloadsBlockData`, `InfrastructureBlockData`) mais `CustomBlockData` pra qualquer coisa fora do
-catálogo padrão — a válvula de escape que evita que todo produto novo precise de um `BlockType`
-próprio antes de existir demanda real.
+---
+
+## 2. Render Engine
+
+### Princípio
+
+Rotas públicas nunca devem importar `HeroSection`, `GalleryExperience` ou qualquer componente
+específico por nome. Toda a inteligência de "qual componente renderiza qual bloco" vive numa
+camada só — o Render Engine — nunca espalhada pela árvore de rotas.
 
 ```mermaid
 flowchart LR
-  Old["ClientConfig\n(campos fixos)"] -->|"alimenta hoje, sem mudança"| Pascoal["app/p/[client]/**"]
-  New["ProjectConfig\n(blocks[])"] -->|"formato pra projetos novos"| Future["montador futuro\n(não implementado)"]
-  Future -.->|"reaproveita, sem alterar"| Comp["HeroSection, FeaturesSection...\n(mesmos componentes)"]
+  Request["Request: /p/<slug>/<page>"] --> PR["Project Resolver"]
+  PR --> PGR["Page Resolver"]
+  PGR --> Renderer
+  Renderer --> Blocks["percorre Page.sections[].blocks[]"]
+  Blocks --> Registry["Component Registry\n(type → Componente)"]
+  Registry --> HTML
 ```
 
-**Componentes renderizam blocos, nunca campos fixos** — quando (e se) o montador for
-implementado, ele interpreta a lista `blocks` e invoca o componente certo por `type`; os
-componentes React existentes (`HeroSection` etc.) não mudam, ganham um adaptador por cima.
+- **Project Resolver**: dado um slug de cliente/projeto, devolve o `Project` (via `ClientResolver`
+  generalizado — seção 9).
+- **Page Resolver**: dado o `Project` + o segmento de rota restante, devolve a `ProjectPage`
+  correspondente (ou `null` → 404). Contém a lógica de "que página serve `/`", "que página serve
+  `/downloads`" — hoje isso é, na prática, o roteamento de arquivo do Next.js; no Render Engine
+  vira dado (`ProjectPage.slug`), não estrutura de pastas.
+- **Renderer**: puro — recebe uma `ProjectPage` já resolvida, percorre `sections[].blocks[]` e,
+  pra cada `Block.type`, consulta um **Component Registry** (`Record<BlockType, ComponentType>`)
+  pra saber qual componente React invocar, passando `Block.data` como props (com um adaptador
+  fino por tipo, não uma tradução 1:1 ingênua — alguns componentes hoje esperam props derivadas,
+  não o `data` bruto).
+- A página pública em si (`app/p/[client]/**`, hoje) fica **fora** do Render Engine enquanto
+  servir só a Pascoal — o Render Engine é o caminho que **projetos novos** (Supabase-backed)
+  usam. Adotar o Render Engine pra Pascoal um dia é uma migração própria, não decidida aqui, e
+  não necessária: o objetivo desta seção é que nenhum projeto **novo** precise repetir o padrão
+  antigo de "página conhece campo fixo".
 
-**A Pascoal continua no formato atual — só arquitetura nova nasce em cima de blocks.** Nenhuma
-migração de dado existente foi feita ou é necessária.
+### Por que isso não é o mesmo que `buildAssetManifest`
+
+`buildAssetManifest` (revisão 4) resolve **mídia**; o Renderer resolve **estrutura de página**.
+São camadas irmãs, não uma dependendo da outra — um `Block` do tipo `gallery` recebe, entre seus
+dados, referências de Asset que o Renderer repassa pro componente `GallerySection`; é o
+componente (ou um hook que ele usa) que eventualmente consulta o Asset Resolver (seção 9) pra
+montar a grade de fotos. O Renderer nunca precisa saber nada sobre R2, chave, ou Collection.
 
 ---
 
-## 10. Themes — `ProjectTheme`
+## 3. Template Engine
+
+### O que um Template passa a definir
+
+| Antes (revisão 4) | Agora (revisão 5) |
+|---|---|
+| `blocks: string[]` | `pages: ProjectPage[]` (estrutura inicial completa, com seções e blocos default) |
+| — | `capabilities: TemplateCapability[]` (o que esse template suporta — seção 4) |
+| — | `theme: ProjectTheme` (tema default) |
+| — | `tokens: DesignTokens` (herdados do Design System — seção 14) |
+| — | `defaultConfig: Record<string, unknown>` (valores-padrão pra novos campos que Blocks específicos definirem) |
 
 ```ts
-// lib/platform/theme.ts
-export type ProjectTheme = {
-  tokens: DesignTokens;
-  typography: { fontDisplay: string; fontSans: string; fontMono: string };
-  spacing: { radius: string };
-  buttons: { style: "solid" | "outline" | "ghost"; radius: string };
-  icons: { set: string };
-  animations: { enabled: boolean };
+type Template = {
+  id: string; slug: string; name: string; description: string;
+  pages: ProjectPage[];              // estrutura inicial — cada Projeto recebe uma CÓPIA disto
+  capabilities: TemplateCapability[]; // seção 4
+  theme: ProjectTheme;                // seção 14
+  version: number;
+  schemaVersion: number;
+  createdAt: string; updatedAt: string;
 };
 ```
 
-Theme é completamente separado da lógica do Project — não é um campo dentro de `ProjectConfig`
-por acidente, é um tipo próprio, pensado pra eventualmente virar seu próprio registro/tabela se
-a plataforma precisar de temas reutilizáveis entre projetos (ex.: "tema Procreating padrão" vs.
-"tema personalizado do cliente X"). **Zero alteração em `app/globals.css` ou nos componentes
-públicos** — a Pascoal continua com seu único token de cor (`--client-accent`) exatamente como
-está.
+### A regra que não muda, agora reafirmada em toda a profundidade nova
+
+Instanciar um Projeto a partir de um Template é uma **cópia profunda** — páginas, seções,
+blocos, capabilities, tema, tudo. A partir do instante em que a cópia acontece, o Template
+**nunca mais controla o Projeto**, em nenhum nível da hierarquia nova. Subir `Template.version`
+não move nem um pixel de nenhum projeto já criado — só afeta instanciações futuras. Essa regra
+já valia na revisão 4 pro nível "Projeto"; agora vale explicitamente pros níveis Página/Seção/
+Bloco também, porque são eles que passam a existir dentro do Template.
 
 ---
 
-## 11. Design Tokens
+## 4. Capabilities — Template define, Projeto sobrescreve
 
 ```ts
-export type DesignTokens = {
-  primary: string; secondary: string; accent: string;
-  background: string; surface: string; border: string;
-  danger: string; warning: string; success: string; info: string;
+type TemplateCapability = {
+  templateId: string;
+  key: CapabilityKey;         // mesmo catálogo de 11 chaves da revisão 4
+  enabledByDefault: boolean;
+  config: Record<string, unknown>;  // config-padrão (ex.: contagem de vídeos default)
+};
+
+type ProjectCapabilityOverride = {
+  projectId: string;
+  key: CapabilityKey;
+  /** `null` = sem override, usa o valor do template. `true`/`false` = sobrescreve. */
+  enabled: boolean | null;
+  /** `null` = sem override de config, usa o default do template; senão, merge raso sobre ele. */
+  configOverride: Record<string, unknown> | null;
 };
 ```
 
-Os 10 tokens pedidos, prontos. **Regra pra qualquer componente novo que vier a consumir isto**:
-nunca cor literal (`#d4af6a`) — sempre um token. Nenhum componente público consome isso hoje; é
-o vocabulário que um futuro sistema de theming usaria. `ProjectTheme.tokens` (seção 10) é onde
-esses 10 valores vivem por projeto.
-
----
-
-## 12. Capabilities — evolução de "produtos vendidos"
+**Resolução em tempo de leitura** (nunca gravada de novo em nenhuma tabela — é sempre calculada):
 
 ```ts
-export type CapabilityKey = "gallery" | "photos" | "videos" | "downloads" | "prospection"
-  | "traffic" | "analytics" | "members_area" | "landing" | "password_protection" | "custom_modules";
-
-export type ProjectCapability = {
-  id: string; project_id: string; key: CapabilityKey; enabled: boolean;
-  config: Record<string, unknown>;  // específico por capability
-  created_at: string;
-};
-```
-
-```ts
-// lib/platform/capabilities.ts
-export const CAPABILITY_CATALOG: CapabilityDefinition[] = [ /* 11 entradas, key+label+description */ ];
-```
-
-As 4 "produtos vendidos" do PosicionamentoPRO (Vídeos, Fotos, Prospecção Ativa, Tráfego Pago) se
-generalizam pra 11 capabilities, cobrindo produtos futuros (Área de Membros, Landing, Proteção
-por Senha genérica, Módulos Personalizados). Um `Template` consulta o catálogo pra saber quais
-capabilities pode oferecer; um `Project` ativa só as contratadas
-(`ProjectCapability.enabled`). **Regra de implementação**: componentes checam
-`capabilities` do projeto — nunca `if (product === "videos")` espalhado pelo código.
-
----
-
-## 13. Eventos — `events`, separado de Analytics
-
-```ts
-export type EventType = "project_created" | "project_updated" | "deploy_performed"
-  | "preview_created" | "upload_started" | "upload_completed" | "password_changed"
-  | "project_published" | "project_archived";
-
-export type Event = {
-  id: string; project_id: string | null; client_id: string | null;
-  actor_id: string | null;  // null = ação do sistema
-  type: EventType; metadata: Record<string, unknown>; created_at: string;
-};
-```
-
-| | `Event` | `Analytics` |
-|---|---|---|
-| **Quem gera** | Time/admin (ação deliberada) | Visitante público (comportamento) |
-| **Volume** | Baixo (dezenas/projeto/mês) | Alto (milhares/projeto/mês) |
-| **Sempre sabe quem** | Sim (`actor_id`, nullable só pra sistema) | Não (`visitor_id` é hash anônimo) |
-| **Propósito** | Auditoria, "o que aconteceu com este projeto" | Métrica de produto, "como visitantes usam isto" |
-
-Nenhuma sobreposição de responsabilidade: um deploy gera **um** `Event` (`deploy_performed`);
-uma visita à página gera **um** `Analytics` (`page_view`). Nunca o mesmo fato em duas tabelas.
-
----
-
-## 14. Analytics — arquitetura (sem implementação)
-
-```ts
-export type AnalyticsEventType = "page_view" | "gallery_unlock" | "prospeccao_unlock";
-export type AnalyticsDevice = "desktop" | "mobile" | "tablet";
-
-export type Analytics = {
-  id: string; project_id: string; event_type: AnalyticsEventType;
-  path: string; visitor_id: string | null; device: AnalyticsDevice | null;
-  referrer: string | null; duration_seconds: number | null; created_at: string;
-};
-```
-
-Cobre visitantes (`visitor_id`, hash anônimo — nunca IP/PII direto), origem (`referrer`),
-dispositivo (`device`), tempo médio (`duration_seconds`, populado por um futuro evento
-`page_leave`), páginas (`path`). Campos ainda não modelados, propositalmente adiados até haver
-demanda real: campanhas/UTM (encaixam em `metadata jsonb` sem mudança de schema), heatmaps
-(produto totalmente diferente — provedor terceiro tipo Clarity é mais barato que construir),
-downloads (já é a tabela `Download` separada, referenciando `Asset.id`).
-
-**Estratégia pra milhares de clientes — rollup obrigatório, não opcional**:
-
-```sql
-create table project_daily_stats (
-  project_id uuid not null references projects(id),
-  day date not null,
-  page_views int not null default 0,
-  unique_visitors int not null default 0,
-  gallery_unlocks int not null default 0,
-  downloads int not null default 0,
-  primary key (project_id, day)
-);
-```
-
-Um job noturno (seção 16) agrega `analytics`/`downloads` do dia em `project_daily_stats`.
-Dashboards **sempre** leem do rollup, nunca somam a tabela bruta em tempo real — acima de
-algumas centenas de projetos ativos, um `COUNT(*) ... GROUP BY` direto em `analytics` deixa de
-ser viável em latência de página.
-
----
-
-## 15. Paginação — Cursor, não Offset
-
-```ts
-async function getGalleryPage(folderCategory: string, cursor: string | null, limit = 50) {
-  // cursor decodifica pra (sort_order, id) do último item da página anterior
-  // WHERE project_id=$1 AND category=$2 AND (sort_order, id) > ($cursorSortOrder, $cursorId)
-  // ORDER BY sort_order, id LIMIT $limit
+function effectiveCapability(template: TemplateCapability, override: ProjectCapabilityOverride | null): {
+  enabled: boolean;
+  config: Record<string, unknown>;
+} {
+  return {
+    enabled: override?.enabled ?? template.enabledByDefault,
+    config: { ...template.config, ...(override?.configOverride ?? {}) },
+  };
 }
 ```
 
-Toda listagem futura (galeria paginada, lista de projetos, lista de eventos, lista de
-deployments) usa keyset/cursor — comparação de tupla `(sort_order|created_at, id)` — nunca
-`OFFSET n`. Cursor não degrada com `n` grande (Postgres não pula n linhas) e é estável mesmo com
-inserções/reordenações entre páginas; `OFFSET` pode pular ou repetir itens nesse cenário. A
-galeria da Pascoal (`GalleryFolder.photos`, array completo, ~20-30 fotos) **não muda** — cursor é
-só para o caminho novo Supabase-backed, quando volume justificar.
+Isso substitui `ProjectCapability` da revisão 4 (que só existia no nível do Projeto, sem noção
+de "o que o template define") pelo par `TemplateCapability` + `ProjectCapabilityOverride` — o
+Projeto deixa de ser a única fonte de verdade sobre quais capabilities existem; ele só guarda
+**diferenças** em relação ao que o Template já habilita por padrão. Um projeto sem nenhum
+override herda 100% do template — o caso mais comum, e o mais barato de armazenar.
 
 ---
 
-## 16. Background Jobs
-
-Processos que nunca devem acontecer dentro do ciclo de uma requisição HTTP:
-
-- Thumbnail de vídeo, compressão de vídeo, otimização/resize de imagem em lote.
-- Deploy (o trabalho de "publicar" pode envolver mais que um `UPDATE`, ver seção 17/18).
-- Agregação de analytics (`project_daily_stats`, seção 14).
-- Limpeza de drafts expirados (seção 2), expiração de previews (seção 3), limpeza de assets
-  órfãos travados em `created`/`uploading` (seção 7).
-
-```sql
-create table job_runs (
-  id uuid primary key default gen_random_uuid(),
-  job_name text not null,
-  status text not null check (status in ('running', 'succeeded', 'failed')),
-  started_at timestamptz not null default now(),
-  finished_at timestamptz, error_message text, metadata jsonb not null default '{}'
-);
-```
-
-Jobs são **consumidores** das tabelas já desenhadas (`assets.status`, `projects.expires_at`,
-`analytics`) — não exigem mudança em schema central. Gatilho: **Vercel Cron**
-(`vercel.json` + Route Handler), sem provedor de infra novo. Evolução em degraus: cron simples
-primeiro; fila de verdade (Cloudflare Queues, mesmo provedor do R2) só quando volume pedir
-(seção 18).
-
----
-
-## 17. Pipeline de Upload — nunca pelo servidor
-
-```mermaid
-sequenceDiagram
-  participant B as Browser
-  participant S as Server Action
-  participant R2 as Cloudflare R2
-  participant DB as Supabase
-  B->>S: pedir upload (nome, tipo, projeto)
-  S->>DB: INSERT assets (status='created')
-  S->>R2: gerar presigned PUT URL
-  S-->>B: presigned URL + asset.id
-  B->>R2: PUT direto (bytes nunca passam pelo servidor Next.js)
-  B->>S: confirmar conclusão
-  S->>R2: HEAD (confirma que o objeto existe)
-  S->>DB: UPDATE assets SET status='uploaded'
-  DB->>DB: Asset Manifest (seção 8) passa a incluir o asset quando status='ready'
-```
-
-Browser → Presigned URL → Cloudflare R2 → Validação (`HEAD`) → Registro no banco (`assets`) →
-Asset Manifest → Projeto. O servidor Next.js nunca vê os bytes — só coordena (gera URL, confirma
-depois). Isso é o que torna vídeos de centenas de MB viáveis sem tocar limite de payload de
-function serverless.
-
----
-
-## 18. Escalabilidade — 10 a 5000 clientes
-
-| Volume | Gargalo principal | Mitigação |
-|---|---|---|
-| **10 clientes** | Nenhum | Schema atual, sem índice extra, sem cache — roda em qualquer plano gratuito. |
-| **100 clientes, ~5k assets** | Nenhum real ainda | Índices básicos (`project_id`, `status`) já cobrem. Dashboard soma direto de `analytics` ainda é viável. |
-| **500 clientes, ~50k assets** | Dashboard somando `analytics` bruto começa a doer | `project_daily_stats` (seção 14) passa a ser necessário, não opcional. Cursor pagination (seção 15) em qualquer listagem de assets. |
-| **1000 clientes, ~100k photos, 10k vídeos** | R2: custo de egress se servido sem CDN; queries `assets WHERE project_id` sem índice composto | CDN na frente do R2 (Cloudflare já é o provedor — CDN é nativo, não é integração nova). Índice composto `(project_id, status, sort_order)` em `assets`. Background jobs (seção 16) passam de cron simples pra fila real se thumbnail/compressão virar volume relevante. |
-| **5000 clientes, ~1M assets** | Postgres: tabela `assets`/`analytics` na casa de dezenas de milhões de linhas; `job_runs`/rollup diário processando volume real; conexões concorrentes ao Supabase | Particionamento de `analytics`/`assets` por data ou por faixa de `project_id` (Postgres declarative partitioning) se necessário — decisão adiada até haver sinal real de necessidade, não especulativa agora. Connection pooling (Supabase já oferece via PgBouncer). Rollups diários viram a única fonte pra qualquer dashboard — nunca mais uma soma direta. Fila de verdade (Cloudflare Queues) para todo background job, não só os pesados. |
-
-**Providers/custos**: R2 (armazenamento + egress via CDN, sem taxa de egress do R2 em si — a
-vantagem principal sobre S3 pra esse volume de mídia); Supabase (Postgres gerenciado + Auth,
-plano escala com conexões/storage, não com "número de clientes" por si); Vercel (hosting, escala
-com requests/build minutes, não com número de projetos servidos estaticamente).
-
-**Limitações reconhecidas nesta arquitetura**: nenhuma solução de busca full-text/fuzzy foi
-desenhada (não pedida); nenhuma estratégia de multi-região foi desenhada (não pedida, provável
-não-necessária pro perfil de cliente atual — negócios locais brasileiros). Ambas ficam como
-"evolução futura", não como lacuna da fase atual.
-
----
-
-## 19. Wizard — fluxo revisado, 11 passos (não implementar UI ainda)
+## 5. Project Config — `ClientConfig` oficialmente congelado
 
 ```ts
-// lib/admin/projects/wizard.ts — já commitado, só dado
-export const PROJECT_WIZARD_STEPS = [
-  { key: "client", label: "Cliente" },
-  { key: "project", label: "Projeto" },
-  { key: "template", label: "Template" },
-  { key: "capabilities", label: "Capabilities" },
-  { key: "structure", label: "Estrutura" },
-  { key: "assets", label: "Assets" },
-  { key: "review", label: "Review" },
-  { key: "draft", label: "Draft" },
-  { key: "preview", label: "Preview" },
-  { key: "deploy", label: "Deploy" },
-  { key: "published", label: "Publicado" },
-];
+type ProjectConfig = {
+  metadata: { title: string; description: string; ogImage?: string };
+  theme: ProjectTheme;
+  pages: ProjectPage[];
+};
+// Cada ProjectPage → PageSection[] → Block[] → { type, data: Properties }
 ```
+
+**`ClientConfig` (`lib/clients/types.ts`) passa de "formato legado que não usamos em projetos
+novos" (posição da revisão 4) para "formato **congelado**, mantido apenas pra compatibilidade
+com a Pascoal, nunca mais escrito por nenhum caminho novo"** — a diferença de linguagem é
+proposital: "congelado" é uma garantia mais forte que "não usamos por enquanto". Nenhuma
+implementação futura do Wizard, do Render Engine ou de qualquer Resolver deve, em nenhuma
+circunstância, produzir ou ler um `ClientConfig`. O único consumidor de `ClientConfig` que
+deveria existir, pra sempre, é `app/p/[client]/**` servindo a Pascoal.
+
+---
+
+## 6. Asset Engine — Variants
+
+```ts
+type AssetVariantKind = "original" | "thumbnail" | "preview" | "webp" | "mobile" | "compressed" | "poster";
+
+type AssetVariant = {
+  id: string;
+  assetId: string;             // sempre aponta pro Asset "pai" — nunca um Asset novo
+  kind: AssetVariantKind;
+  key: string;
+  url: string;
+  width: number | null;
+  height: number | null;
+  sizeBytes: number | null;
+  createdAt: string;
+};
+```
+
+**Regra central: nunca duplicar `Asset`.** Um vídeo enviado uma vez é **um** `Asset`; o
+thumbnail gerado, a versão comprimida, o poster — todos são `AssetVariant` apontando pro mesmo
+`assetId`. Isso é o que faltava no modelo unificado da revisão 4 pra cobrir o pipeline de
+processamento (`Background Jobs`, já documentado) sem cada etapa do processamento (thumbnail,
+poster, WebP) precisar inventar sua própria linha de `Asset` com metadado duplicado (`project_id`,
+`category`, `status` repetidos por variante seria a alternativa errada — motivo real de existir
+`AssetVariant` como tabela própria em vez de "mais um `Asset`").
+
+O ciclo de vida (`AssetStatus`, revisão 4) continua pertencendo ao `Asset`, não à `Variant` —
+uma variante existe ou não existe (é gerada por um Job, seção 13); não tem seu próprio estado
+`created → uploading → ...`. Se a geração de uma variante falhar, isso é um evento de Workflow
+(seção 13), não uma mudança de status em `AssetVariant`.
+
+---
+
+## 7. Asset Collections — substituem a dependência de pastas físicas
+
+```ts
+type AssetCollection = {
+  id: string;
+  projectId: string;
+  name: string;               // "Fotos Produzidas", "Vídeos Institucionais", "Logos", "Documentos"
+  /** Ordem de exibição dos assets dentro da collection. */
+  assetIds: string[];
+  createdAt: string; updatedAt: string;
+};
+```
+
+**Pastas deixam de representar organização lógica.** Hoje (revisão 4), `Asset.category` é uma
+string livre (`"gallery:equipe"`, `"hero"`, `"social"`...) interpretada por `buildAssetManifest`
+— já **flagado como risco** na revisão 4 ("um typo em `category` cai silenciosamente na
+categoria errada"). `AssetCollection` resolve isso: é uma entidade de verdade, criada e nomeada
+por uma pessoa no admin, sem depender de convenção de string.
+
+### `AssetManifest` deixa de ler `category` — passa a ser derivado de Collections
+
+```ts
+// Revisão 4 (hoje): buildAssetManifest(assets: Asset[]) — agrupa por Asset.category (string livre)
+// Revisão 5 (alvo): buildAssetManifest(collections: AssetCollection[], assets: Asset[])
+//   — agrupa pelas Collections que uma pessoa organizou de fato, não por convenção de string.
+```
+
+Isso não invalida a função `buildAssetManifest` já escrita na revisão 4 — muda só a fonte que
+ela consulta pra montar o agrupamento. O contrato de saída (`AssetManifest`) pode continuar
+igual; quem muda é a lógica interna de agrupamento. Fica registrado como trabalho de
+implementação futuro, não feito nesta rodada (documentação apenas).
+
+---
+
+## 8. Storage Driver
+
+O contrato já existe — `StorageProvider` (`lib/storage/types.ts`, código real desde a Etapa 4) já
+satisfaz exatamente o que este pedido descreve: nenhuma parte da plataforma fala com R2
+diretamente, tudo passa por uma interface (`uploadFile`, `deleteFile`, `getFileUrl`, `listFiles`,
+`generateClientStructure`). O que esta revisão formaliza é a **doutrina de nomenclatura e de
+múltiplos drivers**, que antes era implícita:
+
+```
+StorageDriver (interface, já existe como StorageProvider)
+ ├─ Cloudflare R2       (alvo real, Etapa 4 do roadmap — ainda mock)
+ ├─ Amazon S3           (documentado como driver alternativo, não implementado)
+ ├─ Supabase Storage     (documentado como driver alternativo, não implementado)
+ ├─ Local (filesystem)   (útil pra desenvolvimento sem depender de rede)
+ └─ Drivers futuros       (qualquer coisa que satisfaça a mesma interface)
+```
+
+**Nenhuma mudança de código é necessária** — `StorageProvider` já é o `StorageDriver` pedido.
+Esta seção existe pra deixar registrado, por escrito, que a interface deve continuar sendo o
+único ponto de contato (nenhum código futuro deve montar uma URL de R2 na mão fora de
+`lib/storage/**`), e que trocar de provedor de storage no futuro é escrever uma nova
+implementação de `StorageProvider`, nunca um refactor espalhado.
+
+---
+
+## 9. Resolver Layer
+
+`ClientResolver` (revisão 2, ligado em código na revisão 4) foi a primeira instância de um
+padrão — não um caso isolado. Esta revisão generaliza o padrão explicitamente pra toda camada de
+dados da plataforma:
+
+```
+Resolver Layer
+ ├─ Client Resolver     — já existe, código real (lib/clients/resolver.ts)
+ ├─ Project Resolver     — mesmo padrão: resolve Project a partir de slug/id, várias fontes possíveis
+ ├─ Template Resolver     — resolve Template por id/slug
+ ├─ Asset Resolver         — resolve Asset[]/AssetVariant[] de um Projeto (+ Collections, seção 7)
+ ├─ Page Resolver           — resolve ProjectPage por Project + segmento de rota (seção 2)
+ ├─ Analytics Resolver       — resolve rollups já materializados (nunca soma bruto em request, seção 10)
+ └─ Deployment Resolver       — resolve o Deployment corrente por Project + Target (seção 12)
+```
+
+### A regra que todo Resolver segue (documentada uma vez, vale pra todos)
+
+```ts
+interface Resolver<TQuery, TResult> {
+  resolve(query: TQuery): Promise<TResult | null>;
+}
+
+class GenericResolver<TQuery, TResult> implements Resolver<TQuery, TResult> {
+  constructor(private readonly sources: Resolver<TQuery, TResult>[]) {}
+  async resolve(query: TQuery): Promise<TResult | null> {
+    for (const source of this.sources) {
+      const result = await source.resolve(query);
+      if (result) return result;
+    }
+    return null;
+  }
+}
+```
+
+`ClientResolver` já implementa essa forma (com métodos nomeados em vez de um `resolve` genérico,
+por clareza de call site — decisão que se mantém: interfaces explícitas por domínio, não um
+resolver genérico único pra tudo, para preservar checagem de tipo forte por camada). Nenhuma
+camada acima de um Resolver (Render Engine, Wizard, qualquer Server Action) deve importar a
+origem de dados diretamente — sempre o Resolver correspondente.
+
+---
+
+## 10. Analytics — Event Sourcing
+
+### O princípio
+
+Analytics não é modelada como uma tabela de métricas escritas diretamente — é **derivada** de um
+fluxo bruto de eventos, append-only, nunca editado depois de escrito.
+
+```ts
+type AnalyticsEventType =
+  | "page_view" | "download" | "scroll" | "click"
+  | "video_play" | "video_complete"
+  | "gallery_open" | "gallery_close"
+  | "password_success" | "password_fail"
+  | "preview_open";
+
+type AnalyticsEvent = {
+  id: string;
+  projectId: string;
+  pageId: string | null;
+  type: AnalyticsEventType;
+  visitorId: string | null;      // hash anônimo, nunca PII
+  path: string;
+  metadata: Record<string, unknown>;  // ex.: { assetId } pra download, { scrollDepth } pra scroll
+  createdAt: string;
+};
+```
+
+Note que `deploy_started`, `deploy_finished`, `upload_started`, `upload_finished`,
+`preview_approved` — listados no pedido original junto com os eventos acima — **não** entram
+nesta tabela. Eles não são comportamento de visitante; são System Events ou Audit Events (seção
+11). Essa separação é o próprio ponto da seção 11, e é aplicada aqui.
+
+### Rollups são sempre derivados, nunca autoritativos
+
+`project_daily_stats` (já esboçada na revisão 3/4) continua existindo, mas com uma garantia
+explícita que antes era implícita: **é sempre recalculável a partir de `AnalyticsEvent`** — se a
+tabela de rollup for apagada e reconstruída do zero varrendo o stream bruto, o resultado tem que
+ser idêntico. Isso é o que "event sourcing" garante aqui: o stream bruto é a fonte de verdade; o
+rollup é cache materializado, nunca escrito por um caminho que não seja "agregação do stream".
 
 ```mermaid
 flowchart LR
-  C[Cliente] --> P[Projeto] --> T[Template] --> Cap[Capabilities] --> S[Estrutura] --> A[Assets] --> R[Review] --> D[Draft] --> Pr[Preview] --> Dep[Deploy] --> Pub[Publicado]
+  Visitor["Visitante"] -->|gera| AE["AnalyticsEvent\n(append-only, bruto)"]
+  AE -->|job noturno| Rollup["project_daily_stats\n(materializado, derivado)"]
+  Rollup -->|lido por| Dashboard["Dashboard do admin"]
+  AE -.->|nunca lido direto em request de dashboard, exceto debug| Dashboard
 ```
-
-1. **Cliente** — escolhe um `Client` existente ou cria um inline (entidade simples: nome).
-2. **Projeto** — nome + slug (auto-gerado, editável). Aqui nasce o `Project` de verdade
-   (`status='creating'` → `'draft'` ao confirmar) — reserva atômica do slug via constraint
-   `unique`, sem depender de nenhuma etapa posterior (seção 2).
-3. **Template** — escolhe um `Template`; a escolha determina `blocks` disponíveis (seção 9) e
-   quais capabilities o catálogo (seção 12) oferece pros passos seguintes.
-4. **Capabilities** — ativa `ProjectCapability` (ex.: Vídeos, Galeria, Prospecção) dentre as que
-   o Template permite; cada uma pode ter config própria (ex.: quantidade de vídeos).
-5. **Estrutura** — Padrão (mostra os blocks que o Template gera automaticamente, na ordem
-   default) ou Personalizado (placeholder "editor visual futuro" — sem editor de verdade ainda).
-6. **Assets** — upload real via pipeline presigned (seção 17); cada arquivo vira um `Asset`
-   `status='created'` → `'uploading'` → `'uploaded'` ao longo deste passo, categorizado
-   (`Asset.category`) conforme o bloco/slot que preenche.
-7. **Review** — resumo de tudo (Capabilities ativas, blocks configurados, Assets enviados) antes
-   de confirmar — nenhuma escrita nova acontece aqui, só leitura do que já foi persistido.
-8. **Draft** — ao confirmar o Review, gera a primeira `ProjectVersion` (snapshot do `config`
-   atual) — é o gatilho que muda `status: 'draft' → 'ready_for_preview'` e estende
-   `expires_at` pra 60 dias (seção 2).
-9. **Preview** — gera um `previews` (seção 3, quando implementado) apontando pra essa versão;
-   time/cliente revisam via link com token antes de publicar.
-10. **Deploy** — cria um `Deployment` (`status='pending' → 'in_progress'`) apontando pra essa
-    `ProjectVersion`; sucesso marca `'succeeded'` e atualiza `current_deployment_id`.
-11. **Publicado** — `Deployment.status='succeeded'` dispara `status: '... → 'published'`,
-    `expires_at=null`; um `Event` (`project_published`) é registrado (seção 13); o projeto passa
-    a aparecer em `published_projects` (seção 2).
 
 ---
 
-## 20. Roadmap definitivo
+## 11. Event Engine — três fluxos, três donos
+
+| | Audit Events | System Events | Analytics Events |
+|---|---|---|---|
+| **Quem gera** | Pessoa no admin (ação deliberada) | Processo interno (Job/Workflow/Deploy) | Visitante público |
+| **Exemplos** | `project_created`, `password_changed`, `preview_approved`, `project_published` | `deploy_started`, `deploy_finished`, `upload_started`, `upload_finished`, job iniciado/concluído | `page_view`, `download`, `click`, `video_play`, `gallery_open`, `password_success/fail`, `preview_open` |
+| **Ator** | `actor_id` sempre preenchido (uma pessoa) | `actor_id` sempre `null` | `visitor_id` (hash anônimo), nunca `actor_id` |
+| **Volume** | Baixo | Médio (proporcional a jobs/deploys) | Alto |
+| **Retenção** | Longa (auditoria/compliance) | Média (debug operacional) | Curta pro bruto, longa pro rollup |
+| **Consultado por** | Tela de auditoria, suporte | Debug de pipeline, dashboards de operação | Dashboards de cliente, relatórios |
+
+Isso é uma extensão direta do que a revisão 4 já tinha começado (separar `Event` de
+`Analytics`). A mudança real é dividir o que era "System" escondido dentro de `Event` (ex.:
+`deploy_performed`, que hoje mistura "alguém clicou em Publicar" com "o processo de deploy
+terminou") em dois fatos distintos: **quem pediu** (Audit: `deploy_triggered`, com `actor_id`) e
+**o que aconteceu de fato** (System: `deploy_started`/`deploy_finished`, sem ator, correlacionado
+por `deployment_id`).
+
+### Relação com `job_runs` (revisão 4) — não duplicar
+
+`job_runs` (background jobs, já documentado) não vira uma quarta tabela de eventos — é o
+**detalhe de execução** por trás de um `system_event`. Um `system_event` do tipo
+`upload_started`/`upload_finished` pode carregar `metadata.relatedJobRunId` apontando pra
+`job_runs.id`; `job_runs` guarda o "como" (tentativas, duração, worker), `system_events` guarda
+o "o quê e quando" numa linha do tempo legível. Nunca duas fontes de verdade competindo pelo
+mesmo fato — ver achado (j) na Revisão Final, seção 20.
+
+---
+
+## 12. Deployments — Targets
+
+```ts
+type DeploymentTarget = "production" | "preview" | "internal" | "client_review" | "staging" | "qa" | "sandbox";
+
+type Deployment = {
+  id: string; projectId: string; versionId: string;
+  target: DeploymentTarget;         // novo campo desta revisão
+  status: DeploymentStatus;          // já existia (revisão 3)
+  triggeredBy: string | null;
+  errorMessage: string | null;
+  startedAt: string; finishedAt: string | null;
+};
+```
+
+`projects.current_deployment_id` (revisão 3/4) passa a fazer sentido só por `target = 'production'`
+— um projeto pode ter, ao mesmo tempo, um deployment corrente em `production` e outro em
+`staging`, cada um com seu próprio histórico de tentativas. Isso é puramente aditivo sobre o
+schema da revisão 3: um campo novo, sem quebrar nenhuma leitura existente (nenhuma ainda existe
+de verdade).
+
+**Importante, decidido nesta revisão (ver achado (a) na seção 20)**: `Preview` (seção 3 da
+revisão 3/4, tabela `previews`) **não** é modelada como um `Deployment` com `target='preview'`.
+São responsabilidades diferentes — `Deployment` é sobre infraestrutura (pôr uma versão pra
+rodar em algum lugar); `Preview` é sobre um link compartilhável, com token e expiração, que pode
+simplesmente pedir ao Render Engine (seção 2) pra renderizar uma versão específica sob demanda,
+sem nenhum deploy de infraestrutura por trás. Ver a justificativa completa no achado (a).
+
+---
+
+## 13. Workflow Engine
+
+```ts
+type WorkflowStep = {
+  id: string;
+  workflowRunId: string;
+  order: number;
+  jobName: string;             // referencia o catálogo de Jobs já documentado (revisão 4, seção 16)
+  status: "pending" | "running" | "succeeded" | "failed" | "skipped";
+  relatedJobRunId: string | null;  // liga com job_runs (revisão 4)
+  startedAt: string | null; finishedAt: string | null;
+};
+
+type WorkflowRun = {
+  id: string;
+  workflowName: string;         // ex.: "asset_upload_pipeline"
+  triggeredBy: string | null;    // Asset.id, Deployment.id, etc. — o que iniciou este workflow
+  status: "pending" | "running" | "succeeded" | "failed" | "partially_failed";
+  steps: WorkflowStep[];
+  startedAt: string; finishedAt: string | null;
+};
+```
+
+### Exemplo do pedido, formalizado
+
+```
+asset_upload_pipeline:
+  1. generate_thumbnail
+  2. generate_poster
+  3. convert_webp
+  4. extract_metadata
+  5. register_asset       (grava a linha Asset — ver ciclo de vida, revisão 4 seção 6)
+  6. update_manifest       (invalida/recalcula o Asset Manifest do projeto — seção 7)
+  7. trigger_deploy         (opcional — só se o projeto já estiver publicado e assets afetarem o build)
+  8. emit_analytics_ready   (system_event — seção 11)
+```
+
+Cada passo é um `Job` já catalogado (revisão 4, Background Jobs). `Workflow` é a camada que
+sequencia Jobs com dependência entre si — um passo só começa quando o anterior termina com
+sucesso (ou, se marcado como `skipped`-tolerante, mesmo com falha não-crítica: ex.: se
+`convert_webp` falhar, o workflow pode seguir pra `extract_metadata` mesmo assim, mas não pode
+pular `register_asset`). Isso é o que faltava na revisão 4: `job_runs` registrava execuções
+isoladas, sem modelar "isso só roda depois daquilo".
+
+### Relação com Deployment (ver achado (i), seção 20)
+
+Um `WorkflowStep` pode **disparar** um `Deployment` (chamando o fluxo já existente, criando uma
+linha em `deployments` e observando seu status) — nunca reimplementa a máquina de estados de
+Deployment dentro do Workflow. Uma coisa aciona a outra; nenhuma duplica a outra.
+
+---
+
+## 14. Design System
+
+Estende `ProjectTheme`/`DesignTokens` (revisão 4, ainda código real e válido) com os grupos de
+token que faltavam:
+
+```ts
+type DesignSystem = {
+  tokens: DesignTokens;              // já existe (revisão 4) — primary/secondary/accent/...
+  spacing: { scale: number[] };       // ex.: [0, 4, 8, 12, 16, 24, 32, 48, 64, 96]
+  typography: {
+    scale: { name: string; sizePx: number; lineHeight: number }[];
+    fontDisplay: string; fontSans: string; fontMono: string;  // já existiam em ProjectTheme
+  };
+  radius: { scale: number[] };
+  elevation: { levels: { name: string; boxShadow: string }[] };
+  motion: {
+    durations: Record<"fast" | "base" | "slow", number>;
+    easings: Record<"standard" | "decelerate" | "accelerate", string>;
+  };
+  icons: { library: string };         // já existia como `icons.set` em ProjectTheme
+};
+```
+
+**Todos os Templates consomem o mesmo Design System base** — a mesma escala de espaçamento,
+tipografia, radius, elevação e motion, com apenas os `tokens` de cor variando por projeto
+(accent, primary...). Isso evita que cada Template reinvente sua própria escala de espaçamento —
+o tipo de inconsistência que, em uma plataforma com dezenas de templates, vira uma UI
+inconsistente entre produtos diferentes da mesma Procreating.
+
+---
+
+## 15. Plugins
+
+```ts
+type PluginManifest = {
+  name: string;                    // "curso", "evento", "membros", "crm", "blog", "landing"
+  pages?: ProjectPage[];            // páginas que este plugin pode adicionar a um projeto
+  blocks?: { type: string; component: string }[];  // novos BlockTypes que o plugin introduz
+  capabilities?: CapabilityDefinition[];             // novas capabilities (mesmo shape da revisão 4)
+  adminRoutes?: { path: string; label: string }[];    // rotas de ADMIN próprias do plugin (nunca públicas)
+  assetTypes?: string[];                               // novos AssetType, se o plugin precisar
+};
+```
+
+### A tensão real que este pedido cria (documentada, não resolvida em código nesta rodada)
+
+`BlockType`, `CapabilityKey`, `AssetType`, `EventType` — todos desenhados na revisão 4 como
+**unions fechadas do TypeScript** (`"hero" | "gallery" | "videos" | ...`). Um Plugin que precisa
+registrar um `BlockType` novo (ex.: `"course_module"`) não consegue estender uma union fechada
+sem editar o arquivo que a declara — o que viola diretamente "sem alterar o núcleo da
+plataforma", pedido explicitamente nesta seção. **Esta é a descoberta mais importante desta
+revisão** — ver achado (b)/(c) na seção 20 pra a decisão recomendada (mover de union fechada pra
+um registry validado em runtime, com tipagem via lookup genérico). Fica marcado aqui como
+dependência: nenhum Plugin real deveria ser construído antes dessa decisão ser tomada.
+
+---
+
+## 16. Multi-tenancy
+
+| Recurso | Estratégia de isolamento |
+|---|---|
+| Clientes | `client_id` já é a chave de particionamento em todo o schema (revisão 2+) |
+| Assets | `project_id` em toda linha; prefixo de chave no Storage Driver por cliente/projeto (`clients/<slug>/...`, já a convenção real) — nunca um bucket com listagem raiz compartilhada |
+| Deploys | `project_id` + `target` (seção 12); cada projeto publica em seu próprio caminho/CDN, nunca um deploy compartilhado entre projetos |
+| Analytics | `project_id` em `AnalyticsEvent` (seção 10) — rollups sempre particionados por projeto |
+| Usuários | **Gap real, documentado aqui pela primeira vez** — `User.role` (revisão 3, `"admin" | "editor"`) não tem escopo de cliente/projeto. Um usuário hoje é implicitamente "vê tudo". Pra SaaS de verdade, precisa de uma tabela de associação (`user_client_roles` ou equivalente) — não desenhada em detalhe nesta rodada, só reservada como pré-requisito de qualquer RBAC real (seção 18) |
+| Permissões | Depende do item acima — RBAC não tem onde se apoiar sem o escopo usuário↔cliente existir primeiro |
+
+### Enforcement de verdade: Row Level Security
+
+Quando o Supabase conectar, a estratégia recomendada é `client_id`/`project_id` +
+`auth.uid()` aplicados via **RLS** do Postgres — não checagem manual espalhada em Server
+Actions. Isso garante que mesmo um bug de aplicação não vaze dado entre tenants, porque a
+garantia vive no banco, não em cada call site. Não implementado agora (Supabase não conectado),
+documentado como a direção correta pra quando conectar.
+
+---
+
+## 17. Cache
+
+```mermaid
+flowchart LR
+  Resolver --> Cache
+  Cache -->|hit| Resolver
+  Cache -->|miss| DB["Banco (Supabase)"]
+  DB --> Cache
+  Renderer -->|HTML/assets| CDN
+  CDN --> Visitor
+```
+
+### Onde usar cache
+
+- **Dentro de cada Resolver** (seção 9), não como camada global separada. Um `ProjectResolver`
+  cacheia o resultado de `resolve(slug)` com uma chave `project:<slug>`; um `PageResolver`
+  cacheia `page:<projectId>:<pageSlug>`. **Regra explícita, pra prevenir um acoplamento novo**:
+  nenhum componente ou Server Action deve chamar uma camada de cache diretamente — só o Resolver
+  que já teria essa responsabilidade sabe o que cachear e por quanto tempo. Isso preserva o
+  princípio da seção 2 (componentes nunca sabem a origem dos dados) — se cache fosse uma camada
+  paralela chamada por fora do Resolver, isso seria exatamente o tipo de acoplamento oculto que a
+  seção 20 existe pra caçar (ver achado (h)).
+- **CDN** pra HTML renderizado e assets estáticos — natural dado que R2 (seção 8) já serve por
+  trás de CDN; sem trabalho adicional além de cabeçalhos de cache corretos por tipo de conteúdo.
+
+### Quando invalidar
+
+| Evento | O que invalida |
+|---|---|
+| `deploy_finished` (succeeded, target=production) | Cache do Resolver pro `project_id` inteiro + CDN das páginas afetadas |
+| Nova `AssetVariant` gerada | Só o cache/CDN daquele Asset específico, nunca o projeto inteiro |
+| `project_updated` (Draft, sem deploy) | Nada em produção — o cache de produção só reflete o que foi de fato implantado |
+| Preview gerado/revogado | Cache específico do `previewToken`, nunca o cache de produção |
+
+### Como invalidar
+
+Tag-based, não TTL cego — cada entrada de cache carrega uma tag (`project:<id>`,
+`asset:<id>`), e o evento que a invalida (via Event Engine, seção 11) dispara a invalidação por
+tag, não um "limpa tudo". TTL curto continua como rede de segurança, não como mecanismo
+primário.
+
+---
+
+## 18. Segurança
+
+| Área | Estratégia |
+|---|---|
+| **RBAC** | Depende do gap de `user_client_roles` (seção 16). Papéis propostos: `owner`, `admin`, `editor`, `viewer`, cada um escopado a um conjunto de clientes/projetos, não global |
+| **Permissões** | Matriz ação × recurso × papel, avaliada no servidor (Server Actions), nunca só escondida na UI |
+| **Auditoria** | Já coberta por Audit Events (seção 11) — toda ação administrativa vira uma linha, com ator, nunca editável depois |
+| **Logs** | Separados de Audit — logs técnicos (erro de request, stack trace) não são eventos de domínio, ficam em observabilidade de infraestrutura (Vercel/provedor), não em tabela de negócio |
+| **Preview Tokens** | Já desenhado (revisão 3/4) — 256 bits, comparação em tempo constante, nunca logado |
+| **Download Tokens** | **Novo nesta revisão** — pra Assets que não devem ter URL pública permanente (ex.: material sob NDA), uma URL assinada de curta duração em vez do `Asset.url` direto |
+| **Upload Tokens** | Já é, na prática, a presigned URL do pipeline de upload (revisão 4, seção 17) — só formalizado aqui como categoria de token temporário junto das outras duas |
+| **Rate Limit** | Em tentativas de senha (galeria/prospecção — reforça a nota de segurança já existente em `lib/access-code.ts`) e em endpoints de admin sensíveis (criação de projeto, upload) |
+| **Anti-enumeração de slugs** | Resposta genérica (404 uniforme) pra slug de projeto inexistente vs. existente-mas-sem-permissão — nunca diferenciar a mensagem. IDs internos usados em rotas de admin (`/admin/projetos/[id]`) devem ser opacos (uuid), nunca sequenciais nem derivados 1:1 do slug público |
+
+---
+
+## 19. Roadmap definitivo — por trilha, não só por fase linear
+
+A lista linear de 10 fases (revisão 4) ainda descreve a ordem de entrega, mas esconde que várias
+trilhas evoluem em paralelo e têm dependências reais entre si, não só sequenciais. Reorganizado:
 
 ```mermaid
 flowchart TD
-  F1["FASE 1 — Arquitetura\n(concluída, esta revisão)"] --> F2["FASE 2 — Wizard\n(UI + navegação entre passos)"]
-  F2 --> F3["FASE 3 — Supabase\n(conectar de verdade, ligar ClientResolver)"]
-  F3 --> F4["FASE 4 — Cloudflare R2\n(pipeline de upload real)"]
-  F4 --> F5["FASE 5 — Deploy\n(publicação de verdade)"]
-  F5 --> F6["FASE 6 — Analytics\n(coleta + rollup)"]
-  F6 --> F7["FASE 7 — Editor Visual"]
-  F7 --> F8["FASE 8 — Biblioteca de Templates"]
-  F8 --> F9["FASE 9 — Versionamento\n(rollback/preview-by-version na UI)"]
-  F9 --> F10["FASE 10 — Plataforma SaaS Procreating"]
+  ARCH["Arquitetura\n(concluída — revisão 5)"] --> CORE["Core Platform\nPage/Render/Template Engine, Resolver Layer"]
+  CORE --> WIZ["Wizard\n(grava no formato Page/Section/Block)"]
+  CORE --> ASSETS["Assets\nVariants + Collections"]
+  CORE --> SUPA["Supabase\n(schema real, conexão)"]
+  ASSETS --> STORAGE["Storage\n(R2 real)"]
+  SUPA --> DEPLOY["Deploy\n(Targets, Workflow)"]
+  SUPA --> ANALYTICS["Analytics\n(Event Sourcing)"]
+  CORE --> RENDER["Renderer\n(produção, fora do mock)"]
+  RENDER --> EDITOR["Editor Visual"]
+  CORE --> PLUGINS["Plugins\n(exige decisão de registry — seção 15)"]
+  PLUGINS --> MARKET["Marketplace de Templates"]
+  DEPLOY --> SAAS["SaaS\n(Multi-tenancy + RBAC completos)"]
+  ANALYTICS --> SAAS
+  PLUGINS --> SAAS
 ```
+
+| Trilha | Depende de | Bloqueia |
+|---|---|---|
+| Core Platform | Arquitetura (esta revisão) | Tudo abaixo |
+| Wizard | Core Platform | Primeiro projeto real |
+| Assets | Core Platform | Storage, Renderer completo |
+| Supabase | Core Platform | Deploy, Analytics, SaaS |
+| Storage | Assets | Upload real |
+| Deploy | Supabase | SaaS |
+| Analytics | Supabase | SaaS |
+| Renderer | Core Platform | Editor Visual |
+| Editor Visual | Renderer | — |
+| Plugins | Core Platform + decisão de registry (seção 15) | Marketplace, parte de SaaS |
+| Marketplace de Templates | Plugins | — |
+| SaaS | Deploy + Analytics + Plugins + Multi-tenancy | — |
 
 ---
 
-## Revisão crítica final — antes de iniciar o Wizard
+## 20. Revisão final — acoplamentos, duplicações e retrabalho
 
-### Acoplamentos e limitações identificados nesta rodada
+Achados desta rodada, cada um com causa e resolução proposta (nada implementado — só decidido):
 
-1. **`ClientResolver` pronto, mas não ligado** (seção 1) — é uma dívida deliberada, não um
-   descuido: ligá-lo exige tocar `app/p/[client]/**` (adicionar `await`), uma rota protegida por
-   regra explícita. **Recomendação**: pedido próprio e isolado, só pra essa troca, antes da
-   FASE 3 — não misturar com trabalho de Wizard.
-2. **`Asset.category` é uma string livre, sem enum** — flexível (novo agrupamento não exige
-   migração), mas sem validação em tempo de compilação; um typo (`"galery:equipe"`) silenciosamente
-   cai em `manifest.files` em vez de `manifest.photos`. **Recomendação**: quando a implementação
-   real do upload existir, validar `category` contra uma lista de prefixos conhecidos na Server
-   Action de upload (não no tipo — o tipo precisa continuar aberto pra `gallery:<qualquer-pasta>`).
-3. **`ProjectCapability.config`/`Asset.metadata`/`Event.metadata` são todos `Record<string,
-   unknown>`** — necessário pra generalidade (cada capability/tipo/evento tem shape diferente),
-   mas significa zero checagem de tipo no conteúdo real até existir uma implementação que os
-   preencha. Risco baixo hoje (nada escreve neles ainda); vira risco real na FASE 2 se o Wizard
-   escrever neles sem uma camada de validação (ex.: Zod) por `CapabilityKey`/`AssetType`/
-   `EventType`. **Recomendação**: schemas de validação por chave, introduzidos junto com a
-   implementação real do Wizard, não antes (não há o que validar ainda).
-4. **`ProjectConfig.theme` (seção 9, `{ accentColor: string }`) e `ProjectTheme` (seção 10,
-   `DesignTokens` completo) são dois formatos de tema diferentes, intencionalmente não
-   unificados nesta rodada** — `ProjectConfig.theme` é o mínimo que o Wizard provavelmente
-   precisa pro v1 (uma cor, como a Pascoal já usa); `ProjectTheme` é a forma completa pra quando
-   houver demanda de theming avançado. Deixar os dois coexistirem sem migração automática entre
-   eles é uma decisão consciente — forçar unificação agora seria especular sobre uso que ainda
-   não existe. **Não é uma inconsistência a corrigir, é um degrau deliberado.**
-5. **`published_projects` é uma `View`, não um objeto com métodos** — no client Supabase real,
-   ler dessa view tem exatamente a mesma API que ler de `projects` (`from("published_projects")`)
-   porque `Database.public.Views` segue o mesmo formato de `Tables`. Nenhum código precisa saber
-   a diferença. Confirmado, sem ação necessária.
-6. **Nenhum novo acoplamento com `ClientConfig`/Pascoal foi introduzido** — reconfirmado nesta
-   rodada por grep: nada em `lib/platform/**`, `lib/clients/resolver.ts`,
-   `lib/clients/sources/registry-source.ts` ou `lib/supabase/**` é importado por
-   `app/p/[client]/**`, `data/pascoal/**`, ou qualquer componente de
-   `components/landing|gallery|prospeccao/**`. O isolamento pedido nas REGRAS desta rodada está
-   intacto.
+**(a) Preview vs. Deployment(target=preview) — responsabilidades quase sobrepostas.**
+A tentação óbvia, ao introduzir `DeploymentTarget` (seção 12), é modelar Preview como
+"`Deployment` com `target='preview'`". Resolução: **não fazer isso**. `Deployment` é sobre pôr
+uma versão pra rodar em algum lugar (infraestrutura); `Preview` é sobre um link compartilhável,
+tokenizado, com expiração e aprovação, que pode simplesmente pedir ao Render Engine (seção 2)
+pra renderizar uma versão específica sob demanda — sem nenhum deploy de infraestrutura por trás.
+Manter os dois conceitos separados evita que "gerar um preview" fique artificialmente caro
+(esperar um deploy terminar) quando poderia ser instantâneo (renderização direta).
 
-### Riscos herdados das revisões anteriores, ainda válidos
+**(b)/(c) Unions fechadas (`BlockType`, `CapabilityKey`, `AssetType`, `EventType`) são
+incompatíveis com Plugins (seção 15) — é uma descoberta só, com quatro sintomas.** Um plugin não
+consegue estender uma union do TypeScript sem editar o arquivo que a declara, o que contradiz
+"sem alterar o núcleo". Resolução recomendada: migrar essas quatro chaves de union fechada pra
+um **registry validado em runtime** (`type BlockType = string`, com um `BlockRegistry` que
+valida contra os tipos conhecidos + os registrados por plugin, e tipagem de `data` via um mapa
+genérico indexado, não um union literal). Essa é a decisão de maior impacto estrutural desta
+revisão — precisa ser tomada **antes** de qualquer Plugin real ser construído, mas não bloqueia
+o Wizard (que hoje só usa os tipos nativos da plataforma, não precisa de extensibilidade ainda).
 
-- Falha parcial em `deployments` (Postgres grava, R2 falha ou vice-versa) — sem atomicidade
-  cross-sistema real; mitigado por status visível + retry idempotente, sem fila/saga (aceito,
-  volume não justifica saga).
-- Preview sem extração da montagem de página de `app/p/[client]/page.tsx` — duplicação
-  deliberada entre rota pública e preview, pra não tocar a rota pública nesta fase.
+**(d) Seção vs. Bloco — a fronteira dos exemplos do próprio pedido é inconsistente.** Os três
+exemplos fornecidos misturam nomes de Seção e Bloco no mesmo nível de lista. Resolução: a regra
+formalizada na seção 1 (Seção = região nomeada da página; Bloco = unidade configurável dentro da
+seção, podendo haver mais de um bloco por seção) é a que deve valer daqui pra frente — registrada
+aqui explicitamente porque, sem essa formalização, cada implementador tende a desenhar a fronteira
+diferente com o tempo.
 
-### Decisões arquiteturais desta revisão (resumo)
+**(e) `AssetManifest` (revisão 4) e `AssetCollection` (esta revisão) têm responsabilidade
+sobreposta se não forem ordenadas corretamente.** Resolução: `AssetCollection` é o dado de
+autoria (uma pessoa organiza e nomeia); `AssetManifest` é a view computada em tempo de
+renderização, **derivada** de Collections (seção 7) — nunca as duas mantidas independentemente.
+Isso também resolve, de graça, o risco de `category` como string livre já flagado na revisão 4.
 
-| Decisão | Estado |
-|---|---|
-| `ClientResolver` sem fallback no Registry | ✅ Implementado, não ligado ao `index.ts` |
-| Draft sem Draft Session, Project nasce cedo | ✅ Confirmado, expiração em 2 níveis documentada |
-| Preview como tabela completa | Documentado apenas (pedido explícito) |
-| Deployment separado de Version | ✅ Implementado (tipos) |
-| Assets unificado (`Asset` único) | ✅ Implementado, substitui `Video`/`GalleryFolder`/`GalleryFile` |
-| Asset Manifest | ✅ Implementado (`buildAssetManifest`, função pura e testável) |
-| Blocks / `ProjectConfig` desacoplado de `ClientConfig` | ✅ Implementado, zero migração de `ClientConfig` |
-| Themes / Design Tokens | ✅ Implementado, não consumido por nenhum componente ainda |
-| Capabilities (evolução de "produtos vendidos") | ✅ Implementado (catálogo de 11) |
-| Eventos separados de Analytics | ✅ Implementado (tipos) |
-| Cursor pagination | Documentado, não implementado (sem consumidor real ainda) |
-| Background Jobs | Documentado (`job_runs` esboçado, não criado) |
-| Wizard em 11 passos | ✅ Dado pronto (`PROJECT_WIZARD_STEPS`), UI não implementada (pedido explícito) |
+**(f) `ProjectConfig.blocks[]` (revisão 4, código real) precisa ser substituído, não
+complementado, por `pages[]`.** Diferente de Assets na revisão 4 (que ganhou um modelo aditivo
+por cautela), aqui a recomendação é substituição direta — motivo: zero projeto real foi escrito
+no formato antigo (o Wizard ainda é mock), então manter os dois formatos coexistindo só
+adicionaria uma decisão futura de qual usar, sem nenhum benefício de transição suave.
 
-### Recomendações finais, em ordem de prioridade
+**(g) Multi-tenancy expõe uma lacuna real no modelo de usuário atual.** `User.role` (revisão 3)
+não tem escopo de cliente/projeto — arquitetura mock de hoje (usuário único fixo) esconde isso,
+mas um RBAC real (seção 18) não tem onde se apoiar sem uma tabela de associação usuário↔cliente
+existir primeiro. Resolução: reservar esse design (não implementar) como pré-requisito de
+qualquer trabalho de Segurança/RBAC, pra não exigir uma migração de schema disruptiva depois que
+usuários reais existirem.
 
-1. **Antes da FASE 2 (Wizard UI)**: nenhuma decisão de schema/formato pendente — as 4 decisões
-   que a revisão 3 apontou como obrigatórias antes da primeira linha de código do Wizard
-   (`ProjectConfig`/blocks, `deployments`/`previews` como tabelas próprias, Draft com expiração
-   em 2 níveis, Assets unificado) estão todas fechadas nesta revisão. **O Wizard pode começar a
-   ser implementado sem risco de retrabalho estrutural.**
-2. Implementar `previews` como tabela real (seção 3) só quando o passo 9 do Wizard for
-   implementado de fato — não antes, para não criar tipo sem consumidor.
-3. Resolver o `ClientResolver` não-ligado (achado 1 acima) como um pedido isolado, focado só
-   nisso, antes ou em paralelo à FASE 3 — não durante a implementação do Wizard, pra não
-   misturar duas mudanças de risco diferente no mesmo PR.
-4. Adiar validação de `category`/`metadata`/`config` livres (achados 2 e 3) até a implementação
-   real do Wizard escrever neles — introduzir Zod (ou equivalente) nesse momento, não antes.
+**(h) Cache não pode ser uma camada global chamada por fora do Resolver Layer.** Se um
+componente ou Server Action chamasse cache diretamente, isso recriaria exatamente o tipo de
+acoplamento que o Render Engine (seção 2) existe pra eliminar — "componente sabendo de onde o
+dado vem". Resolução: cache vive dentro de cada Resolver, nunca ao lado dele. Já registrado como
+regra explícita na seção 17.
 
-**Esta é a versão definitiva da arquitetura da plataforma antes do desenvolvimento do Wizard.**
+**(i) Workflow (seção 13) e Deployment (seção 3/12) não podem ter duas máquinas de estado pro
+mesmo fato.** Um Workflow pode ter um passo que **dispara** um Deployment (cria a linha, observa
+o status), nunca deve reimplementar `pending → in_progress → succeeded/failed` dentro da própria
+lógica de Workflow. Uma direção de dependência só: Workflow → aciona → Deployment.
+
+**(j) `job_runs` (revisão 4) e System Events (seção 11) não podem virar duas fontes de verdade
+pro mesmo fato.** Resolução: `job_runs` é o ledger de execução de baixo nível (tentativas,
+duração, worker); System Events é a narrativa de mais alto nível, correlacionada via
+`relatedJobRunId`. Nunca as duas mantidas de forma independente pro mesmo evento.
+
+### Abstrações prematuras identificadas (o oposto do problema acima — coisas que NÃO devem ganhar entidade própria ainda)
+
+- **`WorkflowStep` não precisa de tabela de definição própria (`workflow_definitions`) agora** —
+  a sequência de passos de cada workflow pode ficar como constante no código (como já é
+  `PROJECT_WIZARD_STEPS`) até existir demanda real de workflows configuráveis por usuário no
+  admin. Modelar isso como dado editável agora seria trabalho sem consumidor.
+- **`AssetVariant` não precisa de versionamento próprio** — uma variante é substituída
+  (regenerada), nunca tem histórico; se um dia for necessário auditar "quando o thumbnail mudou",
+  isso é um System Event (`variant_regenerated`), não uma tabela de versões de variante.
+- **Plugins não precisam de um mecanismo de sandboxing/isolamento de execução agora** — o
+  registry (achado b/c) resolve a extensibilidade de **tipos**; isolamento de **execução**
+  (rodar código de plugin de terceiros com segurança) só importa no dia em que existir um
+  Marketplace de verdade (trilha própria no roadmap, seção 19), não antes.
+
+---
+
+## Relatório final
+
+### A arquitetura está pronta pra iniciar o desenvolvimento definitivo do Wizard?
+
+**Sim, com uma condição**: o Wizard deve ser construído já mirando o formato `ProjectConfig.pages`
+(seção 1), não o `ProjectConfig.blocks` plano da revisão 4. Isso é uma vantagem de timing, não um
+atraso — nenhum projeto real foi persistido ainda em nenhum dos dois formatos, então não existe
+custo de migração; existe só a escolha de em qual dos dois formatos escrever a primeira linha de
+código real. Escrever no formato antigo agora criaria exatamente o retrabalho que esta revisão
+inteira existe pra evitar.
+
+O passo "Estrutura" do Wizard (hoje mock, exibindo `template.blocks` como lista plana) precisa
+ser re-desenhado pra exibir a hierarquia Página → Seção → Bloco quando a implementação real
+começar — não feito nesta rodada (documentação apenas), mas registrado aqui como consequência
+direta e esperada da seção 1.
+
+### Decisões que devem permanecer congeladas até a versão 1.0
+
+1. **Hierarquia Página → Seção → Bloco → Componente** (seção 1) — é a fundação de tudo que se
+   constrói em cima; mudar depois de projetos reais existirem é uma migração de dado real, não
+   um ajuste de tipo.
+2. **`ProjectConfig` usa `pages[]`, nunca `blocks[]` plano; `ClientConfig` é legado congelado,
+   nunca escrito por código novo** (seções 1 e 5).
+3. **Render Engine como único caminho de renderização pra projetos novos** — Project Resolver →
+   Page Resolver → Renderer → Component Registry (seção 2). Nenhum componente público deve
+   conhecer nome de bloco específico fora dessa cadeia.
+4. **Capabilities: Template define, Projeto sobrescreve** (seção 4) — mudar a direção dessa
+   relação depois de haver overrides reais gravados exige migração de dado, não só de tipo.
+5. **Asset nunca duplica; variantes derivadas vivem em `AssetVariant`** (seção 6).
+6. **Resolver Layer como padrão obrigatório pra toda nova fonte de dado** (seção 9) — nenhuma
+   camada superior importa uma fonte de dado diretamente, sempre via um Resolver.
+7. **Analytics é sempre event-sourced; rollups são sempre deriváveis do zero a partir do stream
+   bruto** (seção 10) — se um rollup algum dia não puder ser recalculado do stream, o modelo
+   quebrou.
+8. **Três fluxos de evento (Audit/System/Analytics), nunca misturados numa tabela só** (seção 11).
+9. **Preview nunca é implementado como um Deployment** (achado a, seção 20).
+10. **Cache vive dentro do Resolver Layer, nunca é chamado diretamente por componente ou Server
+    Action** (achado h, seção 20).
+11. **Decisão de registry para `BlockType`/`CapabilityKey`/`AssetType`/`EventType` (achado b/c)
+    precisa ser tomada — mesmo que a implementação de Plugins em si espere — porque a forma
+    escolhida agora (union fechada vs. registry) afeta a assinatura de tipo de tudo que for
+    escrito em cima antes de Plugins existirem.** Esta é a única decisão desta lista que ainda
+    está genuinamente em aberto (as outras 10 já têm resolução definida); recomendo decidir
+    explicitamente qual caminho seguir antes da primeira linha de código do Core Platform, não
+    só antes de Plugins.
+
+### O que explicitamente NÃO precisa ser decidido agora (evitar abstração prematura)
+
+Definição de Workflow como dado editável, versionamento de `AssetVariant`, sandboxing de
+execução de Plugins — todos documentados na seção 20 como prematuros; revisitar quando houver
+consumidor real, não antes.
