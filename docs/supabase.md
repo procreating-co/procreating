@@ -19,40 +19,81 @@ satisfazer essa interface.
 
 ## Esboço de schema
 
+O admin (`/admin`) já modela isso em 3 níveis — **Cliente → Projeto → Template** — e o schema
+segue o mesmo desenho (tipos completos, com todas as colunas, em
+`lib/supabase/types/database.ts`):
+
+- **`clients`**: a empresa/pessoa que contrata (ex.: "Pascoal Bombas"). Não tem `slug`, não tem
+  config — é só identidade. Um cliente pode ter vários projetos.
+- **`templates`**: o "molde" de projeto (hoje só `PosicionamentoPRO`). Define quais blocos um
+  projeto tem.
+- **`projects`**: a entrega em si — o que hoje é uma pasta `data/<slug>/` no template de
+  arquivos. Tem `client_id` (dono) e `template_id` (molde). `config` guarda o resto do
+  `ClientConfig` (hero, features, videosSection, footer, gallery, prospeccao) como jsonb.
+
 ```sql
 create table clients (
-  slug text primary key,
-  brand_name text not null,
-  logo text not null,
-  config jsonb not null,        -- o resto do ClientConfig (hero, features, videosSection,
-                                 -- footer, gallery, prospeccao, metadata, theme) — ver nota
-                                 -- abaixo sobre jsonb vs colunas normalizadas
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  created_by uuid not null references auth.users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table templates (
+  id uuid primary key default gen_random_uuid(),
+  slug text unique not null,
+  name text not null,
+  description text not null,
+  blocks jsonb not null,          -- string[] — ex.: ["hero", "features", "gallery"]
   created_at timestamptz not null default now()
 );
 
-create table client_videos (
+create table projects (
+  id uuid primary key default gen_random_uuid(),
+  client_id uuid not null references clients(id) on delete cascade,
+  template_id uuid not null references templates(id),
+  slug text unique not null,      -- bate com data/<slug>/ / /p/<slug>
+  brand_name text not null,
+  accent_color text not null,
+  config jsonb not null,          -- resto do ClientConfig — ver nota abaixo
+  created_by uuid not null references auth.users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table videos (
   id text not null,
-  client_slug text not null references clients(slug) on delete cascade,
+  project_id uuid not null references projects(id) on delete cascade,
   block text not null check (block in ('social', 'acquisition', 'presentation')),
   sort_order int not null default 0,
   data jsonb not null,           -- VideoItem inteiro (number, title, format, poster, videoSrc, ...)
-  primary key (client_slug, id)
+  primary key (project_id, id)
 );
 
 create table gallery_folders (
   id text not null,
-  client_slug text not null references clients(slug) on delete cascade,
+  project_id uuid not null references projects(id) on delete cascade,
   label text not null,
   sort_order int not null default 0,
-  primary key (client_slug, id)
+  primary key (project_id, id)
 );
 ```
 
-**`jsonb` vs. colunas normalizadas**: o `ClientConfig` tem bastante aninhamento (hero, features,
-videosSection...) que muda junto — normalizar cada bloco em tabela própria só compensa se algum
-dia existir uma UI de admin editando campo a campo. Até lá, uma coluna `jsonb` validada em runtime
-contra o mesmo tipo `ClientConfig` (com um parser Zod, por exemplo) é mais simples e já dá 90% do
-valor. Reavaliar quando o admin existir.
+**Por que `projects` e não `clients` guardando `slug`/`config`**: numa versão anterior deste
+documento, a tabela que descreve o site publicado (`slug`, `config`, cor) se chamava `clients`.
+Isso conflava as duas coisas — um cliente com 2 projetos precisaria de 2 linhas em "clients" com
+o mesmo nome de empresa repetido, sem lugar pra guardar "esses 2 projetos são da mesma empresa".
+Separar em `clients` (identidade) + `projects` (entrega, com `client_id`) resolve isso.
+`services`/`videos`/`gallery_folders`/`analytics`/`downloads` também referenciam `project_id`
+(não `client_id`) pelo mesmo motivo: um vídeo pertence ao projeto que o exibe, não à empresa em
+abstrato.
+
+**`jsonb` vs. colunas normalizadas** (em `projects.config`): o `ClientConfig` tem bastante
+aninhamento (hero, features, videosSection...) que muda junto — normalizar cada bloco em tabela
+própria só compensa se algum dia existir uma UI de admin editando campo a campo. Até lá, uma
+coluna `jsonb` validada em runtime contra o mesmo tipo `ClientConfig` (com um parser Zod, por
+exemplo) é mais simples e já dá 90% do valor. Reavaliar quando o admin editar config de verdade.
 
 **Fotos da galeria continuam fora do banco.** A abordagem "solta o arquivo, ele aparece" via
 filesystem (`lib/gallery-server.ts`) só migra para Supabase Storage se um dia o app parar de

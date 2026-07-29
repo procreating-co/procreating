@@ -5,10 +5,6 @@ import { mockProjects } from "@/lib/admin/projects/mock-data";
 
 export const metadata: Metadata = { title: "Projetos | Painel Procreating" };
 
-/**
- * "+ Novo Projeto" fica desabilitado até a Etapa 6 (modal completo de criação) existir — o
- * botão já está no lugar certo, com o rótulo certo, só sem comportamento ainda.
- */
 export default function AdminProjetosPage() {
   return (
     <main className="mx-auto max-w-[1400px] px-6 py-10 lg:px-10">
@@ -17,15 +13,13 @@ export default function AdminProjetosPage() {
           <p className="font-mono text-xs uppercase tracking-wide text-muted-foreground">Todos os projetos</p>
           <h1 className="mt-1 font-display text-3xl">Projetos</h1>
         </div>
-        <button
-          type="button"
-          disabled
-          title="Em breve"
-          className="inline-flex cursor-not-allowed items-center gap-2 rounded-full border border-border/60 px-4 py-2 text-sm text-muted-foreground/50"
+        <a
+          href="/admin/projetos/novo"
+          className="inline-flex items-center gap-2 rounded-full border border-border/60 px-4 py-2 text-sm transition-colors hover:bg-foreground/5"
         >
           <Plus className="size-4" />
           Novo Projeto
-        </button>
+        </a>
       </header>
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

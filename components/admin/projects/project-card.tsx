@@ -2,6 +2,7 @@ import { Eye, Download, SquarePen, ExternalLink } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { ProjectStatusBadge } from "@/components/admin/dashboard/project-status-badge";
 import { formatDateTime, formatNumber } from "@/lib/admin/format";
+import { getMockClientName } from "@/lib/admin/clients/mock-data";
 import type { AdminProject } from "@/lib/admin/projects/types";
 
 /**
@@ -16,8 +17,12 @@ export function ProjectCard({ project }: { project: AdminProject }) {
     <Card className="justify-between gap-4 border-border/60 bg-card/40 p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="truncate font-display text-lg">{project.name}</h3>
-          <p className="truncate text-xs text-muted-foreground">{project.clientName}</p>
+          <a href={`/admin/projetos/${project.id}`} className="truncate font-display text-lg hover:underline">
+            {project.name}
+          </a>
+          <a href={`/admin/clientes/${project.clientId}`} className="block truncate text-xs text-muted-foreground hover:underline">
+            {getMockClientName(project.clientId)}
+          </a>
         </div>
         <ProjectStatusBadge status={project.status} />
       </div>

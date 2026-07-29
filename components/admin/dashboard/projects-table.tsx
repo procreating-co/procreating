@@ -2,12 +2,12 @@ import { ExternalLink, Pencil } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ProjectStatusBadge } from "@/components/admin/dashboard/project-status-badge";
 import { formatDateTime } from "@/lib/admin/format";
+import { getMockClientName } from "@/lib/admin/clients/mock-data";
 import type { AdminProject } from "@/lib/admin/projects/types";
 
 /**
- * "Ações" ainda não faz nada — abrir/editar um projeto de verdade depende das Etapas 5/6
- * (rota `/admin/projetos` e o fluxo de edição). Os botões ficam visíveis e desabilitados em
- * vez de omitidos, pra já comunicar o formato final da tabela.
+ * "Abrir" (ícone externo) já é um link real pro site público (`/p/<slug>`), igual ao
+ * `ProjectCard`. "Editar" fica desabilitado — o fluxo de edição ainda não existe.
  */
 export function ProjectsTable({ projects }: { projects: AdminProject[] }) {
   return (
@@ -26,18 +26,32 @@ export function ProjectsTable({ projects }: { projects: AdminProject[] }) {
         <TableBody>
           {projects.map((project) => (
             <TableRow key={project.id}>
-              <TableCell className="font-medium">{project.name}</TableCell>
+              <TableCell className="font-medium">
+                <a href={`/admin/projetos/${project.id}`} className="hover:underline">
+                  {project.name}
+                </a>
+              </TableCell>
               <TableCell>
                 <ProjectStatusBadge status={project.status} />
               </TableCell>
               <TableCell className="text-muted-foreground">{formatDateTime(project.lastAccessAt)}</TableCell>
               <TableCell className="text-muted-foreground">{formatDateTime(project.updatedAt)}</TableCell>
-              <TableCell className="text-muted-foreground">{project.clientName}</TableCell>
+              <TableCell className="text-muted-foreground">
+                <a href={`/admin/clientes/${project.clientId}`} className="hover:underline">
+                  {getMockClientName(project.clientId)}
+                </a>
+              </TableCell>
               <TableCell className="text-right">
                 <div className="flex justify-end gap-1">
-                  <button type="button" disabled title="Em breve" className="rounded-md p-1.5 text-muted-foreground/50 cursor-not-allowed">
+                  <a
+                    href={`/p/${project.slug}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Abrir site público"
+                    className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground"
+                  >
                     <ExternalLink className="size-4" />
-                  </button>
+                  </a>
                   <button type="button" disabled title="Em breve" className="rounded-md p-1.5 text-muted-foreground/50 cursor-not-allowed">
                     <Pencil className="size-4" />
                   </button>
