@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { ChevronRight, Clock, Download, ExternalLink, Eye, Link2, SquarePen } from "lucide-react";
+import { ChevronRight, Clock, Download, ExternalLink, Eye, Link2, Rocket, SquarePen } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ProjectStatusBadge } from "@/components/admin/dashboard/project-status-badge";
@@ -9,7 +9,9 @@ import { getMockProjectById } from "@/lib/admin/projects/mock-data";
 import { getMockClientById } from "@/lib/admin/clients/mock-data";
 import { getMockTemplateById } from "@/lib/admin/templates/mock-data";
 import { getMockPreviewsByProject, isPreviewUsable } from "@/lib/admin/previews/mock-data";
+import { getMockDeploymentsByProject } from "@/lib/admin/deployments/mock-data";
 import { generatePreviewAction, revokePreviewAction } from "@/app/admin/(protected)/projetos/[id]/preview-actions";
+import { publishProjectAction } from "@/app/admin/(protected)/projetos/[id]/publish-actions";
 import { formatDateTime, formatNumber } from "@/lib/admin/format";
 
 type Params = { id: string };
@@ -32,6 +34,7 @@ export default async function AdminProjetoDetalhePage({ params }: { params: Prom
   const client = getMockClientById(project.clientId);
   const template = getMockTemplateById(project.templateId);
   const previews = getMockPreviewsByProject(project.id);
+  const deployments = getMockDeploymentsByProject(project.id);
 
   return (
     <main className="mx-auto max-w-[1000px] px-6 py-10 lg:px-10">
@@ -166,6 +169,45 @@ export default async function AdminProjetoDetalhePage({ params }: { params: Prom
             <Button type="submit" variant="outline" size="sm" className="gap-2">
               <Link2 className="size-4" />
               Gerar link de Preview
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card className="mt-6 border-border/60 bg-card/40">
+        <CardHeader>
+          <CardTitle>Publicação</CardTitle>
+          <CardDescription>
+            Histórico de deploys — mock, sempre bem-sucedido (sem pipeline assíncrono real ainda). Publicar marca o
+            projeto como <code>published</code>.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {deployments.length === 0 ? (
+            <p className="mb-4 text-sm text-muted-foreground">Nenhum deploy ainda.</p>
+          ) : (
+            <ul className="mb-4 flex flex-col gap-2">
+              {deployments.map((deployment) => (
+                <li
+                  key={deployment.id}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/60 px-4 py-3"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm">
+                      <span className="text-emerald-400">Publicado</span> em produção
+                    </p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      por {deployment.triggeredBy} em {formatDateTime(deployment.finishedAt)}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+          <form action={publishProjectAction.bind(null, project.id)}>
+            <Button type="submit" className="gap-2">
+              <Rocket className="size-4" />
+              {project.status === "published" ? "Republicar" : "Publicar"}
             </Button>
           </form>
         </CardContent>

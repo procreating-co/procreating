@@ -122,3 +122,18 @@ export function createMockProject(input: {
   mockProjects.push(project);
   return project;
 }
+
+/**
+ * Marca um projeto como publicado — usado pela Etapa 7 (Publicação). Mutação in-place do mock
+ * em memória (mesmo espírito de `createMockProject`); não mexe em `views`/`downloads` (isso é
+ * Analytics, fora do escopo desta etapa).
+ */
+export function publishMockProject(id: string): AdminProject | null {
+  const project = mockProjects.find((p) => p.id === id);
+  if (!project) return null;
+  const now = new Date().toISOString();
+  project.status = "published";
+  project.updatedAt = now;
+  project.lastAccessAt = now;
+  return project;
+}
