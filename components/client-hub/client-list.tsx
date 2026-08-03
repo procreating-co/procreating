@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
-import { ClientRow } from "@/components/clients/client-row";
+import { ClientRow } from "@/components/client-hub/client-row";
 import type { LauncherClient } from "@/lib/clients/launcher-mock-data";
 
 /**

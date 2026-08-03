@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Command } from "@/components/ui/command";
-import { SearchBar } from "@/components/clients/search-bar";
-import { ClientList } from "@/components/clients/client-list";
-import { NewClientDialog } from "@/components/clients/new-client-dialog";
+import { SearchBar } from "@/components/client-hub/search-bar";
+import { ClientList } from "@/components/client-hub/client-list";
+import { NewClientDialog } from "@/components/client-hub/new-client-dialog";
 import type { LauncherClient } from "@/lib/clients/launcher-mock-data";
 
 const fadeUp = {
@@ -42,8 +42,9 @@ export function ClientCommand({ clients }: { clients: LauncherClient[] }) {
         transition={{ duration: 0.35, ease: "easeOut" }}
         className="mb-8 text-center"
       >
-        <h1 className="font-display text-4xl text-foreground">Clients</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Select an existing client or create a new one.</p>
+        <p className="mb-2 font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">Procreating</p>
+        <h1 className="font-display text-4xl text-foreground">Client Workspace</h1>
+        <p className="mt-2 text-sm text-muted-foreground">Select an existing workspace or create a new one.</p>
       </motion.div>
 
       <motion.div
