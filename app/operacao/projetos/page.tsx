@@ -72,7 +72,11 @@ export default function ProjetosPage() {
               const deliveries = DEMO_DELIVERIES.filter((item) => item.projectKey === project.key);
 
               return (
-                <div key={project.key} className="flex flex-col gap-5 rounded-xl border border-border/60 bg-card/40 p-5">
+                <Link
+                  key={project.key}
+                  href={`/operacao/projetos/${project.key}`}
+                  className="group flex flex-col gap-5 rounded-xl border border-border/60 bg-card/40 p-5 transition-colors hover:border-border hover:bg-card/70"
+                >
                   <div className="flex items-center justify-between">
                     <h3 className="text-base font-medium">{project.name}</h3>
                     <StatusDot tone={project.tone} label={project.status} />
@@ -100,7 +104,7 @@ export default function ProjetosPage() {
                       </div>
                     </div>
                   </div>
-                </div>
+                </Link>
               );
             })}
           </div>

@@ -18,6 +18,8 @@ export type DemoProject = {
   teamKey: string;
   status: string;
   tone: StatusTone;
+  /** Prazo mockado — não há planejamento real ainda, só ilustra o campo na tela de detalhe. */
+  deadline: string;
 };
 
 export type DemoProductionItem = {
@@ -55,33 +57,35 @@ export const DEMO_TEAM: DemoTeamMember[] = [
 
 export const DEMO_PROJECTS: DemoProject[] = [
   {
-    key: "pascoal-bombas",
+    key: "pascoal",
     name: "Pascoal Bombas",
     clientKey: "pascoal",
     teamKey: "cristiano",
     status: "Em produção",
     tone: "active",
+    deadline: "20 de agosto",
   },
   {
-    key: "dra-elenita",
+    key: "elenita",
     name: "Dra. Elenita",
     clientKey: "elenita",
     teamKey: "eduardo",
     status: "Planejamento",
     tone: "pending",
+    deadline: "10 de setembro",
   },
 ];
 
 export const DEMO_PRODUCTIONS: DemoProductionItem[] = [
-  { key: "video-institucional-pascoal", title: "Vídeo institucional Pascoal", projectKey: "pascoal-bombas", status: "Edição", tone: "active" },
-  { key: "making-of-pascoal", title: "Making of Pascoal Bombas", projectKey: "pascoal-bombas", status: "Roteiro", tone: "pending" },
-  { key: "conteudo-posicionamentopro", title: "Conteúdo PosicionamentoPRO", projectKey: "dra-elenita", status: "Roteiro", tone: "pending" },
+  { key: "video-institucional-pascoal", title: "Vídeo institucional Pascoal", projectKey: "pascoal", status: "Edição", tone: "active" },
+  { key: "making-of-pascoal", title: "Making of Pascoal Bombas", projectKey: "pascoal", status: "Roteiro", tone: "pending" },
+  { key: "conteudo-posicionamentopro", title: "Conteúdo PosicionamentoPRO", projectKey: "elenita", status: "Roteiro", tone: "pending" },
 ];
 
 export const DEMO_DELIVERIES: DemoDelivery[] = [
-  { key: "landing-page-pascoal", title: "Landing Page Pascoal", projectKey: "pascoal-bombas", status: "Aguardando aprovação", tone: "pending" },
-  { key: "apresentacao-elenita", title: "Apresentação Dra. Elenita", projectKey: "dra-elenita", status: "Em revisão", tone: "active" },
-  { key: "identidade-visual-elenita", title: "Identidade visual Dra. Elenita", projectKey: "dra-elenita", status: "Aguardando aprovação", tone: "pending" },
+  { key: "landing-page-pascoal", title: "Landing Page Pascoal", projectKey: "pascoal", status: "Aguardando aprovação", tone: "pending" },
+  { key: "apresentacao-elenita", title: "Apresentação Dra. Elenita", projectKey: "elenita", status: "Em revisão", tone: "active" },
+  { key: "identidade-visual-elenita", title: "Identidade visual Dra. Elenita", projectKey: "elenita", status: "Aguardando aprovação", tone: "pending" },
 ];
 
 export function getClient(clientKey: string) {
