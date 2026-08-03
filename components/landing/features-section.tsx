@@ -158,7 +158,7 @@ export function FeaturesSection({ eyebrow, heading, blockNumber, blockTitle, sub
         </div>
 
         <div id="fotos" className="relative scroll-mt-24 overflow-hidden bg-black text-white lg:grid lg:grid-cols-[340px_minmax(0,1fr)]">
-          {backgroundVideo && (
+          {backgroundVideo && isVisible && (
             <div className="absolute inset-0 z-0">
               <video autoPlay muted loop playsInline preload="auto" aria-hidden="true" className="h-full w-full object-cover opacity-75">
                 <source src={backgroundVideo} type="video/mp4" />
