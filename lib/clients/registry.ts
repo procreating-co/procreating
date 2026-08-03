@@ -2,6 +2,9 @@ import type { ClientConfig, ClientVideos, GalleryFolderDef } from "@/lib/clients
 import { clientConfig as pascoalConfig } from "@/data/pascoal/config";
 import { clientVideos as pascoalVideos } from "@/data/pascoal/videos";
 import { galleryFolderDefs as pascoalGalleryDefs } from "@/data/pascoal/gallery";
+import { clientConfig as elenitaConfig } from "@/data/elenita/config";
+import { clientVideos as elenitaVideos } from "@/data/elenita/videos";
+import { galleryFolderDefs as elenitaGalleryDefs } from "@/data/elenita/gallery";
 
 export type ClientEntry = {
   config: ClientConfig;
@@ -16,6 +19,7 @@ export type ClientEntry = {
  */
 const REGISTRY: Record<string, ClientEntry> = {
   pascoal: { config: pascoalConfig, videos: pascoalVideos, galleryFolderDefs: pascoalGalleryDefs },
+  elenita: { config: elenitaConfig, videos: elenitaVideos, galleryFolderDefs: elenitaGalleryDefs },
 };
 
 export function getClientEntry(slug: string): ClientEntry | null {

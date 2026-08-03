@@ -1,18 +1,18 @@
 import { pascoalPresentationEntry } from "@/content/clients/pascoal/public";
-import { elenitaPresentation } from "@/content/clients/elenita/public";
+import { elenitaPresentationEntry } from "@/content/clients/elenita/public";
 import type { PresentationContent } from "@/lib/clients/presentation-types";
 
 export type { PresentationContent, PresentationSection, PresentationSectionType } from "@/lib/clients/presentation-types";
 
 /**
- * Entrada do registry — dois formatos hoje:
+ * Entrada do registry — dois formatos possíveis:
  *  - "posicionamento-pro": delega pro pipeline legado (`ClientConfig` via `lib/clients`,
- *    `data/<slug>/**`, intocado). Só a Pascoal usa isto, e só ela deveria usar pra sempre — é o
- *    template fechado, não o generalizável.
- *  - "presentation": template novo, reutilizável, conteúdo mora em `content/clients/<slug>/
- *    public.ts` como `PresentationContent`.
- * Um cliente futuro com um template diferente (Portfolio, Landing Page) ganha um terceiro
- * formato aqui quando existir — não criado agora, sem cliente usando ainda.
+ *    `data/<slug>/**`, intocado). Pascoal e Elenita usam este hoje (pivô explícito: a entrega da
+ *    Elenita passa a ter a mesma arquitetura da Pascoal).
+ *  - "presentation": template de seções dinâmicas (`components/presentation/*Section.tsx`),
+ *    conteúdo em `content/clients/<slug>/public.ts` como `PresentationContent`. Nenhum cliente
+ *    usa hoje, mas fica disponível pra um cliente futuro cujo formato não seja o de posicionamento
+ *    single-page (Portfolio, Landing Page).
  */
 export type PresentationEntry =
   | { template: "posicionamento-pro"; slug: string }
@@ -26,7 +26,7 @@ export type PresentationEntry =
  */
 const PRESENTATION_REGISTRY: Record<string, PresentationEntry> = {
   pascoal: pascoalPresentationEntry,
-  elenita: { template: "presentation", content: elenitaPresentation },
+  elenita: elenitaPresentationEntry,
 };
 
 export function getClientPresentation(slug: string): PresentationEntry | null {
