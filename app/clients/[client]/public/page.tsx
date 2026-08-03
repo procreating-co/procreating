@@ -6,9 +6,19 @@ import { HowItWorksSection } from "@/components/landing/how-it-works-section";
 import { InfrastructureSection } from "@/components/landing/infrastructure-section";
 import { FooterSection } from "@/components/landing/footer-section";
 import { getClientConfig, getClientVideos } from "@/lib/clients";
+import { getClientPresentation } from "@/lib/clients/presentation-registry";
+import { PresentationTemplate } from "@/components/templates/presentation-template";
 
 export default async function ClientHome({ params }: { params: Promise<{ client: string }> }) {
   const { client } = await params;
+
+  // Pipeline novo, multi-cliente (ex.: Elenita) — checado primeiro só porque é a checagem mais
+  // barata (sem I/O); a Pascoal segue exatamente como sempre foi, abaixo, sem nenhuma mudança.
+  const presentation = getClientPresentation(client);
+  if (presentation) {
+    return <PresentationTemplate content={presentation} />;
+  }
+
   const [config, videos] = await Promise.all([getClientConfig(client), getClientVideos(client)]);
   if (!config || !videos) notFound();
 
