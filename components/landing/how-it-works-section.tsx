@@ -85,6 +85,10 @@ export function HowItWorksSection({
 
   const [verticalOne, verticalTwo, horizontalVideo] = videos.socialVideos;
   const { acquisitionVideo, presentationVideo } = videos;
+  /** Quando os 3 vídeos sociais são do mesmo formato (ex.: todos verticais), ficam lado a lado
+   *  numa única linha (empilhados no mobile) em vez do layout padrão — 2 lado a lado + 1
+   *  horizontal em largura total abaixo, pensado especificamente pra mistura de formatos. */
+  const allSameFormat = videos.socialVideos.length === 3 && videos.socialVideos.every((video) => video.format === videos.socialVideos[0].format);
 
   return (
     <section id="how-it-works" ref={sectionRef} className="relative overflow-hidden bg-[oklch(0.09_0.01_260)] pb-8 pt-8 text-white lg:pb-10 lg:pt-10">
@@ -104,24 +108,38 @@ export function HowItWorksSection({
           </div>
           <div className="min-w-0 p-6 lg:p-10">
             <div className="flex w-full flex-col gap-6 lg:flex-row lg:justify-end">
-              <VideoTile
-                video={verticalOne}
-                onOpen={() => setActiveVideo({ poster: verticalOne.poster, title: verticalOne.shortTitle ?? verticalOne.title, videoSrc: verticalOne.videoSrc })}
-              />
-              <VideoTile
-                video={verticalTwo}
-                onOpen={() => setActiveVideo({ poster: verticalTwo.poster, title: verticalTwo.shortTitle ?? verticalTwo.title, videoSrc: verticalTwo.videoSrc })}
-              />
+              {allSameFormat ? (
+                videos.socialVideos.map((video) => (
+                  <VideoTile
+                    key={video.id}
+                    video={video}
+                    onOpen={() => setActiveVideo({ poster: video.poster, title: video.shortTitle ?? video.title, videoSrc: video.videoSrc })}
+                  />
+                ))
+              ) : (
+                <>
+                  <VideoTile
+                    video={verticalOne}
+                    onOpen={() => setActiveVideo({ poster: verticalOne.poster, title: verticalOne.shortTitle ?? verticalOne.title, videoSrc: verticalOne.videoSrc })}
+                  />
+                  <VideoTile
+                    video={verticalTwo}
+                    onOpen={() => setActiveVideo({ poster: verticalTwo.poster, title: verticalTwo.shortTitle ?? verticalTwo.title, videoSrc: verticalTwo.videoSrc })}
+                  />
+                </>
+              )}
             </div>
           </div>
         </div>
 
-        <div className="mt-5">
-          <VideoCard
-            video={horizontalVideo}
-            onOpen={() => setActiveVideo({ poster: horizontalVideo.poster, title: horizontalVideo.title, videoSrc: horizontalVideo.videoSrc })}
-          />
-        </div>
+        {!allSameFormat && (
+          <div className="mt-5">
+            <VideoCard
+              video={horizontalVideo}
+              onOpen={() => setActiveVideo({ poster: horizontalVideo.poster, title: horizontalVideo.title, videoSrc: horizontalVideo.videoSrc })}
+            />
+          </div>
+        )}
 
         {/* Conteúdos para estratégia de aquisição */}
         <div className="mt-8 lg:mt-10">

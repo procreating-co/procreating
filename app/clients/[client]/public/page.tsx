@@ -3,6 +3,7 @@ import { getClientConfig, getClientVideos } from "@/lib/clients";
 import { getClientPresentation } from "@/lib/clients/presentation-registry";
 import { PresentationTemplate } from "@/components/templates/presentation-template";
 import { PosicionamentoProTemplate } from "@/components/templates/posicionamento-pro-template";
+import { SiteLockGate } from "@/components/presentation/site-lock-gate";
 
 /**
  * Único ponto de entrada pra todo cliente público — passa sempre pelo `presentation-registry`
@@ -23,5 +24,15 @@ export default async function ClientHome({ params }: { params: Promise<{ client:
   const [config, videos] = await Promise.all([getClientConfig(entry.slug), getClientVideos(entry.slug)]);
   if (!config || !videos) notFound();
 
-  return <PosicionamentoProTemplate slug={entry.slug} config={config} videos={videos} />;
+  const site = <PosicionamentoProTemplate slug={entry.slug} config={config} videos={videos} />;
+
+  if (config.siteLock) {
+    return (
+      <SiteLockGate accessCodes={config.siteLock.accessCodes} title={config.siteLock.lockScreenTitle} logo={config.logo} brandName={config.brandName}>
+        {site}
+      </SiteLockGate>
+    );
+  }
+
+  return site;
 }

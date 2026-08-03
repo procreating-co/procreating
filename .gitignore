@@ -31,6 +31,7 @@ pnpm-debug.log*
 *.tsbuildinfo
 
 # local video/media source files — hosted on Cloudflare R2 instead, too large for git
-# (hero-background.mp4 is small enough to stay tracked directly)
+# (hero-background.mp4 and elenita-hero-background.mp4 are small enough to stay tracked directly)
 public/videos/*
 !public/videos/hero-background.mp4
+!public/videos/elenita-hero-background.mp4

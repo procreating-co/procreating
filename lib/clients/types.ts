@@ -136,4 +136,14 @@ export type ClientConfig = {
   };
   /** Módulo opcional. `null` desativa a rota `/clients/<slug>/prospeccao`, a seção na Home e o CTA no menu. */
   prospeccao: ProspeccaoConfig | null;
+  /**
+   * Opcional — quando presente, a Home (`/clients/<slug>/public`) fica atrás de uma tela de
+   * senha (mesmo componente/UX de `gallery.lockScreenTitle`/`LockScreen`) antes de mostrar
+   * qualquer conteúdo. Ausente (padrão) = Home aberta, só a Galeria pede senha, como sempre foi.
+   * Não persiste entre visitas (sem localStorage), mesmo comportamento da Galeria.
+   */
+  siteLock?: {
+    accessCodes: string[];
+    lockScreenTitle: string;
+  };
 };

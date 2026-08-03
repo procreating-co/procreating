@@ -2,11 +2,14 @@ import type { ClientConfig } from "@/lib/clients/types";
 
 /**
  * Mesma arquitetura da Pascoal (`data/pascoal/config.ts`) — pipeline legado via
- * `lib/clients/registry.ts`, não mais o template `Presentation` de seções dinâmicas
- * (pivô explícito: a entrega da Elenita passa a ter a mesma estrutura da Pascoal, só
- * trocando copy e vídeos depois). Nenhum campo aqui aponta pra mídia real de outro
- * cliente — tudo que ainda não existe usa um placeholder honesto (`/placeholder.svg`,
- * `ready: false` em `videos.ts`) até o material real da Dra. Elenita ser entregue.
+ * `lib/clients/registry.ts`. Copy e mídia reais da Dra. Elenita: hero, features e galeria vêm
+ * das fotos entregues (`public/gallery/elenita/**`); os 3 vídeos de redes sociais ainda estão
+ * pendentes de upload no R2 (ver `videos.ts`) — vídeo de fundo do Hero já está em
+ * `public/videos/elenita-hero-background.mp4` (mesma exceção de tamanho que
+ * `hero-background.mp4` da Pascoal, ver `.gitignore`).
+ *
+ * `siteLock` gira a Home inteira atrás de senha, a pedido explícito da cliente — diferente da
+ * Pascoal, que mantém a Home aberta e só a Galeria protegida.
  */
 export const clientConfig: ClientConfig = {
   slug: "elenita",
@@ -28,25 +31,27 @@ export const clientConfig: ClientConfig = {
   },
 
   hero: {
-    welcomeLines: ["Sejam bem-vindos,", "Dra. Elenita."],
+    welcomeLines: ["Seja bem-vinda,", "Dra. Elenita."],
     backgroundVideo: "/videos/elenita-hero-background.mp4",
-    paragraph: "Apresentação em desenvolvimento — fotos, vídeos e textos finais chegam nas próximas etapas.",
+    paragraph: "Todos materiais captados estão aqui...",
     stats: {
-      videos: { count: 0, label: "vídeos produzidos" },
-      photos: { count: 0, label: "fotos editadas" },
+      videos: { count: 3, label: "vídeos produzidos" },
+      photos: { count: 116, label: "fotos editadas" },
     },
   },
 
   features: {
     eyebrow: "Projeto Inicial",
-    heading: "Autoridade e Presença Digital.",
+    heading: "Posicionamento Digital.",
     blockNumber: "01.",
     blockTitle: "Fotos Produzidas",
-    subtitle: "Espaço reservado para as fotos profissionais da Dra. Elenita — ativo assim que o material for entregue.",
+    subtitle: "Captamos a essência do consultório, equipe e a experiência das pacientes com a doutora.",
     galleryButtonLabel: "Acessar Galeria",
     photos: [
-      { src: "/placeholder.svg", alt: "Foto em produção — aguardando material real", category: "Retratos" },
-      { src: "/placeholder.svg", alt: "Foto em produção — aguardando material real", category: "Consultório" },
+      { src: "/images/gallery/elenita-retratos.jpg", alt: "Retratos da Dra. Elenita", category: "Retratos Dra. Elenita" },
+      { src: "/images/gallery/elenita-consultorio.jpg", alt: "Consultório da Dra. Elenita", category: "Consultório" },
+      { src: "/images/gallery/elenita-procedimento.jpg", alt: "Procedimento na Dra. Elenita", category: "Procedimento" },
+      { src: "/images/gallery/elenita-retratos-alexandre.jpg", alt: "Retratos da Dra. Elenita e Alexandre", category: "Retratos Dra. Elenita e Alexandre" },
     ],
   },
 
@@ -56,14 +61,14 @@ export const clientConfig: ClientConfig = {
     headingSuffix: "para redes sociais.",
     blockNumber: "02.",
     blockTitle: "Vídeos Produzidos.",
-    subtitle: "Vídeos institucionais e de apresentação, em produção — estreia nas próximas etapas.",
+    subtitle: "Conteúdos estratégicos para o perfil nas redes sociais.",
     acquisitionEyebrow: "Estratégia de Conteúdo",
     acquisitionHeadingPrefix: "Conteúdos",
     acquisitionHeadingSuffix: "de apresentação.",
   },
 
   footer: {
-    legalLine: "Desenvolvido para Dra. Elenita Luzardo.\nDados legais a confirmar com a cliente.",
+    legalLine: "Desenvolvido para Dra. Elenita Luzardo Odontologia Ltda.\nCNPJ 38.140.444/0001-03.",
   },
 
   gallery: {
@@ -72,4 +77,9 @@ export const clientConfig: ClientConfig = {
   },
 
   prospeccao: null,
+
+  siteLock: {
+    accessCodes: ["elenita", "admin"],
+    lockScreenTitle: "Acesso Exclusivo",
+  },
 };
