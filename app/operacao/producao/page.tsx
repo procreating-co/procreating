@@ -3,8 +3,9 @@ import Link from "next/link";
 import { ArrowLeft, Clapperboard, Clock, PackageCheck } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout";
 import { StatTile } from "@/components/dashboard/stat-tile";
-import { StatusDot, type StatusTone } from "@/components/dashboard/status-dot";
+import { StatusDot } from "@/components/dashboard/status-dot";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { DEMO_PRODUCTIONS, getClient, getProject } from "@/lib/dashboard/demo-data";
 
 export const metadata: Metadata = {
   title: "Produção — Procreating",
@@ -16,12 +17,6 @@ const STATS = [
   { key: "producao", label: "Conteúdos em produção", value: "6", icon: Clapperboard },
   { key: "aprovacao", label: "Aguardando aprovação", value: "3", icon: Clock },
   { key: "entregas", label: "Entregas desta semana", value: "4", icon: PackageCheck },
-];
-
-/** Listagem mockada — mesma ressalva do `STATS`, sem CRUD nem dados reais ainda. */
-const DEMO_CONTENT: { title: string; client: string; status: string; tone: StatusTone }[] = [
-  { title: "Vídeo institucional Pascoal", client: "Pascoal", status: "Edição", tone: "active" },
-  { title: "Conteúdo PosicionamentoPRO", client: "Dra. Elenita", status: "Roteiro", tone: "pending" },
 ];
 
 export default function ProducaoPage() {
@@ -68,20 +63,26 @@ export default function ProducaoPage() {
               <TableHeader>
                 <TableRow className="border-border/60 hover:bg-transparent">
                   <TableHead>Conteúdo</TableHead>
+                  <TableHead>Projeto</TableHead>
                   <TableHead>Cliente</TableHead>
                   <TableHead>Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {DEMO_CONTENT.map((item) => (
-                  <TableRow key={item.title} className="border-border/60">
-                    <TableCell className="font-medium">{item.title}</TableCell>
-                    <TableCell className="text-muted-foreground">{item.client}</TableCell>
-                    <TableCell>
-                      <StatusDot tone={item.tone} label={item.status} />
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {DEMO_PRODUCTIONS.map((item) => {
+                  const project = getProject(item.projectKey);
+                  const client = project ? getClient(project.clientKey) : undefined;
+                  return (
+                    <TableRow key={item.key} className="border-border/60">
+                      <TableCell className="font-medium">{item.title}</TableCell>
+                      <TableCell className="text-muted-foreground">{project?.name}</TableCell>
+                      <TableCell className="text-muted-foreground">{client?.name}</TableCell>
+                      <TableCell>
+                        <StatusDot tone={item.tone} label={item.status} />
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>

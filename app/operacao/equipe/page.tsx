@@ -5,6 +5,7 @@ import { DashboardLayout } from "@/components/dashboard/dashboard-layout";
 import { StatTile } from "@/components/dashboard/stat-tile";
 import { StatusDot } from "@/components/dashboard/status-dot";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { DEMO_TEAM } from "@/lib/dashboard/demo-data";
 
 export const metadata: Metadata = {
   title: "Equipe — Procreating",
@@ -13,16 +14,9 @@ export const metadata: Metadata = {
 
 /** Indicadores mockados — sem backend ainda, por isso o `StatTile` carrega a etiqueta "Demo". */
 const STATS = [
-  { key: "pessoas", label: "Pessoas cadastradas", value: "3", icon: Users },
+  { key: "pessoas", label: "Pessoas cadastradas", value: String(DEMO_TEAM.length), icon: Users },
   { key: "projetos-pessoa", label: "Projetos por pessoa", value: "2", icon: Briefcase },
   { key: "demandas", label: "Demandas abertas", value: "5", icon: ListTodo },
-];
-
-/** Listagem mockada — mesma ressalva do `STATS`, sem CRUD nem dados reais ainda. */
-const DEMO_TEAM = [
-  { name: "Cristiano", role: "Editor" },
-  { name: "Eduardo", role: "Gestor Operacional" },
-  { name: "Santiago", role: "CEO" },
 ];
 
 export default function EquipePage() {

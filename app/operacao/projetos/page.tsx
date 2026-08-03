@@ -3,8 +3,14 @@ import Link from "next/link";
 import { ArrowLeft, FolderKanban, PackageCheck, Users } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout";
 import { StatTile } from "@/components/dashboard/stat-tile";
-import { StatusDot, type StatusTone } from "@/components/dashboard/status-dot";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { StatusDot } from "@/components/dashboard/status-dot";
+import {
+  DEMO_DELIVERIES,
+  DEMO_PRODUCTIONS,
+  DEMO_PROJECTS,
+  getClient,
+  getTeamMember,
+} from "@/lib/dashboard/demo-data";
 
 export const metadata: Metadata = {
   title: "Projetos — Procreating",
@@ -13,15 +19,9 @@ export const metadata: Metadata = {
 
 /** Indicadores mockados — sem backend ainda, por isso o `StatTile` carrega a etiqueta "Demo". */
 const STATS = [
-  { key: "ativos", label: "Projetos ativos", value: "4", icon: FolderKanban },
-  { key: "entregas", label: "Entregas pendentes", value: "6", icon: PackageCheck },
-  { key: "clientes", label: "Clientes envolvidos", value: "3", icon: Users },
-];
-
-/** Listagem mockada — mesma ressalva do `STATS`, sem CRUD nem dados reais ainda. */
-const DEMO_PROJECTS: { project: string; client: string; status: string; tone: StatusTone }[] = [
-  { project: "Pascoal Bombas", client: "Pascoal", status: "Em produção", tone: "active" },
-  { project: "Dra. Elenita", client: "Elenita", status: "Planejamento", tone: "pending" },
+  { key: "ativos", label: "Projetos ativos", value: String(DEMO_PROJECTS.length), icon: FolderKanban },
+  { key: "entregas", label: "Entregas pendentes", value: String(DEMO_DELIVERIES.length), icon: PackageCheck },
+  { key: "clientes", label: "Clientes envolvidos", value: String(new Set(DEMO_PROJECTS.map((p) => p.clientKey)).size), icon: Users },
 ];
 
 export default function ProjetosPage() {
@@ -63,27 +63,46 @@ export default function ProjetosPage() {
               Demo
             </span>
           </div>
-          <div className="overflow-hidden rounded-xl border border-border/60">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-border/60 hover:bg-transparent">
-                  <TableHead>Projeto</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {DEMO_PROJECTS.map((item) => (
-                  <TableRow key={item.project} className="border-border/60">
-                    <TableCell className="font-medium">{item.project}</TableCell>
-                    <TableCell className="text-muted-foreground">{item.client}</TableCell>
-                    <TableCell>
-                      <StatusDot tone={item.tone} label={item.status} />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {DEMO_PROJECTS.map((project) => {
+              const client = getClient(project.clientKey);
+              const team = getTeamMember(project.teamKey);
+              const productions = DEMO_PRODUCTIONS.filter((item) => item.projectKey === project.key);
+              const deliveries = DEMO_DELIVERIES.filter((item) => item.projectKey === project.key);
+
+              return (
+                <div key={project.key} className="flex flex-col gap-5 rounded-xl border border-border/60 bg-card/40 p-5">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-base font-medium">{project.name}</h3>
+                    <StatusDot tone={project.tone} label={project.status} />
+                  </div>
+                  <p className="text-sm text-muted-foreground">Cliente: {client?.name}</p>
+
+                  <div className="flex flex-col gap-2 border-t border-border/60 pt-4">
+                    <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Relacionamentos</span>
+                    <div className="grid grid-cols-3 gap-4 text-sm">
+                      <div className="flex flex-col gap-0.5">
+                        <p className="text-xs text-muted-foreground">Produções</p>
+                        <p className="font-medium">
+                          {productions.length} conteúdo{productions.length === 1 ? "" : "s"}
+                        </p>
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        <p className="text-xs text-muted-foreground">Entregas</p>
+                        <p className="font-medium">
+                          {deliveries.length} pendente{deliveries.length === 1 ? "" : "s"}
+                        </p>
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        <p className="text-xs text-muted-foreground">Equipe</p>
+                        <p className="font-medium">{team?.name}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </main>
