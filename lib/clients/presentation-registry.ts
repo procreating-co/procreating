@@ -2,7 +2,7 @@ import { pascoalPresentationEntry } from "@/content/clients/pascoal/public";
 import { elenitaPresentation } from "@/content/clients/elenita/public";
 import type { PresentationContent } from "@/lib/clients/presentation-types";
 
-export type { PresentationContent } from "@/lib/clients/presentation-types";
+export type { PresentationContent, PresentationSection, PresentationSectionType } from "@/lib/clients/presentation-types";
 
 /**
  * Entrada do registry — dois formatos hoje:
