@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { SearchX } from "lucide-react";
 import { CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 import { ClientRow } from "@/components/client-hub/client-row";
 import type { LauncherClient } from "@/lib/clients/launcher-mock-data";
@@ -17,7 +18,11 @@ export function ClientList({ clients }: { clients: LauncherClient[] }) {
 
   return (
     <CommandList>
-      <CommandEmpty>No clients found.</CommandEmpty>
+      <CommandEmpty className="flex flex-col items-center gap-2 py-12 text-center">
+        <SearchX className="size-5 text-muted-foreground/60" />
+        <p className="text-sm text-foreground">No clients found</p>
+        <p className="text-xs text-muted-foreground">Try a different search, or create a new client below.</p>
+      </CommandEmpty>
       <CommandGroup>
         {clients.map((client, index) => (
           <CommandItem
