@@ -65,7 +65,17 @@ export const DASHBOARD_SECTIONS: DashboardSection[] = [
         actionLabel: "Abrir Client Hub",
         lastAction: { label: "Workspace do Pascoal atualizado há 2h", demo: true },
       },
-      { key: "crm", label: "CRM", description: "Relacionamento e funil comercial com clientes.", icon: Contact2, status: "soon", category: "Clientes & Relacionamento" },
+      {
+        key: "crm",
+        label: "CRM",
+        description: "Relacionamento e funil comercial com clientes.",
+        icon: Contact2,
+        status: "available",
+        href: "/operacao/crm",
+        category: "Clientes & Relacionamento",
+        actionLabel: "Abrir CRM",
+        lastAction: { label: "Empresa Y recebeu proposta enviada", demo: true },
+      },
       {
         key: "projetos",
         label: "Projetos",
