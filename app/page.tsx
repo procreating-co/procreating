@@ -1,19 +1,32 @@
-import { FileText, FolderKanban, PackageCheck, Users } from "lucide-react";
+import { Clapperboard, FolderKanban, PackageCheck, Users } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout";
 import { GreetingHeader } from "@/components/dashboard/greeting-header";
 import { StatTile } from "@/components/dashboard/stat-tile";
+import { StatusDot } from "@/components/dashboard/status-dot";
 import { SectionCard } from "@/components/dashboard/section-card";
 import { DASHBOARD_SECTIONS } from "@/components/dashboard/nav-config";
+import {
+  DEMO_CLIENTS,
+  DEMO_DELIVERIES,
+  DEMO_PRODUCTIONS,
+  DEMO_PROJECTS,
+  DEMO_TEAM,
+  getClient,
+  getProject,
+} from "@/lib/dashboard/demo-data";
 
 /**
- * Resumo geral mockado — não há backend ainda, por isso cada tile carrega a etiqueta "Demo"
- * (ver `StatTile`). Números só ilustram o layout, não representam a operação real.
+ * Nenhum array próprio aqui — a Home só lê `lib/dashboard/demo-data.ts`, a mesma fonte que
+ * `/operacao/projetos`, `/operacao/producao` e `/operacao/entregas` usam. É por isso que os
+ * números batem entre as telas: são a mesma contagem, não cópias que podem divergir.
  */
+const PENDING_DELIVERIES = DEMO_DELIVERIES.filter((delivery) => delivery.tone === "pending");
+
 const STAT_TILES = [
-  { key: "clientes-ativos", label: "Clientes ativos", value: "12", icon: Users },
-  { key: "projetos-andamento", label: "Projetos em andamento", value: "5", icon: FolderKanban },
-  { key: "conteudos-pendentes", label: "Conteúdos pendentes", value: "8", icon: FileText },
-  { key: "entregas-semana", label: "Entregas da semana", value: "3", icon: PackageCheck },
+  { key: "clientes-ativos", label: "Clientes ativos", value: String(DEMO_CLIENTS.length), icon: Users },
+  { key: "projetos-ativos", label: "Projetos ativos", value: String(DEMO_PROJECTS.length), icon: FolderKanban },
+  { key: "conteudos-producao", label: "Conteúdos em produção", value: String(DEMO_PRODUCTIONS.length), icon: Clapperboard },
+  { key: "entregas-pendentes", label: "Entregas pendentes", value: String(PENDING_DELIVERIES.length), icon: PackageCheck },
 ];
 
 /**
@@ -42,6 +55,70 @@ export default function Home() {
                 />
               );
             })}
+          </div>
+        </section>
+
+        <section className="flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Resumo operacional</h2>
+            <span className="rounded-full border border-border/60 px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+              Demo
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+            <div className="flex flex-col gap-4 rounded-xl border border-border/60 bg-card/40 p-5">
+              <h3 className="text-sm font-medium">Projetos recentes</h3>
+              <ul className="flex flex-col gap-4">
+                {DEMO_PROJECTS.map((project) => {
+                  const client = getClient(project.clientKey);
+                  return (
+                    <li key={project.key} className="flex items-center justify-between gap-3">
+                      <div className="flex min-w-0 flex-col">
+                        <span className="truncate text-sm font-medium">{project.name}</span>
+                        <span className="truncate text-xs text-muted-foreground">{client?.name}</span>
+                      </div>
+                      <StatusDot tone={project.tone} label={project.status} />
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+
+            <div className="flex flex-col gap-4 rounded-xl border border-border/60 bg-card/40 p-5">
+              <h3 className="text-sm font-medium">Próximas entregas</h3>
+              <ul className="flex flex-col gap-4">
+                {PENDING_DELIVERIES.map((delivery) => {
+                  const project = getProject(delivery.projectKey);
+                  return (
+                    <li key={delivery.key} className="flex items-center justify-between gap-3">
+                      <div className="flex min-w-0 flex-col">
+                        <span className="truncate text-sm font-medium">{delivery.title}</span>
+                        <span className="truncate text-xs text-muted-foreground">{project?.name}</span>
+                      </div>
+                      <StatusDot tone={delivery.tone} label={delivery.status} />
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+
+            <div className="flex flex-col gap-4 rounded-xl border border-border/60 bg-card/40 p-5">
+              <h3 className="text-sm font-medium">Equipe ativa</h3>
+              <ul className="flex flex-col gap-4">
+                {DEMO_TEAM.map((member) => (
+                  <li key={member.key} className="flex items-center gap-3">
+                    <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-foreground/10 font-mono text-[11px] uppercase text-muted-foreground">
+                      {member.name.slice(0, 2)}
+                    </div>
+                    <div className="flex min-w-0 flex-col">
+                      <span className="truncate text-sm font-medium">{member.name}</span>
+                      <span className="truncate text-xs text-muted-foreground">{member.role}</span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </section>
 
