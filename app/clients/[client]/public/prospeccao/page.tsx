@@ -10,9 +10,7 @@ export default async function ClientProspeccaoPage({ params }: { params: Promise
   return (
     <ProspeccaoExperience
       accessCode={config.prospeccao.accessCode}
-      unlockAt={config.prospeccao.unlockAt}
       title={config.prospeccao.title}
-      toastText={config.prospeccao.toastText}
       logo={config.logo}
       brandName={config.brandName}
       homeHref={`/clients/${client}/public`}
