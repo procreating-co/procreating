@@ -80,12 +80,12 @@ export const DASHBOARD_SECTIONS: DashboardSection[] = [
     href: "/administracao",
     icon: Building2,
     modules: [
-      { key: "financeiro", label: "Financeiro", description: "Receitas, despesas e fluxo de caixa.", icon: Wallet, status: "soon" },
-      { key: "comercial", label: "Comercial", description: "Pipeline comercial e propostas.", icon: Handshake, status: "soon" },
-      { key: "marketing", label: "Marketing", description: "Campanhas, posicionamento e crescimento.", icon: Megaphone, status: "soon" },
-      { key: "indicadores", label: "Indicadores", description: "Métricas e desempenho da empresa.", icon: BarChart3, status: "soon" },
-      { key: "rh", label: "RH", description: "Gestão de pessoas e processos internos.", icon: UserCog, status: "soon" },
-      { key: "configuracoes", label: "Configurações", description: "Preferências e configurações da plataforma.", icon: Settings, status: "soon" },
+      { key: "financeiro", label: "Financeiro", description: "Receitas, despesas e fluxo de caixa.", icon: Wallet, status: "soon", category: "Financeiro & Comercial" },
+      { key: "comercial", label: "Comercial", description: "Pipeline comercial e propostas.", icon: Handshake, status: "soon", category: "Financeiro & Comercial" },
+      { key: "marketing", label: "Marketing", description: "Campanhas, posicionamento e crescimento.", icon: Megaphone, status: "soon", category: "Marketing & Indicadores" },
+      { key: "indicadores", label: "Indicadores", description: "Métricas e desempenho da empresa.", icon: BarChart3, status: "soon", category: "Marketing & Indicadores" },
+      { key: "rh", label: "RH", description: "Gestão de pessoas e processos internos.", icon: UserCog, status: "soon", category: "Pessoas & Configurações" },
+      { key: "configuracoes", label: "Configurações", description: "Preferências e configurações da plataforma.", icon: Settings, status: "soon", category: "Pessoas & Configurações" },
     ],
   },
 ];
