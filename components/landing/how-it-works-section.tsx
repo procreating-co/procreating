@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type PointerEvent } from "react";
 import dynamic from "next/dynamic";
 import { Download, Play } from "lucide-react";
 import type { ClientVideos, VideoItem } from "@/lib/clients/types";
@@ -16,7 +16,7 @@ const VideoLightbox = dynamic(() => import("@/components/landing/video-lightbox"
 function VideoTile({ video, onOpen }: { video: VideoItem; onOpen: () => void }) {
   const title = video.shortTitle ?? video.title;
   return (
-    <div className="w-full lg:w-80 lg:max-w-[340px] lg:flex-1">
+    <div className="w-[78vw] max-w-80 shrink-0 snap-start lg:w-80">
       <div className="mb-4 flex h-10 shrink-0 items-center gap-4 lg:mb-5">
         <span className="shrink-0 font-display text-3xl text-[var(--client-accent)]">{video.number}.</span>
         <h3 className="min-w-0 shrink truncate text-left font-display text-xl leading-snug lg:text-2xl">{title}</h3>
@@ -76,6 +76,8 @@ export function HowItWorksSection({
   const [activeVideo, setActiveVideo] = useState<ActiveVideo | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
+  const carouselRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef({ active: false, moved: false, startX: 0, scrollLeft: 0 });
 
   useEffect(() => {
     const observer = new IntersectionObserver(([entry]) => entry.isIntersecting && setIsVisible(true), { threshold: 0.1 });
@@ -89,6 +91,26 @@ export function HowItWorksSection({
    *  numa única linha (empilhados no mobile) em vez do layout padrão — 2 lado a lado + 1
    *  horizontal em largura total abaixo, pensado especificamente pra mistura de formatos. */
   const allSameFormat = videos.socialVideos.length === 3 && videos.socialVideos.every((video) => video.format === videos.socialVideos[0].format);
+
+  const startCarouselDrag = (event: PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === "touch") return;
+    const carousel = carouselRef.current;
+    if (!carousel) return;
+    dragRef.current = { active: true, moved: false, startX: event.clientX, scrollLeft: carousel.scrollLeft };
+    carousel.setPointerCapture(event.pointerId);
+  };
+
+  const moveCarousel = (event: PointerEvent<HTMLDivElement>) => {
+    const carousel = carouselRef.current;
+    if (!carousel || !dragRef.current.active) return;
+    const distance = event.clientX - dragRef.current.startX;
+    if (Math.abs(distance) > 5) dragRef.current.moved = true;
+    carousel.scrollLeft = dragRef.current.scrollLeft - distance;
+  };
+
+  const stopCarouselDrag = () => {
+    dragRef.current.active = false;
+  };
 
   return (
     <section id="how-it-works" ref={sectionRef} className="relative overflow-hidden bg-[oklch(0.09_0.01_260)] pb-8 pt-8 text-white lg:pb-10 lg:pt-10">
@@ -107,7 +129,22 @@ export function HowItWorksSection({
             <p className="mt-4 pl-0 text-base leading-relaxed text-white/55 sm:mt-6 sm:pl-10 sm:text-lg">{subtitle}</p>
           </div>
           <div className="min-w-0 p-6 lg:p-10">
-            <div className={`flex w-full flex-col items-start gap-6 lg:flex-row ${allSameFormat ? "lg:justify-center" : "lg:justify-end"}`}>
+            <div
+              ref={allSameFormat ? carouselRef : undefined}
+              onPointerDown={allSameFormat ? startCarouselDrag : undefined}
+              onPointerMove={allSameFormat ? moveCarousel : undefined}
+              onPointerUp={allSameFormat ? stopCarouselDrag : undefined}
+              onPointerCancel={allSameFormat ? stopCarouselDrag : undefined}
+              onClickCapture={allSameFormat ? (event) => {
+                if (dragRef.current.moved) {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  dragRef.current.moved = false;
+                }
+              } : undefined}
+              className={`flex w-full items-start gap-6 ${allSameFormat ? "cursor-grab snap-x snap-mandatory overflow-x-auto pb-3 [scrollbar-width:none] active:cursor-grabbing [&::-webkit-scrollbar]:hidden" : "flex-col lg:flex-row lg:justify-end"}`}
+              aria-label={allSameFormat ? "Carrossel de vídeos produzidos" : undefined}
+            >
               {allSameFormat ? (
                 videos.socialVideos.map((video) => (
                   <VideoTile
