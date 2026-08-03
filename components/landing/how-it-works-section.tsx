@@ -141,30 +141,32 @@ export function HowItWorksSection({
           </div>
         )}
 
-        {/* Conteúdos para estratégia de aquisição */}
-        <div className="mt-8 lg:mt-10">
-          <header className="mb-8 text-center lg:mb-10">
-            <span className="mb-3 inline-flex items-center gap-3 font-mono text-sm text-white/45"><span className="h-px w-12 bg-[var(--client-accent)]" />{acquisitionEyebrow}<span className="h-px w-12 bg-[var(--client-accent)]" /></span>
-            <h2 className="text-balance font-display text-4xl leading-[0.95] tracking-tight sm:text-5xl md:text-7xl lg:text-[96px]">{acquisitionHeadingPrefix} <span className="block text-white/40">{acquisitionHeadingSuffix}</span></h2>
-          </header>
+        {/* Conteúdos para estratégia de aquisição — só existe quando o cliente tem os dois vídeos */}
+        {acquisitionVideo && presentationVideo && (
+          <div className="mt-8 lg:mt-10">
+            <header className="mb-8 text-center lg:mb-10">
+              <span className="mb-3 inline-flex items-center gap-3 font-mono text-sm text-white/45"><span className="h-px w-12 bg-[var(--client-accent)]" />{acquisitionEyebrow}<span className="h-px w-12 bg-[var(--client-accent)]" /></span>
+              <h2 className="text-balance font-display text-4xl leading-[0.95] tracking-tight sm:text-5xl md:text-7xl lg:text-[96px]">{acquisitionHeadingPrefix} <span className="block text-white/40">{acquisitionHeadingSuffix}</span></h2>
+            </header>
 
-          <div className="flex flex-col gap-5 lg:h-[540px] lg:flex-row">
-            <VideoCard
-              video={acquisitionVideo}
-              bare
-              stretch
-              className="lg:w-[320px] lg:shrink-0"
-              onOpen={() => setActiveVideo({ poster: acquisitionVideo.poster, title: acquisitionVideo.title, videoSrc: acquisitionVideo.videoSrc })}
-            />
+            <div className="flex flex-col gap-5 lg:h-[540px] lg:flex-row">
+              <VideoCard
+                video={acquisitionVideo}
+                bare
+                stretch
+                className="lg:w-[320px] lg:shrink-0"
+                onOpen={() => setActiveVideo({ poster: acquisitionVideo.poster, title: acquisitionVideo.title, videoSrc: acquisitionVideo.videoSrc })}
+              />
 
-            <VideoCard
-              video={presentationVideo}
-              stretch
-              className="lg:flex-1"
-              onOpen={() => setActiveVideo({ poster: presentationVideo.poster, title: presentationVideo.title, videoSrc: presentationVideo.videoSrc })}
-            />
+              <VideoCard
+                video={presentationVideo}
+                stretch
+                className="lg:flex-1"
+                onOpen={() => setActiveVideo({ poster: presentationVideo.poster, title: presentationVideo.title, videoSrc: presentationVideo.videoSrc })}
+              />
+            </div>
           </div>
-        </div>
+        )}
       </div>
       {activeVideo && <VideoLightbox item={activeVideo} onClose={() => setActiveVideo(null)} />}
     </section>

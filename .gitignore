@@ -30,8 +30,13 @@ pnpm-debug.log*
 # typescript
 *.tsbuildinfo
 
-# local video/media source files — hosted on Cloudflare R2 instead, too large for git
-# (hero-background.mp4 and elenita-hero-background.mp4 are small enough to stay tracked directly)
+# local video/media source files — hosted on Cloudflare R2 instead, too large for git.
+# Exceção: hero-background.mp4/elenita-hero-background.mp4 (pequenos, sempre ficaram no git) e
+# os 3 vídeos sociais da Elenita (elenita-social-*.mp4) — decisão explícita de manter direto no
+# git como atalho até o upload real pro R2, mesmo fora do padrão do projeto (ver commit).
 public/videos/*
 !public/videos/hero-background.mp4
 !public/videos/elenita-hero-background.mp4
+!public/videos/elenita-social-01-protocolo-elleve.mp4
+!public/videos/elenita-social-02-voce-decidiu-se-priorizar.mp4
+!public/videos/elenita-social-03-educativo.mp4

@@ -29,13 +29,17 @@ export type VideoItem = {
   ready: boolean;
 };
 
-/** Os 5 vídeos do projeto, agrupados nos dois blocos onde aparecem na Home. */
+/** Os vídeos do projeto, agrupados nos blocos onde aparecem na Home. */
 export type ClientVideos = {
   /** Bloco "Conteúdos para redes sociais" — ordem de exibição = ordem do array. */
   socialVideos: VideoItem[];
-  /** Bloco "Conteúdos para aquisição" — par lado a lado. */
-  acquisitionVideo: VideoItem;
-  presentationVideo: VideoItem;
+  /**
+   * Bloco opcional "Conteúdos de aquisição/apresentação" — par lado a lado. Os dois campos
+   * andam juntos: presentes os dois, a seção aparece; ausentes os dois (ex.: cliente sem
+   * módulo de aquisição ativa), a seção inteira some da Home, sem card vazio.
+   */
+  acquisitionVideo?: VideoItem;
+  presentationVideo?: VideoItem;
 };
 
 /** Par número+rótulo usado nas métricas do Hero (ex.: "05" + "vídeos produzidos"). */

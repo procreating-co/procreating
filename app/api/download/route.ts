@@ -4,10 +4,15 @@ export const runtime = "edge";
 
 /**
  * O atributo `download` do HTML só é honrado pelo navegador em links same-origin; para os
- * vídeos (hospedados no bucket público do Cloudflare R2, origem diferente do site) o navegador
+ * vídeos hospedados no bucket público do Cloudflare R2 (origem diferente do site) o navegador
  * ignora `download` e apenas abre o arquivo. Esta rota faz o proxy do vídeo original (mesma
  * qualidade, sem recompressão) e define `Content-Disposition: attachment`, forçando o download
  * a partir do próprio domínio do site.
+ *
+ * `src` pode ser uma URL `.r2.dev` (padrão) ou um caminho relativo same-origin (`/videos/...`) —
+ * caso de vídeo commitado direto em `public/videos/` (ex.: `data/elenita/videos.ts`, atalho fora
+ * do padrão até o upload real pro R2). Caminho relativo é sempre resolvido contra o próprio
+ * domínio da requisição, nunca aceito como texto livre — não é um proxy aberto pra qualquer URL.
  */
 const ALLOWED_HOST_SUFFIX = ".r2.dev";
 
@@ -17,12 +22,15 @@ export async function GET(request: NextRequest) {
 
   let url: URL;
   try {
-    url = new URL(src);
+    url = src.startsWith("/") ? new URL(src, request.nextUrl.origin) : new URL(src);
   } catch {
     return new Response("URL inválida.", { status: 400 });
   }
 
-  if (url.protocol !== "https:" || !url.hostname.endsWith(ALLOWED_HOST_SUFFIX)) {
+  const isSameOrigin = url.origin === request.nextUrl.origin;
+  const isAllowedRemote = url.protocol === "https:" && url.hostname.endsWith(ALLOWED_HOST_SUFFIX);
+
+  if (!isSameOrigin && !isAllowedRemote) {
     return new Response("Origem não permitida.", { status: 403 });
   }
 
