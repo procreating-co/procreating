@@ -110,7 +110,17 @@ export const DASHBOARD_SECTIONS: DashboardSection[] = [
         actionLabel: "Abrir Equipe",
         lastAction: { label: "Cristiano assumiu o Vídeo institucional Pascoal", demo: true },
       },
-      { key: "conteudo", label: "Conteúdo", description: "Criação e organização de conteúdo.", icon: FileText, status: "soon", category: "Pessoas & Conteúdo" },
+      {
+        key: "conteudo",
+        label: "Conteúdo",
+        description: "Criação e organização de conteúdo.",
+        icon: FileText,
+        status: "available",
+        href: "/operacao/conteudo",
+        category: "Pessoas & Conteúdo",
+        actionLabel: "Abrir Conteúdo",
+        lastAction: { label: "Reels institucional Pascoal entrou em produção", demo: true },
+      },
     ],
   },
   {
