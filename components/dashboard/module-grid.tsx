@@ -65,6 +65,8 @@ export function ModuleGrid({ section }: { section: DashboardSection }) {
                     icon={<Icon className="size-4.5" />}
                     delay={index * 0.05}
                     href={module.href}
+                    actionLabel={module.actionLabel}
+                    lastAction={module.lastAction}
                   />
                 );
               })}

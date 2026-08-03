@@ -28,6 +28,10 @@ export type ModuleItem = {
   href?: string;
   /** Agrupamento visual dentro da página do grupo. Sem `category`, o módulo cai numa grade única. */
   category?: string;
+  /** Texto do botão de ação — só faz sentido junto de `href` (ex.: "Abrir Client Hub"). */
+  actionLabel?: string;
+  /** Última atividade mockada do módulo. `demo: true` marca explicitamente que não é dado real. */
+  lastAction?: { label: string; demo?: boolean };
 };
 
 export type DashboardSection = {
@@ -53,11 +57,13 @@ export const DASHBOARD_SECTIONS: DashboardSection[] = [
       {
         key: "clientes",
         label: "Clientes",
-        description: "Gerencie workspaces, entregas e informações dos clientes.",
+        description: "Workspace, entregas e relacionamento com clientes.",
         icon: Users,
         status: "available",
         href: "/clients",
         category: "Clientes & Relacionamento",
+        actionLabel: "Abrir Client Hub",
+        lastAction: { label: "Workspace do Pascoal atualizado há 2h", demo: true },
       },
       { key: "crm", label: "CRM", description: "Relacionamento e funil comercial com clientes.", icon: Contact2, status: "soon", category: "Clientes & Relacionamento" },
       { key: "projetos", label: "Projetos", description: "Acompanhamento dos projetos em andamento.", icon: FolderKanban, status: "soon", category: "Execução" },
