@@ -26,6 +26,8 @@ export type ModuleItem = {
   status: "soon" | "available";
   /** Só presente quando o módulo já existe em outro sistema (ex.: `/clients`, a Client Platform). */
   href?: string;
+  /** Agrupamento visual dentro da página do grupo. Sem `category`, o módulo cai numa grade única. */
+  category?: string;
 };
 
 export type DashboardSection = {
@@ -55,13 +57,14 @@ export const DASHBOARD_SECTIONS: DashboardSection[] = [
         icon: Users,
         status: "available",
         href: "/clients",
+        category: "Clientes & Relacionamento",
       },
-      { key: "projetos", label: "Projetos", description: "Acompanhamento dos projetos em andamento.", icon: FolderKanban, status: "soon" },
-      { key: "producao", label: "Produção", description: "Fluxo de execução e produção das entregas.", icon: Factory, status: "soon" },
-      { key: "equipe", label: "Equipe", description: "Pessoas, funções e alocação de trabalho.", icon: UsersRound, status: "soon" },
-      { key: "conteudo", label: "Conteúdo", description: "Criação e organização de conteúdo.", icon: FileText, status: "soon" },
-      { key: "crm", label: "CRM", description: "Relacionamento e funil comercial com clientes.", icon: Contact2, status: "soon" },
-      { key: "entregas", label: "Entregas", description: "Status e histórico de entregas realizadas.", icon: PackageCheck, status: "soon" },
+      { key: "crm", label: "CRM", description: "Relacionamento e funil comercial com clientes.", icon: Contact2, status: "soon", category: "Clientes & Relacionamento" },
+      { key: "projetos", label: "Projetos", description: "Acompanhamento dos projetos em andamento.", icon: FolderKanban, status: "soon", category: "Execução" },
+      { key: "producao", label: "Produção", description: "Fluxo de execução e produção das entregas.", icon: Factory, status: "soon", category: "Execução" },
+      { key: "entregas", label: "Entregas", description: "Status e histórico de entregas realizadas.", icon: PackageCheck, status: "soon", category: "Execução" },
+      { key: "equipe", label: "Equipe", description: "Pessoas, funções e alocação de trabalho.", icon: UsersRound, status: "soon", category: "Pessoas & Conteúdo" },
+      { key: "conteudo", label: "Conteúdo", description: "Criação e organização de conteúdo.", icon: FileText, status: "soon", category: "Pessoas & Conteúdo" },
     ],
   },
   {

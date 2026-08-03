@@ -3,7 +3,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -39,13 +38,15 @@ export function ModuleCard({
         <div className="flex size-9 items-center justify-center rounded-lg bg-foreground/10 text-foreground">
           {icon}
         </div>
-        {href ? (
-          <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
-        ) : (
-          <span className="rounded-full border border-border/60 px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
-            Em breve
-          </span>
-        )}
+        <span
+          className={cn(
+            "flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-wide",
+            href ? "border-emerald-400/25 text-emerald-300/90" : "border-border/60 text-muted-foreground",
+          )}
+        >
+          <span className={cn("size-1.5 rounded-full", href ? "bg-emerald-400" : "bg-muted-foreground/50")} />
+          {href ? "Conectado" : "Em breve"}
+        </span>
       </div>
       <div className="flex flex-col gap-1">
         <h3 className="text-sm font-medium">{label}</h3>
