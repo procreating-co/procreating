@@ -17,9 +17,9 @@ function VideoTile({ video, onOpen }: { video: VideoItem; onOpen: () => void }) 
   const title = video.shortTitle ?? video.title;
   return (
     <div className="w-full lg:w-80 lg:max-w-[340px] lg:flex-1">
-      <div className="mb-4 flex shrink-0 items-center gap-4 lg:mb-5">
+      <div className="mb-4 flex h-10 shrink-0 items-center gap-4 lg:mb-5">
         <span className="shrink-0 font-display text-3xl text-[var(--client-accent)]">{video.number}.</span>
-        <h3 className="min-w-0 shrink text-balance text-left font-display text-xl leading-snug lg:text-2xl">{title}</h3>
+        <h3 className="min-w-0 shrink truncate text-left font-display text-xl leading-snug lg:text-2xl">{title}</h3>
         <span className="h-px min-w-6 flex-1 bg-white/15" />
         {video.ready && (
           <a
@@ -107,7 +107,7 @@ export function HowItWorksSection({
             <p className="mt-4 pl-0 text-base leading-relaxed text-white/55 sm:mt-6 sm:pl-10 sm:text-lg">{subtitle}</p>
           </div>
           <div className="min-w-0 p-6 lg:p-10">
-            <div className="flex w-full flex-col gap-6 lg:flex-row lg:justify-end">
+            <div className={`flex w-full flex-col items-start gap-6 lg:flex-row ${allSameFormat ? "lg:justify-center" : "lg:justify-end"}`}>
               {allSameFormat ? (
                 videos.socialVideos.map((video) => (
                   <VideoTile
