@@ -115,9 +115,6 @@ export type ClientConfig = {
     galleryButtonLabel: string;
     /** Fotos em destaque no carrossel da Home (teaser da galeria completa). */
     photos: FeaturedPhoto[];
-    /** Opcional — vídeo de fundo do bloco "01" (mesmo tratamento visual do Hero: vídeo com
-     *  overlay escuro atrás do conteúdo). Ausente (padrão) = fundo sólido preto, como sempre foi. */
-    backgroundVideo?: string;
   };
   videosSection: {
     eyebrow: string;
