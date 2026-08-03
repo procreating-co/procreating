@@ -46,6 +46,7 @@ export function PosicionamentoProTemplate({
         galleryButtonLabel={config.features.galleryButtonLabel}
         galleryHref={galleryHref}
         photos={config.features.photos}
+        backgroundVideo={config.features.backgroundVideo}
       />
       <HowItWorksSection
         videos={videos}

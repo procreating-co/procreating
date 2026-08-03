@@ -133,9 +133,11 @@ export type FeaturesSectionProps = {
   galleryButtonLabel: string;
   galleryHref: string;
   photos: FeaturedPhoto[];
+  /** Opcional — vídeo de fundo do bloco preto, mesmo tratamento visual do Hero. Ausente = fundo sólido preto (padrão). */
+  backgroundVideo?: string;
 };
 
-export function FeaturesSection({ eyebrow, heading, blockNumber, blockTitle, subtitle, galleryButtonLabel, galleryHref, photos }: FeaturesSectionProps) {
+export function FeaturesSection({ eyebrow, heading, blockNumber, blockTitle, subtitle, galleryButtonLabel, galleryHref, photos, backgroundVideo }: FeaturesSectionProps) {
   const [isVisible, setIsVisible] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
 
@@ -155,8 +157,16 @@ export function FeaturesSection({ eyebrow, heading, blockNumber, blockTitle, sub
           </h2>
         </div>
 
-        <div id="fotos" className="scroll-mt-24 overflow-hidden bg-black text-white lg:grid lg:grid-cols-[340px_minmax(0,1fr)]">
-          <div className="flex flex-col justify-center p-6 text-left sm:p-8 lg:p-12">
+        <div id="fotos" className="relative scroll-mt-24 overflow-hidden bg-black text-white lg:grid lg:grid-cols-[340px_minmax(0,1fr)]">
+          {backgroundVideo && (
+            <div className="absolute inset-0 z-0">
+              <video autoPlay muted loop playsInline preload="auto" aria-hidden="true" className="h-full w-full object-cover opacity-75">
+                <source src={backgroundVideo} type="video/mp4" />
+              </video>
+              <div className="absolute inset-0 bg-black/55" />
+            </div>
+          )}
+          <div className="relative z-10 flex flex-col justify-center p-6 text-left sm:p-8 lg:p-12">
             <div className="flex items-baseline gap-3 sm:gap-4">
               <span className="font-mono text-sm text-white/40">{blockNumber}</span>
               <h3 className="font-display text-2xl sm:text-4xl">{blockTitle}</h3>
@@ -168,8 +178,8 @@ export function FeaturesSection({ eyebrow, heading, blockNumber, blockTitle, sub
               </a>
             </div>
           </div>
-          <div className="min-w-0 p-6 lg:p-10"><PhotoCarousel isVisible={isVisible} photos={photos} galleryHref={galleryHref} /></div>
-          <div className="px-6 pb-6 pt-2 lg:hidden">
+          <div className="relative z-10 min-w-0 p-6 lg:p-10"><PhotoCarousel isVisible={isVisible} photos={photos} galleryHref={galleryHref} /></div>
+          <div className="relative z-10 px-6 pb-6 pt-2 lg:hidden">
             <a href={galleryHref} className="inline-flex h-12 w-full items-center justify-center gap-3 rounded-full bg-[var(--client-accent)] px-6 text-sm font-medium text-black transition-all duration-300 hover:scale-[1.03] hover:bg-white">
               {galleryButtonLabel}
             </a>
