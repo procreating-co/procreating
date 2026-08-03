@@ -1,21 +1,19 @@
 import type { Metadata } from "next";
-import { Layers } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout";
-import { EmptyState } from "@/components/dashboard/empty-state";
+import { ModuleGrid } from "@/components/dashboard/module-grid";
+import { DASHBOARD_SECTIONS } from "@/components/dashboard/nav-config";
 
 export const metadata: Metadata = {
   title: "Operação — Procreating",
   robots: { index: false, follow: false },
 };
 
+const section = DASHBOARD_SECTIONS.find((item) => item.key === "operacao")!;
+
 export default function OperacaoPage() {
   return (
     <DashboardLayout>
-      <EmptyState
-        icon={Layers}
-        title="Operação"
-        description="Clientes, projetos, produção e equipe chegam aqui em breve."
-      />
+      <ModuleGrid section={section} />
     </DashboardLayout>
   );
 }

@@ -1,8 +1,28 @@
-import { Building2, Layers, type LucideIcon } from "lucide-react";
+import {
+  BarChart3,
+  Building2,
+  Contact2,
+  Factory,
+  FileText,
+  FolderKanban,
+  Handshake,
+  Layers,
+  Megaphone,
+  PackageCheck,
+  Settings,
+  UserCog,
+  Users,
+  UsersRound,
+  Wallet,
+  type LucideIcon,
+} from "lucide-react";
 import type { Role } from "@/lib/dashboard/roles";
 
-export type DashboardChildItem = {
+export type ModuleItem = {
+  key: string;
   label: string;
+  description: string;
+  icon: LucideIcon;
   status: "soon";
 };
 
@@ -14,11 +34,8 @@ export type DashboardSection = {
   icon: LucideIcon;
   /** Não aplicado ainda (sem autenticação); reservado para quando o acesso por papel existir. */
   roles?: Role[];
-  /**
-   * Itens futuros do grupo. Não renderizados como navegação hoje — só documentam pra onde
-   * cada grupo cresce, pra a sidebar poder virar expansível sem redesenhar o modelo de dados.
-   */
-  children: DashboardChildItem[];
+  /** Módulos do grupo, renderizados como cards em `/operacao` e `/administracao`. */
+  modules: ModuleItem[];
 };
 
 export const DASHBOARD_SECTIONS: DashboardSection[] = [
@@ -28,17 +45,14 @@ export const DASHBOARD_SECTIONS: DashboardSection[] = [
     description: "Tudo relacionado aos clientes, projetos, produção e equipe.",
     href: "/operacao",
     icon: Layers,
-    children: [
-      { label: "Clientes", status: "soon" },
-      { label: "Projetos", status: "soon" },
-      { label: "Produção", status: "soon" },
-      { label: "Equipe", status: "soon" },
-      { label: "Funcionários", status: "soon" },
-      { label: "CRM", status: "soon" },
-      { label: "Conteúdos", status: "soon" },
-      { label: "Mídias", status: "soon" },
-      { label: "Calendário", status: "soon" },
-      { label: "Entrega", status: "soon" },
+    modules: [
+      { key: "clientes", label: "Clientes", description: "Contas ativas, contratos e relacionamento.", icon: Users, status: "soon" },
+      { key: "projetos", label: "Projetos", description: "Acompanhamento dos projetos em andamento.", icon: FolderKanban, status: "soon" },
+      { key: "producao", label: "Produção", description: "Fluxo de execução e produção das entregas.", icon: Factory, status: "soon" },
+      { key: "equipe", label: "Equipe", description: "Pessoas, funções e alocação de trabalho.", icon: UsersRound, status: "soon" },
+      { key: "conteudo", label: "Conteúdo", description: "Criação e organização de conteúdo.", icon: FileText, status: "soon" },
+      { key: "crm", label: "CRM", description: "Relacionamento e funil comercial com clientes.", icon: Contact2, status: "soon" },
+      { key: "entregas", label: "Entregas", description: "Status e histórico de entregas realizadas.", icon: PackageCheck, status: "soon" },
     ],
   },
   {
@@ -47,16 +61,13 @@ export const DASHBOARD_SECTIONS: DashboardSection[] = [
     description: "Gestão da empresa, crescimento, financeiro e planejamento.",
     href: "/administracao",
     icon: Building2,
-    children: [
-      { label: "Financeiro", status: "soon" },
-      { label: "Indicadores", status: "soon" },
-      { label: "Marketing", status: "soon" },
-      { label: "Comercial", status: "soon" },
-      { label: "Metas", status: "soon" },
-      { label: "Planejamento", status: "soon" },
-      { label: "Documentos", status: "soon" },
-      { label: "RH", status: "soon" },
-      { label: "Configurações", status: "soon" },
+    modules: [
+      { key: "financeiro", label: "Financeiro", description: "Receitas, despesas e fluxo de caixa.", icon: Wallet, status: "soon" },
+      { key: "comercial", label: "Comercial", description: "Pipeline comercial e propostas.", icon: Handshake, status: "soon" },
+      { key: "marketing", label: "Marketing", description: "Campanhas, posicionamento e crescimento.", icon: Megaphone, status: "soon" },
+      { key: "indicadores", label: "Indicadores", description: "Métricas e desempenho da empresa.", icon: BarChart3, status: "soon" },
+      { key: "rh", label: "RH", description: "Gestão de pessoas e processos internos.", icon: UserCog, status: "soon" },
+      { key: "configuracoes", label: "Configurações", description: "Preferências e configurações da plataforma.", icon: Settings, status: "soon" },
     ],
   },
 ];

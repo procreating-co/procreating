@@ -1,21 +1,19 @@
 import type { Metadata } from "next";
-import { Building2 } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout";
-import { EmptyState } from "@/components/dashboard/empty-state";
+import { ModuleGrid } from "@/components/dashboard/module-grid";
+import { DASHBOARD_SECTIONS } from "@/components/dashboard/nav-config";
 
 export const metadata: Metadata = {
   title: "Administração — Procreating",
   robots: { index: false, follow: false },
 };
 
+const section = DASHBOARD_SECTIONS.find((item) => item.key === "administracao")!;
+
 export default function AdministracaoPage() {
   return (
     <DashboardLayout>
-      <EmptyState
-        icon={Building2}
-        title="Administração"
-        description="Financeiro, indicadores, marketing e planejamento chegam aqui em breve."
-      />
+      <ModuleGrid section={section} />
     </DashboardLayout>
   );
 }
