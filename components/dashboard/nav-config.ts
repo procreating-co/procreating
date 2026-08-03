@@ -23,7 +23,9 @@ export type ModuleItem = {
   label: string;
   description: string;
   icon: LucideIcon;
-  status: "soon";
+  status: "soon" | "available";
+  /** Só presente quando o módulo já existe em outro sistema (ex.: `/clients`, a Client Platform). */
+  href?: string;
 };
 
 export type DashboardSection = {
@@ -46,7 +48,14 @@ export const DASHBOARD_SECTIONS: DashboardSection[] = [
     href: "/operacao",
     icon: Layers,
     modules: [
-      { key: "clientes", label: "Clientes", description: "Contas ativas, contratos e relacionamento.", icon: Users, status: "soon" },
+      {
+        key: "clientes",
+        label: "Clientes",
+        description: "Gerencie workspaces, entregas e informações dos clientes.",
+        icon: Users,
+        status: "available",
+        href: "/clients",
+      },
       { key: "projetos", label: "Projetos", description: "Acompanhamento dos projetos em andamento.", icon: FolderKanban, status: "soon" },
       { key: "producao", label: "Produção", description: "Fluxo de execução e produção das entregas.", icon: Factory, status: "soon" },
       { key: "equipe", label: "Equipe", description: "Pessoas, funções e alocação de trabalho.", icon: UsersRound, status: "soon" },

@@ -19,6 +19,7 @@ export function ModuleGrid({ section }: { section: DashboardSection }) {
               description={module.description}
               icon={<Icon className="size-4.5" />}
               delay={index * 0.05}
+              href={module.href}
             />
           );
         })}
