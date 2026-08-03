@@ -3,7 +3,14 @@ import { elenitaWorkspace } from "@/content/clients/elenita/workspace";
 import { clienteXWorkspace } from "@/content/clients/cliente-x/workspace";
 import type { ClientWorkspaceConfig } from "@/lib/clients/workspace-types";
 
-export type { ClientWorkspaceConfig, ClientTemplate, ClientWorkspaceStatus } from "@/lib/clients/workspace-types";
+export type {
+  ClientWorkspaceConfig,
+  ClientTemplate,
+  ClientWorkspaceStatus,
+  WorkspaceProject,
+  ProgressStep,
+  ProgressStepState,
+} from "@/lib/clients/workspace-types";
 
 /**
  * Switchboard de Workspaces — mesmo padrão de `lib/clients/registry.ts` (o pipeline legado da
