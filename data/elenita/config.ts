@@ -53,7 +53,6 @@ export const clientConfig: ClientConfig = {
       { src: "/images/gallery/elenita-procedimento.jpg", alt: "Procedimento na Dra. Elenita", category: "Procedimento" },
       { src: "/images/gallery/elenita-retratos-alexandre.jpg", alt: "Retratos da Dra. Elenita e Alexandre", category: "Retratos Dra. Elenita e Alexandre" },
     ],
-    backgroundVideo: "/videos/elenita-hero-background.mp4",
   },
 
   videosSection: {
