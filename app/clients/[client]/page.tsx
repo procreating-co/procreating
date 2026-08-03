@@ -1,12 +1,12 @@
 import { notFound } from "next/navigation";
 import { WorkspaceOverview } from "@/components/workspace/workspace-overview";
-import { mockLauncherClients } from "@/lib/clients/launcher-mock-data";
+import { getClientWorkspace } from "@/lib/clients/workspace-registry";
 
 type Params = { client: string };
 
 export default async function WorkspaceOverviewPage({ params }: { params: Promise<Params> }) {
   const { client: slug } = await params;
-  const client = mockLauncherClients.find((c) => c.slug === slug);
+  const client = getClientWorkspace(slug);
   if (!client) notFound();
 
   return <WorkspaceOverview client={client} />;

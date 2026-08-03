@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { ClientCommand } from "@/components/client-hub/client-command";
-import { mockLauncherClients } from "@/lib/clients/launcher-mock-data";
+import { getAllClientWorkspaces } from "@/lib/clients/workspace-registry";
 
 export const metadata: Metadata = { title: "Client Workspace | Procreating" };
 
@@ -10,5 +10,5 @@ export const metadata: Metadata = { title: "Client Workspace | Procreating" };
  * `/clients/<slug>` cai lá, Next.js resolve os dois sem conflito.
  */
 export default function ClientsLauncherPage() {
-  return <ClientCommand clients={mockLauncherClients} />;
+  return <ClientCommand clients={getAllClientWorkspaces()} />;
 }

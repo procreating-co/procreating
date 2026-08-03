@@ -3,24 +3,25 @@ import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { WorkspaceHeader } from "@/components/workspace/workspace-header";
 import { WorkspaceNav } from "@/components/workspace/workspace-nav";
-import { mockLauncherClients } from "@/lib/clients/launcher-mock-data";
+import { getClientWorkspace } from "@/lib/clients/workspace-registry";
 
 type Params = { client: string };
 
 export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
   const { client: slug } = await params;
-  const client = mockLauncherClients.find((c) => c.slug === slug);
+  const client = getClientWorkspace(slug);
   return { title: client ? `${client.name} Workspace | Procreating` : "Workspace não encontrado" };
 }
 
 /**
  * Workspace interno — não é a entrega pública (isso é `/clients/[client]/public/**`, movido pra
- * lá de propósito, intocado). Lookup hoje é `mockLauncherClients` (mesma fonte do Client Hub,
- * `/clients`) — quando um registry de clientes real existir, é só aqui que troca.
+ * lá de propósito, intocado). Lookup hoje é `lib/clients/workspace-registry.ts` (mesma fonte do
+ * Client Hub, `/clients`, e da própria página Overview) — quando um registry de clientes real
+ * (Supabase) existir, é só aqui que troca.
  */
 export default async function ClientWorkspaceLayout({ children, params }: { children: ReactNode; params: Promise<Params> }) {
   const { client: slug } = await params;
-  const client = mockLauncherClients.find((c) => c.slug === slug);
+  const client = getClientWorkspace(slug);
   if (!client) notFound();
 
   return (

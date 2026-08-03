@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { SearchX } from "lucide-react";
 import { CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 import { ClientRow } from "@/components/client-hub/client-row";
-import type { LauncherClient } from "@/lib/clients/launcher-mock-data";
+import type { ClientWorkspaceConfig } from "@/lib/clients/workspace-registry";
 
 /**
  * Filtragem em si é do `Command` (cmdk) — compara `value` de cada `CommandItem` contra o texto
@@ -13,7 +13,7 @@ import type { LauncherClient } from "@/lib/clients/launcher-mock-data";
  * envolver `CommandItem` num `motion.div` arriscaria atrapalhar como o cmdk acha os itens no DOM
  * pra navegação por teclado.
  */
-export function ClientList({ clients }: { clients: LauncherClient[] }) {
+export function ClientList({ clients }: { clients: ClientWorkspaceConfig[] }) {
   const router = useRouter();
 
   return (

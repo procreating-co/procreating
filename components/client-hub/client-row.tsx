@@ -1,5 +1,5 @@
 import { ArrowRight } from "lucide-react";
-import type { LauncherClient } from "@/lib/clients/launcher-mock-data";
+import type { ClientWorkspaceConfig } from "@/lib/clients/workspace-registry";
 
 /**
  * Conteúdo de uma linha — o hover/seleção em si (fundo, cursor) é responsabilidade do
@@ -7,7 +7,7 @@ import type { LauncherClient } from "@/lib/clients/launcher-mock-data";
  * Status só aparece no hover/seleção via teclado, nunca por padrão — "no descriptions unless
  * hovered", pedido explícito.
  */
-export function ClientRow({ client }: { client: LauncherClient }) {
+export function ClientRow({ client }: { client: ClientWorkspaceConfig }) {
   return (
     <div className="flex w-full items-center justify-between gap-3">
       <div className="flex items-center gap-3">

@@ -6,7 +6,7 @@ import { Command } from "@/components/ui/command";
 import { SearchBar } from "@/components/client-hub/search-bar";
 import { ClientList } from "@/components/client-hub/client-list";
 import { NewClientDialog } from "@/components/client-hub/new-client-dialog";
-import type { LauncherClient } from "@/lib/clients/launcher-mock-data";
+import type { ClientWorkspaceConfig } from "@/lib/clients/workspace-registry";
 
 const fadeUp = {
   initial: { opacity: 0, y: 8 },
@@ -19,7 +19,7 @@ const fadeUp = {
  * no cmdk fora de um Dialog, então tratamos na mão: limpa a busca, ou tira o foco se já tiver
  * vazia — mesmo comportamento do Raycast).
  */
-export function ClientCommand({ clients }: { clients: LauncherClient[] }) {
+export function ClientCommand({ clients }: { clients: ClientWorkspaceConfig[] }) {
   const [search, setSearch] = useState("");
 
   useEffect(() => {
