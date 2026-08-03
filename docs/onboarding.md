@@ -8,13 +8,14 @@ novo sem tocar em componentes, o guia certo é `data/README.md` (e o checklist d
 
 ```bash
 git clone <repo>
-cd pascoal-bombas-portfolio
+cd procreating
 npm install
 cp .env.example .env.local   # preencha NEXT_PUBLIC_SITE_URL se for testar OG/canonical; opcional em dev
 npm run dev
 ```
 
-Abra `http://localhost:3000` — redireciona pra `/p/pascoal`, o único cliente registrado hoje.
+Abra `http://localhost:3000` — Home placeholder da plataforma. O cliente Pascoal está em
+`http://localhost:3000/clients/pascoal`, o único registrado hoje.
 
 ## Se orientar no código
 
@@ -41,7 +42,7 @@ npm run build
 ```
 
 Se sua mudança tocou em algum componente renderizado (não só em `data/`), suba `npm run dev` e
-confira visualmente `/p/pascoal` — é a referência visual do projeto, nada deveria mudar visual
+confira visualmente `/clients/pascoal` — é a referência visual do projeto, nada deveria mudar visual
 ou funcionalmente ali sem ser essa a intenção explícita da mudança.
 
 ## Onde as coisas ficam (mapa rápido)

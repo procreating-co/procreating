@@ -27,7 +27,7 @@ export function StepProject({
       <div className="flex flex-col gap-2">
         <Label htmlFor="slug">Slug (URL pública)</Label>
         <Input id="slug" value={data.slug} onChange={(e) => update({ slug: slugify(e.target.value), slugTouched: true })} aria-invalid={slugTaken} />
-        <p className="text-xs text-muted-foreground">/p/{data.slug || "..."}</p>
+        <p className="text-xs text-muted-foreground">/clients/{data.slug || "..."}</p>
         {slugTaken && <p className="text-xs text-destructive">Esse slug já está em uso por outro projeto.</p>}
       </div>
     </div>

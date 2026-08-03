@@ -2,7 +2,7 @@
  * ProjectConfig / Blocks — o formato genérico de conteúdo pra projetos novos (Supabase-backed).
  * **Independente de `ClientConfig`** (`lib/clients/types.ts`), que continua intocado e
  * alimenta só a Pascoal e qualquer cliente no caminho de arquivo — este tipo nunca é lido por
- * `app/p/[client]/**` nem por nenhum componente de `components/landing|gallery|prospeccao/**`.
+ * `app/clients/[client]/**` nem por nenhum componente de `components/landing|gallery|prospeccao/**`.
  *
  * Em vez de campos nomeados fixos (`hero`, `gallery`, `prospeccao`...), um projeto é uma lista
  * ORDENADA de blocos tipados — a ordem da lista é a ordem de exibição. Um `Template`

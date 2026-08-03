@@ -134,6 +134,6 @@ export type ClientConfig = {
     /** Link para o Google Drive (ou outro storage) com o acervo completo. Se ausente, o convite some da Galeria. */
     driveUrl?: string;
   };
-  /** Módulo opcional. `null` desativa a rota `/p/<slug>/prospeccao`, a seção na Home e o CTA no menu. */
+  /** Módulo opcional. `null` desativa a rota `/clients/<slug>/prospeccao`, a seção na Home e o CTA no menu. */
   prospeccao: ProspeccaoConfig | null;
 };

@@ -5,7 +5,7 @@ import type { ClientConfig, ClientVideos, GalleryFolderDef } from "@/lib/clients
 export type { ClientConfig, ClientVideos, GalleryFolderDef, VideoItem, ProspeccaoConfig } from "@/lib/clients/types";
 
 /**
- * Único ponto de resolução de dados de cliente pras rotas públicas (`app/p/[client]/**`) — via
+ * Único ponto de resolução de dados de cliente pras rotas públicas (`app/clients/[client]/**`) — via
  * `ClientResolver` (`lib/clients/resolver.ts`), não mais lookup direto em `registry.ts`. Hoje
  * com uma única fonte (`registrySource`, adaptador de `registry.ts`); quando o Supabase
  * conectar, uma fonte nova entra na lista abaixo, sem tocar nenhuma rota — só este arquivo. Ver

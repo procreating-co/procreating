@@ -40,7 +40,7 @@ export function WizardPublishing({
         <h2 className="font-display text-2xl">Fim do fluxo</h2>
         <p className="max-w-sm text-sm text-muted-foreground">
           Esta é a demonstração completa da interface do Wizard para &quot;{project.name}&quot; — <b>nada foi salvo</b>.
-          A gravação mock chega na Etapa 7 (Publicação); <code>/p/{project.slug}</code> não existe de verdade.
+          A gravação mock chega na Etapa 7 (Publicação); <code>/clients/{project.slug}</code> não existe de verdade.
         </p>
         <div className="mt-2 flex gap-2">
           <Button asChild>

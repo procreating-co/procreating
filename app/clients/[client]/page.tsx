@@ -12,7 +12,7 @@ export default async function ClientHome({ params }: { params: Promise<{ client:
   const [config, videos] = await Promise.all([getClientConfig(client), getClientVideos(client)]);
   if (!config || !videos) notFound();
 
-  const homeHref = `/p/${client}`;
+  const homeHref = `/clients/${client}`;
   const galleryHref = `${homeHref}/galeria`;
   const prospeccaoHref = `${homeHref}/prospeccao`;
 

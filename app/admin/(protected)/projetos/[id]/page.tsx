@@ -55,7 +55,7 @@ export default async function AdminProjetoDetalhePage({ params }: { params: Prom
       <header className="mb-8 flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl">{project.name}</h1>
-          <p className="mt-1.5 font-mono text-sm text-muted-foreground">/p/{project.slug}</p>
+          <p className="mt-1.5 font-mono text-sm text-muted-foreground">/clients/{project.slug}</p>
         </div>
         <ProjectStatusBadge status={project.status} />
       </header>
@@ -215,7 +215,7 @@ export default async function AdminProjetoDetalhePage({ params }: { params: Prom
 
       <div className="mt-6 flex gap-2">
         <a
-          href={`/p/${project.slug}`}
+          href={`/clients/${project.slug}`}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-2 rounded-md border border-border/60 px-4 py-2 text-sm transition-colors hover:bg-foreground/5"

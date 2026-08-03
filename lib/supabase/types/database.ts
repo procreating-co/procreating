@@ -72,7 +72,7 @@ export type Project = {
   id: string;
   client_id: string;
   template_id: string;
-  /** Bate com `ClientConfig.slug` / a pasta `data/<slug>/` / o segmento `/p/<slug>`. */
+  /** Bate com `ClientConfig.slug` / a pasta `data/<slug>/` / o segmento `/clients/<slug>`. */
   slug: string;
   name: string;
   brand_name: string;
@@ -219,7 +219,7 @@ export type Analytics = {
   id: string;
   project_id: string;
   event_type: AnalyticsEventType;
-  /** Ex.: "/p/pascoal/galeria". */
+  /** Ex.: "/clients/pascoal/galeria". */
   path: string;
   /** Hash anônimo (não é PII) — identifica visitante recorrente sem guardar IP/dado pessoal. */
   visitor_id: string | null;

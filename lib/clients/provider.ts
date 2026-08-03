@@ -16,6 +16,6 @@ export interface ClientDataProvider {
   getClientConfig(slug: string): ClientConfig | null | Promise<ClientConfig | null>;
   getClientVideos(slug: string): ClientVideos | null | Promise<ClientVideos | null>;
   getClientGalleryFolderDefs(slug: string): GalleryFolderDef[] | null | Promise<GalleryFolderDef[] | null>;
-  /** Usado por `generateStaticParams` nas rotas `/p/[client]/...` para pré-gerar as páginas. */
+  /** Usado por `generateStaticParams` nas rotas `/clients/[client]/...` para pré-gerar as páginas. */
   getRegisteredClientSlugs(): string[] | Promise<string[]>;
 }

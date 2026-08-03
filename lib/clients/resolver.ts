@@ -4,7 +4,7 @@ import type { ClientConfig, ClientVideos, GalleryFolderDef } from "@/lib/clients
 /**
  * Orquestra múltiplas fontes de dados de cliente, tentando cada uma em ordem até achar. É o
  * único lugar do projeto que sabe que mais de uma fonte pode existir — `registry.ts`
- * (`lib/clients/sources/registry-source.ts`) não sabe, e as rotas (`app/p/[client]/**`) também
+ * (`lib/clients/sources/registry-source.ts`) não sabe, e as rotas (`app/clients/[client]/**`) também
  * não, elas só conhecem `@/lib/clients`.
  *
  * Adicionar uma fonte nova (Supabase, cache, uma API futura) é uma linha na lista passada pro
@@ -13,7 +13,7 @@ import type { ClientConfig, ClientVideos, GalleryFolderDef } from "@/lib/clients
  * **Ainda não está ligado em `lib/clients/index.ts`.** Fazer isso trocaria as funções
  * exportadas de lá (`getClientConfig` etc., hoje síncronas) para assíncronas — porque uma
  * fonte de verdade (Supabase) exige `await` numa query. Isso obrigaria adicionar `await` nos
- * pontos de chamada dentro de `app/p/[client]/**`, que são rota pública — mudança
+ * pontos de chamada dentro de `app/clients/[client]/**`, que são rota pública — mudança
  * comportamento-preservando, mas ainda assim uma edição em arquivo protegido nesta fase.
  * Fica pronto e correto aqui, ligar é decisão separada quando houver uma segunda fonte de
  * verdade pra justificar (ver `docs/project-creation.md`).

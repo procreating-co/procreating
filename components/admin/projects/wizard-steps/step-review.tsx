@@ -25,7 +25,7 @@ export function StepReview({
   return (
     <div className="flex flex-col gap-5">
       <ReviewRow label="Cliente" value={clientName} />
-      <ReviewRow label="Projeto" value={`${data.projectName || "—"}  (/p/${data.slug || "..."})`} />
+      <ReviewRow label="Projeto" value={`${data.projectName || "—"}  (/clients/${data.slug || "..."})`} />
       <ReviewRow label="Template" value={template?.name ?? "—"} />
       <ReviewRow label="Capabilities" value={enabledCapabilities.length ? enabledCapabilities.map((c) => c.label).join(", ") : "Nenhuma"} />
       <ReviewRow label="Estrutura" value={data.structureMode === "default" ? "Padrão (blocos do template)" : "Personalizado"} />

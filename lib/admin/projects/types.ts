@@ -10,7 +10,7 @@ export type ProjectStatus = "creating" | "draft" | "ready_for_preview" | "publis
 /**
  * Forma "achatada" pra UI do admin (cards, tabela) — não confundir com `ClientConfig`
  * (`lib/clients/types.ts`), que é o formato completo consumido pelas rotas públicas
- * `/p/[client]`. Quando o Supabase conectar de verdade, isto é o shape que uma query
+ * `/clients/[client]`. Quando o Supabase conectar de verdade, isto é o shape que uma query
  * `projects` (`lib/supabase/types/database.ts`) + agregados de analytics devem produzir.
  *
  * Um projeto pertence a um `AdminClient` (`clientId`, `lib/admin/clients/types.ts`) e nasce de
@@ -19,7 +19,7 @@ export type ProjectStatus = "creating" | "draft" | "ready_for_preview" | "publis
  */
 export type AdminProject = {
   id: string;
-  /** Bate com a pasta `data/<slug>/` / o segmento `/p/<slug>` — só quando o projeto já está
+  /** Bate com a pasta `data/<slug>/` / o segmento `/clients/<slug>` — só quando o projeto já está
    *  publicado de verdade (ex.: "pascoal"). Projetos ainda não publicados podem ter um slug
    *  reservado sem rota pública correspondente ainda. */
   slug: string;

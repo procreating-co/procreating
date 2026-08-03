@@ -4,7 +4,7 @@ import { ADMIN_HOME_PATH, ADMIN_LOGIN_PATH, ADMIN_SESSION_COOKIE } from "@/lib/a
 
 /**
  * Gate de borda pro painel administrativo. Só roda em `/admin/*` (ver `matcher` abaixo) — não
- * toca em nenhuma rota pública (`/`, `/p/[client]/...`). Checa só a presença do cookie de
+ * toca em nenhuma rota pública (`/`, `/clients/[client]/...`). Checa só a presença do cookie de
  * sessão (rápido, sem I/O); a validação "de verdade" da sessão acontece em
  * `app/admin/(protected)/layout.tsx`, que roda no servidor e pode consultar o provider de auth
  * de fato (hoje mock, futuramente Supabase).

@@ -23,8 +23,8 @@ corrigido: hoje `npm run build` falha de verdade se houver erro de tipo, então 
 comandos acima antes de commitar é redundante em teoria, mas rodar `typecheck` primeiro dá um
 erro mais rápido de ler (build também faz linting/otimização, é mais lento pra iterar).
 
-Se você adicionou/editou um cliente, confira visualmente `/p/<slug>`,
-`/p/<slug>/galeria` e (se aplicável) `/p/<slug>/prospeccao` com `npm run dev` antes do PR.
+Se você adicionou/editou um cliente, confira visualmente `/clients/<slug>`,
+`/clients/<slug>/galeria` e (se aplicável) `/clients/<slug>/prospeccao` com `npm run dev` antes do PR.
 
 ## Variáveis de ambiente
 

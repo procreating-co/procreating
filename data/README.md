@@ -1,7 +1,7 @@
 # Clientes
 
 Este projeto é um template multi-cliente: o mesmo código (`app/`, `components/`, `lib/`) roda
-para qualquer cliente em `/p/<slug>`, mudando apenas os dados em `data/<slug>/`. Nenhum
+para qualquer cliente em `/clients/<slug>`, mudando apenas os dados em `data/<slug>/`. Nenhum
 componente conhece o nome, os textos ou as cores de um cliente específico — tudo chega via
 props, carregadas por `lib/clients/`.
 
@@ -12,7 +12,7 @@ props, carregadas por `lib/clients/`.
    falha imediatamente apontando o que falta, então não tem como esquecer nada essencial.
    - `theme.accentColor`: vira `var(--client-accent)` em toda a UI automaticamente.
    - `prospeccao` é opcional: deixe `null` para desativá-lo completamente (a rota
-     `/p/<slug>/prospeccao` faz 404, a seção some da Home, o CTA some do menu).
+     `/clients/<slug>/prospeccao` faz 404, a seção some da Home, o CTA some do menu).
 3. **Preencha `data/<slug>/videos.ts`**: suba os vídeos no bucket do Cloudflare R2 em
    `clients/<slug>/videos/<arquivo>.mp4` (esse prefixo por cliente é o padrão a partir daqui —
    veja a nota sobre a Pascoal abaixo) e aponte `videoSrc`/`downloadHref` para a URL pública.
@@ -36,9 +36,9 @@ props, carregadas por `lib/clients/`.
    ```
    Esse passo manual existe porque o Next.js precisa de imports estáticos para incluir cada
    `data/<slug>/*` corretamente no bundle — um `import()` dinâmico a partir de um slug vindo da
-   URL não é seguro de empacotar. Sem essa linha, `/p/<slug>` retorna 404.
+   URL não é seguro de empacotar. Sem essa linha, `/clients/<slug>` retorna 404.
 7. **Verifique**: `npx tsc --noEmit` (config incompleto quebra aqui), depois
-   `npm run dev` e visite `/p/<slug>`, `/p/<slug>/galeria` e (se aplicável) `/p/<slug>/prospeccao`.
+   `npm run dev` e visite `/clients/<slug>`, `/clients/<slug>/galeria` e (se aplicável) `/clients/<slug>/prospeccao`.
 
 ## Convenção de pastas no R2
 

@@ -4,7 +4,7 @@ import { slugify } from "@/lib/admin/format";
 /**
  * Dados mockados — nenhuma consulta real acontece aqui, e isto NÃO importa de
  * `lib/clients/registry.ts` (o admin ainda não lê o template de verdade). O projeto "pascoal"
- * é o único com `slug` correspondendo a uma rota pública de verdade (`/p/pascoal`); os demais
+ * é o único com `slug` correspondendo a uma rota pública de verdade (`/clients/pascoal`); os demais
  * (inclusive o segundo projeto da Pascoal Bombas, "Landing Institucional") são fictícios,
  * usados aqui só pra mostrar um cliente com mais de um projeto.
  */

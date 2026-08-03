@@ -1,7 +1,7 @@
 # Template de cliente
 
 Você copiou esta pasta para `data/<slug>/` — aqui está o que falta pra esse cliente subir em
-`/p/<slug>`. Para o contexto completo (por que a arquitetura é assim, convenção de pastas no R2,
+`/clients/<slug>`. Para o contexto completo (por que a arquitetura é assim, convenção de pastas no R2,
 limitações conhecidas), veja `data/README.md` um nível acima. Este arquivo é só o checklist rápido
 de dentro da pasta copiada.
 
@@ -24,9 +24,9 @@ de dentro da pasta copiada.
 - [ ] Coloquei as fotos do carrossel da Home em `public/images/gallery/` e apontei
       `features.photos` no `config.ts` pra elas.
 - [ ] Registrei o cliente em `lib/clients/registry.ts` (import + linha no `REGISTRY`) — sem isso
-      `/p/<slug>` dá 404 mesmo com tudo preenchido certo.
-- [ ] `npm run dev` e conferi `/p/<slug>`, `/p/<slug>/galeria` e (se aplicável)
-      `/p/<slug>/prospeccao`.
+      `/clients/<slug>` dá 404 mesmo com tudo preenchido certo.
+- [ ] `npm run dev` e conferi `/clients/<slug>`, `/clients/<slug>/galeria` e (se aplicável)
+      `/clients/<slug>/prospeccao`.
 
 ## Onde cada coisa vive
 

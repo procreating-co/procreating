@@ -15,7 +15,7 @@ export async function generateMetadata({ params }: { params: Promise<{ client: s
 
   const { title, description, ogImage } = config.metadata;
   const image = ogImage ?? config.logo;
-  const path = `/p/${client}`;
+  const path = `/clients/${client}`;
 
   return {
     title,

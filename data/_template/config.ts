@@ -10,7 +10,7 @@ import type { ClientConfig } from "@/lib/clients/types";
  */
 export const clientConfig: ClientConfig = {
   /** Precisa bater com o nome desta pasta (`data/<slug>/`) e com a chave que você vai
-   *  adicionar em `lib/clients/registry.ts`. Vira o segmento da URL: `/p/<slug>`. */
+   *  adicionar em `lib/clients/registry.ts`. Vira o segmento da URL: `/clients/<slug>`. */
   slug: "cliente-exemplo",
   /** Nome exibido no menu, no rodapé e nas lock screens. */
   brandName: "Nome do Cliente",
@@ -102,7 +102,7 @@ export const clientConfig: ClientConfig = {
   },
 
   /**
-   * Módulo opcional. `null` desativa a rota `/p/<slug>/prospeccao`, a seção
+   * Módulo opcional. `null` desativa a rota `/clients/<slug>/prospeccao`, a seção
    * "Estratégia de Aquisição" na Home e o CTA "Prospectar Parceiros" no menu.
    */
   prospeccao: null,

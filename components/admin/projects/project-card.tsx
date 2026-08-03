@@ -6,8 +6,8 @@ import { getMockClientName } from "@/lib/admin/clients/mock-data";
 import type { AdminProject } from "@/lib/admin/projects/types";
 
 /**
- * "Abrir" já é um link real pro site público do cliente (`/p/<slug>`) — a rota já existe pra
- * clientes registrados de verdade (ex.: Pascoal). Pra clientes só mockados (ainda não
+ * "Abrir" já é um link real pro site público do cliente (`/clients/<slug>`) — a rota já existe
+ * pra clientes registrados de verdade (ex.: Pascoal). Pra clientes só mockados (ainda não
  * registrados em `lib/clients/registry.ts`), o link existe mas a página de destino dá 404 —
  * comportamento honesto, não uma simulação escondida. "Editar" fica desabilitado até o fluxo
  * de edição existir (fora do escopo desta etapa).
@@ -44,7 +44,7 @@ export function ProjectCard({ project }: { project: AdminProject }) {
 
       <div className="flex gap-2 border-t border-border/60 pt-4">
         <a
-          href={`/p/${project.slug}`}
+          href={`/clients/${project.slug}`}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex flex-1 items-center justify-center gap-2 rounded-md border border-border/60 px-3 py-2 text-sm transition-colors hover:bg-foreground/5"

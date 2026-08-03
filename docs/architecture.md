@@ -4,9 +4,9 @@
 
 Uma plataforma interna da Procreating para entregar projetos de posicionamento digital a
 clientes. Todo cliente novo roda o **mesmo código** — mesmos componentes, mesmas animações,
-mesma estrutura de página — em `/p/<slug>`, mudando só os dados (textos, vídeos, fotos, cores,
-senhas). Hoje só a Pascoal (`/p/pascoal`) está em produção, mas a estrutura já suporta N
-clientes sem duplicar nada.
+mesma estrutura de página — em `/clients/<slug>`, mudando só os dados (textos, vídeos, fotos,
+cores, senhas). Hoje só a Pascoal (`/clients/pascoal`) está em produção, mas a estrutura já
+suporta N clientes sem duplicar nada.
 
 Stack: Next.js 16 (App Router, Turbopack), React 19, Tailwind CSS 4, TypeScript estrito.
 
@@ -14,22 +14,22 @@ Stack: Next.js 16 (App Router, Turbopack), React 19, Tailwind CSS 4, TypeScript 
 
 ```
 app/
-  page.tsx                        redirect("/p/pascoal")
+  page.tsx                        Home da plataforma — placeholder (não pertence a nenhum cliente)
   layout.tsx                      <html>, fontes, metadata genérica da plataforma, metadataBase
   robots.ts                       disallow all (ver "SEO" abaixo)
   api/download/route.ts           proxy de download dos vídeos do R2 (edge runtime)
-  p/[client]/
+  clients/[client]/
     layout.tsx                    resolve o cliente, injeta --client-accent, generateMetadata,
                                    generateStaticParams, notFound() se o slug não existir
-    page.tsx                      Home: Nav, Hero, Features, HowItWorks, Infrastructure
+    page.tsx                      Home do cliente: Nav, Hero, Features, HowItWorks, Infrastructure
                                    (se prospeccao !== null), Footer
     galeria/page.tsx               GalleryExperience
     prospeccao/page.tsx            notFound() se config.prospeccao === null; senão ProspeccaoExperience
 ```
 
-Todas as rotas de cliente são **SSG** (`generateStaticParams` em `app/p/[client]/layout.tsx`
+Todas as rotas de cliente são **SSG** (`generateStaticParams` em `app/clients/[client]/layout.tsx`
 lista os slugs registrados em `lib/clients/registry.ts`) — um cliente novo precisa de rebuild
-pra aparecer, não é dinâmico em runtime. `/p/<slug-não-registrado>` dá 404 em build time
+pra aparecer, não é dinâmico em runtime. `/clients/<slug-não-registrado>` dá 404 em build time
 (rota nem existe) e também em runtime, se algo tentar acessar diretamente.
 
 `/api/download` roda em `edge` runtime (não SSG — aparece como rota dinâmica no build) porque
@@ -47,7 +47,7 @@ lib/clients/registry.ts   — REGISTRY: Record<slug, ClientEntry>
 lib/clients/index.ts      — getClientConfig/getClientVideos/getClientGalleryFolderDefs(slug)
         │  (única camada que os componentes/rotas conhecem)
         ▼
-app/p/[client]/*.tsx       — resolve o slug da URL, chama lib/clients, monta as props
+app/clients/[client]/*.tsx — resolve o slug da URL, chama lib/clients, monta as props
         │
         ▼
 components/**              — só recebem ClientConfig/ClientVideos/etc. via props, nunca
@@ -101,7 +101,7 @@ null`; o CTA "Prospectar Parceiros" da Navigation segue a mesma regra via `showP
 ## Theming
 
 Uma única cor por cliente: `config.theme.accentColor` (hex) é injetada como
-`style={{ "--client-accent": ... }}` num wrapper em `app/p/[client]/layout.tsx`. Componentes
+`style={{ "--client-accent": ... }}` num wrapper em `app/clients/[client]/layout.tsx`. Componentes
 referenciam `var(--client-accent)` via Tailwind arbitrary values (`text-[var(--client-accent)]`
 etc.) em vez do hex direto. `app/globals.css` define um fallback (`#d4af6a`, o dourado da
 Pascoal) pra nada quebrar se algo renderizar fora desse wrapper.

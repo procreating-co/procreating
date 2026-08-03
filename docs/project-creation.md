@@ -346,7 +346,7 @@ sequenceDiagram
 mesma restrição de escopo (`proxy.ts matcher: /admin/:path*`) que já protege o painel hoje.
 Nenhum Plugin pode registrar uma rota fora de `/admin` por este SDK — se um plugin precisar de
 uma rota pública nova, isso é decisão de produto fora do escopo deste SDK (routing público
-continua sendo só `/p/[client]/**`, intocado). **Não implementado** — contrato documentado.
+continua sendo só `/clients/[client]/**`, intocado). **Não implementado** — contrato documentado.
 
 ---
 
@@ -599,7 +599,7 @@ quem efetivamente busca o dado.
 | **Analytics** | Stream de eventos de visitante + rollups derivados | ...chamar o Renderer de volta (só consome, nunca aciona render) |
 | **Storage** | Bytes — upload/delete/list via Driver | ...saber o que é um Asset (só conhece chave/bytes, não metadado de domínio) |
 | **Workflow** | Orquestração de Jobs em sequência | ...reimplementar a máquina de estados de Deployment (aciona, não duplica) |
-| **Admin** | UI de gestão + Server Actions administrativas | ...ser importado por `app/p/[client]/**` (regra já em vigor, verificada) |
+| **Admin** | UI de gestão + Server Actions administrativas | ...ser importado por `app/clients/[client]/**` (regra já em vigor, verificada) |
 | **Renderer** | Transformar `RendererContext` em HTML, puro | ...fazer fetch de qualquer tipo (seção 10) |
 | **Resolver** | Buscar dado de qualquer domínio acima, com cache (revisão 5, seção 17) | ...ser importado por um componente diretamente sem passar pelo Renderer/Server Action que o invoca |
 

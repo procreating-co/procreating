@@ -11,7 +11,7 @@ const IMAGE_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".webp"]);
  *
  * Server-only: usa `fs`/`path`, por isso fica separado de `lib/gallery.ts` (que é
  * seguro para importar em componentes "use client"). Só importe este arquivo a
- * partir de Server Components (ex.: `app/p/[client]/galeria/page.tsx`).
+ * partir de Server Components (ex.: `app/clients/[client]/galeria/page.tsx`).
  *
  * Migração futura para Supabase Storage/R2: troque apenas o corpo desta função
  * (ex.: `await supabase.storage.from("gallery").list(`${clientSlug}/${id}`)`),

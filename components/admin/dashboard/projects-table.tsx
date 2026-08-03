@@ -6,7 +6,7 @@ import { getMockClientName } from "@/lib/admin/clients/mock-data";
 import type { AdminProject } from "@/lib/admin/projects/types";
 
 /**
- * "Abrir" (ícone externo) já é um link real pro site público (`/p/<slug>`), igual ao
+ * "Abrir" (ícone externo) já é um link real pro site público (`/clients/<slug>`), igual ao
  * `ProjectCard`. "Editar" fica desabilitado — o fluxo de edição ainda não existe.
  */
 export function ProjectsTable({ projects }: { projects: AdminProject[] }) {
@@ -44,7 +44,7 @@ export function ProjectsTable({ projects }: { projects: AdminProject[] }) {
               <TableCell className="text-right">
                 <div className="flex justify-end gap-1">
                   <a
-                    href={`/p/${project.slug}`}
+                    href={`/clients/${project.slug}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     title="Abrir site público"

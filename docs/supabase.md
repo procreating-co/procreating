@@ -16,11 +16,11 @@ desatualizado há duas revisões).
 **Muda só `lib/clients/index.ts`** (e o que ele chama internamente, hoje `ClientResolver` +
 `registrySource`, ver `docs/project-creation.md` seção 9 — Resolver Layer). Uma fonte nova
 (`supabaseSource`, satisfazendo `ClientDataProvider`) entraria na lista de sources do resolver,
-ao lado de `registrySource`, sem exigir mudança em `app/p/[client]/**`.
+ao lado de `registrySource`, sem exigir mudança em `app/clients/[client]/**`.
 
 **Não muda nada além disso**: os tipos em `lib/clients/types.ts` (`ClientConfig` — que a
 revisão 5 formalizou como **congelado**, mantido só pra Pascoal, nunca usado por projeto novo),
-os componentes de `components/landing|gallery|prospeccao/**`, as rotas em `app/p/[client]/`.
+os componentes de `components/landing|gallery|prospeccao/**`, as rotas em `app/clients/[client]/`.
 
 ## Schema real (SQL pronto, ainda não aplicado)
 
