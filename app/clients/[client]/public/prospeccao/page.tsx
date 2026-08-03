@@ -15,7 +15,7 @@ export default async function ClientProspeccaoPage({ params }: { params: Promise
       toastText={config.prospeccao.toastText}
       logo={config.logo}
       brandName={config.brandName}
-      homeHref={`/clients/${client}`}
+      homeHref={`/clients/${client}/public`}
     />
   );
 }
