@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, ArrowRight } from "lucide-react";
 import { ProposalSectionHeader } from "@/components/proposal/proposal-section-header";
 import type { ProposalPillar } from "@/lib/clients/proposal-types";
 
@@ -21,7 +21,7 @@ function PillarCard({ pillar, accent }: { pillar: ProposalPillar; accent: string
       onMouseEnter={() => setIsOpen(true)}
       onMouseLeave={() => setIsOpen(false)}
       aria-expanded={isOpen}
-      className="group flex h-full flex-col border p-7 text-left transition-all duration-500 lg:p-9"
+      className="group flex h-full flex-1 flex-col border p-7 text-left transition-all duration-500 lg:p-9"
       style={{ borderColor: isOpen ? accent : "rgba(255,255,255,0.1)", backgroundColor: isOpen ? `${accent}0d` : "transparent" }}
     >
       <div className="flex items-start justify-between gap-4">
@@ -59,7 +59,7 @@ export function ProposalPillars({
   pillars,
   accent,
 }: {
-  intro: { eyebrow: string; heading: string };
+  intro: { eyebrow: string; heading: string; subtitle: string };
   pillars: ProposalPillar[];
   accent: string;
 }) {
@@ -67,9 +67,19 @@ export function ProposalPillars({
     <section id="operacao" className="scroll-mt-20 bg-black px-6 py-24 text-white lg:px-12 lg:py-32">
       <div className="mx-auto max-w-[1300px]">
         <ProposalSectionHeader eyebrow={intro.eyebrow} heading={intro.heading} accent={accent} />
-        <div className="mt-14 grid grid-cols-1 gap-4 lg:grid-cols-3">
-          {pillars.map((pillar) => (
-            <PillarCard key={pillar.title} pillar={pillar} accent={accent} />
+        <p className="mx-auto mt-5 max-w-md text-balance text-center text-base leading-relaxed text-white/55">{intro.subtitle}</p>
+
+        {/* Conectores entre os cards reforçam "uma mesma estrutura", não 3 serviços à parte */}
+        <div className="mt-14 flex flex-col gap-4 lg:flex-row lg:items-stretch">
+          {pillars.map((pillar, index) => (
+            <div key={pillar.title} className="flex flex-col gap-4 lg:flex-1 lg:flex-row lg:items-stretch">
+              <PillarCard pillar={pillar} accent={accent} />
+              {index < pillars.length - 1 && (
+                <div className="flex items-center justify-center py-1 lg:py-0">
+                  <ArrowRight className="size-4 shrink-0 rotate-90 text-white/15 lg:rotate-0" />
+                </div>
+              )}
+            </div>
           ))}
         </div>
       </div>

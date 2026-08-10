@@ -13,27 +13,22 @@ export type ProposalPillar = {
   items: string[];
 };
 
-/** Uma das 2 opções de vídeos/mês — `base` é o preço mensal nessa quantidade, sem nenhum toggle ligado. */
-export type VideoOption = {
-  id: string;
-  count: number;
-  label: string;
-  base: number;
-};
+/**
+ * Item do orçamento — 3 formas:
+ *  - "static": sempre incluso, círculo sempre aceso, não clicável (ex.: Estratégia, Posicionamento).
+ *  - "toggle": liga/desliga, soma `price` ao total quando ligado.
+ *  - "video-tier": grupo de opções mutuamente exclusivas (rádio) — só uma fica acesa por vez,
+ *    cada uma com seu próprio `price` (o preço da opção SUBSTITUI, não soma).
+ * Preço nunca aparece na interface — só o total geral muda.
+ */
+export type BudgetItem =
+  | { kind: "static"; id: string; label: string }
+  | { kind: "toggle"; id: string; label: string; price: number; defaultOn: boolean }
+  | { kind: "video-tier"; id: string; options: { id: string; count: number; label: string; price: number }[]; defaultOptionId: string };
 
-/** Um dos 2 toggles do configurador — soma `priceDelta` ao total quando ligado. */
-export type ProposalToggle = {
-  id: string;
+export type BudgetGroup = {
   label: string;
-  priceDelta: number;
-  /** Nota pequena junto do toggle, ex.: aviso sobre verba de mídia. */
-  note?: string;
-};
-
-export type WhyContinuityPoint = {
-  number: string;
-  title: string;
-  description: string;
+  items: BudgetItem[];
 };
 
 export type ProposalContent = {
@@ -49,13 +44,7 @@ export type ProposalContent = {
     subtitle: string;
   };
 
-  growthAnimation: {
-    eyebrow: string;
-    heading: string;
-    steps: string[];
-  };
-
-  pillarsIntro: { eyebrow: string; heading: string };
+  pillarsIntro: { eyebrow: string; heading: string; subtitle: string };
   pillars: ProposalPillar[];
 
   tvProgram: {
@@ -66,26 +55,8 @@ export type ProposalContent = {
   };
 
   configurator: {
-    eyebrow: string;
     heading: string;
-    subtitle: string;
-    contentLabel: string;
-    videoOptions: VideoOption[];
-    strategyLabel: string;
-    strategyIncluded: string;
-    growthLabel: string;
-    expansionLabel: string;
-    toggles: { traffic: ProposalToggle; prospecting: ProposalToggle };
-    /** Piso absoluto do valor mensal — nunca deve ser possível ficar abaixo disso. */
-    minPrice: number;
-    recommendedTag: string;
-    customTag: string;
-  };
-
-  whyContinuity: {
-    eyebrow: string;
-    heading: string;
-    points: WhyContinuityPoint[];
+    groups: BudgetGroup[];
   };
 
   closing: {
