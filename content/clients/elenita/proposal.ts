@@ -4,12 +4,17 @@ import type { ProposalContent } from "@/lib/clients/proposal-types";
  * Proposta de Continuidade — Dra. Elenita Luzardo. Página comercial isolada
  * (`/clients/elenita/public/proposta`), pensada pra apresentação AO VIVO.
  *
- * PREÇOS DO ORÇAMENTO — só os itens em `configurator.variableItems` pesam no total (o resto,
- * `fixedItems`, é sempre incluso, sem afetar o valor):
- *   8 vídeos (4000) + Programa de TV (800) + Tráfego pago (500) + Prospecção ativa (900) = 6.200
- *   4 vídeos (3200) + Programa de TV (800) + Tráfego pago (500) + Prospecção ativa (900) = 5.400
- * Pra mudar um valor: edite só o `price` do item correspondente — o total em
- * proposal-configurator.tsx é sempre a soma dos itens variáveis ativos.
+ * PREÇOS DO ORÇAMENTO — `fixedPrice` é sempre somado (é a fundação, nunca desliga). Os itens em
+ * `configurator.variableItems` são as camadas que a cliente adiciona por cima, cada um com seu
+ * `price` somado só quando ativo. "videos" tem `unlockedBy: "posicionamento"` — só aparece (e só
+ * conta no total) quando o toggle "posicionamento" está ativo:
+ *   Posicionamento OFF                              → 3.500 (só a fundação)
+ *   Posicionamento ON (+1.200) + 4 vídeos (+1.500)   → 6.200
+ *   Posicionamento ON (+1.200) + 8 vídeos (+2.300)   → 7.000
+ *   + Tráfego pago (+500), + Estratégia de prospecção ativa (+900), cada um somando por cima
+ *     de qualquer configuração acima.
+ * Pra mudar um valor: edite só o `price` do item correspondente (ou `fixedPrice`) — o total em
+ * proposal-configurator.tsx é sempre fixedPrice + soma dos itens variáveis ativos.
  */
 export const elenitaProposal: ProposalContent = {
   slug: "elenita",
@@ -90,31 +95,31 @@ export const elenitaProposal: ProposalContent = {
   },
 
   configurator: {
-    heading: "Orçamento",
-    fixedLabel: "Estrutura estratégica",
+    heading: "",
+    fixedLabel: "Estrutura fixa",
+    fixedPrice: 3500,
     fixedItems: [
-      { id: "estrategia", label: "Estratégia" },
-      { id: "linha-editorial", label: "Linha editorial" },
-      { id: "planejamento-estrategico", label: "Planejamento estratégico" },
-      { id: "posicionamento", label: "Posicionamento" },
-      { id: "direcao-estrategica", label: "Direção estratégica" },
+      { id: "estrategia-marketing", label: "Estratégia de marketing" },
+      { id: "linha-editorial", label: "Linha editorial de conteúdo" },
       { id: "roteirizacao", label: "Roteirização" },
-      { id: "captacao-mensal", label: "Captação mensal" },
+      { id: "programa-tv", label: "Produção do programa Cara a Cara com a Beleza" },
     ],
-    variableLabel: "Frentes de expansão",
+    variableLabel: "O que pode adicionar",
     variableItems: [
+      { kind: "toggle", id: "posicionamento", label: "Posicionamento", price: 1200, defaultOn: false },
       {
         kind: "video-tier",
         id: "videos",
+        label: "Conteúdo em vídeo",
+        unlockedBy: "posicionamento",
         defaultOptionId: "8",
         options: [
-          { id: "4", count: 4, label: "4 vídeos/mês", price: 3200 },
-          { id: "8", count: 8, label: "8 vídeos/mês", price: 4000 },
+          { id: "4", count: 4, label: "4 vídeos/mês", price: 1500 },
+          { id: "8", count: 8, label: "8 vídeos/mês", price: 2300 },
         ],
       },
-      { kind: "toggle", id: "programa-tv", label: '"Cara a Cara com a Beleza"', price: 800, defaultOn: true },
-      { kind: "toggle", id: "trafego-pago", label: "Tráfego pago", price: 500, defaultOn: true },
-      { kind: "toggle", id: "prospeccao-ativa", label: "Estratégia de prospecção ativa", price: 900, defaultOn: true },
+      { kind: "toggle", id: "trafego-pago", label: "Tráfego pago", price: 500, defaultOn: false },
+      { kind: "toggle", id: "prospeccao-ativa", label: "Estratégia de prospecção ativa", price: 900, defaultOn: false },
     ],
   },
 

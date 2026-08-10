@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import type { FixedBudgetItem, VariableBudgetItem, ProposalContent } from "@/lib/clients/proposal-types";
 
 const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
@@ -30,7 +30,7 @@ function OdometerDigit({ digit }: { digit: string }) {
   );
 }
 
-/** Valor formatado ("R$ 6.200") renderizado dígito a dígito — cada troca de valor rola como um odômetro. */
+/** Valor formatado ("R$ 3.500") renderizado dígito a dígito — cada troca de valor rola como um odômetro. */
 function OdometerValue({ value }: { value: number }) {
   const formatted = currencyFormatter.format(value);
   return (
@@ -42,12 +42,12 @@ function OdometerValue({ value }: { value: number }) {
   );
 }
 
-/** Item fixo — indicador discreto, nunca clicável, nunca brilha. Visualmente bem diferente do GlowDot. */
+/** Item fixo — indicador discreto, nunca clicável, nunca brilha. Texto claro o bastante pra ler bem (era queixa: contraste baixo demais antes). */
 function FixedRow({ item }: { item: FixedBudgetItem }) {
   return (
     <div className="flex items-center gap-3 py-2">
-      <span className="size-1 shrink-0 rounded-full bg-white/25" aria-hidden="true" />
-      <span className="text-sm text-white/55">{item.label}</span>
+      <span className="size-1 shrink-0 rounded-full bg-white/40" aria-hidden="true" />
+      <span className="text-sm text-white/80">{item.label}</span>
     </div>
   );
 }
@@ -81,9 +81,16 @@ function initialState(items: VariableBudgetItem[]): State {
   return { toggles, videoTiers };
 }
 
-function computeTotal(items: VariableBudgetItem[], state: State): number {
-  let total = 0;
+/** `video-tier` com `unlockedBy` só soma no total quando o toggle que o desbloqueia está ativo. */
+function isUnlocked(item: VariableBudgetItem, state: State): boolean {
+  if (item.kind !== "video-tier" || !item.unlockedBy) return true;
+  return Boolean(state.toggles[item.unlockedBy]);
+}
+
+function computeTotal(fixedPrice: number, items: VariableBudgetItem[], state: State): number {
+  let total = fixedPrice;
   for (const item of items) {
+    if (!isUnlocked(item, state)) continue;
     if (item.kind === "toggle" && state.toggles[item.id]) total += item.price;
     if (item.kind === "video-tier") {
       const option = item.options.find((candidate) => candidate.id === state.videoTiers[item.id]);
@@ -108,7 +115,8 @@ function VariableRow({ item, state, accent, onToggle, onSelectTier }: { item: Va
 
   const selectedId = state.videoTiers[item.id];
   return (
-    <>
+    <div className="flex flex-col">
+      {item.label && <p className="mb-1.5 mt-3 font-mono text-[11px] uppercase tracking-wide text-white/35">{item.label}</p>}
       {item.options.map((option) => {
         const active = option.id === selectedId;
         return (
@@ -125,25 +133,21 @@ function VariableRow({ item, state, accent, onToggle, onSelectTier }: { item: Va
           </div>
         );
       })}
-    </>
+    </div>
   );
 }
 
 export function ProposalConfigurator({ content, accent }: { content: ProposalContent["configurator"]; accent: string }) {
   const [state, setState] = useState<State>(() => initialState(content.variableItems));
 
-  const total = useMemo(() => computeTotal(content.variableItems, state), [content.variableItems, state]);
+  const total = useMemo(() => computeTotal(content.fixedPrice, content.variableItems, state), [content.fixedPrice, content.variableItems, state]);
 
   const toggle = (id: string) => setState((current) => ({ ...current, toggles: { ...current.toggles, [id]: !current.toggles[id] } }));
   const selectTier = (groupId: string, optionId: string) => setState((current) => ({ ...current, videoTiers: { ...current.videoTiers, [groupId]: optionId } }));
 
   return (
     <section id="configurador" className="scroll-mt-20 border-t border-white/10 bg-black px-6 py-24 text-white lg:px-12 lg:py-32">
-      <div className="mx-auto max-w-xl text-center">
-        <h2 className="font-display text-3xl tracking-tight text-white sm:text-4xl">{content.heading}</h2>
-      </div>
-
-      <div className="mx-auto mt-12 max-w-3xl">
+      <div className="mx-auto max-w-3xl">
         <div className="flex flex-col items-center border border-white/15 bg-white/[0.03] px-8 py-12 text-center">
           <span className="font-mono text-xs uppercase tracking-wide text-white/45">Investimento mensal</span>
           <p className="mt-4 font-display text-6xl tabular-nums text-white sm:text-7xl">
@@ -166,9 +170,24 @@ export function ProposalConfigurator({ content, accent }: { content: ProposalCon
             <p className="mb-1 font-mono text-xs uppercase tracking-wide text-white/45">{content.variableLabel}</p>
             <p className="mb-5 text-xs text-white/30">Ajuste conforme a prioridade</p>
             <div className="flex flex-col">
-              {content.variableItems.map((item) => (
-                <VariableRow key={item.id} item={item} state={state} accent={accent} onToggle={toggle} onSelectTier={selectTier} />
-              ))}
+              {content.variableItems.map((item) => {
+                const unlocked = isUnlocked(item, state);
+                return (
+                  <AnimatePresence key={item.id} initial={false}>
+                    {unlocked && (
+                      <motion.div
+                        initial={item.kind === "video-tier" ? { height: 0, opacity: 0 } : false}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.35, ease: "easeInOut" }}
+                        className="overflow-hidden"
+                      >
+                        <VariableRow item={item} state={state} accent={accent} onToggle={toggle} onSelectTier={selectTier} />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                );
+              })}
             </div>
           </div>
         </div>
