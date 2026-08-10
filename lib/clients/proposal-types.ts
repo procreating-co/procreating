@@ -13,23 +13,26 @@ export type ProposalPillar = {
   items: string[];
 };
 
+export type AcquisitionCard = {
+  number: string;
+  title: string;
+  description: string;
+  items: string[];
+};
+
+/** Item fixo do orçamento — sempre incluso, indicador discreto, nunca clicável, nunca pesa no preço. */
+export type FixedBudgetItem = { id: string; label: string };
+
 /**
- * Item do orçamento — 3 formas:
- *  - "static": sempre incluso, círculo sempre aceso, não clicável (ex.: Estratégia, Posicionamento).
+ * Item variável do orçamento — 2 formas:
  *  - "toggle": liga/desliga, soma `price` ao total quando ligado.
  *  - "video-tier": grupo de opções mutuamente exclusivas (rádio) — só uma fica acesa por vez,
  *    cada uma com seu próprio `price` (o preço da opção SUBSTITUI, não soma).
  * Preço nunca aparece na interface — só o total geral muda.
  */
-export type BudgetItem =
-  | { kind: "static"; id: string; label: string }
+export type VariableBudgetItem =
   | { kind: "toggle"; id: string; label: string; price: number; defaultOn: boolean }
   | { kind: "video-tier"; id: string; options: { id: string; count: number; label: string; price: number }[]; defaultOptionId: string };
-
-export type BudgetGroup = {
-  label: string;
-  items: BudgetItem[];
-};
 
 export type ProposalContent = {
   slug: string;
@@ -50,13 +53,22 @@ export type ProposalContent = {
   tvProgram: {
     eyebrow: string;
     heading: string;
-    description: string;
+    subtitle: string;
     steps: string[];
+  };
+
+  acquisition: {
+    eyebrow: string;
+    heading: string;
+    cards: AcquisitionCard[];
   };
 
   configurator: {
     heading: string;
-    groups: BudgetGroup[];
+    fixedLabel: string;
+    fixedItems: FixedBudgetItem[];
+    variableLabel: string;
+    variableItems: VariableBudgetItem[];
   };
 
   closing: {

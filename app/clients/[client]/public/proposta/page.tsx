@@ -4,6 +4,7 @@ import { getClientProposal } from "@/lib/clients/proposal-registry";
 import { ProposalHero } from "@/components/proposal/proposal-hero";
 import { ProposalPillars } from "@/components/proposal/proposal-pillars";
 import { ProposalTvProgram } from "@/components/proposal/proposal-tv-program";
+import { ProposalAcquisition } from "@/components/proposal/proposal-acquisition";
 import { ProposalConfigurator } from "@/components/proposal/proposal-configurator";
 import { ProposalClosing } from "@/components/proposal/proposal-closing";
 
@@ -40,6 +41,7 @@ export default async function ProposalPage({ params }: { params: Promise<{ clien
       <ProposalHero content={proposal.hero} accent={accent} />
       <ProposalPillars intro={proposal.pillarsIntro} pillars={proposal.pillars} accent={accent} />
       <ProposalTvProgram content={proposal.tvProgram} accent={accent} />
+      <ProposalAcquisition content={proposal.acquisition} accent={accent} />
       <ProposalConfigurator content={proposal.configurator} accent={accent} />
       <ProposalClosing content={proposal.closing} brandName={proposal.brandName} />
     </main>

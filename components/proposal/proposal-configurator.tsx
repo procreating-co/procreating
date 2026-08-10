@@ -2,14 +2,14 @@
 
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import type { BudgetGroup, BudgetItem, ProposalContent } from "@/lib/clients/proposal-types";
+import type { FixedBudgetItem, VariableBudgetItem, ProposalContent } from "@/lib/clients/proposal-types";
 
 const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
 /** Um dígito do odômetro — coluna de 0-9 que desliza verticalmente até o dígito certo ficar visível. */
 function OdometerDigit({ digit }: { digit: string }) {
   if (!/[0-9]/.test(digit)) {
-    return <span className="inline-block">{digit === " " ? " " : digit}</span>;
+    return <span className="inline-block">{digit}</span>;
   }
   const value = Number(digit);
   return (
@@ -42,73 +42,58 @@ function OdometerValue({ value }: { value: number }) {
   );
 }
 
-/** Círculo brilhante — aceso (ativo) ou apagado (inativo). Clicável só quando `onToggle` existe. */
-function GlowDot({ active, accent, onToggle }: { active: boolean; accent: string; onToggle?: () => void }) {
-  const dot = (
-    <motion.span
-      whileTap={onToggle ? { scale: 0.8 } : undefined}
-      className="block size-3 shrink-0 rounded-full transition-all duration-300"
-      style={{
-        backgroundColor: active ? accent : "transparent",
-        border: active ? "none" : "1.5px solid rgba(255,255,255,0.25)",
-        boxShadow: active ? `0 0 8px ${accent}, 0 0 2px ${accent}` : "none",
-      }}
-    />
+/** Item fixo — indicador discreto, nunca clicável, nunca brilha. Visualmente bem diferente do GlowDot. */
+function FixedRow({ item }: { item: FixedBudgetItem }) {
+  return (
+    <div className="flex items-center gap-3 py-2">
+      <span className="size-1 shrink-0 rounded-full bg-white/25" aria-hidden="true" />
+      <span className="text-sm text-white/55">{item.label}</span>
+    </div>
   );
+}
 
-  if (!onToggle) {
-    return (
-      <span className="flex items-center" aria-hidden="true">
-        {dot}
-      </span>
-    );
-  }
-
+/** Círculo brilhante — aceso (ativo, clicável) ou apagado (inativo). */
+function GlowDot({ active, accent, onToggle }: { active: boolean; accent: string; onToggle: () => void }) {
   return (
     <button type="button" onClick={onToggle} aria-pressed={active} className="flex items-center" aria-label="Ativar ou desativar item">
-      {dot}
+      <motion.span
+        whileTap={{ scale: 0.8 }}
+        className="block size-3 shrink-0 rounded-full transition-all duration-300"
+        style={{
+          backgroundColor: active ? accent : "transparent",
+          border: active ? "none" : "1.5px solid rgba(255,255,255,0.25)",
+          boxShadow: active ? `0 0 8px ${accent}, 0 0 2px ${accent}` : "none",
+        }}
+      />
     </button>
   );
 }
 
 type State = { toggles: Record<string, boolean>; videoTiers: Record<string, string> };
 
-function initialState(groups: BudgetGroup[]): State {
+function initialState(items: VariableBudgetItem[]): State {
   const toggles: Record<string, boolean> = {};
   const videoTiers: Record<string, string> = {};
-  for (const group of groups) {
-    for (const item of group.items) {
-      if (item.kind === "toggle") toggles[item.id] = item.defaultOn;
-      if (item.kind === "video-tier") videoTiers[item.id] = item.defaultOptionId;
-    }
+  for (const item of items) {
+    if (item.kind === "toggle") toggles[item.id] = item.defaultOn;
+    if (item.kind === "video-tier") videoTiers[item.id] = item.defaultOptionId;
   }
   return { toggles, videoTiers };
 }
 
-function computeTotal(groups: BudgetGroup[], state: State): number {
+function computeTotal(items: VariableBudgetItem[], state: State): number {
   let total = 0;
-  for (const group of groups) {
-    for (const item of group.items) {
-      if (item.kind === "toggle" && state.toggles[item.id]) total += item.price;
-      if (item.kind === "video-tier") {
-        const option = item.options.find((candidate) => candidate.id === state.videoTiers[item.id]);
-        if (option) total += option.price;
-      }
+  for (const item of items) {
+    if (item.kind === "toggle" && state.toggles[item.id]) total += item.price;
+    if (item.kind === "video-tier") {
+      const option = item.options.find((candidate) => candidate.id === state.videoTiers[item.id]);
+      if (option) total += option.price;
     }
   }
   return total;
 }
 
-function BudgetItemRow({ item, state, accent, onToggle, onSelectTier }: { item: BudgetItem; state: State; accent: string; onToggle: (id: string) => void; onSelectTier: (groupId: string, optionId: string) => void }) {
-  if (item.kind === "static") {
-    return (
-      <div className="flex items-center gap-3 py-2">
-        <GlowDot active accent={accent} />
-        <span className="text-sm text-white/70">{item.label}</span>
-      </div>
-    );
-  }
-
+function VariableRow({ item, state, accent, onToggle, onSelectTier }: { item: VariableBudgetItem; state: State; accent: string; onToggle: (id: string) => void; onSelectTier: (groupId: string, optionId: string) => void }) {
   if (item.kind === "toggle") {
     const active = state.toggles[item.id];
     return (
@@ -145,9 +130,9 @@ function BudgetItemRow({ item, state, accent, onToggle, onSelectTier }: { item: 
 }
 
 export function ProposalConfigurator({ content, accent }: { content: ProposalContent["configurator"]; accent: string }) {
-  const [state, setState] = useState<State>(() => initialState(content.groups));
+  const [state, setState] = useState<State>(() => initialState(content.variableItems));
 
-  const total = useMemo(() => computeTotal(content.groups, state), [content.groups, state]);
+  const total = useMemo(() => computeTotal(content.variableItems, state), [content.variableItems, state]);
 
   const toggle = (id: string) => setState((current) => ({ ...current, toggles: { ...current.toggles, [id]: !current.toggles[id] } }));
   const selectTier = (groupId: string, optionId: string) => setState((current) => ({ ...current, videoTiers: { ...current.videoTiers, [groupId]: optionId } }));
@@ -158,7 +143,7 @@ export function ProposalConfigurator({ content, accent }: { content: ProposalCon
         <h2 className="font-display text-3xl tracking-tight text-white sm:text-4xl">{content.heading}</h2>
       </div>
 
-      <div className="mx-auto mt-12 max-w-lg">
+      <div className="mx-auto mt-12 max-w-3xl">
         <div className="flex flex-col items-center border border-white/15 bg-white/[0.03] px-8 py-12 text-center">
           <span className="font-mono text-xs uppercase tracking-wide text-white/45">Investimento mensal</span>
           <p className="mt-4 font-display text-6xl tabular-nums text-white sm:text-7xl">
@@ -166,17 +151,26 @@ export function ProposalConfigurator({ content, accent }: { content: ProposalCon
           </p>
         </div>
 
-        <div className="mt-10 flex flex-col divide-y divide-white/10">
-          {content.groups.map((group) => (
-            <div key={group.label} className="py-5 first:pt-0">
-              <p className="mb-2 font-mono text-xs uppercase tracking-wide text-white/40">{group.label}</p>
-              <div className="flex flex-col">
-                {group.items.map((item) => (
-                  <BudgetItemRow key={item.id} item={item} state={state} accent={accent} onToggle={toggle} onSelectTier={selectTier} />
-                ))}
-              </div>
+        <div className="mt-12 grid grid-cols-1 gap-10 md:grid-cols-2 md:gap-14">
+          <div className="border-t border-white/10 pt-8 md:border-t-0 md:border-r md:pr-14 md:pt-0">
+            <p className="mb-1 font-mono text-xs uppercase tracking-wide text-white/45">{content.fixedLabel}</p>
+            <p className="mb-5 text-xs text-white/30">Sempre inclusos</p>
+            <div className="flex flex-col">
+              {content.fixedItems.map((item) => (
+                <FixedRow key={item.id} item={item} />
+              ))}
             </div>
-          ))}
+          </div>
+
+          <div className="pt-2 md:pt-0">
+            <p className="mb-1 font-mono text-xs uppercase tracking-wide text-white/45">{content.variableLabel}</p>
+            <p className="mb-5 text-xs text-white/30">Ajuste conforme a prioridade</p>
+            <div className="flex flex-col">
+              {content.variableItems.map((item) => (
+                <VariableRow key={item.id} item={item} state={state} accent={accent} onToggle={toggle} onSelectTier={selectTier} />
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </section>

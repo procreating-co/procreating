@@ -14,7 +14,7 @@ export function ProposalTvProgram({ content, accent }: { content: ProposalConten
     <section className="border-t border-white/10 bg-black px-6 py-24 text-white lg:px-12 lg:py-32">
       <div className="mx-auto max-w-4xl">
         <ProposalSectionHeader eyebrow={content.eyebrow} heading={content.heading} accent={accent} />
-        <p className="mx-auto mt-6 max-w-lg text-balance text-center text-base leading-relaxed text-white/55">{content.description}</p>
+        <p className="mx-auto mt-6 max-w-lg text-balance text-center text-base leading-relaxed text-white/55">{content.subtitle}</p>
       </div>
 
       <div className="mx-auto mt-14 flex max-w-5xl flex-col items-center gap-3 lg:flex-row lg:justify-center lg:gap-0">
