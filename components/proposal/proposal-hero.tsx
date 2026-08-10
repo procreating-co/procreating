@@ -1,4 +1,4 @@
-import { ArrowRight } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import type { ProposalContent } from "@/lib/clients/proposal-types";
 
 export function ProposalHero({ content, accent }: { content: ProposalContent["hero"]; accent: string }) {
@@ -13,25 +13,18 @@ export function ProposalHero({ content, accent }: { content: ProposalContent["he
           {content.eyebrow}
         </span>
 
-        <h1 className="text-balance font-display text-5xl leading-[1.02] tracking-tight sm:text-6xl md:text-7xl">{content.title}</h1>
+        <h1 className="text-balance font-display text-5xl leading-[1.05] tracking-tight sm:text-6xl md:text-7xl">{content.title}</h1>
 
-        <p className="mt-8 max-w-2xl text-balance text-lg leading-relaxed text-white/60 sm:text-xl">{content.subtitle}</p>
-
-        <div className="mt-6 flex items-center gap-2 font-mono text-xs uppercase tracking-[0.15em] text-white/40">
-          <span className="h-px w-8" style={{ backgroundColor: accent }} />
-          {content.dateRange}
-          <span className="h-px w-8" style={{ backgroundColor: accent }} />
-        </div>
-
-        <a
-          href={content.ctaHref}
-          className="mt-12 inline-flex h-14 items-center justify-center gap-2 rounded-full px-8 text-sm font-medium text-black transition-all duration-300 hover:scale-[1.03]"
-          style={{ backgroundColor: accent }}
-        >
-          {content.ctaLabel}
-          <ArrowRight className="size-4" />
-        </a>
+        <p className="mt-8 max-w-xl text-balance text-lg leading-relaxed text-white/55 sm:text-xl">{content.subtitle}</p>
       </div>
+
+      <a
+        href="#operacao"
+        aria-label="Rolar para a operação"
+        className="absolute bottom-10 left-1/2 z-10 flex size-10 -translate-x-1/2 items-center justify-center rounded-full border border-white/15 text-white/40 transition-colors duration-300 hover:border-white/30 hover:text-white/70"
+      >
+        <ChevronDown className="size-4" />
+      </a>
     </section>
   );
 }

@@ -2,100 +2,113 @@ import type { ProposalContent } from "@/lib/clients/proposal-types";
 
 /**
  * Proposta de Continuidade — Dra. Elenita Luzardo. Página comercial isolada
- * (`/clients/elenita/public/proposta`), conteúdo próprio, não reaproveita nada de
- * `content/clients/elenita/public.ts` (a apresentação pública) nem de `workspace.ts`.
+ * (`/clients/elenita/public/proposta`), pensada pra apresentação AO VIVO — por isso não tem
+ * nenhum CTA comercial ("falar com a gente", "quero saber mais"): o configurador é a própria
+ * ferramenta de apresentação, ajustado na hora durante a conversa.
+ *
+ * Modelo de preço do configurador — puramente aditivo, sem tabela de casos:
+ *   total = videoOption.base + (traffic ? toggles.traffic.priceDelta : 0) + (prospecting ? toggles.prospecting.priceDelta : 0)
+ * Confere com as 8 combinações exigidas (4k/4.5k/5.55k/6.05k/5.2k/5.7k/6.75k/7.25k) — validado em
+ * components/proposal/proposal-configurator.tsx e no smoke test das 8 combinações.
  */
 export const elenitaProposal: ProposalContent = {
   slug: "elenita",
   brandName: "Dra. Elenita Luzardo",
   accentColor: "#b76e79",
   metaTitle: "Proposta de Continuidade — Dra. Elenita Luzardo",
-  metaDescription: "Uma parceria estratégica de marketing até dezembro de 2026.",
+  metaDescription: "Uma parceria estratégica de marketing.",
 
   hero: {
-    eyebrow: "Proposta de continuidade · Agosto — Dezembro 2026",
-    title: "A próxima fase da marca Elenita",
-    subtitle:
-      "Uma parceria estratégica de marketing para transformar posicionamento, conteúdo, audiência e oportunidades comerciais em uma operação contínua até dezembro de 2026.",
-    dateRange: "Agosto → Dezembro 2026",
-    ctaLabel: "Construir essa próxima etapa",
-    ctaHref: "#configurador",
+    eyebrow: "Parceria estratégica de marketing",
+    title: "O próximo nível começa pela estratégia",
+    subtitle: "Uma estrutura contínua para fortalecer marca, audiência e oportunidades.",
   },
 
-  positioning: {
-    eyebrow: "Mais do que uma produtora",
-    heading: "Mais do que produzir conteúdo. Construir crescimento.",
-    paragraphs: [
-      "O próximo passo do nosso trabalho é transformar a comunicação da Elenita em uma operação contínua de posicionamento, conteúdo e crescimento.",
-      "Acreditamos que existe uma oportunidade muito maior do que simplesmente produzir novos vídeos.",
-      "Queremos construir uma presença digital que fortaleça sua autoridade, amplie sua audiência, potencialize o programa de TV e crie novas oportunidades comerciais através de marcas e patrocinadores.",
-      "Por isso, nossa proposta é estabelecer uma parceria estratégica até dezembro de 2026.",
-    ],
+  growthAnimation: {
+    eyebrow: "Uma direção só",
+    heading: "Cada etapa constrói a próxima.",
+    steps: ["Estratégia", "Posicionamento", "Conteúdo", "Audiência", "Autoridade", "Crescimento"],
   },
+
+  pillarsIntro: { eyebrow: "Como a operação funciona", heading: "Uma operação. Diferentes frentes." },
 
   pillars: [
     {
-      title: "Posicionamento",
-      description: "Construção e evolução do posicionamento da Elenita como autoridade.",
-      items: ["Direcionamento estratégico", "Linha editorial", "Pilares de comunicação", "Estratégia de autoridade", "Planejamento mensal"],
+      number: "01",
+      title: "Estratégias de Marketing",
+      description: "A camada que orquestra todas as outras — o olhar acima da operação do dia a dia.",
+      items: [
+        "Direção estratégica da marca",
+        "Planejamento mensal",
+        "Análise de oportunidades",
+        "Estratégia de aquisição",
+        "Estratégia de autoridade",
+        "Calendário estratégico",
+        "Campanhas e ações especiais",
+        "Análise de métricas e tomada de decisão",
+        "Integração entre conteúdo, audiência e oportunidades comerciais",
+      ],
     },
     {
-      title: "Conteúdo",
-      description: "Operação contínua de conteúdo.",
-      items: ["Planejamento", "Escrita de roteiros", "Direção", "Captação", "Edição", "Entrega"],
+      number: "02",
+      title: "Posicionamento Digital",
+      description: "Como a estratégia vira presença — o vídeo é uma ferramenta dentro do posicionamento, não o produto final.",
+      items: [
+        "Estratégia exclusiva de comunicação",
+        "Produção de conteúdo",
+        "Escrita de roteiros",
+        "Direção criativa",
+        "Captação mensal — 4 ou 8 vídeos/mês",
+        "Desenvolvimento da autoridade digital",
+        "Linha editorial",
+        "Planejamento de presença digital",
+      ],
     },
     {
-      title: "Programa de TV",
-      description: "Transformar o programa em um ativo de autoridade e posicionamento.",
-      items: ["Planejamento do programa", "Desenvolvimento de pautas", "Estrutura dos episódios", "Estratégia de conteúdo", "Direcionamento de produção", "Integração com redes sociais"],
-    },
-    {
-      title: "Crescimento de audiência",
-      description: "Estratégias pontuais de tráfego pago para crescimento de seguidores.",
-      items: ["Planejamento das campanhas", "Definição de públicos", "Estruturação dos anúncios", "Otimização", "Análise de resultados"],
-      note: "A verba de mídia paga não está incluída no investimento mensal.",
-    },
-    {
-      title: "Patrocinadores",
-      description: "Estratégia comercial para transformar o programa em uma plataforma atrativa para marcas.",
-      items: ["Definição do perfil de patrocinadores", "Estratégia de prospecção", "Estrutura de abordagem", "Organização do processo comercial", "Estratégia de apresentação do projeto"],
+      number: "03",
+      title: "Crescimento",
+      description: "A aceleração da marca — distribuição, alcance e otimização orientada por dados.",
+      items: [
+        "Alavancagem de marca",
+        "Tráfego pago",
+        "Crescimento de audiência",
+        "Distribuição estratégica de conteúdo",
+        "Amplificação dos melhores conteúdos",
+        "Campanhas de aquisição",
+        "Testes de criativos",
+        "Otimização baseada em dados",
+        "Expansão de alcance",
+      ],
     },
   ],
 
+  tvProgram: {
+    eyebrow: "Integrado à operação",
+    heading: "Programa de TV",
+    description: "A reunião da primeira semana do mês organiza o fluxo completo do episódio.",
+    steps: ["Reunião mensal", "Pautas", "Roteirização", "Direção", "Produção", "Gravação"],
+  },
+
   configurator: {
-    eyebrow: "Monte a operação",
-    heading: "Configurador da operação",
-    subtitle: "Aumente ou diminua o escopo — o valor mensal é recalculado na hora. Não é aceitar ou recusar uma proposta fechada: é montar a operação no nível certo para este momento.",
-    videoTiersLabel: "Vídeos por mês",
-    videoTiers: [
-      { id: "4", count: 4, label: "4 vídeos/mês", price: 6500 },
-      { id: "8", count: 8, label: "8 vídeos/mês", price: 8500, recommended: true },
-      { id: "12", count: 12, label: "12 vídeos/mês", price: 10000 },
+    eyebrow: "Ao vivo",
+    heading: "Defina o nível da operação",
+    subtitle: "Cada componente representa trabalho real — ajuste e veja o investimento acompanhar a escolha.",
+    contentLabel: "Conteúdo",
+    videoOptions: [
+      { id: "4", count: 4, label: "4 vídeos/mês", base: 4000 },
+      { id: "8", count: 8, label: "8 vídeos/mês", base: 5200 },
     ],
-    modulesLabel: "Módulos estratégicos",
-    includedModule: { label: "Posicionamento", description: "Incluído na operação recomendada." },
-    optionalModules: [
-      { id: "tv", label: "Programa de TV", description: "Planejamento, pautas, estrutura de episódios e integração com redes sociais.", price: 1500 },
-      { id: "audiencia", label: "Crescimento de audiência", description: "Estratégia de tráfego pago para crescimento de seguidores (verba à parte).", price: 1000 },
-      { id: "patrocinio", label: "Prospecção de patrocinadores", description: "Estrutura comercial para transformar o programa em plataforma para marcas.", price: 1500 },
-    ],
-  },
-
-  recommendation: {
-    eyebrow: "Nossa recomendação",
-    heading: "8 vídeos/mês com Posicionamento incluído — o ponto de partida ideal para esta fase.",
-    contractNote: "Contrato de continuidade até dezembro de 2026.",
-    ctaLabel: "Quero essa operação",
-    ctaHref: "#configurador",
-  },
-
-  investmentNote: {
-    heading: "O valor não representa apenas vídeos",
-    paragraphs: [
-      "Os vídeos são apenas uma parte da operação.",
-      "O investimento contempla uma estrutura contínua de marketing, posicionamento, estratégia, produção de conteúdo, desenvolvimento do programa, crescimento de audiência e criação de oportunidades comerciais.",
-      "A quantidade de conteúdo e os módulos estratégicos podem ser ajustados conforme as prioridades da Elenita.",
-    ],
+    strategyLabel: "Estratégia",
+    strategyIncluded: "Estratégias de Marketing + Posicionamento Digital",
+    growthLabel: "Crescimento",
+    expansionLabel: "Expansão",
+    toggles: {
+      traffic: { id: "trafego", label: "Tráfego pago", priceDelta: 500, note: "Verba de mídia não inclusa." },
+      prospecting: { id: "prospeccao", label: "Estratégia de prospecção ativa", priceDelta: 1550 },
+    },
+    minPrice: 4000,
+    recommendedTag: "Configuração recomendada",
+    customTag: "Operação personalizada",
   },
 
   whyContinuity: {
@@ -112,9 +125,6 @@ export const elenitaProposal: ProposalContent = {
 
   closing: {
     heading: "A próxima etapa começa aqui.",
-    paragraphs: ["Não estamos propondo apenas continuar produzindo conteúdo.", "Estamos propondo construir, juntos, a próxima fase da marca Elenita."],
-    dateRange: "Agosto → Dezembro 2026",
-    ctaLabel: "Começar parceria",
-    ctaHref: "#configurador",
+    paragraph: "Uma parceria estratégica contínua até dezembro de 2026 — construída, ajustada e revisada junto com a Elenita a cada etapa.",
   },
 };

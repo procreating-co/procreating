@@ -2,11 +2,10 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getClientProposal } from "@/lib/clients/proposal-registry";
 import { ProposalHero } from "@/components/proposal/proposal-hero";
-import { ProposalPositioning } from "@/components/proposal/proposal-positioning";
+import { ProposalGrowthAnimation } from "@/components/proposal/proposal-growth-animation";
 import { ProposalPillars } from "@/components/proposal/proposal-pillars";
+import { ProposalTvProgram } from "@/components/proposal/proposal-tv-program";
 import { ProposalConfigurator } from "@/components/proposal/proposal-configurator";
-import { ProposalRecommendation } from "@/components/proposal/proposal-recommendation";
-import { ProposalInvestmentNote } from "@/components/proposal/proposal-investment-note";
 import { ProposalWhyContinuity } from "@/components/proposal/proposal-why-continuity";
 import { ProposalClosing } from "@/components/proposal/proposal-closing";
 
@@ -16,6 +15,9 @@ import { ProposalClosing } from "@/components/proposal/proposal-closing";
  * `posicionamento-pro-template.tsx` — árvore de componentes própria em `components/proposal/**`,
  * conteúdo próprio em `content/clients/<slug>/proposal.ts`. Hoje só a Elenita tem uma proposta
  * cadastrada; qualquer outro slug cai em notFound(), sem afetar nenhuma rota existente.
+ *
+ * Pensada pra apresentação AO VIVO — por isso não tem CTA comercial em lugar nenhum; o
+ * configurador é a própria ferramenta de apresentação, ajustado na hora.
  */
 export async function generateMetadata({ params }: { params: Promise<{ client: string }> }): Promise<Metadata> {
   const { client } = await params;
@@ -34,24 +36,16 @@ export default async function ProposalPage({ params }: { params: Promise<{ clien
   if (!proposal) notFound();
 
   const accent = proposal.accentColor;
-  const recommendedTier = proposal.configurator.videoTiers.find((tier) => tier.recommended) ?? proposal.configurator.videoTiers[0];
 
   return (
     <main className="min-h-screen bg-black">
       <ProposalHero content={proposal.hero} accent={accent} />
-      <ProposalPositioning content={proposal.positioning} accent={accent} />
-      <ProposalPillars pillars={proposal.pillars} accent={accent} />
+      <ProposalGrowthAnimation content={proposal.growthAnimation} accent={accent} />
+      <ProposalPillars intro={proposal.pillarsIntro} pillars={proposal.pillars} accent={accent} />
+      <ProposalTvProgram content={proposal.tvProgram} accent={accent} />
       <ProposalConfigurator content={proposal.configurator} accent={accent} />
-      <ProposalRecommendation
-        content={proposal.recommendation}
-        recommendedTier={{ count: recommendedTier.count, price: recommendedTier.price }}
-        includedModuleLabel={proposal.configurator.includedModule.label}
-        optionalModuleLabels={proposal.configurator.optionalModules.map((module) => module.label)}
-        accent={accent}
-      />
-      <ProposalInvestmentNote content={proposal.investmentNote} accent={accent} />
       <ProposalWhyContinuity content={proposal.whyContinuity} accent={accent} />
-      <ProposalClosing content={proposal.closing} brandName={proposal.brandName} accent={accent} />
+      <ProposalClosing content={proposal.closing} brandName={proposal.brandName} />
     </main>
   );
 }

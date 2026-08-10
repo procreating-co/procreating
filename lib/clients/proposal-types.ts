@@ -7,26 +7,27 @@
  */
 
 export type ProposalPillar = {
+  number: string;
   title: string;
   description: string;
   items: string[];
-  /** Nota de rodapé do card, ex.: aviso sobre verba de mídia paga não incluída. */
-  note?: string;
 };
 
-export type VideoTier = {
+/** Uma das 2 opções de vídeos/mês — `base` é o preço mensal nessa quantidade, sem nenhum toggle ligado. */
+export type VideoOption = {
   id: string;
   count: number;
   label: string;
-  price: number;
-  recommended?: boolean;
+  base: number;
 };
 
-export type ProposalModule = {
+/** Um dos 2 toggles do configurador — soma `priceDelta` ao total quando ligado. */
+export type ProposalToggle = {
   id: string;
   label: string;
-  description: string;
-  price: number;
+  priceDelta: number;
+  /** Nota pequena junto do toggle, ex.: aviso sobre verba de mídia. */
+  note?: string;
 };
 
 export type WhyContinuityPoint = {
@@ -46,43 +47,39 @@ export type ProposalContent = {
     eyebrow: string;
     title: string;
     subtitle: string;
-    dateRange: string;
-    ctaLabel: string;
-    ctaHref: string;
   };
 
-  positioning: {
+  growthAnimation: {
     eyebrow: string;
     heading: string;
-    paragraphs: string[];
+    steps: string[];
   };
 
+  pillarsIntro: { eyebrow: string; heading: string };
   pillars: ProposalPillar[];
+
+  tvProgram: {
+    eyebrow: string;
+    heading: string;
+    description: string;
+    steps: string[];
+  };
 
   configurator: {
     eyebrow: string;
     heading: string;
     subtitle: string;
-    videoTiersLabel: string;
-    videoTiers: VideoTier[];
-    modulesLabel: string;
-    /** Módulo sempre incluso, sem preço/toggle próprio (ex.: Posicionamento). */
-    includedModule: { label: string; description: string };
-    /** Módulos opcionais, com preço adicional e toggle. */
-    optionalModules: ProposalModule[];
-  };
-
-  recommendation: {
-    eyebrow: string;
-    heading: string;
-    contractNote: string;
-    ctaLabel: string;
-    ctaHref: string;
-  };
-
-  investmentNote: {
-    heading: string;
-    paragraphs: string[];
+    contentLabel: string;
+    videoOptions: VideoOption[];
+    strategyLabel: string;
+    strategyIncluded: string;
+    growthLabel: string;
+    expansionLabel: string;
+    toggles: { traffic: ProposalToggle; prospecting: ProposalToggle };
+    /** Piso absoluto do valor mensal — nunca deve ser possível ficar abaixo disso. */
+    minPrice: number;
+    recommendedTag: string;
+    customTag: string;
   };
 
   whyContinuity: {
@@ -93,9 +90,6 @@ export type ProposalContent = {
 
   closing: {
     heading: string;
-    paragraphs: string[];
-    dateRange: string;
-    ctaLabel: string;
-    ctaHref: string;
+    paragraph: string;
   };
 };
