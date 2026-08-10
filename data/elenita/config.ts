@@ -28,6 +28,7 @@ export const clientConfig: ClientConfig = {
   nav: {
     galleryLabel: "Acessar Galeria",
     prospeccaoCtaLabel: "Prospectar Parceiros",
+    extraLink: { label: "Proposta de Continuidade", href: "/clients/elenita/public/proposta" },
   },
 
   hero: {

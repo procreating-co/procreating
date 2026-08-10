@@ -95,6 +95,9 @@ export type ClientConfig = {
   nav: {
     galleryLabel: string;
     prospeccaoCtaLabel: string;
+    /** Opcional — um link extra no menu (desktop e mobile), ex.: uma proposta comercial.
+     *  Ausente (padrão) = menu igual a sempre foi, sem item extra. */
+    extraLink?: { label: string; href: string };
   };
   hero: {
     /** As duas linhas da animação de boas-vindas digitada. */

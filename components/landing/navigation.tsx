@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Handshake, Images, Menu, X } from "lucide-react";
+import { FileText, Handshake, Images, Menu, X } from "lucide-react";
 
 export type NavigationProps = {
   brandName: string;
@@ -11,9 +11,11 @@ export type NavigationProps = {
   galleryLabel: string;
   prospeccaoCtaLabel: string;
   showProspeccaoCta: boolean;
+  /** Opcional — item extra no menu (ex.: link pra uma proposta comercial). Ausente = menu igual a sempre foi. */
+  extraLink?: { label: string; href: string };
 };
 
-export function Navigation({ brandName, homeHref, galleryHref, galleryLabel, prospeccaoCtaLabel, showProspeccaoCta }: NavigationProps) {
+export function Navigation({ brandName, homeHref, galleryHref, galleryLabel, prospeccaoCtaLabel, showProspeccaoCta, extraLink }: NavigationProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isHidden, setIsHidden] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -101,6 +103,19 @@ export function Navigation({ brandName, homeHref, galleryHref, galleryLabel, pro
                   </a>
                 </Button>
               )}
+              {extraLink && (
+                <Button
+                  asChild
+                  size="sm"
+                  variant="outline"
+                  className={`rounded-full border-current transition-all duration-500 ${isScrolled ? "h-8 px-4 text-xs text-foreground" : "px-6 text-white"}`}
+                >
+                  <a href={extraLink.href} className="inline-flex items-center gap-2">
+                    <FileText className="size-3.5" />
+                    {extraLink.label}
+                  </a>
+                </Button>
+              )}
             </div>
 
             {/* Mobile Menu Button */}
@@ -146,6 +161,14 @@ export function Navigation({ brandName, homeHref, galleryHref, galleryLabel, pro
                 <a href="#estrategia-aquisicao" onClick={() => setIsMobileMenuOpen(false)} className="inline-flex items-center justify-center gap-2">
                   <Handshake className="size-4" />
                   {prospeccaoCtaLabel}
+                </a>
+              </Button>
+            )}
+            {extraLink && (
+              <Button asChild variant="outline" className="rounded-full h-14 text-base">
+                <a href={extraLink.href} onClick={() => setIsMobileMenuOpen(false)} className="inline-flex items-center justify-center gap-2">
+                  <FileText className="size-4" />
+                  {extraLink.label}
                 </a>
               </Button>
             )}

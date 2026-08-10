@@ -35,6 +35,7 @@ export function PosicionamentoProTemplate({
         galleryLabel={config.nav.galleryLabel}
         prospeccaoCtaLabel={config.nav.prospeccaoCtaLabel}
         showProspeccaoCta={config.prospeccao !== null}
+        extraLink={config.nav.extraLink}
       />
       <HeroSection welcomeLines={config.hero.welcomeLines} backgroundVideo={config.hero.backgroundVideo} paragraph={config.hero.paragraph} stats={config.hero.stats} />
       <FeaturesSection
