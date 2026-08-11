@@ -5,27 +5,59 @@
  * risco de conflito, este arquivo é uma cópia conceitual independente, com sua própria evolução.
  */
 
-/** Um dos 3 pilares de serviço (Assessoria / Plano de Posicionamento / Crescimento e Aquisição). */
-export type ServicePillar = {
+/** Uma das 3 etapas da jornada ("Nossos Serviços" virou timeline vertical numerada). */
+export type ServiceStep = {
+  number: string;
   title: string;
   copy: string;
-  bullets: string[];
+  includesLabel: string;
+  /** Etapas 01/02 usam lista simples. */
+  includeItems?: string[];
+  /** Só a etapa 03 usa isso — 2 frentes em vez de bullets soltos. */
+  includeFronts?: { title: string; description: string }[];
+  excludesLabel: string;
+  excludeItems: string[];
   closing: string;
-  /** Só a Assessoria tem isso — área discreta deixando claro o que NÃO está incluso na camada estratégica. */
-  exclusions?: { label: string; items: string[] };
 };
 
-export type OficinaCount = 1 | 2 | 3;
-export type VideoCount = 4 | 8;
+export type PerfilId = "zona-sul" | "zona-norte" | "julia";
+
+export type Perfil = {
+  id: PerfilId;
+  name: string;
+  description: string;
+  /** Só a Julia — não existe fora do Plano Completo. */
+  exclusiveToCompleto?: boolean;
+};
+
+export type VideoCadence = 4 | 8;
 
 /**
- * Preço de uma combinação oficinas×vídeos — `price: null` significa "ainda não definido pela
- * Pascoal". Renomeado de "perfis" pra "oficinas" (linguagem da própria Pascoal Bombas), mesma
- * lógica e mesmos valores já validados de antes.
+ * Preço da matriz normal — chave é `${perfilCount}x${videos}`. A matriz normal vai até 2 perfis
+ * (Pascoal Zona Sul + Pascoal Zona Norte); 2 perfis × 8 vídeos/perfil não é oferecido (estouraria
+ * o teto de R$ 7.000–8.000 no topo da matriz normal — ver comentário em
+ * content/clients/pascoal/proposal.ts). Com 2 perfis, a cadência de vídeo fica fixa em 4/perfil.
  */
-export type ContentPlanPrice = { oficinas: OficinaCount; videos: VideoCount; price: number | null };
+export type NormalMatrixPrice = { perfilCount: 1 | 2; videos: VideoCadence; price: number };
 
-export type GrowthToggle = { id: string; label: string; benefit: string; price: number };
+export type PlanoCompleto = {
+  sectionTitle: string;
+  headline: string;
+  description: string;
+  conditionNote: string;
+  price: number;
+  perfis: Perfil[];
+  videosTotal: number;
+  videosNote: string;
+  trafficFollowersNote: string;
+  trafficLeadsNote: string;
+  mediaInvestment: number;
+  mediaNote: string;
+  acquisitionNote: string;
+  rateioNote: string;
+};
+
+export type GrowthFront = { id: string; label: string; benefit: string; price: number };
 
 export type PascoalProposalContent = {
   slug: "pascoal";
@@ -39,33 +71,35 @@ export type PascoalProposalContent = {
     title: string;
   };
 
-  /** `badge` usa o mesmo componente visual do eyebrow da hero. */
-  pillarsIntro: { badge: string; heading: string };
-  servicePillars: ServicePillar[];
+  servicesIntro: { badge: string; heading: string };
+  serviceSteps: ServiceStep[];
 
   configurator: {
-    /** "Assessoria de Marketing" — sempre incluída, é a fundação de todo o resto. */
-    base: { label: string; stepLabel: string; includedItem: string; price: number };
-    steps: {
-      content: {
-        stepLabel: string;
-        moduleLabel: string;
-        moduleBenefit: string;
-        triggerLabel: string;
-        highlightTag?: string;
-        oficinaOptions: { value: OficinaCount; label: string }[];
-        videoOptions: { value: VideoCount; label: string }[];
-        prices: ContentPlanPrice[];
-      };
-      growth: {
-        stepLabel: string;
-        toggles: GrowthToggle[];
-      };
+    eyebrow: string;
+    heading: string;
+    subheading: string;
+    /** Assessoria de Marketing — sempre incluída, ponto de partida do total. Não é card selecionável. */
+    baseLabel: string;
+    basePrice: number;
+    content: {
+      stepLabel: string;
+      moduleLabel: string;
+      moduleBenefit: string;
+      perfis: Perfil[];
+      videoOptions: { value: VideoCadence; label: string }[];
+      matrixPrices: NormalMatrixPrice[];
+      planoCompleto: PlanoCompleto;
+    };
+    growth: {
+      stepLabel: string;
+      moduleLabel: string;
+      lockedNote: string;
+      fronts: GrowthFront[];
     };
   };
 
   whatsapp: {
-    /** Só dígitos, com DDI — ex.: "5551982020591". Formato exigido pelo link wa.me. */
+    /** Só dígitos, com DDI — formato exigido pelo link wa.me. */
     phoneDigits: string;
     ceoFirstName: string;
   };
@@ -75,6 +109,5 @@ export type PascoalProposalContent = {
     note: string;
     confirmationHeading: string;
     confirmationSubheading: string;
-    confirmedLabel: string;
   };
 };
