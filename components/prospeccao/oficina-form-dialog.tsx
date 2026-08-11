@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { STATUS_OPTIONS } from "@/lib/prospeccao/mock-data";
-import type { Oficina, OficinaInput, OficinaStatus } from "@/lib/prospeccao/types";
+import { STAGE_OPTIONS } from "@/lib/prospeccao/stages";
+import type { Oficina, OficinaInput, OficinaStage } from "@/lib/prospeccao/types";
 
 const EMPTY_INPUT: OficinaInput = {
   nome: "",
@@ -14,7 +14,7 @@ const EMPTY_INPUT: OficinaInput = {
   responsavel: "",
   whatsapp: "",
   observacoes: "",
-  status: "nao_iniciado",
+  status: "contato",
 };
 
 export type OficinaFormDialogProps = {
@@ -86,7 +86,6 @@ export function OficinaFormDialog({ open, onOpenChange, oficina, onSubmit, trigg
                   value={input.cidade}
                   onChange={(e) => setInput((prev) => ({ ...prev, cidade: e.target.value }))}
                   placeholder="Caxias do Sul, RS"
-                  required
                 />
               </div>
               <div className="flex flex-col gap-2">
@@ -95,14 +94,13 @@ export function OficinaFormDialog({ open, onOpenChange, oficina, onSubmit, trigg
                   id="oficina-responsavel"
                   value={input.responsavel}
                   onChange={(e) => setInput((prev) => ({ ...prev, responsavel: e.target.value }))}
-                  placeholder="Marcos Silva"
-                  required
+                  placeholder="Marcos Silva (opcional)"
                 />
               </div>
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="oficina-whatsapp">WhatsApp</Label>
+              <Label htmlFor="oficina-whatsapp">Celular</Label>
               <Input
                 id="oficina-whatsapp"
                 value={input.whatsapp}
@@ -117,10 +115,10 @@ export function OficinaFormDialog({ open, onOpenChange, oficina, onSubmit, trigg
               <select
                 id="oficina-status"
                 value={input.status}
-                onChange={(e) => setInput((prev) => ({ ...prev, status: e.target.value as OficinaStatus }))}
+                onChange={(e) => setInput((prev) => ({ ...prev, status: e.target.value as OficinaStage }))}
                 className="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
               >
-                {STATUS_OPTIONS.map((option) => (
+                {STAGE_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>

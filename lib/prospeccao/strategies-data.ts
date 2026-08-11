@@ -1,0 +1,116 @@
+import type { Strategy, StrategyCategory } from "@/lib/prospeccao/types";
+
+export const STRATEGY_CATEGORY_ORDER: StrategyCategory[] = [
+  "abordagem",
+  "follow_up",
+  "reativacao",
+  "comerciais",
+  "parcerias",
+  "objecoes",
+];
+
+export const STRATEGY_CATEGORY_LABEL: Record<StrategyCategory, string> = {
+  abordagem: "Estratégias de abordagem",
+  follow_up: "Estratégias de follow-up",
+  reativacao: "Estratégias de reativação",
+  comerciais: "Estratégias comerciais",
+  parcerias: "Parcerias",
+  objecoes: "Objeções",
+};
+
+export const INITIAL_STRATEGIES: Strategy[] = [
+  {
+    id: "strategy-1",
+    category: "abordagem",
+    title: "Primeira abordagem",
+    objective: "Iniciar relacionamento com oficinas sem parecer uma abordagem comercial agressiva.",
+    context: "Vale pra qualquer oficina recém-cadastrada, ainda no estágio Contato.",
+    steps: [
+      "Identificar responsável",
+      "Fazer primeiro contato",
+      "Apresentar contexto",
+      "Fazer pergunta",
+      "Registrar resposta",
+      "Mover lead para etapa correta",
+    ],
+    relatedScriptIds: ["script-1", "script-2"],
+    notes: "Evitar mandar preço ou catálogo antes de confirmar interesse.",
+  },
+  {
+    id: "strategy-2",
+    category: "follow_up",
+    title: "Follow-up sem resposta",
+    objective: "Reengajar leads que não responderam ao primeiro contato sem soar insistente.",
+    context: "Usar quando já se passaram 5–7 dias do último contato e o lead está em Abordado ou Em conversa.",
+    steps: [
+      "Conferir data do último contato",
+      "Escolher script de follow-up adequado",
+      "Enviar mensagem curta, sem repetir a proposta inteira",
+      "Definir novo follow-up se não houver resposta",
+      "Após 3 tentativas sem retorno, mover para Sem interesse",
+    ],
+    relatedScriptIds: ["script-3", "script-4"],
+    notes: "Nunca mandar o mesmo texto duas vezes seguidas.",
+  },
+  {
+    id: "strategy-3",
+    category: "reativacao",
+    title: "Reativação de leads frios",
+    objective: "Retomar contato com oficinas marcadas como Sem interesse quando surge um novo gancho.",
+    context: "Bom momento: lançamento de produto, condição especial, sazonalidade (safra, inverno).",
+    steps: [
+      "Filtrar leads em Sem interesse",
+      "Definir o gancho da reativação (novidade, condição, época)",
+      "Enviar script de reativação",
+      "Mover de volta para Abordado se houver resposta",
+    ],
+    relatedScriptIds: ["script-5"],
+    notes: "Reativar em lotes pequenos, não todos de uma vez.",
+  },
+  {
+    id: "strategy-4",
+    category: "comerciais",
+    title: "Envio de proposta comercial",
+    objective: "Formalizar a proposta assim que houver interesse confirmado.",
+    context: "Lead já está em Oportunidade — interesse real, falta fechar condições.",
+    steps: [
+      "Confirmar volume/necessidade da oficina",
+      "Montar condições (preço, prazo, frete)",
+      "Enviar resumo objetivo pelo WhatsApp",
+      "Oferecer ligação para fechar detalhes",
+      "Registrar retorno no histórico do lead",
+    ],
+    relatedScriptIds: ["script-7"],
+    notes: "",
+  },
+  {
+    id: "strategy-5",
+    category: "parcerias",
+    title: "Onboarding de novo parceiro",
+    objective: "Garantir uma boa primeira experiência assim que a oficina vira parceira.",
+    context: "Lead acabou de ser movido para Parceiro no Kanban.",
+    steps: [
+      "Enviar mensagem de boas-vindas",
+      "Confirmar dados de contato e entrega",
+      "Explicar como fazer pedidos",
+      "Agendar primeiro follow-up de acompanhamento em 30 dias",
+    ],
+    relatedScriptIds: ["script-6"],
+    notes: "",
+  },
+  {
+    id: "strategy-6",
+    category: "objecoes",
+    title: "Objeção: já tem fornecedor fixo",
+    objective: "Contornar a objeção mais comum sem desqualificar o fornecedor atual.",
+    context: "Costuma aparecer logo no primeiro contato ou na etapa Em conversa.",
+    steps: [
+      "Validar a objeção, sem discordar",
+      "Oferecer comparação sem compromisso",
+      "Destacar diferencial (condições, suporte, prazo)",
+      "Propor próximo passo pequeno (tabela, amostra, visita)",
+    ],
+    relatedScriptIds: ["script-8"],
+    notes: "Objetivo aqui não é fechar — é manter a porta aberta.",
+  },
+];

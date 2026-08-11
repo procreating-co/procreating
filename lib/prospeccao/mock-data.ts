@@ -1,4 +1,4 @@
-import type { Oficina, OficinaStatus } from "@/lib/prospeccao/types";
+import type { Oficina } from "@/lib/prospeccao/types";
 
 /**
  * Fonte única dos dados mock da Central de Prospecção — a UI lê `INITIAL_OFICINAS` só pra
@@ -6,27 +6,9 @@ import type { Oficina, OficinaStatus } from "@/lib/prospeccao/types";
  * Fase 2 trocar isso por Supabase, é este arquivo (e só ele) que muda de "array fixo" pra
  * "query real", sem tocar em nenhum componente.
  */
-export const STATUS_OPTIONS: { value: OficinaStatus; label: string }[] = [
-  { value: "nao_iniciado", label: "Não iniciado" },
-  { value: "contato_realizado", label: "Contato realizado" },
-  { value: "respondeu", label: "Respondeu" },
-  { value: "interessado", label: "Interessado" },
-  { value: "cliente", label: "Cliente" },
-  { value: "perdido", label: "Perdido" },
-];
-
-export const STATUS_LABEL: Record<OficinaStatus, string> = Object.fromEntries(
-  STATUS_OPTIONS.map((option) => [option.value, option.label]),
-) as Record<OficinaStatus, string>;
-
-export const STATUS_TONE_CLASSES: Record<OficinaStatus, string> = {
-  nao_iniciado: "border-white/15 bg-white/[0.04] text-white/50",
-  contato_realizado: "border-sky-500/25 bg-sky-500/10 text-sky-400",
-  respondeu: "border-violet-500/25 bg-violet-500/10 text-violet-400",
-  interessado: "border-[var(--client-accent)]/30 bg-[var(--client-accent)]/10 text-[var(--client-accent)]",
-  cliente: "border-emerald-500/25 bg-emerald-500/10 text-emerald-400",
-  perdido: "border-red-500/25 bg-red-500/10 text-red-400",
-};
+function seedHistory(message: string, at: string) {
+  return [{ id: `hist-seed-${at}`, message, at }];
+}
 
 export const INITIAL_OFICINAS: Oficina[] = [
   {
@@ -36,8 +18,17 @@ export const INITIAL_OFICINAS: Oficina[] = [
     responsavel: "Marcos Silva",
     whatsapp: "5554999112233",
     observacoes: "Já revende bombas de outra marca, pode topar trocar de fornecedor.",
-    status: "interessado",
+    status: "oportunidade",
+    createdAt: "2026-07-20T09:00:00-03:00",
     updatedAt: "2026-08-01T14:20:00-03:00",
+    lastContactAt: "2026-08-01T14:20:00-03:00",
+    nextFollowUpAt: "2026-08-12T10:00:00-03:00",
+    history: [
+      ...seedHistory("Lead criado", "2026-07-20T09:00:00-03:00"),
+      { id: "hist-1-2", message: "Lead movido para Abordado", at: "2026-07-22T11:00:00-03:00" },
+      { id: "hist-1-3", message: "Lead movido para Em conversa", at: "2026-07-26T15:30:00-03:00" },
+      { id: "hist-1-4", message: "Lead movido para Oportunidade", at: "2026-08-01T14:20:00-03:00" },
+    ],
   },
   {
     id: "oficina-2",
@@ -46,8 +37,15 @@ export const INITIAL_OFICINAS: Oficina[] = [
     responsavel: "José Fagundes",
     whatsapp: "5554998877665",
     observacoes: "Atende bastante propriedade rural, bom encaixe pro produto.",
-    status: "contato_realizado",
+    status: "abordado",
+    createdAt: "2026-07-25T09:00:00-03:00",
     updatedAt: "2026-07-29T09:00:00-03:00",
+    lastContactAt: "2026-07-29T09:00:00-03:00",
+    nextFollowUpAt: "2026-08-14T09:00:00-03:00",
+    history: [
+      ...seedHistory("Lead criado", "2026-07-25T09:00:00-03:00"),
+      { id: "hist-2-2", message: "Lead movido para Abordado", at: "2026-07-29T09:00:00-03:00" },
+    ],
   },
   {
     id: "oficina-3",
@@ -56,8 +54,16 @@ export const INITIAL_OFICINAS: Oficina[] = [
     responsavel: "Cíntia Bordin",
     whatsapp: "5554997654321",
     observacoes: "",
-    status: "cliente",
+    status: "parceiro",
+    createdAt: "2026-06-10T09:00:00-03:00",
     updatedAt: "2026-07-15T11:10:00-03:00",
+    lastContactAt: "2026-07-15T11:10:00-03:00",
+    nextFollowUpAt: null,
+    history: [
+      ...seedHistory("Lead criado", "2026-06-10T09:00:00-03:00"),
+      { id: "hist-3-2", message: "Lead movido para Oportunidade", at: "2026-07-01T10:00:00-03:00" },
+      { id: "hist-3-3", message: "Lead movido para Parceiro", at: "2026-07-15T11:10:00-03:00" },
+    ],
   },
   {
     id: "oficina-4",
@@ -66,8 +72,16 @@ export const INITIAL_OFICINAS: Oficina[] = [
     responsavel: "Diego Rossi",
     whatsapp: "5554996541234",
     observacoes: "Pediu retorno depois da colheita.",
-    status: "respondeu",
+    status: "follow_up",
+    createdAt: "2026-07-18T09:00:00-03:00",
     updatedAt: "2026-07-30T16:45:00-03:00",
+    lastContactAt: "2026-07-30T16:45:00-03:00",
+    nextFollowUpAt: "2026-08-20T09:00:00-03:00",
+    history: [
+      ...seedHistory("Lead criado", "2026-07-18T09:00:00-03:00"),
+      { id: "hist-4-2", message: "Lead movido para Em conversa", at: "2026-07-28T10:00:00-03:00" },
+      { id: "hist-4-3", message: "Lead movido para Follow-up", at: "2026-07-30T16:45:00-03:00" },
+    ],
   },
   {
     id: "oficina-5",
@@ -76,8 +90,12 @@ export const INITIAL_OFICINAS: Oficina[] = [
     responsavel: "Anderson Luz",
     whatsapp: "5554995551122",
     observacoes: "",
-    status: "nao_iniciado",
+    status: "contato",
+    createdAt: "2026-06-20T08:30:00-03:00",
     updatedAt: "2026-06-20T08:30:00-03:00",
+    lastContactAt: null,
+    nextFollowUpAt: null,
+    history: seedHistory("Lead criado", "2026-06-20T08:30:00-03:00"),
   },
   {
     id: "oficina-6",
@@ -86,8 +104,16 @@ export const INITIAL_OFICINAS: Oficina[] = [
     responsavel: "Luciane Tonet",
     whatsapp: "5554994443322",
     observacoes: "Já trabalhou com a Pascoal antes, boa relação.",
-    status: "interessado",
+    status: "oportunidade",
+    createdAt: "2026-07-10T09:00:00-03:00",
     updatedAt: "2026-08-02T10:05:00-03:00",
+    lastContactAt: "2026-08-02T10:05:00-03:00",
+    nextFollowUpAt: "2026-08-09T09:00:00-03:00",
+    history: [
+      ...seedHistory("Lead criado", "2026-07-10T09:00:00-03:00"),
+      { id: "hist-6-2", message: "Lead movido para Em conversa", at: "2026-07-18T09:00:00-03:00" },
+      { id: "hist-6-3", message: "Lead movido para Oportunidade", at: "2026-08-02T10:05:00-03:00" },
+    ],
   },
   {
     id: "oficina-7",
@@ -96,18 +122,29 @@ export const INITIAL_OFICINAS: Oficina[] = [
     responsavel: "Everton Dal Bó",
     whatsapp: "5554993332211",
     observacoes: "Sem interesse no momento, focado em outro fornecedor.",
-    status: "perdido",
+    status: "sem_interesse",
+    createdAt: "2026-06-25T09:00:00-03:00",
     updatedAt: "2026-07-10T13:00:00-03:00",
+    lastContactAt: "2026-07-10T13:00:00-03:00",
+    nextFollowUpAt: null,
+    history: [
+      ...seedHistory("Lead criado", "2026-06-25T09:00:00-03:00"),
+      { id: "hist-7-2", message: "Lead movido para Sem interesse", at: "2026-07-10T13:00:00-03:00" },
+    ],
   },
   {
     id: "oficina-8",
     nome: "Peças & Serviços Guaporé",
     cidade: "Guaporé, RS",
-    responsavel: "Rafael Menegat",
+    responsavel: "",
     whatsapp: "5554992221100",
     observacoes: "",
-    status: "nao_iniciado",
+    status: "contato",
+    createdAt: "2026-06-05T09:15:00-03:00",
     updatedAt: "2026-06-05T09:15:00-03:00",
+    lastContactAt: null,
+    nextFollowUpAt: null,
+    history: seedHistory("Lead criado", "2026-06-05T09:15:00-03:00"),
   },
   {
     id: "oficina-9",
@@ -116,8 +153,15 @@ export const INITIAL_OFICINAS: Oficina[] = [
     responsavel: "Sandra Piccoli",
     whatsapp: "5554991110099",
     observacoes: "Reunião marcada pra próxima semana.",
-    status: "cliente",
+    status: "parceiro",
+    createdAt: "2026-06-15T09:00:00-03:00",
     updatedAt: "2026-07-25T15:30:00-03:00",
+    lastContactAt: "2026-07-25T15:30:00-03:00",
+    nextFollowUpAt: null,
+    history: [
+      ...seedHistory("Lead criado", "2026-06-15T09:00:00-03:00"),
+      { id: "hist-9-2", message: "Lead movido para Parceiro", at: "2026-07-25T15:30:00-03:00" },
+    ],
   },
   {
     id: "oficina-10",
@@ -126,18 +170,22 @@ export const INITIAL_OFICINAS: Oficina[] = [
     responsavel: "Paulo Menezes",
     whatsapp: "5554990009988",
     observacoes: "Não atendeu as duas últimas ligações.",
-    status: "contato_realizado",
+    status: "abordado",
+    createdAt: "2026-07-15T09:00:00-03:00",
     updatedAt: "2026-07-28T17:00:00-03:00",
+    lastContactAt: "2026-07-28T17:00:00-03:00",
+    nextFollowUpAt: "2026-08-13T09:00:00-03:00",
+    history: [
+      ...seedHistory("Lead criado", "2026-07-15T09:00:00-03:00"),
+      { id: "hist-10-2", message: "Lead movido para Abordado", at: "2026-07-28T17:00:00-03:00" },
+    ],
   },
 ];
 
-/** Link direto pro WhatsApp já com a mensagem preenchida — só dígitos no telefone. */
-export function buildWhatsAppUrl(whatsapp: string, message: string) {
-  const digits = whatsapp.replace(/\D/g, "");
-  return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
+/** Mensagem padrão de abordagem — usada nas ações rápidas da tabela (fora do fluxo de Scripts). */
+export function buildProspeccaoMessage(oficina: Pick<Oficina, "nome" | "cidade" | "responsavel">) {
+  const saudacao = oficina.responsavel.trim() || `pessoal da ${oficina.nome}`;
+  return `Olá, ${saudacao}! Aqui é da Pascoal Bombas. Vi que a ${oficina.nome} atua em ${oficina.cidade} e queria apresentar nossa linha de bombas — parceria com condições especiais pra revenda e instalação. Podemos conversar 5 minutinhos?`;
 }
 
-/** Mensagem padrão de abordagem — mesma copiada pro clipboard e usada no link do WhatsApp. */
-export function buildProspeccaoMessage(oficina: Oficina) {
-  return `Olá, ${oficina.responsavel}! Aqui é da Pascoal Bombas. Vi que a ${oficina.nome} atua em ${oficina.cidade} e queria apresentar nossa linha de bombas — parceria com condições especiais pra revenda e instalação. Podemos conversar 5 minutinhos?`;
-}
+export { buildWhatsAppUrl } from "@/lib/prospeccao/template";
