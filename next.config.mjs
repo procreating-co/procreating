@@ -20,16 +20,24 @@ const nextConfig = {
     ];
   },
   async rewrites() {
-    return [
-      // Proposta de Continuidade da Pascoal: URL pública fica em /clients/pascoal/public/proposta,
-      // mas a página física mora em app/pascoal-proposta/page.tsx — fora da árvore dinâmica
-      // app/clients/[client]/**, que é compartilhada com a Elenita. Ver comentário em
-      // app/pascoal-proposta/page.tsx para o motivo do isolamento.
-      {
-        source: "/clients/pascoal/public/proposta",
-        destination: "/pascoal-proposta",
-      },
-    ];
+    return {
+      // beforeFiles: precisa rodar ANTES do Next checar arquivos/páginas — inclusive as páginas
+      // estáticas que app/clients/[client]/public/proposta/page.tsx pré-gera via
+      // generateStaticParams (uma delas é /clients/pascoal/public/proposta, hoje um 404 estático,
+      // já que o registry da proposta só tem a Elenita). Um rewrite normal (array simples) é
+      // checado DEPOIS dessas páginas estáticas e perde pra esse 404 pré-gerado; beforeFiles
+      // resolve isso sem tocar em nada da árvore compartilhada com a Elenita.
+      beforeFiles: [
+        // Proposta de Continuidade da Pascoal: URL pública fica em /clients/pascoal/public/proposta,
+        // mas a página física mora em app/pascoal-proposta/page.tsx — fora da árvore dinâmica
+        // app/clients/[client]/**, que é compartilhada com a Elenita. Ver comentário em
+        // app/pascoal-proposta/page.tsx para o motivo do isolamento.
+        {
+          source: "/clients/pascoal/public/proposta",
+          destination: "/pascoal-proposta",
+        },
+      ],
+    };
   },
 }
 
