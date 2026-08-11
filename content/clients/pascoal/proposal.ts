@@ -6,18 +6,19 @@ import type { PascoalProposalContent } from "@/lib/pascoal-proposal/types";
  * route próprio em `app/pascoal-proposta/page.tsx`), pensada pra apresentação AO VIVO — sem
  * nenhum CTA comercial, o configurador é a própria ferramenta de apresentação.
  *
- * Estrutura equivalente à proposta da Elenita (`content/clients/elenita/proposal.ts`), mas com
- * conteúdo, textos e headline próprios da Pascoal — nenhum texto copiado de lá.
- *
- * PREÇOS AINDA NÃO DEFINIDOS — todo valor comercial abaixo está zerado de propósito (era assim
- * já na versão anterior desta proposta; não inventei nada novo aqui, só migrei os mesmos
- * placeholders pra estrutura nova). `fixedPrice` é a fundação, sempre somada. Os itens em
- * `configurator.variableItems` somam por cima, cada um só quando ativo — "videos" só aparece (e
- * só conta) quando o toggle "posicionamento" está ligado (`unlockedBy: "posicionamento"`), mesma
- * lógica da Elenita. Pra definir os valores reais: edite só o `price` de cada item (ou
- * `fixedPrice`) — nunca espalhe preço em outro lugar. O total em
- * components/proposal-pascoal/proposal-pascoal-configurator.tsx é sempre
- * fixedPrice + soma dos itens variáveis ativos.
+ * PREÇOS — atualização cirúrgica pedida explicitamente com valores reais:
+ *   - Plano Inicial (Assessoria de Marketing, sempre incluso): R$ 3.500
+ *   - Criação de Conteúdo (perfis × vídeos) SUBSTITUI o Plano Inicial quando ativo, não soma:
+ *       1 perfil × 4 vídeos = R$ 3.500 · 2 perfis × 4 vídeos = R$ 4.500 · 3 perfis × 4 vídeos = R$ 5.000
+ *       1/2/3 perfis × 8 vídeos = ainda não definido pela Pascoal (`price: null`) — só temos os 3
+ *       valores-base de 4 vídeos. NÃO inventei uma fórmula pra extrapolar os de 8 vídeos (dobrar,
+ *       interpolar etc. geraria um preço incoerente sem confirmação); a UI mostra "Valor a
+ *       definir" pra essas 3 combinações em vez de um número. Pra definir: preencher o `price`
+ *       correspondente em `configurator.content.prices` abaixo.
+ *   - Gestão de Tráfego Pago: +R$ 500/mês · Prospecção Ativa de Empresas: +R$ 1.500/mês (somam
+ *     sobre o valor atual, seja ele o Plano Inicial ou uma combinação de conteúdo)
+ * Toda a lógica de cálculo mora em components/proposal-pascoal/proposal-pascoal-configurator.tsx;
+ * pra mudar um valor, edite só os números aqui.
  */
 export const pascoalProposal: PascoalProposalContent = {
   slug: "pascoal",
@@ -27,111 +28,95 @@ export const pascoalProposal: PascoalProposalContent = {
   metaDescription: "Uma parceria estratégica de marketing.",
 
   hero: {
-    eyebrow: "Marketing estratégico contínuo",
-    title: "Construindo o próximo capítulo da Pascoal",
-    subtitle: "Estratégia, conteúdo e crescimento trabalhando na mesma direção.",
+    eyebrow: "Proposta de continuidade",
+    title: "Construindo o próximo capítulo da Pascoal Bombas",
   },
 
   pillarsIntro: {
-    eyebrow: "",
-    heading: "O que propomos",
-    subtitle: "Uma operação estratégica de marketing, em diferentes frentes.",
+    badge: "Proposta de continuidade",
+    heading: "Nossos serviços",
   },
 
   pillars: [
     {
       number: "01",
-      title: "Estratégia",
-      description: "A camada que orquestra todas as outras.",
-      items: ["Direcionamento estratégico da marca", "Planejamento mensal de ações", "Leitura de oportunidades de mercado", "Integração entre conteúdo e comercial"],
+      title: "Assessoria de Marketing",
+      items: ["Estratégias de Marketing", "Roteiros de Conteúdo"],
+    },
+    {
+      number: "02",
+      title: "Criação de Conteúdo",
+      items: ["Captação de Conteúdo", "Roteiros de Conteúdo", "Edição de Vídeos", "Postagem e Metrificação"],
+    },
+    {
+      number: "03",
+      title: "Crescimento e Aquisição",
+      items: ["Estratégias Comerciais", "Gestão de Campanhas de Tráfego Pago", "Gestão Estratégica de Oportunidades Comerciais"],
+    },
+  ],
+
+  methodology: [
+    {
+      number: "01",
+      title: "Assessoria",
+      paragraph:
+        "Começamos pela estratégia. Estruturamos direcionamentos de marketing, planejamentos e roteiros para transformar objetivos comerciais em ações claras de conteúdo e aquisição.",
+      tags: ["Estratégia", "Planejamento", "Roteiros", "Direcionamento"],
     },
     {
       number: "02",
       title: "Posicionamento",
-      description: "Como a estratégia vira presença.",
-      items: ["Produção de conteúdo institucional e técnico", "Roteiro e direção de captação", "Presença digital consistente", "Construção de autoridade no setor"],
+      paragraph:
+        "Transformamos estratégia em presença. Cuidamos de toda a operação de conteúdo para posicionar a Pascoal Bombas nas redes sociais — da pauta e dos roteiros à captação, edição, publicação e metrificação.",
+      tags: ["Roteiros", "Captação", "Edição", "Publicação", "Metrificação"],
     },
     {
       number: "03",
-      title: "Crescimento",
-      description: "A aceleração da marca.",
-      items: ["Tráfego pago segmentado", "Distribuição estratégica de conteúdo", "Otimização orientada por dados", "Expansão de alcance e audiência"],
+      title: "Aquisição",
+      paragraph:
+        "Ampliamos as oportunidades comerciais através de uma estratégia de aquisição integrada. Trabalhamos marketing digital, campanhas, prospecção e parcerias para criar novas possibilidades de crescimento.",
+      tags: ["Marketing Digital", "Tráfego Pago", "Prospecção", "Parcerias", "Oportunidades Comerciais"],
     },
   ],
 
-  operacao: {
-    eyebrow: "Como a estratégia vira entrega",
-    heading: "Operação de conteúdo",
-    subtitle: "Um fluxo mensal que transforma direcionamento estratégico em conteúdo pronto pra publicar.",
-    steps: ["Planejamento", "Pauta", "Roteiro", "Produção", "Edição", "Publicação"],
-  },
-
-  acquisition: {
-    eyebrow: "Além do conteúdo",
-    heading: "Estratégia de aquisição",
-    cards: [
-      {
-        number: "01",
-        title: "Mapeamento",
-        description: "Identificação de empresas e parceiros com potencial real de negócio.",
-        items: ["Mapeamento de mercado", "Definição de perfis estratégicos", "Identificação de oportunidades", "Listas qualificadas"],
-      },
-      {
-        number: "02",
-        title: "Abordagem",
-        description: "Aproximação estruturada com quem tem potencial concreto de conversão.",
-        items: ["Abordagem direta", "Apresentação técnica e comercial", "Construção de relacionamento", "Acompanhamento estruturado"],
-      },
-      {
-        number: "03",
-        title: "Conexão",
-        description: "Fortalecimento do relacionamento com clientes e parceiros estratégicos.",
-        items: ["Relacionamento comercial", "Parcerias técnicas", "Presença no setor", "Construção de autoridade"],
-      },
-      {
-        number: "04",
-        title: "Conversão",
-        description: "Transformação de oportunidades qualificadas em negócio fechado.",
-        items: ["Proposta comercial", "Negociação", "Fechamento", "Acompanhamento pós-venda"],
-      },
-      {
-        number: "05",
-        title: "Crescimento",
-        description: "Aquisição não termina no primeiro contato — é um ciclo contínuo.",
-        items: ["Novas conexões", "Novas oportunidades", "Maior alcance", "Maior autoridade"],
-      },
-    ],
-  },
-
   configurator: {
-    heading: "",
-    fixedLabel: "Estrutura fixa",
-    // Valor ainda não definido — ver comentário no topo do arquivo.
-    fixedPrice: 0,
-    fixedItems: [
-      { id: "estrategia-marketing", label: "Estratégia de marketing" },
-      { id: "linha-editorial", label: "Linha editorial de conteúdo" },
-      { id: "roteirizacao", label: "Roteirização" },
-      { id: "acompanhamento", label: "Acompanhamento mensal de performance" },
-    ],
-    variableLabel: "O que pode adicionar",
-    variableItems: [
-      // Valores ainda não definidos — todos zerados de propósito, ver comentário no topo do arquivo.
-      { kind: "toggle", id: "posicionamento", label: "Posicionamento", price: 0, defaultOn: false },
-      {
-        kind: "video-tier",
-        id: "videos",
-        label: "Conteúdo em vídeo",
-        unlockedBy: "posicionamento",
-        defaultOptionId: "8",
-        options: [
-          { id: "4", count: 4, label: "4 vídeos/mês", price: 0 },
-          { id: "8", count: 8, label: "8 vídeos/mês", price: 0 },
-        ],
-      },
-      { kind: "toggle", id: "trafego-pago", label: "Tráfego pago", price: 0, defaultOn: false },
-      { kind: "toggle", id: "prospeccao-ativa", label: "Estratégia de prospecção ativa", price: 0, defaultOn: false },
-    ],
+    planInitial: {
+      label: "Plano Inicial",
+      includedLabel: "Sempre inclusos",
+      includedItem: "Assessoria de Marketing",
+      price: 3500,
+    },
+    additionsLabel: "O que pode adicionar",
+    additionsSubtitle: "Planos Adicionais",
+    content: {
+      moduleLabel: "Posicionamento",
+      triggerLabel: "Criação de Conteúdo",
+      profileOptions: [
+        { value: 1, label: "01 perfil" },
+        { value: 2, label: "02 perfis" },
+        { value: 3, label: "03 perfis" },
+      ],
+      videoOptions: [
+        { value: 4, label: "04 vídeos" },
+        { value: 8, label: "08 vídeos" },
+      ],
+      prices: [
+        { profiles: 1, videos: 4, price: 3500 },
+        { profiles: 2, videos: 4, price: 4500 },
+        { profiles: 3, videos: 4, price: 5000 },
+        // Ainda não definidos pela Pascoal — ver comentário no topo do arquivo.
+        { profiles: 1, videos: 8, price: null },
+        { profiles: 2, videos: 8, price: null },
+        { profiles: 3, videos: 8, price: null },
+      ],
+    },
+    growth: {
+      moduleLabel: "Crescimento e Aquisição",
+      toggles: [
+        { id: "trafego-pago", label: "Gestão de Tráfego Pago", price: 500 },
+        { id: "prospeccao-ativa", label: "Prospecção Ativa de Empresas", price: 1500 },
+      ],
+    },
   },
 
   closing: {

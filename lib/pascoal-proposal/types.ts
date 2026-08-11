@@ -9,32 +9,29 @@
 export type ProposalPillar = {
   number: string;
   title: string;
-  description: string;
   items: string[];
 };
 
-export type AcquisitionCard = {
+/** Um dos 3 blocos editoriais de metodologia (Assessoria / Posicionamento / Aquisição). */
+export type MethodologyBlock = {
   number: string;
   title: string;
-  description: string;
-  items: string[];
+  paragraph: string;
+  tags: string[];
 };
 
-/** Item fixo do orçamento — sempre incluso, indicador discreto, nunca clicável, nunca pesa no preço. */
-export type FixedBudgetItem = { id: string; label: string };
+export type ProfileCount = 1 | 2 | 3;
+export type VideoCount = 4 | 8;
 
 /**
- * Item variável do orçamento — 2 formas:
- *  - "toggle": liga/desliga, soma `price` ao total quando ligado.
- *  - "video-tier": grupo de opções mutuamente exclusivas (rádio) — só uma fica acesa por vez,
- *    cada uma com seu próprio `price` (o preço da opção SUBSTITUI, não soma). `unlockedBy`
- *    opcional — se presente, o item só aparece (e só conta no total) quando o toggle com esse
- *    `id` estiver ativo; ausente = sempre visível.
- * Preço nunca aparece na interface — só o total geral muda.
+ * Preço de uma combinação perfis×vídeos — `price: null` significa "ainda não definido pela
+ * Pascoal". Só existem 3 valores-base confirmados (1×4, 2×4, 3×4); os 3 restantes (×8) ficam
+ * `null` até serem definidos — nunca inventados por uma fórmula. A UI trata `null` mostrando
+ * "Valor a definir" em vez de um número, nunca R$ 0.
  */
-export type VariableBudgetItem =
-  | { kind: "toggle"; id: string; label: string; price: number; defaultOn: boolean }
-  | { kind: "video-tier"; id: string; label: string; options: { id: string; count: number; label: string; price: number }[]; defaultOptionId: string; unlockedBy?: string };
+export type ContentPlanPrice = { profiles: ProfileCount; videos: VideoCount; price: number | null };
+
+export type GrowthToggle = { id: string; label: string; price: number };
 
 export type PascoalProposalContent = {
   slug: "pascoal";
@@ -46,33 +43,35 @@ export type PascoalProposalContent = {
   hero: {
     eyebrow: string;
     title: string;
-    subtitle: string;
   };
 
-  pillarsIntro: { eyebrow: string; heading: string; subtitle: string };
+  /** `badge` usa o mesmo componente visual do eyebrow da hero — pedido explícito. */
+  pillarsIntro: { badge: string; heading: string };
   pillars: ProposalPillar[];
 
-  operacao: {
-    eyebrow: string;
-    heading: string;
-    subtitle: string;
-    steps: string[];
-  };
-
-  acquisition: {
-    eyebrow: string;
-    heading: string;
-    cards: AcquisitionCard[];
-  };
+  methodology: MethodologyBlock[];
 
   configurator: {
-    heading: string;
-    fixedLabel: string;
-    /** Preço-base da estrutura fixa — sempre presente no total, independente de qualquer toggle. */
-    fixedPrice: number;
-    fixedItems: FixedBudgetItem[];
-    variableLabel: string;
-    variableItems: VariableBudgetItem[];
+    planInitial: {
+      label: string;
+      includedLabel: string;
+      includedItem: string;
+      /** Preço-base — sempre presente, exceto quando um plano de conteúdo é selecionado (aí ele SUBSTITUI, não soma). */
+      price: number;
+    };
+    additionsLabel: string;
+    additionsSubtitle: string;
+    content: {
+      moduleLabel: string;
+      triggerLabel: string;
+      profileOptions: { value: ProfileCount; label: string }[];
+      videoOptions: { value: VideoCount; label: string }[];
+      prices: ContentPlanPrice[];
+    };
+    growth: {
+      moduleLabel: string;
+      toggles: GrowthToggle[];
+    };
   };
 
   closing: {

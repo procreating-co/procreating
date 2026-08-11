@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, ArrowRight } from "lucide-react";
-import { ProposalPascoalSectionHeader } from "@/components/proposal-pascoal/proposal-pascoal-section-header";
+import { ProposalPascoalBadge } from "@/components/proposal-pascoal/proposal-pascoal-badge";
 import type { ProposalPillar } from "@/lib/pascoal-proposal/types";
 
 /**
@@ -29,7 +29,6 @@ function PillarCard({ pillar, accent }: { pillar: ProposalPillar; accent: string
       </div>
 
       <h3 className="mt-5 font-display text-2xl text-white sm:text-[26px]">{pillar.title}</h3>
-      <p className="mt-3 text-sm leading-relaxed text-white/55">{pillar.description}</p>
 
       <AnimatePresence initial={false}>
         {isOpen && (
@@ -58,15 +57,17 @@ export function ProposalPascoalPillars({
   pillars,
   accent,
 }: {
-  intro: { eyebrow: string; heading: string; subtitle: string };
+  intro: { badge: string; heading: string };
   pillars: ProposalPillar[];
   accent: string;
 }) {
   return (
     <section id="operacao" className="scroll-mt-20 bg-black px-6 py-24 text-white lg:px-12 lg:py-32">
       <div className="mx-auto max-w-[1300px]">
-        <ProposalPascoalSectionHeader eyebrow={intro.eyebrow} heading={intro.heading} accent={accent} />
-        <p className="mx-auto mt-5 max-w-md text-balance text-center text-base leading-relaxed text-white/55">{intro.subtitle}</p>
+        <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
+          <ProposalPascoalBadge label={intro.badge} accent={accent} className="mb-6" />
+          <h2 className="text-balance font-display text-3xl leading-[1.05] tracking-tight text-white sm:text-4xl md:text-5xl">{intro.heading}</h2>
+        </div>
 
         {/* Conectores entre os cards reforçam "uma mesma estrutura", não 3 serviços à parte */}
         <div className="mt-14 flex flex-col gap-4 lg:flex-row lg:items-stretch">

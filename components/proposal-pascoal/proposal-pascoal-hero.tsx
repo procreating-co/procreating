@@ -3,17 +3,16 @@
 import { motion } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import { ProposalPascoalHeroAtmosphere } from "@/components/proposal-pascoal/proposal-pascoal-hero-atmosphere";
+import { ProposalPascoalBadge } from "@/components/proposal-pascoal/proposal-pascoal-badge";
 import type { PascoalProposalContent } from "@/lib/pascoal-proposal/types";
 
 /**
- * Hero editorial premium da proposta da Pascoal.
- *
- * O H1 usa texto normal (não fatiado em `<span>` por letra) de propósito: um `inline-block` por
- * caractere quebra a regra de quebra de linha do navegador — ele passa a poder inserir uma quebra
- * entre QUALQUER par de caracteres, não só nos espaços, porque cada `inline-block` vira uma caixa
- * atômica isolada pro algoritmo de layout. Era exatamente isso que causava
- * "Construindoopróxim / ocapítulodaPascoal". Texto normal + `text-balance` deixa o navegador
- * escolher a quebra certa entre PALAVRAS em qualquer largura de tela, sem nunca partir uma no meio.
+ * Hero editorial premium da proposta da Pascoal — só eyebrow + H1, sem subtítulo (removido a
+ * pedido). O H1 usa texto normal (não fatiado em `<span>` por letra) de propósito: um
+ * `inline-block` por caractere quebra a regra de quebra de linha do navegador — ele passa a
+ * poder inserir uma quebra entre QUALQUER par de caracteres, não só nos espaços. Texto normal +
+ * `text-balance` deixa o navegador escolher a quebra certa entre PALAVRAS em qualquer largura de
+ * tela, sem nunca partir uma no meio.
  */
 export function ProposalPascoalHero({ content, accent }: { content: PascoalProposalContent["hero"]; accent: string }) {
   return (
@@ -21,15 +20,9 @@ export function ProposalPascoalHero({ content, accent }: { content: PascoalPropo
       <ProposalPascoalHeroAtmosphere accent={accent} />
 
       <div className="relative z-10 mx-auto flex max-w-[1100px] flex-col items-center">
-        <motion.span
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1, ease: "easeOut" }}
-          className="mb-9 inline-flex items-center gap-2.5 rounded-full border border-white/15 px-4 py-1.5 font-mono text-[10px] uppercase tracking-[0.22em] text-white/70"
-        >
-          <span className="size-1 shrink-0 rounded-full" style={{ backgroundColor: accent }} aria-hidden="true" />
-          {content.eyebrow}
-        </motion.span>
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1, ease: "easeOut" }} className="mb-9">
+          <ProposalPascoalBadge label={content.eyebrow} accent={accent} />
+        </motion.div>
 
         <motion.h1
           initial={{ opacity: 0, y: 18 }}
@@ -40,23 +33,14 @@ export function ProposalPascoalHero({ content, accent }: { content: PascoalPropo
         >
           {content.title}
         </motion.h1>
-
-        <motion.p
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.55, delay: 0.6, ease: "easeOut" }}
-          className="mx-auto mt-8 max-w-[600px] text-balance text-lg leading-relaxed text-white/70 sm:text-xl"
-        >
-          {content.subtitle}
-        </motion.p>
       </div>
 
       <motion.a
         href="#operacao"
-        aria-label="Rolar para a operação"
+        aria-label="Rolar para os serviços"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.5, delay: 0.95, ease: "easeOut" }}
+        transition={{ duration: 0.5, delay: 0.75, ease: "easeOut" }}
         className="group absolute bottom-10 left-1/2 z-10 -translate-x-1/2"
       >
         <motion.span
