@@ -10,12 +10,14 @@ import { OficinaTable } from "@/components/prospeccao/oficina-table";
 import { LeadDetailDrawer } from "@/components/prospeccao/lead-detail-drawer";
 import { useOficinas } from "@/components/prospeccao/oficinas-store";
 import { STAGE_OPTIONS } from "@/lib/prospeccao/stages";
-import type { OficinaStage } from "@/lib/prospeccao/types";
+import { ICP_ORDER, ICP_OPTIONS } from "@/lib/prospeccao/icp";
+import type { AderenciaIcp, OficinaStage } from "@/lib/prospeccao/types";
 
 const SORT_OPTIONS = [
   { value: "recentes", label: "Atualizado recentemente" },
   { value: "nome", label: "Nome (A–Z)" },
   { value: "status", label: "Status" },
+  { value: "aderencia", label: "Aderência ICP (Alta primeiro)" },
 ] as const;
 
 type SortValue = (typeof SORT_OPTIONS)[number]["value"];
@@ -24,6 +26,7 @@ export function OficinasView() {
   const { oficinas, addOficina } = useOficinas();
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<OficinaStage | "todos">("todos");
+  const [icpFilter, setIcpFilter] = useState<AderenciaIcp | "todos">("todos");
   const [sort, setSort] = useState<SortValue>("recentes");
   const [creating, setCreating] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -36,17 +39,20 @@ export function OficinasView() {
         !normalizedQuery ||
         oficina.nome.toLowerCase().includes(normalizedQuery) ||
         oficina.whatsapp.toLowerCase().includes(normalizedQuery) ||
-        oficina.responsavel.toLowerCase().includes(normalizedQuery);
+        oficina.responsavel.toLowerCase().includes(normalizedQuery) ||
+        oficina.cidade.toLowerCase().includes(normalizedQuery);
       const matchesStatus = statusFilter === "todos" || oficina.status === statusFilter;
-      return matchesQuery && matchesStatus;
+      const matchesIcp = icpFilter === "todos" || oficina.aderenciaIcp === icpFilter;
+      return matchesQuery && matchesStatus && matchesIcp;
     });
 
     return [...filtered].sort((a, b) => {
       if (sort === "nome") return a.nome.localeCompare(b.nome);
       if (sort === "status") return a.status.localeCompare(b.status);
+      if (sort === "aderencia") return ICP_ORDER.indexOf(a.aderenciaIcp) - ICP_ORDER.indexOf(b.aderenciaIcp);
       return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
     });
-  }, [oficinas, query, statusFilter, sort]);
+  }, [oficinas, query, statusFilter, icpFilter, sort]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -56,7 +62,7 @@ export function OficinasView() {
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar oficina, celular ou responsável..."
+            placeholder="Buscar oficina, cidade, celular ou responsável..."
             aria-label="Buscar oficina"
             className="border-white/15 bg-white/[0.03] pl-9 text-white placeholder:text-white/40"
           />
@@ -70,6 +76,20 @@ export function OficinasView() {
         >
           <option value="todos">Todos os status</option>
           {STAGE_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value} className="bg-[#0a0a0a]">
+              {option.label}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={icpFilter}
+          onChange={(e) => setIcpFilter(e.target.value as AderenciaIcp | "todos")}
+          aria-label="Filtrar por aderência ICP"
+          className="h-9 rounded-md border border-white/15 bg-white/[0.03] px-3 text-sm text-white outline-none focus-visible:border-[var(--client-accent)]"
+        >
+          <option value="todos">Toda aderência ICP</option>
+          {ICP_OPTIONS.map((option) => (
             <option key={option.value} value={option.value} className="bg-[#0a0a0a]">
               {option.label}
             </option>

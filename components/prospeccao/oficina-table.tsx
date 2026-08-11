@@ -7,6 +7,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { OficinaFormDialog } from "@/components/prospeccao/oficina-form-dialog";
 import { StageBadge } from "@/components/prospeccao/stage-badge";
+import { IcpBadge } from "@/components/prospeccao/icp-badge";
+import { CityCell } from "@/components/prospeccao/city-cell";
 import { useOficinas } from "@/components/prospeccao/oficinas-store";
 import type { Oficina } from "@/lib/prospeccao/types";
 
@@ -56,8 +58,10 @@ export function OficinaTable({ oficinas, onOpenLead }: { oficinas: Oficina[]; on
         <TableHeader>
           <TableRow className="border-white/10 hover:bg-transparent">
             <TableHead className="text-white/50">Oficina</TableHead>
+            <TableHead className="text-white/50">Cidade</TableHead>
             <TableHead className="text-white/50">Celular</TableHead>
             <TableHead className="text-white/50">Responsável</TableHead>
+            <TableHead className="text-white/50">Aderência</TableHead>
             <TableHead className="text-white/50">Status</TableHead>
             <TableHead className="text-right text-white/50">Ações</TableHead>
           </TableRow>
@@ -65,9 +69,17 @@ export function OficinaTable({ oficinas, onOpenLead }: { oficinas: Oficina[]; on
         <TableBody>
           {oficinas.map((oficina) => (
             <TableRow key={oficina.id} className="cursor-pointer border-white/5" onClick={() => onOpenLead(oficina.id)}>
-              <TableCell className="font-medium text-white">{oficina.nome}</TableCell>
+              <TableCell className="max-w-[280px] truncate font-medium text-white" title={oficina.nome}>
+                {oficina.nome}
+              </TableCell>
+              <TableCell>
+                <CityCell cidade={oficina.cidade} bairro={oficina.bairro} endereco={oficina.endereco} />
+              </TableCell>
               <TableCell className="text-white/70">{oficina.whatsapp || "-"}</TableCell>
               <TableCell className="text-white/70">{oficina.responsavel || "-"}</TableCell>
+              <TableCell>
+                <IcpBadge value={oficina.aderenciaIcp} />
+              </TableCell>
               <TableCell>
                 <StageBadge status={oficina.status} />
               </TableCell>

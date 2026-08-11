@@ -5,6 +5,7 @@ import { AlertTriangle, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useOficinas } from "@/components/prospeccao/oficinas-store";
+import { IcpBadge } from "@/components/prospeccao/icp-badge";
 import { parseOficinasCsv } from "@/lib/prospeccao/csv";
 import type { ParsedOficinaRow } from "@/lib/prospeccao/types";
 
@@ -19,6 +20,7 @@ export function OficinaImportDialog({ open, onOpenChange }: { open: boolean; onO
   const importable = useMemo(() => rows.filter((r) => !r.invalid && !r.duplicate), [rows]);
   const duplicateCount = useMemo(() => rows.filter((r) => !r.invalid && r.duplicate).length, [rows]);
   const invalidCount = useMemo(() => rows.filter((r) => r.invalid).length, [rows]);
+  const baixaCount = useMemo(() => importable.filter((r) => r.aderenciaIcp === "baixa").length, [importable]);
 
   function handleText(text: string) {
     setRows(text.trim() ? parseOficinasCsv(text, oficinas) : []);
@@ -54,7 +56,8 @@ export function OficinaImportDialog({ open, onOpenChange }: { open: boolean; onO
         <DialogHeader>
           <DialogTitle>Importar oficinas</DialogTitle>
           <DialogDescription>
-            Suba um CSV com nome, celular e responsável (opcional). Mapeamos as colunas automaticamente pelo cabeçalho.
+            Suba um CSV com nome, celular e responsável — cidade, bairro, endereço, segmento, aderência ICP e fonte
+            também são reconhecidos quando presentes. Mapeamos as colunas automaticamente pelo cabeçalho.
           </DialogDescription>
         </DialogHeader>
 
@@ -98,6 +101,13 @@ export function OficinaImportDialog({ open, onOpenChange }: { open: boolean; onO
                 )}
               </div>
 
+              {baixaCount > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  {baixaCount} com aderência ICP <span className="text-foreground">Baixa</span> — importada{baixaCount === 1 ? "" : "s"} normalmente, só não é{baixaCount === 1 ? "" : "ão"}
+                  prioridade pra equipe abordar primeiro.
+                </p>
+              )}
+
               <div className="max-h-64 overflow-y-auto rounded-lg border border-border/60">
                 <table className="w-full text-left text-sm">
                   <thead className="sticky top-0 bg-muted/60 text-xs uppercase tracking-wide text-muted-foreground">
@@ -105,6 +115,7 @@ export function OficinaImportDialog({ open, onOpenChange }: { open: boolean; onO
                       <th className="px-3 py-2 font-medium">Nome</th>
                       <th className="px-3 py-2 font-medium">Celular</th>
                       <th className="px-3 py-2 font-medium">Responsável</th>
+                      <th className="px-3 py-2 font-medium">Aderência</th>
                       <th className="px-3 py-2 font-medium">Situação</th>
                     </tr>
                   </thead>
@@ -114,6 +125,9 @@ export function OficinaImportDialog({ open, onOpenChange }: { open: boolean; onO
                         <td className="px-3 py-2">{row.nome || "-"}</td>
                         <td className="px-3 py-2">{row.whatsapp || "-"}</td>
                         <td className="px-3 py-2">{row.responsavel || "-"}</td>
+                        <td className="px-3 py-2">
+                          <IcpBadge value={row.aderenciaIcp} />
+                        </td>
                         <td className="px-3 py-2">
                           {row.invalid ? (
                             <span className="text-red-400">Sem nome</span>

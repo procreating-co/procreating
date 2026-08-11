@@ -8,11 +8,13 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SideDrawer, SideDrawerContent, SideDrawerDescription, SideDrawerHeader, SideDrawerTitle } from "@/components/prospeccao/side-drawer";
 import { StageBadge } from "@/components/prospeccao/stage-badge";
+import { IcpBadge } from "@/components/prospeccao/icp-badge";
 import { useOficinas } from "@/components/prospeccao/oficinas-store";
 import { STAGE_OPTIONS } from "@/lib/prospeccao/stages";
+import { ICP_OPTIONS } from "@/lib/prospeccao/icp";
 import { buildProspeccaoMessage } from "@/lib/prospeccao/mock-data";
-import { buildWhatsAppUrl } from "@/lib/prospeccao/template";
-import type { OficinaStage } from "@/lib/prospeccao/types";
+import { buildWhatsAppUrl, resolveWhatsAppNumber } from "@/lib/prospeccao/template";
+import type { AderenciaIcp, OficinaStage } from "@/lib/prospeccao/types";
 
 function formatDate(iso: string | null) {
   if (!iso) return "-";
@@ -46,6 +48,7 @@ export function LeadDetailDrawer({ oficinaId, onOpenChange }: LeadDetailDrawerPr
   const [responsavel, setResponsavel] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [status, setStatus] = useState<OficinaStage>("contato");
+  const [aderenciaIcp, setAderenciaIcp] = useState<AderenciaIcp>("nao_classificado");
   const [observacoes, setObservacoes] = useState("");
   const [nextFollowUpAt, setNextFollowUpAt] = useState("");
   const [copied, setCopied] = useState(false);
@@ -56,6 +59,7 @@ export function LeadDetailDrawer({ oficinaId, onOpenChange }: LeadDetailDrawerPr
     setResponsavel(oficina.responsavel);
     setWhatsapp(oficina.whatsapp);
     setStatus(oficina.status);
+    setAderenciaIcp(oficina.aderenciaIcp);
     setObservacoes(oficina.observacoes);
     setNextFollowUpAt(toDateInputValue(oficina.nextFollowUpAt));
   }, [oficina?.id]);
@@ -66,6 +70,7 @@ export function LeadDetailDrawer({ oficinaId, onOpenChange }: LeadDetailDrawerPr
     responsavel !== oficina.responsavel ||
     whatsapp !== oficina.whatsapp ||
     status !== oficina.status ||
+    aderenciaIcp !== oficina.aderenciaIcp ||
     observacoes !== oficina.observacoes ||
     nextFollowUpAt !== toDateInputValue(oficina.nextFollowUpAt);
 
@@ -75,6 +80,7 @@ export function LeadDetailDrawer({ oficinaId, onOpenChange }: LeadDetailDrawerPr
       responsavel,
       whatsapp,
       status,
+      aderenciaIcp,
       observacoes,
       nextFollowUpAt: nextFollowUpAt ? new Date(`${nextFollowUpAt}T09:00:00-03:00`).toISOString() : null,
     });
@@ -92,16 +98,27 @@ export function LeadDetailDrawer({ oficinaId, onOpenChange }: LeadDetailDrawerPr
       <SideDrawer open={oficina !== null} onOpenChange={onOpenChange}>
         <SideDrawerContent>
           <SideDrawerHeader>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2">
               <SideDrawerTitle>{oficina.nome}</SideDrawerTitle>
               <StageBadge status={oficina.status} />
+              <IcpBadge value={oficina.aderenciaIcp} />
             </div>
-            <SideDrawerDescription>{oficina.cidade || "Cidade não informada"}</SideDrawerDescription>
+            <SideDrawerDescription>
+              {[oficina.cidade, oficina.bairro].filter(Boolean).join(" · ") || "Cidade/bairro não informados"}
+              {oficina.endereco ? ` — ${oficina.endereco}` : ""}
+            </SideDrawerDescription>
           </SideDrawerHeader>
+
+          {(oficina.segmento || oficina.fonte) && (
+            <div className="flex flex-col gap-1 rounded-lg border border-white/10 bg-white/[0.02] p-3 text-xs text-white/50">
+              {oficina.segmento && <p>{oficina.segmento}</p>}
+              <p className="font-mono text-[11px] uppercase tracking-wide text-white/30">Fonte: {oficina.fonte}</p>
+            </div>
+          )}
 
           <div className="flex flex-wrap gap-2">
             <Button asChild size="sm" className="gap-2 bg-[var(--client-accent)] text-black hover:opacity-90">
-              <a href={buildWhatsAppUrl(oficina.whatsapp, buildProspeccaoMessage(oficina))} target="_blank" rel="noopener noreferrer">
+              <a href={buildWhatsAppUrl(resolveWhatsAppNumber(oficina), buildProspeccaoMessage(oficina))} target="_blank" rel="noopener noreferrer">
                 <MessageCircle className="size-4" />
                 Abrir WhatsApp
               </a>
@@ -153,6 +170,22 @@ export function LeadDetailDrawer({ oficinaId, onOpenChange }: LeadDetailDrawerPr
                 className="h-9 rounded-md border border-white/15 bg-white/[0.03] px-3 text-sm text-white outline-none focus-visible:border-[var(--client-accent)]"
               >
                 {STAGE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value} className="bg-[#0c0c0c]">
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="lead-icp">Aderência ICP</Label>
+              <select
+                id="lead-icp"
+                value={aderenciaIcp}
+                onChange={(e) => setAderenciaIcp(e.target.value as AderenciaIcp)}
+                className="h-9 rounded-md border border-white/15 bg-white/[0.03] px-3 text-sm text-white outline-none focus-visible:border-[var(--client-accent)]"
+              >
+                {ICP_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value} className="bg-[#0c0c0c]">
                     {option.label}
                   </option>

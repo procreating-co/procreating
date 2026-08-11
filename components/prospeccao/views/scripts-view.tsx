@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useScripts } from "@/components/prospeccao/scripts-store";
 import { useOficinas } from "@/components/prospeccao/oficinas-store";
 import { SCRIPT_CATEGORY_LABEL, SCRIPT_CATEGORY_ORDER } from "@/lib/prospeccao/scripts-data";
-import { renderScriptTemplate, buildWhatsAppUrl, SCRIPT_VARIABLES } from "@/lib/prospeccao/template";
+import { renderScriptTemplate, buildWhatsAppUrl, resolveWhatsAppNumber, SCRIPT_VARIABLES } from "@/lib/prospeccao/template";
 import type { Script, ScriptCategory, ScriptInput } from "@/lib/prospeccao/types";
 import { cn } from "@/lib/utils";
 
@@ -172,7 +172,7 @@ function UseScriptDialog({ script, onOpenChange }: { script: Script | null; onOp
             }}
           >
             {oficina ? (
-              <a href={buildWhatsAppUrl(oficina.whatsapp, rendered)} target="_blank" rel="noopener noreferrer">
+              <a href={buildWhatsAppUrl(resolveWhatsAppNumber(oficina), rendered)} target="_blank" rel="noopener noreferrer">
                 <MessageCircle className="size-4" />
                 Abrir WhatsApp
               </a>

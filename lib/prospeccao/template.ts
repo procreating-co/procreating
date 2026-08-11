@@ -25,3 +25,13 @@ export function buildWhatsAppUrl(whatsapp: string, message: string) {
   const digits = whatsapp.replace(/\D/g, "");
   return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
 }
+
+/**
+ * Número a usar pro WhatsApp: prioriza `whatsappLink` (validado na importação — só existe
+ * quando o telefone é celular/WhatsApp de verdade) e cai pro `whatsapp` cru quando ausente.
+ * `buildWhatsAppUrl` extrai os dígitos de qualquer um dos dois formatos (link completo ou
+ * número cru), então basta repassar o resultado direto pra ela.
+ */
+export function resolveWhatsAppNumber(oficina: Pick<Oficina, "whatsapp" | "whatsappLink">) {
+  return oficina.whatsappLink || oficina.whatsapp;
+}

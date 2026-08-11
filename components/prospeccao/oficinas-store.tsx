@@ -24,6 +24,11 @@ function reducer(state: Oficina[], action: Action): Oficina[] {
     case "add": {
       const oficina: Oficina = {
         ...action.input,
+        bairro: "",
+        endereco: "",
+        segmento: "",
+        whatsappLink: "",
+        fonte: "Manual",
         id: `oficina-${crypto.randomUUID()}`,
         createdAt: now,
         updatedAt: now,
@@ -77,14 +82,21 @@ function reducer(state: Oficina[], action: Action): Oficina[] {
       return state.filter((oficina) => oficina.id !== action.id);
 
     case "importMany": {
+      // Baixa aderência ao ICP não é motivo pra excluir — só não prioriza; todo mundo entra como "Contato".
       const toImport = action.rows.filter((row) => !row.invalid && !row.duplicate);
       const created: Oficina[] = toImport.map((row) => ({
         id: `oficina-${crypto.randomUUID()}`,
         nome: row.nome,
-        cidade: "",
+        cidade: row.cidade,
+        bairro: row.bairro,
+        endereco: row.endereco,
+        segmento: row.segmento,
         responsavel: row.responsavel,
         whatsapp: row.whatsapp,
-        observacoes: "",
+        whatsappLink: row.whatsappLink,
+        aderenciaIcp: row.aderenciaIcp,
+        fonte: row.fonte,
+        observacoes: row.observacoes,
         status: "contato",
         createdAt: now,
         updatedAt: now,

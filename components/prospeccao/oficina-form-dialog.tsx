@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { STAGE_OPTIONS } from "@/lib/prospeccao/stages";
-import type { Oficina, OficinaInput, OficinaStage } from "@/lib/prospeccao/types";
+import { ICP_OPTIONS } from "@/lib/prospeccao/icp";
+import type { AderenciaIcp, Oficina, OficinaInput, OficinaStage } from "@/lib/prospeccao/types";
 
 const EMPTY_INPUT: OficinaInput = {
   nome: "",
@@ -15,6 +16,7 @@ const EMPTY_INPUT: OficinaInput = {
   whatsapp: "",
   observacoes: "",
   status: "contato",
+  aderenciaIcp: "nao_classificado",
 };
 
 export type OficinaFormDialogProps = {
@@ -42,6 +44,7 @@ export function OficinaFormDialog({ open, onOpenChange, oficina, onSubmit, trigg
             whatsapp: oficina.whatsapp,
             observacoes: oficina.observacoes,
             status: oficina.status,
+            aderenciaIcp: oficina.aderenciaIcp,
           }
         : EMPTY_INPUT,
     );
@@ -119,6 +122,22 @@ export function OficinaFormDialog({ open, onOpenChange, oficina, onSubmit, trigg
                 className="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
               >
                 {STAGE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="oficina-icp">Aderência ICP</Label>
+              <select
+                id="oficina-icp"
+                value={input.aderenciaIcp}
+                onChange={(e) => setInput((prev) => ({ ...prev, aderenciaIcp: e.target.value as AderenciaIcp }))}
+                className="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              >
+                {ICP_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
