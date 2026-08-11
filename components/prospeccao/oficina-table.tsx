@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { Check, Copy, IdCard, Pencil, Trash2 } from "lucide-react";
+import { useRef, useState, type ReactNode } from "react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Check, Copy, IdCard, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -11,6 +11,10 @@ import { IcpBadge } from "@/components/prospeccao/icp-badge";
 import { CityCell } from "@/components/prospeccao/city-cell";
 import { useOficinas } from "@/components/prospeccao/oficinas-store";
 import type { Oficina } from "@/lib/prospeccao/types";
+import { cn } from "@/lib/utils";
+
+export type OficinaSortKey = "nome" | "cidade" | "whatsapp" | "responsavel" | "aderenciaIcp" | "status";
+export type SortDir = "asc" | "desc";
 
 const COPY_FEEDBACK_MS = 1600;
 
@@ -39,7 +43,49 @@ function CopyCelularButton({ oficina }: { oficina: Oficina }) {
   );
 }
 
-export function OficinaTable({ oficinas, onOpenLead }: { oficinas: Oficina[]; onOpenLead: (id: string) => void }) {
+function SortableHead({
+  sortKey,
+  activeKey,
+  dir,
+  onSort,
+  className,
+  children,
+}: {
+  sortKey: OficinaSortKey;
+  activeKey: OficinaSortKey;
+  dir: SortDir;
+  onSort: (key: OficinaSortKey) => void;
+  className?: string;
+  children: ReactNode;
+}) {
+  const active = sortKey === activeKey;
+  return (
+    <TableHead className={cn("p-0 text-white/50", className)}>
+      <button
+        type="button"
+        onClick={() => onSort(sortKey)}
+        className={cn(
+          "flex w-full items-center gap-1.5 px-4 py-3 text-left font-medium transition-colors hover:text-white",
+          active && "text-white",
+        )}
+        aria-label={`Ordenar por ${children}${active ? (dir === "asc" ? ", crescente" : ", decrescente") : ""}`}
+      >
+        {children}
+        {active ? dir === "asc" ? <ArrowUp className="size-3.5" /> : <ArrowDown className="size-3.5" /> : <ArrowUpDown className="size-3.5 text-white/20" />}
+      </button>
+    </TableHead>
+  );
+}
+
+export type OficinaTableProps = {
+  oficinas: Oficina[];
+  onOpenLead: (id: string) => void;
+  sortKey: OficinaSortKey;
+  sortDir: SortDir;
+  onSort: (key: OficinaSortKey) => void;
+};
+
+export function OficinaTable({ oficinas, onOpenLead, sortKey, sortDir, onSort }: OficinaTableProps) {
   const { updateOficina, removeOficina } = useOficinas();
   const [editing, setEditing] = useState<Oficina | null>(null);
   const [deleting, setDeleting] = useState<Oficina | null>(null);
@@ -52,24 +98,38 @@ export function OficinaTable({ oficinas, onOpenLead }: { oficinas: Oficina[]; on
     );
   }
 
+  const headProps = { activeKey: sortKey, dir: sortDir, onSort };
+
   return (
     <div className="overflow-x-auto rounded-xl border border-white/10 bg-white/[0.02]">
       <Table>
         <TableHeader>
           <TableRow className="border-white/10 hover:bg-transparent">
-            <TableHead className="text-white/50">Oficina</TableHead>
-            <TableHead className="text-white/50">Cidade</TableHead>
-            <TableHead className="text-white/50">Celular</TableHead>
-            <TableHead className="text-white/50">Responsável</TableHead>
-            <TableHead className="text-white/50">Aderência</TableHead>
-            <TableHead className="text-white/50">Status</TableHead>
+            <SortableHead sortKey="nome" {...headProps}>
+              Oficina
+            </SortableHead>
+            <SortableHead sortKey="cidade" {...headProps}>
+              Cidade
+            </SortableHead>
+            <SortableHead sortKey="whatsapp" {...headProps}>
+              Celular
+            </SortableHead>
+            <SortableHead sortKey="responsavel" {...headProps}>
+              Responsável
+            </SortableHead>
+            <SortableHead sortKey="aderenciaIcp" {...headProps}>
+              Aderência
+            </SortableHead>
+            <SortableHead sortKey="status" {...headProps}>
+              Status
+            </SortableHead>
             <TableHead className="text-right text-white/50">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {oficinas.map((oficina) => (
             <TableRow key={oficina.id} className="cursor-pointer border-white/5" onClick={() => onOpenLead(oficina.id)}>
-              <TableCell className="max-w-[280px] truncate font-medium text-white" title={oficina.nome}>
+              <TableCell className="max-w-[280px] truncate font-medium text-white underline-offset-4 hover:underline" title={oficina.nome}>
                 {oficina.nome}
               </TableCell>
               <TableCell>
