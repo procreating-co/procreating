@@ -13,28 +13,28 @@ export type ProposalPillar = {
   items: string[];
 };
 
-/** Uma das 2 opções de vídeos/mês — `base` é o preço mensal nessa quantidade, sem nenhum toggle ligado. */
-export type VideoOption = {
-  id: string;
-  count: number;
-  label: string;
-  base: number;
-};
-
-/** Um dos toggles do configurador — soma `priceDelta` ao total quando ligado. */
-export type ProposalToggle = {
-  id: string;
-  label: string;
-  priceDelta: number;
-  /** Nota pequena junto do toggle, ex.: aviso sobre verba de mídia. */
-  note?: string;
-};
-
-export type WhyContinuityPoint = {
+export type AcquisitionCard = {
   number: string;
   title: string;
   description: string;
+  items: string[];
 };
+
+/** Item fixo do orçamento — sempre incluso, indicador discreto, nunca clicável, nunca pesa no preço. */
+export type FixedBudgetItem = { id: string; label: string };
+
+/**
+ * Item variável do orçamento — 2 formas:
+ *  - "toggle": liga/desliga, soma `price` ao total quando ligado.
+ *  - "video-tier": grupo de opções mutuamente exclusivas (rádio) — só uma fica acesa por vez,
+ *    cada uma com seu próprio `price` (o preço da opção SUBSTITUI, não soma). `unlockedBy`
+ *    opcional — se presente, o item só aparece (e só conta no total) quando o toggle com esse
+ *    `id` estiver ativo; ausente = sempre visível.
+ * Preço nunca aparece na interface — só o total geral muda.
+ */
+export type VariableBudgetItem =
+  | { kind: "toggle"; id: string; label: string; price: number; defaultOn: boolean }
+  | { kind: "video-tier"; id: string; label: string; options: { id: string; count: number; label: string; price: number }[]; defaultOptionId: string; unlockedBy?: string };
 
 export type PascoalProposalContent = {
   slug: "pascoal";
@@ -49,36 +49,30 @@ export type PascoalProposalContent = {
     subtitle: string;
   };
 
-  growthAnimation: {
-    eyebrow: string;
-    heading: string;
-    steps: string[];
-  };
-
-  pillarsIntro: { eyebrow: string; heading: string };
+  pillarsIntro: { eyebrow: string; heading: string; subtitle: string };
   pillars: ProposalPillar[];
 
-  configurator: {
+  operacao: {
     eyebrow: string;
     heading: string;
     subtitle: string;
-    contentLabel: string;
-    videoOptions: VideoOption[];
-    strategyLabel: string;
-    strategyIncluded: string;
-    growthLabel: string;
-    expansionLabel: string;
-    toggles: { traffic: ProposalToggle; prospecting: ProposalToggle };
-    /** Piso absoluto do valor mensal — nunca deve ser possível ficar abaixo disso. */
-    minPrice: number;
-    recommendedTag: string;
-    customTag: string;
+    steps: string[];
   };
 
-  whyContinuity: {
+  acquisition: {
     eyebrow: string;
     heading: string;
-    points: WhyContinuityPoint[];
+    cards: AcquisitionCard[];
+  };
+
+  configurator: {
+    heading: string;
+    fixedLabel: string;
+    /** Preço-base da estrutura fixa — sempre presente no total, independente de qualquer toggle. */
+    fixedPrice: number;
+    fixedItems: FixedBudgetItem[];
+    variableLabel: string;
+    variableItems: VariableBudgetItem[];
   };
 
   closing: {

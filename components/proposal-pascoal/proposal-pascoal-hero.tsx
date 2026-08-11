@@ -1,4 +1,5 @@
 import { ChevronDown } from "lucide-react";
+import { ProposalPascoalTypingHeadline } from "@/components/proposal-pascoal/proposal-pascoal-typing-headline";
 import type { PascoalProposalContent } from "@/lib/pascoal-proposal/types";
 
 export function ProposalPascoalHero({ content, accent }: { content: PascoalProposalContent["hero"]; accent: string }) {
@@ -13,7 +14,7 @@ export function ProposalPascoalHero({ content, accent }: { content: PascoalPropo
           {content.eyebrow}
         </span>
 
-        <h1 className="text-balance font-display text-5xl leading-[1.05] tracking-tight sm:text-6xl md:text-7xl">{content.title}</h1>
+        <ProposalPascoalTypingHeadline text={content.title} className="text-balance font-display text-5xl leading-[1.05] tracking-tight sm:text-6xl md:text-7xl" />
 
         <p className="mt-8 max-w-xl text-balance text-lg leading-relaxed text-white/55 sm:text-xl">{content.subtitle}</p>
       </div>

@@ -1,170 +1,197 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { animate, motion, useMotionValue } from "framer-motion";
-import { ProposalPascoalSectionHeader } from "@/components/proposal-pascoal/proposal-pascoal-section-header";
-import type { PascoalProposalContent } from "@/lib/pascoal-proposal/types";
+import { useMemo, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import type { FixedBudgetItem, VariableBudgetItem, PascoalProposalContent } from "@/lib/pascoal-proposal/types";
 
-const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
-/** Preço puramente aditivo — nenhuma tabela de casos, só soma o que está ligado. */
-function computeTotal(base: number, trafficOn: boolean, trafficDelta: number, prospectingOn: boolean, prospectingDelta: number) {
-  return base + (trafficOn ? trafficDelta : 0) + (prospectingOn ? prospectingDelta : 0);
+/** Um dígito do odômetro — coluna de 0-9 que desliza verticalmente até o dígito certo ficar visível. */
+function OdometerDigit({ digit }: { digit: string }) {
+  if (!/[0-9]/.test(digit)) {
+    return <span className="inline-block">{digit}</span>;
+  }
+  const value = Number(digit);
+  return (
+    <span className="relative inline-block h-[1em] w-[0.62em] overflow-hidden align-bottom">
+      <motion.span
+        className="absolute inset-x-0 top-0 flex flex-col items-center"
+        initial={false}
+        animate={{ y: `-${value}em` }}
+        transition={{ type: "spring", stiffness: 260, damping: 28 }}
+      >
+        {Array.from({ length: 10 }, (_, i) => (
+          <span key={i} className="block h-[1em] leading-[1em]">
+            {i}
+          </span>
+        ))}
+      </motion.span>
+    </span>
+  );
 }
 
-/** Número do investimento com uma pequena animação de contagem sempre que o total muda. */
-function AnimatedTotal({ total }: { total: number }) {
-  const motionTotal = useMotionValue(total);
-  const [display, setDisplay] = useState(total);
+/** Valor formatado ("R$ 3.500") renderizado dígito a dígito — cada troca de valor rola como um odômetro. */
+function OdometerValue({ value }: { value: number }) {
+  const formatted = currencyFormatter.format(value);
+  return (
+    <span className="inline-flex">
+      {formatted.split("").map((char, index) => (
+        <OdometerDigit key={index} digit={char} />
+      ))}
+    </span>
+  );
+}
 
-  useEffect(() => {
-    const controls = animate(motionTotal, total, {
-      duration: 0.5,
-      ease: "easeOut",
-      onUpdate: (value) => setDisplay(Math.round(value)),
-    });
-    return () => controls.stop();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [total]);
+/** Item fixo — indicador discreto, nunca clicável, nunca brilha. */
+function FixedRow({ item }: { item: FixedBudgetItem }) {
+  return (
+    <div className="flex items-center gap-3 py-2">
+      <span className="size-1 shrink-0 rounded-full bg-white/40" aria-hidden="true" />
+      <span className="text-sm text-white/80">{item.label}</span>
+    </div>
+  );
+}
 
-  return <span>{currency.format(display)}</span>;
+/** Círculo brilhante — aceso (ativo, clicável) ou apagado (inativo). */
+function GlowDot({ active, accent, onToggle }: { active: boolean; accent: string; onToggle: () => void }) {
+  return (
+    <button type="button" onClick={onToggle} aria-pressed={active} className="flex items-center" aria-label="Ativar ou desativar item">
+      <motion.span
+        whileTap={{ scale: 0.8 }}
+        className="block size-3 shrink-0 rounded-full transition-all duration-300"
+        style={{
+          backgroundColor: active ? accent : "transparent",
+          border: active ? "none" : "1.5px solid rgba(255,255,255,0.25)",
+          boxShadow: active ? `0 0 8px ${accent}, 0 0 2px ${accent}` : "none",
+        }}
+      />
+    </button>
+  );
+}
+
+type State = { toggles: Record<string, boolean>; videoTiers: Record<string, string> };
+
+function initialState(items: VariableBudgetItem[]): State {
+  const toggles: Record<string, boolean> = {};
+  const videoTiers: Record<string, string> = {};
+  for (const item of items) {
+    if (item.kind === "toggle") toggles[item.id] = item.defaultOn;
+    if (item.kind === "video-tier") videoTiers[item.id] = item.defaultOptionId;
+  }
+  return { toggles, videoTiers };
+}
+
+/** `video-tier` com `unlockedBy` só soma no total quando o toggle que o desbloqueia está ativo. */
+function isUnlocked(item: VariableBudgetItem, state: State): boolean {
+  if (item.kind !== "video-tier" || !item.unlockedBy) return true;
+  return Boolean(state.toggles[item.unlockedBy]);
+}
+
+function computeTotal(fixedPrice: number, items: VariableBudgetItem[], state: State): number {
+  let total = fixedPrice;
+  for (const item of items) {
+    if (!isUnlocked(item, state)) continue;
+    if (item.kind === "toggle" && state.toggles[item.id]) total += item.price;
+    if (item.kind === "video-tier") {
+      const option = item.options.find((candidate) => candidate.id === state.videoTiers[item.id]);
+      if (option) total += option.price;
+    }
+  }
+  return total;
+}
+
+function VariableRow({ item, state, accent, onToggle, onSelectTier }: { item: VariableBudgetItem; state: State; accent: string; onToggle: (id: string) => void; onSelectTier: (groupId: string, optionId: string) => void }) {
+  if (item.kind === "toggle") {
+    const active = state.toggles[item.id];
+    return (
+      <div className="flex items-center gap-3 py-2">
+        <GlowDot active={active} accent={accent} onToggle={() => onToggle(item.id)} />
+        <button type="button" onClick={() => onToggle(item.id)} className="text-left text-sm transition-colors duration-300" style={{ color: active ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.4)" }}>
+          {item.label}
+        </button>
+      </div>
+    );
+  }
+
+  const selectedId = state.videoTiers[item.id];
+  return (
+    <div className="flex flex-col">
+      {item.label && <p className="mb-1.5 mt-3 font-mono text-[11px] uppercase tracking-wide text-white/35">{item.label}</p>}
+      {item.options.map((option) => {
+        const active = option.id === selectedId;
+        return (
+          <div key={option.id} className="flex items-center gap-3 py-2">
+            <GlowDot active={active} accent={accent} onToggle={() => onSelectTier(item.id, option.id)} />
+            <button
+              type="button"
+              onClick={() => onSelectTier(item.id, option.id)}
+              className="text-left text-sm transition-colors duration-300"
+              style={{ color: active ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.4)" }}
+            >
+              {option.label}
+            </button>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 export function ProposalPascoalConfigurator({ content, accent }: { content: PascoalProposalContent["configurator"]; accent: string }) {
-  const [videoId, setVideoId] = useState(content.videoOptions[content.videoOptions.length - 1].id);
-  const [trafficOn, setTrafficOn] = useState(true);
-  const [prospectingOn, setProspectingOn] = useState(true);
+  const [state, setState] = useState<State>(() => initialState(content.variableItems));
 
-  const videoOption = content.videoOptions.find((option) => option.id === videoId) ?? content.videoOptions[0];
-  const { traffic, prospecting } = content.toggles;
-  const total = Math.max(content.minPrice, computeTotal(videoOption.base, trafficOn, traffic.priceDelta, prospectingOn, prospecting.priceDelta));
+  const total = useMemo(() => computeTotal(content.fixedPrice, content.variableItems, state), [content.fixedPrice, content.variableItems, state]);
 
-  const isRecommended = videoOption === content.videoOptions[content.videoOptions.length - 1] && trafficOn && prospectingOn;
-
-  const deliverables = [
-    `${videoOption.count} vídeos`,
-    "Estratégia",
-    "Posicionamento",
-    ...(trafficOn ? ["Tráfego"] : []),
-    ...(prospectingOn ? ["Prospecção ativa"] : []),
-  ].join(" · ");
+  const toggle = (id: string) => setState((current) => ({ ...current, toggles: { ...current.toggles, [id]: !current.toggles[id] } }));
+  const selectTier = (groupId: string, optionId: string) => setState((current) => ({ ...current, videoTiers: { ...current.videoTiers, [groupId]: optionId } }));
 
   return (
     <section id="configurador" className="scroll-mt-20 border-t border-white/10 bg-black px-6 py-24 text-white lg:px-12 lg:py-32">
       <div className="mx-auto max-w-3xl">
-        <ProposalPascoalSectionHeader eyebrow={content.eyebrow} heading={content.heading} accent={accent} />
-        <p className="mx-auto mt-6 max-w-lg text-balance text-center text-base leading-relaxed text-white/55">{content.subtitle}</p>
-      </div>
-
-      <div className="mx-auto mt-14 max-w-2xl">
-        {/* Investimento mensal — sempre centralizado e em destaque */}
         <div className="flex flex-col items-center border border-white/15 bg-white/[0.03] px-8 py-12 text-center">
           <span className="font-mono text-xs uppercase tracking-wide text-white/45">Investimento mensal</span>
           <p className="mt-4 font-display text-6xl tabular-nums text-white sm:text-7xl">
-            <AnimatedTotal total={total} />
+            <OdometerValue value={total} />
           </p>
-          <span
-            className="mt-5 inline-flex items-center gap-1.5 rounded-full px-3.5 py-1 font-mono text-[10px] uppercase tracking-wide transition-colors duration-300"
-            style={{ backgroundColor: isRecommended ? accent : "transparent", color: isRecommended ? "black" : "rgba(255,255,255,0.5)", border: isRecommended ? "none" : "1px solid rgba(255,255,255,0.2)" }}
-          >
-            {isRecommended ? content.recommendedTag : content.customTag}
-          </span>
-          <p className="mt-6 max-w-sm text-balance font-mono text-xs uppercase tracking-wide text-white/40">{deliverables}</p>
         </div>
 
-        {/* Controles */}
-        <div className="mt-12 flex flex-col gap-10">
-          <div>
-            <p className="mb-4 font-mono text-xs uppercase tracking-wide text-white/45">{content.contentLabel}</p>
-            <div className="grid grid-cols-2 gap-4">
-              {content.videoOptions.map((option) => {
-                const isSelected = option.id === videoId;
+        <div className="mt-12 grid grid-cols-1 gap-10 md:grid-cols-2 md:gap-14">
+          <div className="border-t border-white/10 pt-8 md:border-t-0 md:border-r md:pr-14 md:pt-0">
+            <p className="mb-1 font-mono text-xs uppercase tracking-wide text-white/45">{content.fixedLabel}</p>
+            <p className="mb-5 text-xs text-white/30">Sempre inclusos</p>
+            <div className="flex flex-col">
+              {content.fixedItems.map((item) => (
+                <FixedRow key={item.id} item={item} />
+              ))}
+            </div>
+          </div>
+
+          <div className="pt-2 md:pt-0">
+            <p className="mb-1 font-mono text-xs uppercase tracking-wide text-white/45">{content.variableLabel}</p>
+            <p className="mb-5 text-xs text-white/30">Ajuste conforme a prioridade</p>
+            <div className="flex flex-col">
+              {content.variableItems.map((item) => {
+                const unlocked = isUnlocked(item, state);
                 return (
-                  <button
-                    key={option.id}
-                    type="button"
-                    onClick={() => setVideoId(option.id)}
-                    aria-pressed={isSelected}
-                    className="flex flex-col items-center gap-2 border py-6 text-center transition-all duration-300"
-                    style={{ borderColor: isSelected ? accent : "rgba(255,255,255,0.12)", backgroundColor: isSelected ? `${accent}14` : "transparent" }}
-                  >
-                    <span className="font-display text-2xl text-white">{option.label}</span>
-                    <span className="font-mono text-sm" style={{ color: isSelected ? accent : "rgba(255,255,255,0.45)" }}>
-                      {currency.format(option.base)}
-                    </span>
-                  </button>
+                  <AnimatePresence key={item.id} initial={false}>
+                    {unlocked && (
+                      <motion.div
+                        initial={item.kind === "video-tier" ? { height: 0, opacity: 0 } : false}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.35, ease: "easeInOut" }}
+                        className="overflow-hidden"
+                      >
+                        <VariableRow item={item} state={state} accent={accent} onToggle={toggle} onSelectTier={selectTier} />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 );
               })}
             </div>
           </div>
-
-          <div>
-            <p className="mb-4 font-mono text-xs uppercase tracking-wide text-white/45">{content.strategyLabel}</p>
-            <div className="flex items-center justify-between gap-4 border border-white/10 bg-white/[0.02] px-5 py-4">
-              <p className="text-sm text-white/75">{content.strategyIncluded}</p>
-              <span className="shrink-0 rounded-full border px-3 py-1 font-mono text-[10px] uppercase tracking-wide" style={{ borderColor: accent, color: accent }}>
-                Incluso
-              </span>
-            </div>
-          </div>
-
-          <div>
-            <p className="mb-4 font-mono text-xs uppercase tracking-wide text-white/45">{content.growthLabel}</p>
-            <button
-              type="button"
-              onClick={() => setTrafficOn((current) => !current)}
-              aria-pressed={trafficOn}
-              className="flex w-full items-center justify-between gap-4 border px-5 py-4 text-left transition-all duration-300"
-              style={{ borderColor: trafficOn ? accent : "rgba(255,255,255,0.12)", backgroundColor: trafficOn ? `${accent}14` : "transparent" }}
-            >
-              <div>
-                <p className="text-sm text-white/85">{traffic.label}</p>
-                {traffic.note && <p className="mt-0.5 text-xs text-white/40">{traffic.note}</p>}
-              </div>
-              <div className="flex shrink-0 items-center gap-3">
-                <span className="font-mono text-sm" style={{ color: trafficOn ? accent : "rgba(255,255,255,0.4)" }}>
-                  {trafficOn ? "+" : "−"}
-                  {currency.format(traffic.priceDelta)}
-                </span>
-                <Toggle isOn={trafficOn} accent={accent} />
-              </div>
-            </button>
-          </div>
-
-          <div>
-            <p className="mb-4 font-mono text-xs uppercase tracking-wide text-white/45">{content.expansionLabel}</p>
-            <button
-              type="button"
-              onClick={() => setProspectingOn((current) => !current)}
-              aria-pressed={prospectingOn}
-              className="flex w-full items-center justify-between gap-4 border px-5 py-4 text-left transition-all duration-300"
-              style={{ borderColor: prospectingOn ? accent : "rgba(255,255,255,0.12)", backgroundColor: prospectingOn ? `${accent}14` : "transparent" }}
-            >
-              <p className="text-sm text-white/85">{prospecting.label}</p>
-              <div className="flex shrink-0 items-center gap-3">
-                <span className="font-mono text-sm" style={{ color: prospectingOn ? accent : "rgba(255,255,255,0.4)" }}>
-                  {prospectingOn ? "+" : "−"}
-                  {currency.format(prospecting.priceDelta)}
-                </span>
-                <Toggle isOn={prospectingOn} accent={accent} />
-              </div>
-            </button>
-          </div>
         </div>
       </div>
     </section>
-  );
-}
-
-function Toggle({ isOn, accent }: { isOn: boolean; accent: string }) {
-  return (
-    <span className="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-300" style={{ backgroundColor: isOn ? accent : "rgba(255,255,255,0.15)" }} aria-hidden="true">
-      <motion.span
-        className="absolute size-[18px] rounded-full"
-        animate={{ x: isOn ? 22 : 3 }}
-        transition={{ duration: 0.25, ease: "easeOut" }}
-        style={{ backgroundColor: isOn ? "black" : "white" }}
-      />
-    </span>
   );
 }
