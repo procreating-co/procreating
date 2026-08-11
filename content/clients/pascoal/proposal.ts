@@ -3,22 +3,17 @@ import type { PascoalProposalContent } from "@/lib/pascoal-proposal/types";
 /**
  * Proposta de Continuidade — Pascoal Bombas. Página comercial isolada
  * (`/clients/pascoal/public/proposta`, servida via rewrite — ver `next.config.mjs` — por um app
- * route próprio em `app/pascoal-proposta/page.tsx`), pensada pra apresentação AO VIVO — sem
- * nenhum CTA comercial, o configurador é a própria ferramenta de apresentação.
+ * route próprio em `app/pascoal-proposta/page.tsx`).
  *
- * PREÇOS — atualização cirúrgica pedida explicitamente com valores reais:
- *   - Plano Inicial (Assessoria de Marketing, sempre incluso): R$ 3.500
- *   - Criação de Conteúdo (perfis × vídeos) SUBSTITUI o Plano Inicial quando ativo, não soma:
- *       1 perfil × 4 vídeos = R$ 3.500 · 2 perfis × 4 vídeos = R$ 4.500 · 3 perfis × 4 vídeos = R$ 5.000
- *       1/2/3 perfis × 8 vídeos = ainda não definido pela Pascoal (`price: null`) — só temos os 3
- *       valores-base de 4 vídeos. NÃO inventei uma fórmula pra extrapolar os de 8 vídeos (dobrar,
- *       interpolar etc. geraria um preço incoerente sem confirmação); a UI mostra "Valor a
- *       definir" pra essas 3 combinações em vez de um número. Pra definir: preencher o `price`
- *       correspondente em `configurator.content.prices` abaixo.
- *   - Gestão de Tráfego Pago: +R$ 500/mês · Prospecção Ativa de Empresas: +R$ 1.500/mês (somam
- *     sobre o valor atual, seja ele o Plano Inicial ou uma combinação de conteúdo)
- * Toda a lógica de cálculo mora em components/proposal-pascoal/proposal-pascoal-configurator.tsx;
- * pra mudar um valor, edite só os números aqui.
+ * PREÇOS — a lógica existente foi PRESERVADA de propósito (pedido explícito: "a lógica de preço
+ * existente deve ser preservada quando correta"). Só temos 3 valores-base confirmados:
+ *   1 oficina × 4 vídeos = R$ 3.500 · 2 oficinas × 4 vídeos = R$ 4.500 · 3 oficinas × 4 vídeos = R$ 5.000
+ * As combinações ×8 vídeos continuam `price: null` — ainda não definidas, não inventei fórmula.
+ * "perfis" foi renomeado pra "oficinas" (linguagem da própria Pascoal). Os números "R$ 4.860" e
+ * "R$ 5.360" que apareceram nos exemplos de UX do pedido NÃO foram usados como preço real aqui —
+ * tratei como texto ilustrativo de mockup, já que não batem com nenhum dos 3 valores confirmados
+ * e a instrução era preservar a lógica já validada, não substituí-la. Se esses números eram pra
+ * ser preços novos de verdade, me avise que eu ajusto.
  */
 export const pascoalProposal: PascoalProposalContent = {
   slug: "pascoal",
@@ -37,90 +32,87 @@ export const pascoalProposal: PascoalProposalContent = {
     heading: "Nossos serviços",
   },
 
-  pillars: [
+  servicePillars: [
     {
-      number: "01",
       title: "Assessoria de Marketing",
-      items: ["Estratégias de Marketing", "Roteiros de Conteúdo"],
+      copy: "Construímos a direção estratégica que orienta todas as decisões de marketing da Pascoal Bombas.",
+      bullets: ["Estratégia de Marketing", "Planejamento e Linha Editorial", "Estratégias de Comunicação", "Roteiros e Direcionamentos", "Planejamento de Campanhas"],
+      closing: "Você não recebe apenas ideias. Recebe uma direção clara para executar.",
+      exclusions: {
+        label: "Não contempla execução",
+        items: ["Captação de Conteúdo", "Edição de Vídeos", "Postagem e Gestão de Redes", "Metrificação Operacional"],
+      },
     },
     {
-      number: "02",
-      title: "Criação de Conteúdo",
-      items: ["Captação de Conteúdo", "Roteiros de Conteúdo", "Edição de Vídeos", "Postagem e Metrificação"],
+      title: "Plano de Posicionamento",
+      copy: "Transformamos estratégia em presença digital consistente, criando uma comunicação que fortalece autoridade e percepção de marca.",
+      bullets: ["Captação de Conteúdo", "Roteiros e Pautas", "Edição de Vídeos", "Gestão de Redes", "Publicação e Metrificação"],
+      closing: "Do planejamento à presença: uma operação pensada para construir percepção.",
     },
     {
-      number: "03",
       title: "Crescimento e Aquisição",
-      items: ["Estratégias Comerciais", "Gestão de Campanhas de Tráfego Pago", "Gestão Estratégica de Oportunidades Comerciais"],
-    },
-  ],
-
-  methodology: [
-    {
-      number: "01",
-      title: "Assessoria",
-      paragraph:
-        "Começamos pela estratégia. Estruturamos direcionamentos de marketing, planejamentos e roteiros para transformar objetivos comerciais em ações claras de conteúdo e aquisição.",
-      tags: ["Estratégia", "Planejamento", "Roteiros", "Direcionamento"],
-    },
-    {
-      number: "02",
-      title: "Posicionamento",
-      paragraph:
-        "Transformamos estratégia em presença. Cuidamos de toda a operação de conteúdo para posicionar a Pascoal Bombas nas redes sociais — da pauta e dos roteiros à captação, edição, publicação e metrificação.",
-      tags: ["Roteiros", "Captação", "Edição", "Publicação", "Metrificação"],
-    },
-    {
-      number: "03",
-      title: "Aquisição",
-      paragraph:
-        "Ampliamos as oportunidades comerciais através de uma estratégia de aquisição integrada. Trabalhamos marketing digital, campanhas, prospecção e parcerias para criar novas possibilidades de crescimento.",
-      tags: ["Marketing Digital", "Tráfego Pago", "Prospecção", "Parcerias", "Oportunidades Comerciais"],
+      copy: "Conectamos marketing e oportunidades comerciais para transformar atenção em relacionamento e relacionamento em negócio.",
+      bullets: ["Estratégias Comerciais", "Tráfego Pago", "Prospecção Ativa", "Oportunidades Comerciais", "Parcerias Estratégicas"],
+      closing: "Mais do que gerar alcance, criamos caminhos para gerar oportunidades.",
     },
   ],
 
   configurator: {
-    planInitial: {
-      label: "Plano Inicial",
-      includedLabel: "Sempre inclusos",
-      includedItem: "Assessoria de Marketing",
+    base: {
+      label: "Assessoria de Marketing",
+      stepLabel: "Estrutura estratégica",
+      includedItem: "Direção estratégica, planejamento e linha editorial — sempre inclusos",
       price: 3500,
     },
-    additionsLabel: "O que pode adicionar",
-    additionsSubtitle: "Planos Adicionais",
-    content: {
-      moduleLabel: "Posicionamento",
-      triggerLabel: "Criação de Conteúdo",
-      profileOptions: [
-        { value: 1, label: "01 perfil" },
-        { value: 2, label: "02 perfis" },
-        { value: 3, label: "03 perfis" },
-      ],
-      videoOptions: [
-        { value: 4, label: "04 vídeos" },
-        { value: 8, label: "08 vídeos" },
-      ],
-      prices: [
-        { profiles: 1, videos: 4, price: 3500 },
-        { profiles: 2, videos: 4, price: 4500 },
-        { profiles: 3, videos: 4, price: 5000 },
-        // Ainda não definidos pela Pascoal — ver comentário no topo do arquivo.
-        { profiles: 1, videos: 8, price: null },
-        { profiles: 2, videos: 8, price: null },
-        { profiles: 3, videos: 8, price: null },
-      ],
-    },
-    growth: {
-      moduleLabel: "Crescimento e Aquisição",
-      toggles: [
-        { id: "trafego-pago", label: "Gestão de Tráfego Pago", price: 500 },
-        { id: "prospeccao-ativa", label: "Prospecção Ativa de Empresas", price: 1500 },
-      ],
+    steps: {
+      content: {
+        stepLabel: "Escolha sua operação de conteúdo",
+        moduleLabel: "Plano de Posicionamento",
+        moduleBenefit: "Transforme estratégia em presença digital consistente, com captação, edição e publicação mensal.",
+        triggerLabel: "Captação de Conteúdo e Gestão de Redes",
+        highlightTag: "Recomendado",
+        oficinaOptions: [
+          { value: 1, label: "01 Oficina" },
+          { value: 2, label: "02 Oficinas" },
+          { value: 3, label: "03 Oficinas" },
+        ],
+        videoOptions: [
+          { value: 4, label: "04 vídeos" },
+          { value: 8, label: "08 vídeos" },
+        ],
+        prices: [
+          { oficinas: 1, videos: 4, price: 3500 },
+          { oficinas: 2, videos: 4, price: 4500 },
+          { oficinas: 3, videos: 4, price: 5000 },
+          // Ainda não definidos pela Pascoal — ver comentário no topo do arquivo.
+          { oficinas: 1, videos: 8, price: null },
+          { oficinas: 2, videos: 8, price: null },
+          { oficinas: 3, videos: 8, price: null },
+        ],
+      },
+      growth: {
+        stepLabel: "Acelere a aquisição",
+        toggles: [
+          { id: "trafego-pago", label: "Gestão de Tráfego Pago", benefit: "Amplie o alcance da marca com campanhas segmentadas e otimizadas.", price: 500 },
+          { id: "prospeccao-ativa", label: "Prospecção Ativa de Empresas", benefit: "Uma estratégia ativa de conexão com empresas com potencial de negócio.", price: 1500 },
+        ],
+      },
     },
   },
 
-  closing: {
-    heading: "O próximo passo é agora.",
-    paragraph: "Uma parceria estratégica contínua — construída, ajustada e revisada junto com a Pascoal a cada etapa.",
+  whatsapp: {
+    // Exatamente os dígitos do número informado ("+55 51 98202-05917"). Vale conferir: tem 14
+    // dígitos, 1 a mais que o padrão de celular BR (13) — não corrigi por conta própria, usei
+    // literalmente o que foi passado.
+    phoneDigits: "55519820205917",
+    ceoFirstName: "Santiago",
+  },
+
+  cta: {
+    label: "Quero avançar com este plano",
+    note: "Seu escopo será enviado diretamente para nossa equipe.",
+    confirmationHeading: "Seu plano está pronto.",
+    confirmationSubheading: "Você está avançando com esta estrutura:",
+    confirmedLabel: "Avançar pelo WhatsApp",
   },
 };

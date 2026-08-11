@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import { pascoalProposal } from "@/content/clients/pascoal/proposal";
 import { ProposalPascoalHero } from "@/components/proposal-pascoal/proposal-pascoal-hero";
-import { ProposalPascoalPillars } from "@/components/proposal-pascoal/proposal-pascoal-pillars";
-import { ProposalPascoalMethodology } from "@/components/proposal-pascoal/proposal-pascoal-methodology";
+import { ProposalPascoalServicePillars } from "@/components/proposal-pascoal/proposal-pascoal-service-pillars";
 import { ProposalPascoalConfigurator } from "@/components/proposal-pascoal/proposal-pascoal-configurator";
-import { ProposalPascoalClosing } from "@/components/proposal-pascoal/proposal-pascoal-closing";
 
 /**
  * Proposta de Continuidade — Pascoal Bombas.
@@ -12,12 +10,12 @@ import { ProposalPascoalClosing } from "@/components/proposal-pascoal/proposal-p
  * URL pública: `/clients/pascoal/public/proposta` (ver rewrite `beforeFiles` em
  * `next.config.mjs`). Rota, componentes (`components/proposal-pascoal/**`) e tipos
  * (`lib/pascoal-proposal/types.ts`) totalmente próprios — zero import de código usado pela
- * Elenita (`components/proposal/**`, `lib/clients/proposal-types.ts`).
+ * Elenita ou de qualquer coisa da Prospecção (`/clients/pascoal/public/prospeccao`, intocada).
  *
- * Estrutura (atualização cirúrgica — "Operação de conteúdo" e "Estratégia de aquisição" foram
- * removidas e substituídas pelos 3 blocos de metodologia):
- * Hero → Nossos serviços (pilares) → Metodologia (Assessoria/Posicionamento/Aquisição) →
- * Configurador → Closing.
+ * Estrutura (evolução premium — pedido explícito): Hero → 3 pilares de serviço → Configurador de
+ * plano (que já inclui resumo dinâmico + CTA de WhatsApp). O antigo bloco de closing textual
+ * ("O próximo passo é agora.") foi removido sem substituto — a página termina concentrada no
+ * configurador.
  */
 export const metadata: Metadata = {
   title: pascoalProposal.metaTitle,
@@ -31,10 +29,8 @@ export default function PascoalPropostaPage() {
   return (
     <main className="min-h-screen bg-black">
       <ProposalPascoalHero content={pascoalProposal.hero} accent={accent} />
-      <ProposalPascoalPillars intro={pascoalProposal.pillarsIntro} pillars={pascoalProposal.pillars} accent={accent} />
-      <ProposalPascoalMethodology blocks={pascoalProposal.methodology} accent={accent} />
-      <ProposalPascoalConfigurator content={pascoalProposal.configurator} accent={accent} />
-      <ProposalPascoalClosing content={pascoalProposal.closing} brandName={pascoalProposal.brandName} />
+      <ProposalPascoalServicePillars intro={pascoalProposal.pillarsIntro} pillars={pascoalProposal.servicePillars} accent={accent} />
+      <ProposalPascoalConfigurator content={pascoalProposal} accent={accent} />
     </main>
   );
 }
