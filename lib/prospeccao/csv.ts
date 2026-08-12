@@ -1,6 +1,7 @@
+import { normalizeInstagram } from "@/lib/prospeccao/template";
 import type { AderenciaIcp, Oficina, OficinaFonte, ParsedOficinaRow } from "@/lib/prospeccao/types";
 
-type CsvField = "nome" | "whatsapp" | "responsavel" | "cidade" | "bairro" | "endereco" | "segmento" | "whatsappLink" | "aderenciaIcp" | "fonte" | "observacoes";
+type CsvField = "nome" | "whatsapp" | "responsavel" | "cidade" | "bairro" | "endereco" | "segmento" | "whatsappLink" | "instagram" | "aderenciaIcp" | "fonte" | "observacoes";
 
 /**
  * Cabeçalhos aceitos por campo — casados sem acento/maiúscula pra mapear automaticamente.
@@ -17,6 +18,7 @@ const HEADER_ALIASES: Record<CsvField, string[]> = {
   endereco: ["endereco", "endereço"],
   segmento: ["segmento", "segmento/atividade", "atividade", "ramo"],
   whatsappLink: ["whatsapp (link)", "link whatsapp", "whatsapp link", "wa.me"],
+  instagram: ["instagram", "instagram (link)", "link instagram", "@instagram"],
   aderenciaIcp: ["aderencia icp", "aderência icp", "icp"],
   fonte: ["fonte"],
   observacoes: ["observacoes", "observações", "obs"],
@@ -169,6 +171,7 @@ export function parseOficinasCsv(text: string, existing: Oficina[]): ParsedOfici
       endereco: cell(cells, "endereco"),
       segmento: cell(cells, "segmento"),
       whatsappLink: cell(cells, "whatsappLink"),
+      instagram: normalizeInstagram(cell(cells, "instagram")),
       aderenciaIcp: ICP_ALIASES[icpRaw] ?? "nao_classificado",
       fonte: FONTE_ALIASES[fonteRaw] ?? "Manual",
       observacoes: cell(cells, "observacoes"),

@@ -42,6 +42,8 @@ export type Oficina = {
   whatsapp: string;
   /** Link wa.me pronto quando o número já foi validado como celular/WhatsApp; "" quando não. */
   whatsappLink: string;
+  /** URL completa do perfil (ex.: "https://instagram.com/oficinaxyz"); "" quando não encontrado. */
+  instagram: string;
   aderenciaIcp: AderenciaIcp;
   fonte: OficinaFonte;
   observacoes: string;
@@ -59,6 +61,7 @@ export type OficinaInput = {
   cidade: string;
   responsavel: string;
   whatsapp: string;
+  instagram: string;
   observacoes: string;
   status: OficinaStage;
   aderenciaIcp: AderenciaIcp;
@@ -68,6 +71,7 @@ export type OficinaInput = {
 export type OficinaPatch = Partial<{
   responsavel: string;
   whatsapp: string;
+  instagram: string;
   observacoes: string;
   status: OficinaStage;
   nextFollowUpAt: string | null;
@@ -125,6 +129,7 @@ export type ParsedOficinaRow = {
   endereco: string;
   segmento: string;
   whatsappLink: string;
+  instagram: string;
   aderenciaIcp: AderenciaIcp;
   fonte: OficinaFonte;
   observacoes: string;

@@ -94,6 +94,7 @@ function reducer(state: Oficina[], action: Action): Oficina[] {
         responsavel: row.responsavel,
         whatsapp: row.whatsapp,
         whatsappLink: row.whatsappLink,
+        instagram: row.instagram,
         aderenciaIcp: row.aderenciaIcp,
         fonte: row.fonte,
         observacoes: row.observacoes,

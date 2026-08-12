@@ -35,3 +35,15 @@ export function buildWhatsAppUrl(whatsapp: string, message: string) {
 export function resolveWhatsAppNumber(oficina: Pick<Oficina, "whatsapp" | "whatsappLink">) {
   return oficina.whatsappLink || oficina.whatsapp;
 }
+
+/** Aceita "@handle", "handle" ou uma URL já pronta — sempre vira "https://instagram.com/handle". */
+export function normalizeInstagram(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  const handle = trimmed
+    .replace(/^https?:\/\/(www\.)?instagram\.com\//i, "")
+    .replace(/^@/, "")
+    .replace(/\/.*$/, "")
+    .trim();
+  return handle ? `https://instagram.com/${handle}` : "";
+}

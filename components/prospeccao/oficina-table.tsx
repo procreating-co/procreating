@@ -1,22 +1,38 @@
 "use client";
 
 import { useRef, useState, type ReactNode } from "react";
-import { ArrowDown, ArrowUp, ArrowUpDown, Check, Copy, IdCard, Pencil, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Check, Copy, IdCard, Instagram, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { OficinaFormDialog } from "@/components/prospeccao/oficina-form-dialog";
 import { StageBadge } from "@/components/prospeccao/stage-badge";
-import { IcpBadge } from "@/components/prospeccao/icp-badge";
 import { CityCell } from "@/components/prospeccao/city-cell";
 import { useOficinas } from "@/components/prospeccao/oficinas-store";
 import type { Oficina } from "@/lib/prospeccao/types";
 import { cn } from "@/lib/utils";
 
-export type OficinaSortKey = "nome" | "cidade" | "whatsapp" | "responsavel" | "aderenciaIcp" | "status";
+export type OficinaSortKey = "nome" | "cidade" | "whatsapp" | "responsavel" | "instagram" | "status";
 export type SortDir = "asc" | "desc";
 
 const COPY_FEEDBACK_MS = 1600;
+
+function InstagramCell({ url }: { url: string }) {
+  if (!url) return <span className="text-white/30">-</span>;
+  const handle = url.replace(/^https?:\/\/(www\.)?instagram\.com\//i, "").replace(/\/$/, "");
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={(e) => e.stopPropagation()}
+      className="inline-flex items-center gap-1.5 text-white/70 transition-colors hover:text-[var(--client-accent)]"
+    >
+      <Instagram className="size-3.5 shrink-0" />
+      <span className="truncate">@{handle}</span>
+    </a>
+  );
+}
 
 function CopyCelularButton({ oficina }: { oficina: Oficina }) {
   const [copied, setCopied] = useState(false);
@@ -117,8 +133,8 @@ export function OficinaTable({ oficinas, onOpenLead, sortKey, sortDir, onSort }:
             <SortableHead sortKey="responsavel" {...headProps}>
               Responsável
             </SortableHead>
-            <SortableHead sortKey="aderenciaIcp" {...headProps}>
-              Aderência
+            <SortableHead sortKey="instagram" {...headProps}>
+              Instagram
             </SortableHead>
             <SortableHead sortKey="status" {...headProps}>
               Status
@@ -138,7 +154,7 @@ export function OficinaTable({ oficinas, onOpenLead, sortKey, sortDir, onSort }:
               <TableCell className="text-white/70">{oficina.whatsapp || "-"}</TableCell>
               <TableCell className="text-white/70">{oficina.responsavel || "-"}</TableCell>
               <TableCell>
-                <IcpBadge value={oficina.aderenciaIcp} />
+                <InstagramCell url={oficina.instagram} />
               </TableCell>
               <TableCell>
                 <StageBadge status={oficina.status} />

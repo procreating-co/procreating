@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { STAGE_OPTIONS } from "@/lib/prospeccao/stages";
 import { ICP_OPTIONS } from "@/lib/prospeccao/icp";
+import { normalizeInstagram } from "@/lib/prospeccao/template";
 import type { AderenciaIcp, Oficina, OficinaInput, OficinaStage } from "@/lib/prospeccao/types";
 
 const EMPTY_INPUT: OficinaInput = {
@@ -14,6 +15,7 @@ const EMPTY_INPUT: OficinaInput = {
   cidade: "",
   responsavel: "",
   whatsapp: "",
+  instagram: "",
   observacoes: "",
   status: "contato",
   aderenciaIcp: "nao_classificado",
@@ -42,6 +44,7 @@ export function OficinaFormDialog({ open, onOpenChange, oficina, onSubmit, trigg
             cidade: oficina.cidade,
             responsavel: oficina.responsavel,
             whatsapp: oficina.whatsapp,
+            instagram: oficina.instagram,
             observacoes: oficina.observacoes,
             status: oficina.status,
             aderenciaIcp: oficina.aderenciaIcp,
@@ -52,7 +55,7 @@ export function OficinaFormDialog({ open, onOpenChange, oficina, onSubmit, trigg
 
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
-    onSubmit(input);
+    onSubmit({ ...input, instagram: normalizeInstagram(input.instagram) });
     onOpenChange(false);
   }
 
@@ -102,15 +105,26 @@ export function OficinaFormDialog({ open, onOpenChange, oficina, onSubmit, trigg
               </div>
             </div>
 
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="oficina-whatsapp">Celular</Label>
-              <Input
-                id="oficina-whatsapp"
-                value={input.whatsapp}
-                onChange={(e) => setInput((prev) => ({ ...prev, whatsapp: e.target.value }))}
-                placeholder="55 54 99911-2233"
-                required
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="oficina-whatsapp">Celular</Label>
+                <Input
+                  id="oficina-whatsapp"
+                  value={input.whatsapp}
+                  onChange={(e) => setInput((prev) => ({ ...prev, whatsapp: e.target.value }))}
+                  placeholder="55 54 99911-2233"
+                  required
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="oficina-instagram">Instagram</Label>
+                <Input
+                  id="oficina-instagram"
+                  value={input.instagram}
+                  onChange={(e) => setInput((prev) => ({ ...prev, instagram: e.target.value }))}
+                  placeholder="@perfil (opcional)"
+                />
+              </div>
             </div>
 
             <div className="flex flex-col gap-2">

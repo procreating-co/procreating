@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CalendarClock, Check, Copy, MessageCircle, Trash2 } from "lucide-react";
+import { CalendarClock, Check, Copy, Instagram, MessageCircle, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,7 +12,7 @@ import { useOficinas } from "@/components/prospeccao/oficinas-store";
 import { STAGE_OPTIONS } from "@/lib/prospeccao/stages";
 import { ICP_OPTIONS } from "@/lib/prospeccao/icp";
 import { buildProspeccaoMessage } from "@/lib/prospeccao/mock-data";
-import { buildWhatsAppUrl, resolveWhatsAppNumber } from "@/lib/prospeccao/template";
+import { buildWhatsAppUrl, normalizeInstagram, resolveWhatsAppNumber } from "@/lib/prospeccao/template";
 import type { AderenciaIcp, Oficina, OficinaStage } from "@/lib/prospeccao/types";
 
 function formatDate(iso: string | null) {
@@ -39,6 +39,7 @@ export function useLeadFicha(oficina: Oficina | null) {
 
   const [responsavel, setResponsavel] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
+  const [instagram, setInstagram] = useState("");
   const [status, setStatus] = useState<OficinaStage>("contato");
   const [aderenciaIcp, setAderenciaIcp] = useState<AderenciaIcp>("nao_classificado");
   const [observacoes, setObservacoes] = useState("");
@@ -50,6 +51,7 @@ export function useLeadFicha(oficina: Oficina | null) {
     if (!oficina) return;
     setResponsavel(oficina.responsavel);
     setWhatsapp(oficina.whatsapp);
+    setInstagram(oficina.instagram);
     setStatus(oficina.status);
     setAderenciaIcp(oficina.aderenciaIcp);
     setObservacoes(oficina.observacoes);
@@ -60,6 +62,7 @@ export function useLeadFicha(oficina: Oficina | null) {
     oficina &&
       (responsavel !== oficina.responsavel ||
         whatsapp !== oficina.whatsapp ||
+        instagram !== oficina.instagram ||
         status !== oficina.status ||
         aderenciaIcp !== oficina.aderenciaIcp ||
         observacoes !== oficina.observacoes ||
@@ -71,6 +74,7 @@ export function useLeadFicha(oficina: Oficina | null) {
     patchOficina(oficina.id, {
       responsavel,
       whatsapp,
+      instagram: normalizeInstagram(instagram),
       status,
       aderenciaIcp,
       observacoes,
@@ -90,6 +94,8 @@ export function useLeadFicha(oficina: Oficina | null) {
     setResponsavel,
     whatsapp,
     setWhatsapp,
+    instagram,
+    setInstagram,
     status,
     setStatus,
     aderenciaIcp,
@@ -149,6 +155,14 @@ export function LeadFichaBody({ oficina, ficha, onDeleted }: { oficina: Oficina;
             {ficha.copied ? <Check className="size-4 text-emerald-400" /> : <Copy className="size-4" />}
             {ficha.copied ? "Copiado" : "Copiar mensagem"}
           </Button>
+          {oficina.instagram && (
+            <Button asChild size="sm" variant="outline" className="gap-2 border-white/15 bg-transparent text-white hover:bg-white/10">
+              <a href={oficina.instagram} target="_blank" rel="noopener noreferrer">
+                <Instagram className="size-4" />
+                Abrir Instagram
+              </a>
+            </Button>
+          )}
           <Button type="button" size="sm" variant="outline" className="gap-2 border-white/15 bg-transparent text-white hover:bg-white/10" onClick={ficha.logFollowUp}>
             <CalendarClock className="size-4" />
             Registrar follow-up
@@ -181,6 +195,17 @@ export function LeadFichaBody({ oficina, ficha, onDeleted }: { oficina: Oficina;
           <div className="flex flex-col gap-2">
             <Label htmlFor="lead-whatsapp">Celular</Label>
             <Input id="lead-whatsapp" value={ficha.whatsapp} onChange={(e) => ficha.setWhatsapp(e.target.value)} className="border-white/15 bg-white/[0.03] text-white" />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="lead-instagram">Instagram</Label>
+            <Input
+              id="lead-instagram"
+              value={ficha.instagram}
+              onChange={(e) => ficha.setInstagram(e.target.value)}
+              placeholder="@perfil ou link"
+              className="border-white/15 bg-white/[0.03] text-white"
+            />
           </div>
 
           <div className="flex flex-col gap-2">

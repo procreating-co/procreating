@@ -56,8 +56,8 @@ export function OficinaImportDialog({ open, onOpenChange }: { open: boolean; onO
         <DialogHeader>
           <DialogTitle>Importar oficinas</DialogTitle>
           <DialogDescription>
-            Suba um CSV com nome, celular e responsável — cidade, bairro, endereço, segmento, aderência ICP e fonte
-            também são reconhecidos quando presentes. Mapeamos as colunas automaticamente pelo cabeçalho.
+            Suba um CSV com nome, celular e responsável — cidade, bairro, endereço, segmento, Instagram, aderência
+            ICP e fonte também são reconhecidos quando presentes. Mapeamos as colunas automaticamente pelo cabeçalho.
           </DialogDescription>
         </DialogHeader>
 

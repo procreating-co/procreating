@@ -11,7 +11,7 @@ import { LeadDetailModal } from "@/components/prospeccao/lead-detail-modal";
 import { Pagination } from "@/components/prospeccao/pagination";
 import { useOficinas } from "@/components/prospeccao/oficinas-store";
 import { STAGE_OPTIONS, STAGE_ORDER } from "@/lib/prospeccao/stages";
-import { ICP_ORDER, ICP_OPTIONS } from "@/lib/prospeccao/icp";
+import { ICP_OPTIONS } from "@/lib/prospeccao/icp";
 import type { AderenciaIcp, Oficina, OficinaStage } from "@/lib/prospeccao/types";
 
 const DEFAULT_PAGE_SIZE = 50;
@@ -39,8 +39,17 @@ function compareOficinas(a: Oficina, b: Oficina, key: OficinaSortKey, dir: SortD
       return compareStrings(a.whatsapp, b.whatsapp, dir);
     case "responsavel":
       return compareStrings(a.responsavel, b.responsavel, dir);
-    case "aderenciaIcp":
-      return compareByOrder(a.aderenciaIcp, b.aderenciaIcp, ICP_ORDER, dir);
+    case "instagram": {
+      // Quem tem Instagram vem primeiro (ordem "asc") — é o que a equipe quer pra priorizar
+      // contato visual antes do WhatsApp frio. "desc" inverte, útil pra achar quem falta.
+      const aHas = Boolean(a.instagram);
+      const bHas = Boolean(b.instagram);
+      if (aHas !== bHas) {
+        const hasFirst = aHas ? -1 : 1;
+        return dir === "asc" ? hasFirst : -hasFirst;
+      }
+      return compareStrings(a.instagram, b.instagram, dir);
+    }
     case "status":
       return compareByOrder(a.status, b.status, STAGE_ORDER, dir);
     default:
@@ -69,7 +78,8 @@ export function OficinasView() {
         oficina.nome.toLowerCase().includes(normalizedQuery) ||
         oficina.whatsapp.toLowerCase().includes(normalizedQuery) ||
         oficina.responsavel.toLowerCase().includes(normalizedQuery) ||
-        oficina.cidade.toLowerCase().includes(normalizedQuery);
+        oficina.cidade.toLowerCase().includes(normalizedQuery) ||
+        oficina.instagram.toLowerCase().includes(normalizedQuery);
       const matchesStatus = statusFilter === "todos" || oficina.status === statusFilter;
       const matchesIcp = icpFilter === "todos" || oficina.aderenciaIcp === icpFilter;
       return matchesQuery && matchesStatus && matchesIcp;
