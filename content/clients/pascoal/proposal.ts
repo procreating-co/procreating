@@ -45,6 +45,13 @@ import type { PascoalProposalContent } from "@/lib/pascoal-proposal/types";
  * com a fórmula de custo agora dada e nenhum deles bate matematicamente com nenhuma combinação
  * real (o mais próximo, 2 perfis × 4 vídeos, dá R$7.240, não R$4.860) — tratados como texto
  * ilustrativo de mockup, não como preço a fixar. Sinalizado de novo aqui por transparência.
+ *
+ * FLUXO CONVERSACIONAL (esta rodada): a Pergunta 3 ("frequência de publicação") do pedido é
+ * sempre listada na sequência, mas com 2 perfis só existe 1 combinação de preço válida (4
+ * vídeos/perfil — 2×8 não é oferecido, ver acima). Por isso, quando a Pergunta 1 = "2 perfis", a
+ * Pergunta 3 é pulada silenciosamente (cadência fixada em "1 vídeo por semana"/4 vídeos) em vez
+ * de expor uma opção ("2 vídeos por semana") que não tem preço válido — mesma lógica de "pular
+ * pergunta cujo resultado já está implícito" que o próprio pedido usa pra Pergunta 2 com 2 perfis.
  * ═══════════════════════════════════════════════════════════════════════════════════════════
  */
 export const pascoalProposal: PascoalProposalContent = {
@@ -101,61 +108,80 @@ export const pascoalProposal: PascoalProposalContent = {
   ],
 
   configurator: {
-    eyebrow: "Seu orçamento",
-    heading: "Seu Orçamento",
-    subheading: "Escolha o que sua operação precisa — o valor se ajusta em tempo real.",
     baseLabel: "Assessoria de Marketing",
     basePrice: 3500,
+    matrixPrices: [
+      { perfilCount: 1, videos: 4, price: 4270 },
+      { perfilCount: 1, videos: 8, price: 5810 },
+      { perfilCount: 2, videos: 4, price: 7240 },
+      // 2 perfis × 8 vídeos/perfil não é oferecido — ver memória de cálculo no topo do arquivo.
+    ],
+    perfis: [
+      { id: "zona-sul", name: "Pascoal Zona Sul", description: "Estratégia específica para o público da Zona Sul." },
+      { id: "zona-norte", name: "Pascoal Zona Norte", description: "Estratégia específica para o público da Zona Norte." },
+      { id: "julia", name: "Perfil Expert — Julia Brigidio", description: "Estratégia de posicionamento, autoridade e aquisição.", exclusiveToCompleto: true },
+    ],
+    growthFronts: [
+      { id: "trafego-pago", label: "Gestão de Tráfego Pago", price: 500 },
+      { id: "prospeccao-ativa", label: "Prospecção Ativa de Empresas", price: 1500 },
+    ],
 
-    content: {
-      stepLabel: "Etapa 1",
-      moduleLabel: "Plano de Posicionamento",
-      moduleBenefit: "Transforme estratégia em presença digital consistente.",
-      perfis: [
-        { id: "zona-sul", name: "Pascoal Zona Sul", description: "Estratégia específica para o público da Zona Sul." },
-        { id: "zona-norte", name: "Pascoal Zona Norte", description: "Estratégia específica para o público da Zona Norte." },
-        { id: "julia", name: "Perfil Expert — Julia Brigidio", description: "Estratégia de posicionamento, autoridade e aquisição.", exclusiveToCompleto: true },
-      ],
-      videoOptions: [
-        { value: 4, label: "04 vídeos" },
-        { value: 8, label: "08 vídeos" },
-      ],
-      matrixPrices: [
-        { perfilCount: 1, videos: 4, price: 4270 },
-        { perfilCount: 1, videos: 8, price: 5810 },
-        { perfilCount: 2, videos: 4, price: 7240 },
-        // 2 perfis × 8 vídeos/perfil não é oferecido — ver memória de cálculo no topo do arquivo.
-      ],
-      planoCompleto: {
-        sectionTitle: "Uma operação. 03 perfis. Uma estratégia integrada.",
-        headline: "Plano Completo",
-        description: "Tudo o que sua operação precisa para posicionamento, conteúdo, tráfego e aquisição — em uma única estrutura.",
-        conditionNote: "Condição especial para operação com 03 perfis.",
-        price: 7000,
-        perfis: [
-          { id: "zona-sul", name: "Pascoal Zona Sul", description: "Estratégia específica para o público da Zona Sul." },
-          { id: "zona-norte", name: "Pascoal Zona Norte", description: "Estratégia específica para o público da Zona Norte." },
-          { id: "julia", name: "Perfil Expert — Julia Brigidio", description: "Estratégia de posicionamento, autoridade e aquisição.", exclusiveToCompleto: true },
+    // Copy das perguntas — verbatim do pedido.
+    questions: {
+      scope: {
+        question: "Quantos perfis você quer estruturar?",
+        options: [
+          { label: "1 perfil", value: "1" },
+          { label: "2 perfis", value: "2" },
+          { label: "3 ou mais", value: "3+" },
         ],
-        videosTotal: 12,
-        videosNote: "12 conteúdos estratégicos distribuídos entre 3 operações diferentes.",
-        trafficFollowersNote: "Ganho de seguidores — nos 3 perfis.",
-        trafficLeadsNote: "Leads e Mensagens — apenas 1 perfil.",
-        mediaInvestment: 1800,
-        mediaNote: "Mídia paga não inclusa. O investimento é realizado diretamente no Meta Ads.",
-        acquisitionNote: "Aquisição de Empresas — 1 perfil. Gestão de prospecção ativa e aquisição B2B.",
-        rateioNote: "Estrutura completa dos 3 perfis.",
+      },
+      perfil: {
+        question: "Qual perfil você quer estruturar?",
+        options: [
+          { label: "Pascoal Zona Sul", value: "zona-sul" },
+          { label: "Pascoal Zona Norte", value: "zona-norte" },
+        ],
+      },
+      cadence: {
+        question: "Com que frequência você quer publicar?",
+        options: [
+          { label: "1 vídeo por semana", value: "1x" },
+          { label: "2 vídeos por semana", value: "2x" },
+        ],
+      },
+      intent: {
+        question: "O que você mais precisa agora?",
+        options: [
+          { label: "Mais visibilidade", value: "visibilidade" },
+          { label: "Mais clientes e vendas", value: "vendas" },
+          { label: "As duas coisas", value: "ambas" },
+          { label: "Nenhum por enquanto", value: "nenhum" },
+        ],
+      },
+      upsell: {
+        question: "Sua operação está crescendo para um terceiro perfil?",
+        options: [
+          { label: "Sim, quero conhecer o Plano Completo", value: "sim" },
+          { label: "Não, seguir com a estrutura atual", value: "nao" },
+        ],
       },
     },
 
-    growth: {
-      stepLabel: "Etapa 2",
-      moduleLabel: "Aceleração de Aquisição",
-      lockedNote: "Disponível depois que a Etapa 1 for respondida.",
-      fronts: [
-        { id: "trafego-pago", label: "Gestão de Tráfego Pago", benefit: "Amplie o alcance da marca com campanhas segmentadas e otimizadas.", price: 500 },
-        { id: "prospeccao-ativa", label: "Prospecção Ativa de Empresas", benefit: "Uma estratégia ativa de conexão com empresas com potencial de negócio.", price: 1500 },
-      ],
+    completo: {
+      headline: "Uma operação. 03 perfis. Uma estratégia integrada.",
+      description: "Pascoal Zona Sul, Pascoal Zona Norte e Perfil Expert — Julia Brigidio, cada um com estratégia própria.",
+      detailsLine: "12 vídeos/mês · Tráfego para seguidores nos 3 perfis · Leads e Mensagens em 1 perfil · Aquisição de Empresas em 1 perfil.",
+      price: 7000,
+      mediaInvestment: 1800,
+      mediaNote: "Mídia paga (Meta Ads) não inclusa — investimento recomendado de R$ 1.800/mês, feito diretamente na plataforma.",
+      chooseLabel: "Quero o Plano Completo",
+      backLabel: "Voltar e montar manualmente",
+    },
+
+    summary: {
+      heading: "Sua estrutura",
+      mediaWarning: "Mídia paga (Meta Ads) não inclusa — investimento à parte, feito diretamente na plataforma.",
     },
   },
 
@@ -167,9 +193,7 @@ export const pascoalProposal: PascoalProposalContent = {
   },
 
   cta: {
-    label: "Quero avançar com este plano",
+    label: "Fechar proposta",
     note: "Seu escopo será enviado diretamente para nossa equipe.",
-    confirmationHeading: "Seu plano está pronto.",
-    confirmationSubheading: "Você está avançando com esta estrutura:",
   },
 };

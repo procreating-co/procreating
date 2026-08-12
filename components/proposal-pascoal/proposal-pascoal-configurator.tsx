@@ -2,14 +2,57 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, MessageCircle, Lock } from "lucide-react";
-import { ProposalPascoalConfiguratorMatrix, type MatrixSelection } from "@/components/proposal-pascoal/proposal-pascoal-configurator-matrix";
-import { ProposalPascoalConfiguratorCompleto } from "@/components/proposal-pascoal/proposal-pascoal-configurator-completo";
-import type { PascoalProposalContent, VideoCadence } from "@/lib/pascoal-proposal/types";
+import { Check, MessageCircle, Pencil } from "lucide-react";
+import type { PascoalProposalContent, PerfilId } from "@/lib/pascoal-proposal/types";
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
-/** Um dígito do odômetro/roleta — coluna de 0-9 que desliza verticalmente. ~500ms, tween (não spring lento). */
+type Screen = "q1" | "q2" | "q3" | "q4" | "q5" | "completo" | "summary";
+type AnswerKey = "scope" | "perfil" | "cadence" | "intent" | "upsell";
+
+type Answers = {
+  scope: "1" | "2" | "3+" | null;
+  perfil: PerfilId | null;
+  cadence: "1x" | "2x" | null;
+  intent: "visibilidade" | "vendas" | "ambas" | "nenhum" | null;
+  upsell: "sim" | "nao" | null;
+  completoChosen: boolean;
+};
+
+const EMPTY_ANSWERS: Answers = { scope: null, perfil: null, cadence: null, intent: null, upsell: null, completoChosen: false };
+
+function perfilCountFrom(answers: Answers): 0 | 1 | 2 {
+  if (answers.scope === "1") return 1;
+  if (answers.scope === "2") return 2;
+  return 0;
+}
+
+function priceIsVisible(answers: Answers): boolean {
+  const count = perfilCountFrom(answers);
+  if (count === 2) return true; // preço já fica implícito assim que os 2 perfis são confirmados (cadência é a única possível)
+  if (count === 1) return answers.cadence !== null;
+  return false;
+}
+
+function computeTotal(content: PascoalProposalContent, answers: Answers): number {
+  const { configurator } = content;
+  if (answers.completoChosen) return configurator.completo.price;
+
+  const count = perfilCountFrom(answers);
+  let base = configurator.basePrice;
+  if (count > 0) {
+    const videos = count === 2 ? 4 : answers.cadence === "2x" ? 8 : 4;
+    base = configurator.matrixPrices.find((p) => p.perfilCount === count && p.videos === videos)?.price ?? configurator.basePrice;
+  }
+
+  let total = base;
+  const fronts = configurator.growthFronts;
+  if (answers.intent === "visibilidade" || answers.intent === "ambas") total += fronts.find((f) => f.id === "trafego-pago")?.price ?? 0;
+  if (answers.intent === "vendas" || answers.intent === "ambas") total += fronts.find((f) => f.id === "prospeccao-ativa")?.price ?? 0;
+  return total;
+}
+
+/** Um dígito do odômetro/roleta — coluna de 0-9 que desliza verticalmente. ~500ms. */
 function OdometerDigit({ digit }: { digit: string }) {
   if (!/[0-9]/.test(digit)) return <span className="inline-block">{digit}</span>;
   const value = Number(digit);
@@ -26,76 +69,205 @@ function OdometerDigit({ digit }: { digit: string }) {
   );
 }
 
-function TotalValue({ value }: { value: number }) {
+function OdometerValue({ value }: { value: number }) {
   return <span className="inline-flex">{currency.format(value).split("").map((char, i) => <OdometerDigit key={i} digit={char} />)}</span>;
 }
 
-function findMatrixPrice(content: PascoalProposalContent, perfilCount: 1 | 2, videos: VideoCadence): number | undefined {
-  return content.configurator.content.matrixPrices.find((p) => p.perfilCount === perfilCount && p.videos === videos)?.price;
+/** Rótulo curto pra cada resposta já dada — vira breadcrumb clicável. */
+function answerLabel(content: PascoalProposalContent, key: AnswerKey, answers: Answers): string | null {
+  const q = content.configurator.questions;
+  switch (key) {
+    case "scope":
+      return answers.scope ? q.scope.options.find((o) => o.value === answers.scope)?.label ?? null : null;
+    case "perfil":
+      return answers.perfil ? q.perfil.options.find((o) => o.value === answers.perfil)?.label ?? null : null;
+    case "cadence":
+      return answers.cadence ? q.cadence.options.find((o) => o.value === answers.cadence)?.label ?? null : null;
+    case "intent":
+      return answers.intent ? q.intent.options.find((o) => o.value === answers.intent)?.label ?? null : null;
+    case "upsell":
+      return answers.upsell ? q.upsell.options.find((o) => o.value === answers.upsell)?.label ?? null : null;
+    default:
+      return null;
+  }
 }
 
-function buildWhatsAppMessage(content: PascoalProposalContent, matrix: MatrixSelection, planoCompletoActive: boolean, growth: Record<string, boolean>, total: number): string {
+function screenForKey(key: AnswerKey): Screen {
+  return { scope: "q1", perfil: "q2", cadence: "q3", intent: "q4", upsell: "q5" }[key] as Screen;
+}
+
+function buildWhatsAppMessage(content: PascoalProposalContent, answers: Answers, total: number): string {
   const { configurator, whatsapp } = content;
-  const perfilCount = matrix.perfis.length;
-  const videos = perfilCount === 2 ? 4 : matrix.videos;
   const lines: string[] = [`Olá, ${whatsapp.ceoFirstName}! Estou entrando em contato através da proposta da Pascoal Bombas e gostaria de avançar com a seguinte estrutura:`, ""];
 
-  if (planoCompletoActive) {
-    lines.push(`Plano: Plano Completo (03 perfis, incluindo Perfil Expert — Julia Brigidio)`);
-    lines.push(`Conteúdo: ${configurator.content.planoCompleto.videosTotal} vídeos no total`);
-  } else if (perfilCount > 0) {
-    const names = matrix.perfis.map((id) => configurator.content.perfis.find((p) => p.id === id)?.name).join(" + ");
-    lines.push(`Plano: ${names}`);
-    lines.push(`Conteúdo: ${videos} vídeos por perfil (${perfilCount * videos} vídeos/mês)`);
+  if (answers.completoChosen) {
+    lines.push("Plano: Plano Completo (03 perfis, incluindo Perfil Expert — Julia Brigidio)");
+    lines.push("Conteúdo: 12 vídeos no total");
   } else {
-    lines.push(`Plano: ${configurator.baseLabel}`);
+    const count = perfilCountFrom(answers);
+    if (count === 1) {
+      const perfilName = configurator.perfis.find((p) => p.id === answers.perfil)?.name ?? "";
+      lines.push(`Plano: ${perfilName}`);
+      lines.push(`Frequência: ${answers.cadence === "2x" ? "2 vídeos por semana" : "1 vídeo por semana"}`);
+    } else if (count === 2) {
+      lines.push("Plano: Pascoal Zona Sul + Pascoal Zona Norte");
+      lines.push("Frequência: 1 vídeo por semana em cada perfil");
+    } else {
+      lines.push(`Plano: ${configurator.baseLabel}`);
+    }
   }
 
-  for (const front of configurator.growth.fronts) {
-    if (growth[front.id]) lines.push(`${front.label}: selecionado`);
-  }
+  if (answers.intent === "visibilidade" || answers.intent === "ambas") lines.push("Gestão de Tráfego Pago: selecionado");
+  if (answers.intent === "vendas" || answers.intent === "ambas") lines.push("Prospecção Ativa de Empresas: selecionado");
 
   lines.push("", `Valor estimado: ${currency.format(total)}/mês`, "", "Gostaria de avançar com essa estrutura.");
   return lines.join("\n");
 }
 
+function Breadcrumb({ content, answers, onEdit, compact }: { content: PascoalProposalContent; answers: Answers; onEdit: (key: AnswerKey) => void; compact?: boolean }) {
+  const keys: AnswerKey[] = ["scope", "perfil", "cadence", "intent", "upsell"];
+  const chips = keys.map((key) => ({ key, label: answerLabel(content, key, answers) })).filter((c): c is { key: AnswerKey; label: string } => Boolean(c.label));
+
+  if (chips.length === 0) return null;
+
+  return (
+    <div className={`flex flex-wrap items-center gap-2 ${compact ? "justify-center" : "justify-center"}`}>
+      {answers.completoChosen && (
+        <span className="rounded-full px-3 py-1 font-mono text-[10px] uppercase tracking-wide" style={{ backgroundColor: `${content.accentColor}18`, color: content.accentColor }}>
+          Plano Completo
+        </span>
+      )}
+      {!answers.completoChosen &&
+        chips.map(({ key, label }) => (
+          <motion.button
+            key={key}
+            type="button"
+            onClick={() => onEdit(key)}
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.2 }}
+            className="inline-flex items-center gap-1.5 rounded-full border border-white/15 px-3 py-1 font-mono text-[10px] uppercase tracking-wide text-white/50 transition-colors duration-200 hover:border-white/30 hover:text-white/80"
+          >
+            {label}
+            <Pencil className="size-2.5" />
+          </motion.button>
+        ))}
+    </div>
+  );
+}
+
+function QuestionScreen({ question, options, onSelect }: { question: string; options: { label: string; value: string }[]; onSelect: (value: string) => void }) {
+  return (
+    <motion.div
+      key={question}
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -16 }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
+      className="flex flex-col items-center text-center"
+    >
+      <h3 className="text-balance font-display text-2xl leading-[1.15] text-white sm:text-3xl">{question}</h3>
+      <div className="mt-9 flex w-full max-w-md flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:justify-center">
+        {options.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => onSelect(option.value)}
+            className="flex-1 rounded-lg border border-white/15 px-5 py-3.5 text-sm text-white/85 transition-all duration-200 hover:border-white/35 hover:bg-white/[0.04] sm:min-w-[160px] sm:flex-none"
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    </motion.div>
+  );
+}
+
 export function ProposalPascoalConfigurator({ content, accent }: { content: PascoalProposalContent; accent: string }) {
   const { configurator, whatsapp, cta } = content;
 
-  const [matrix, setMatrix] = useState<MatrixSelection>({ perfis: [], videos: 4, editing: false });
-  const [planoCompletoActive, setPlanoCompletoActive] = useState(false);
-  const [growth, setGrowth] = useState<Record<string, boolean>>({});
+  const [screen, setScreen] = useState<Screen>("q1");
+  const [history, setHistory] = useState<Screen[]>(["q1"]);
+  const [answers, setAnswers] = useState<Answers>(EMPTY_ANSWERS);
   const [ctaState, setCtaState] = useState<"idle" | "confirming">("idle");
 
-  const perfilCount = matrix.perfis.length;
-  const step1Answered = perfilCount > 0 || planoCompletoActive;
-  const matrixVideos = perfilCount === 2 ? 4 : matrix.videos;
-  const matrixPrice = perfilCount > 0 ? findMatrixPrice(content, perfilCount as 1 | 2, matrixVideos) : undefined;
+  const total = computeTotal(content, answers);
+  const priceVisible = priceIsVisible(answers) || answers.completoChosen;
+  const answeredCount = ["scope", "perfil", "cadence", "intent", "upsell"].filter((k) => answers[k as AnswerKey] !== null).length;
+  const progress = Math.min(1, (answeredCount + (screen === "summary" ? 1 : 0)) / 4);
 
-  const baseValue = planoCompletoActive ? configurator.content.planoCompleto.price : perfilCount > 0 ? matrixPrice ?? configurator.basePrice : configurator.basePrice;
-  const growthSum = configurator.growth.fronts.reduce((sum, f) => sum + (growth[f.id] ? f.price : 0), 0);
-  const total = baseValue + growthSum;
-
-  const activeFronts = configurator.growth.fronts.filter((f) => growth[f.id]);
-  const hasExpandedScope = step1Answered || activeFronts.length > 0;
-
-  const planLabel = planoCompletoActive
-    ? configurator.content.planoCompleto.headline
-    : perfilCount > 0
-      ? `${configurator.content.moduleLabel} · ${perfilCount === 1 ? "01 Oficina" : "02 Oficinas"} · ${(perfilCount * matrixVideos).toString().padStart(2, "0")} vídeos/mês`
-      : configurator.baseLabel;
-
-  const selectPlanoCompleto = () => {
-    setMatrix({ perfis: [], videos: 4, editing: false });
-    setPlanoCompletoActive(true);
+  const goTo = (next: Screen) => {
+    setHistory((h) => [...h, next]);
+    setScreen(next);
   };
-  const backFromCompleto = () => setPlanoCompletoActive(false);
-  const toggleFront = (id: string) => setGrowth((c) => ({ ...c, [id]: !c[id] }));
+
+  const goBack = () => {
+    setHistory((h) => {
+      if (h.length <= 1) return h;
+      const nh = h.slice(0, -1);
+      setScreen(nh[nh.length - 1]);
+      return nh;
+    });
+  };
+
+  const editFrom = (key: AnswerKey) => {
+    setAnswers((a) => {
+      const next = { ...a };
+      const order: AnswerKey[] = ["scope", "perfil", "cadence", "intent", "upsell"];
+      const from = order.indexOf(key);
+      order.slice(from).forEach((k) => {
+        (next[k] as unknown) = null;
+      });
+      next.completoChosen = false;
+      return next;
+    });
+    const target = screenForKey(key);
+    setHistory((h) => {
+      const idx = h.lastIndexOf(target);
+      return idx >= 0 ? h.slice(0, idx + 1) : [target];
+    });
+    setScreen(target);
+  };
+
+  const answerScope = (value: string) => {
+    const scope = value as Answers["scope"];
+    setAnswers((a) => ({ ...a, scope }));
+    if (scope === "3+") goTo("completo");
+    else if (scope === "1") goTo("q2");
+    else goTo("q4"); // "2" — pula Q2 (implícito) e Q3 (única cadência válida com 2 perfis)
+  };
+
+  const answerPerfil = (value: string) => {
+    setAnswers((a) => ({ ...a, perfil: value as PerfilId }));
+    goTo("q3");
+  };
+
+  const answerCadence = (value: string) => {
+    setAnswers((a) => ({ ...a, cadence: value as Answers["cadence"] }));
+    goTo("q4");
+  };
+
+  const answerIntent = (value: string) => {
+    setAnswers((a) => ({ ...a, intent: value as Answers["intent"] }));
+    if (answers.scope === "2") goTo("q5");
+    else goTo("summary");
+  };
+
+  const answerUpsell = (value: string) => {
+    setAnswers((a) => ({ ...a, upsell: value as Answers["upsell"] }));
+    if (value === "sim") goTo("completo");
+    else goTo("summary");
+  };
+
+  const chooseCompleto = () => {
+    setAnswers((a) => ({ ...a, completoChosen: true }));
+    goTo("summary");
+  };
 
   const handleCta = () => {
     if (ctaState === "confirming") return;
     setCtaState("confirming");
-    const message = buildWhatsAppMessage(content, matrix, planoCompletoActive, growth, total);
+    const message = buildWhatsAppMessage(content, answers, total);
     window.setTimeout(() => {
       window.open(`https://wa.me/${whatsapp.phoneDigits}?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
       setCtaState("idle");
@@ -104,117 +276,99 @@ export function ProposalPascoalConfigurator({ content, accent }: { content: Pasc
 
   return (
     <section id="configurador" className="scroll-mt-20 border-t border-white/10 bg-black px-6 py-24 text-white lg:px-12 lg:py-32">
-      <div className="mx-auto max-w-3xl">
-        <p className="mb-4 text-center font-mono text-xs uppercase tracking-wide text-white/45">{configurator.eyebrow}</p>
-        <h2 className="text-balance text-center font-display text-3xl leading-[1.05] tracking-tight text-white sm:text-4xl">{configurator.heading}</h2>
-        <p className="mx-auto mt-3 max-w-md text-balance text-center text-sm text-white/50">{configurator.subheading}</p>
+      <div className="mx-auto max-w-2xl">
+        {/* Indicador de progresso mínimo — barra fina, sem nomear etapas */}
+        {screen !== "summary" && (
+          <div className="mb-10 h-px w-full bg-white/10">
+            <motion.div className="h-full" style={{ backgroundColor: accent }} animate={{ width: `${progress * 100}%` }} transition={{ duration: 0.3, ease: "easeOut" }} />
+          </div>
+        )}
 
-        {/* Resumo fixo — contexto ACIMA do preço, /mês na mesma linha, roleta em toda mudança */}
-        <div
-          className="relative mt-10 overflow-hidden border border-white/15 px-6 py-12 text-center sm:px-10"
-          style={{ background: `radial-gradient(ellipse 120% 100% at 50% 0%, ${accent}12, transparent 60%), rgba(255,255,255,0.02)`, boxShadow: `0 40px 80px -40px ${accent}20` }}
-        >
-          <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-white/40">Investimento mensal</span>
-          <AnimatePresence mode="wait">
-            <motion.p key={planLabel} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.25 }} className="mt-3 text-sm text-white/70">
-              {planLabel}
-            </motion.p>
-          </AnimatePresence>
-          <p className="mt-3 flex items-baseline justify-center gap-2 font-display text-5xl tabular-nums text-white sm:text-6xl">
-            <TotalValue value={total} />
-            <span className="font-mono text-base font-normal text-white/40">/mês</span>
-          </p>
-
-          {activeFronts.length > 0 && (
-            <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
-              {activeFronts.map((f) => (
-                <motion.span key={f.id} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="rounded-full px-3 py-1 font-mono text-[10px] uppercase tracking-wide" style={{ backgroundColor: `${accent}18`, color: accent }}>
-                  {f.label}
-                </motion.span>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Etapa 1 — Plano de Posicionamento (matriz) ou Plano Completo */}
-        <div className="mt-12">
-          <p className="mb-3 font-mono text-[10px] uppercase tracking-wide text-white/35">{configurator.content.stepLabel} · {configurator.content.moduleLabel}</p>
-          <AnimatePresence mode="wait" initial={false}>
-            {planoCompletoActive ? (
-              <ProposalPascoalConfiguratorCompleto key="completo" content={content} accent={accent} onBack={backFromCompleto} />
-            ) : (
-              <motion.div key="matrix" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
-                <ProposalPascoalConfiguratorMatrix content={content} accent={accent} selection={matrix} onChange={setMatrix} onSelectPlanoCompleto={selectPlanoCompleto} />
+        {/* Preço — invisível até a primeira resposta com valor, depois flutua discreto num canto */}
+        <div className="relative">
+          <AnimatePresence>
+            {priceVisible && screen !== "summary" && screen !== "completo" && (
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.4 }}
+                className="absolute -top-2 right-0 flex flex-col items-end"
+              >
+                <span className="font-mono text-[9px] uppercase tracking-wide text-white/30">Investimento</span>
+                <span className="font-display tabular-nums text-white" style={{ fontSize: answeredCount >= 4 ? "1.5rem" : "1.125rem" }}>
+                  <OdometerValue value={total} />
+                  <span className="ml-1 font-mono text-[10px] font-normal text-white/35">/mês</span>
+                </span>
               </motion.div>
             )}
           </AnimatePresence>
-        </div>
 
-        {/* Etapa 2 — Aceleração de Aquisição, bloqueada até a Etapa 1 ser respondida */}
-        <div className="mt-10">
-          <p className="mb-3 font-mono text-[10px] uppercase tracking-wide text-white/35">
-            {configurator.growth.stepLabel} · {configurator.growth.moduleLabel}
-          </p>
-
-          {!step1Answered ? (
-            <div className="flex items-center gap-3 border border-dashed border-white/10 px-5 py-4 text-white/30">
-              <Lock className="size-3.5 shrink-0" />
-              <p className="text-xs">{configurator.growth.lockedNote}</p>
+          {screen !== "summary" && (
+            <div className="mb-8">
+              <Breadcrumb content={content} answers={answers} onEdit={editFrom} />
             </div>
-          ) : (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: "easeOut" }} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {configurator.growth.fronts.map((front) => {
-                const active = Boolean(growth[front.id]);
-                return (
-                  <button
-                    key={front.id}
-                    type="button"
-                    onClick={() => toggleFront(front.id)}
-                    aria-pressed={active}
-                    className="flex flex-col items-start gap-3 border p-5 text-left transition-all duration-300"
-                    style={{ borderColor: active ? accent : "rgba(255,255,255,0.1)", backgroundColor: active ? `${accent}0d` : "transparent" }}
-                  >
-                    <div className="flex w-full items-start justify-between gap-3">
-                      <span className="flex size-5 shrink-0 items-center justify-center rounded-full border transition-all duration-200" style={{ backgroundColor: active ? accent : "transparent", borderColor: active ? accent : "rgba(255,255,255,0.25)" }}>
-                        {active && <Check className="size-3 text-black" />}
-                      </span>
-                      {active ? (
-                        <span className="inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-wide" style={{ color: accent }}>
-                          <Check className="size-3.5" /> Adicionado
-                        </span>
-                      ) : (
-                        <span className="font-mono text-xs text-white/40">+ {currency.format(front.price)}/mês</span>
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-sm text-white/85">{front.label}</p>
-                      <p className="mt-1 text-xs leading-relaxed text-white/40">{front.benefit}</p>
-                    </div>
-                  </button>
-                );
-              })}
-            </motion.div>
           )}
-        </div>
 
-        {/* CTA final — só aparece com escopo além da estrutura inicial */}
-        <AnimatePresence initial={false}>
-          {hasExpandedScope && (
-            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.4, ease: "easeOut" }} className="overflow-hidden">
-              <div className="mt-14 flex flex-col items-center border-t border-white/10 pt-12 text-center">
-                <p className="font-mono text-xs uppercase tracking-wide text-white/40">{cta.confirmationHeading}</p>
-                <p className="mt-1 max-w-sm text-balance text-sm text-white/55">{cta.confirmationSubheading}</p>
+          <AnimatePresence mode="wait">
+            {screen === "q1" && <QuestionScreen key="q1" question={configurator.questions.scope.question} options={configurator.questions.scope.options} onSelect={answerScope} />}
+            {screen === "q2" && <QuestionScreen key="q2" question={configurator.questions.perfil.question} options={configurator.questions.perfil.options} onSelect={answerPerfil} />}
+            {screen === "q3" && <QuestionScreen key="q3" question={configurator.questions.cadence.question} options={configurator.questions.cadence.options} onSelect={answerCadence} />}
+            {screen === "q4" && <QuestionScreen key="q4" question={configurator.questions.intent.question} options={configurator.questions.intent.options} onSelect={answerIntent} />}
+            {screen === "q5" && <QuestionScreen key="q5" question={configurator.questions.upsell.question} options={configurator.questions.upsell.options} onSelect={answerUpsell} />}
+
+            {screen === "completo" && (
+              <motion.div key="completo" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }} transition={{ duration: 0.3, ease: "easeOut" }} className="border-2 p-6 text-center sm:p-8" style={{ borderColor: accent }}>
+                <h3 className="text-balance font-display text-2xl text-white sm:text-3xl">{configurator.completo.headline}</h3>
+                <p className="mx-auto mt-3 max-w-sm text-balance text-sm leading-relaxed text-white/60">{configurator.completo.description}</p>
+                <p className="mx-auto mt-4 max-w-sm text-balance text-xs leading-relaxed text-white/40">{configurator.completo.detailsLine}</p>
+
+                <div className="mt-7 flex flex-col items-center">
+                  <p className="font-display text-4xl tabular-nums text-white sm:text-5xl">
+                    <OdometerValue value={configurator.completo.price} />
+                    <span className="ml-1.5 font-mono text-sm font-normal text-white/40">/mês</span>
+                  </p>
+                  <p className="mt-1.5 font-mono text-xs text-white/35">≈ {currency.format(Math.round(configurator.completo.price / 3 / 100) * 100)} por perfil</p>
+                </div>
+
+                <p className="mx-auto mt-5 max-w-sm text-balance text-xs leading-relaxed text-white/35">{configurator.completo.mediaNote}</p>
+
+                <div className="mt-8 flex flex-col items-center gap-3">
+                  <button type="button" onClick={chooseCompleto} className="rounded-full px-7 py-3 text-sm font-medium text-black transition-transform duration-200 hover:scale-[1.03]" style={{ backgroundColor: accent }}>
+                    {configurator.completo.chooseLabel}
+                  </button>
+                  <button type="button" onClick={goBack} className="font-mono text-xs uppercase tracking-wide text-white/35 transition-colors hover:text-white/60">
+                    {configurator.completo.backLabel}
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
+            {screen === "summary" && (
+              <motion.div key="summary" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: "easeOut" }} className="flex flex-col items-center text-center">
+                <p className="font-mono text-xs uppercase tracking-wide text-white/40">{configurator.summary.heading}</p>
+
+                <div className="mt-5">
+                  <Breadcrumb content={content} answers={answers} onEdit={editFrom} />
+                </div>
+
+                <p className="mt-10 flex items-baseline gap-2 font-display text-5xl tabular-nums text-white sm:text-6xl">
+                  <OdometerValue value={total} />
+                  <span className="font-mono text-base font-normal text-white/40">/mês</span>
+                </p>
+
+                {answers.completoChosen && <p className="mt-4 max-w-sm text-balance text-xs leading-relaxed text-white/35">{configurator.summary.mediaWarning}</p>}
 
                 <button
                   type="button"
                   onClick={handleCta}
                   disabled={ctaState === "confirming"}
-                  className="mt-6 inline-flex items-center gap-2.5 rounded-full px-7 py-3.5 text-sm font-medium text-black transition-all duration-300 hover:scale-[1.03] disabled:opacity-80"
+                  className="mt-9 inline-flex items-center gap-2.5 rounded-full px-7 py-3.5 text-sm font-medium text-black transition-all duration-300 hover:scale-[1.03] disabled:opacity-80"
                   style={{ backgroundColor: accent }}
                 >
                   {ctaState === "confirming" ? (
                     <>
-                      <Check className="size-4" /> Plano confirmado — abrindo WhatsApp
+                      <Check className="size-4" /> Confirmado — abrindo WhatsApp
                     </>
                   ) : (
                     <>
@@ -223,30 +377,10 @@ export function ProposalPascoalConfigurator({ content, accent }: { content: Pasc
                   )}
                 </button>
                 <p className="mt-4 text-xs text-white/35">{cta.note}</p>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      {/* Resumo fixo no rodapé — só mobile */}
-      <div className="sticky bottom-4 z-20 mx-auto mt-8 flex max-w-3xl justify-center lg:hidden">
-        <AnimatePresence>
-          {hasExpandedScope && (
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 12 }}
-              className="flex items-center gap-3 rounded-full border border-white/15 bg-black/90 px-5 py-2.5 backdrop-blur-md"
-              style={{ boxShadow: "0 10px 30px -10px rgba(0,0,0,0.6)" }}
-            >
-              <span className="font-mono text-xs text-white/50">Total</span>
-              <span className="flex items-baseline gap-1 font-display text-lg text-white">
-                <TotalValue value={total} /> <span className="font-mono text-[10px] font-normal text-white/40">/mês</span>
-              </span>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
     </section>
   );

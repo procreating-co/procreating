@@ -33,31 +33,21 @@ export type Perfil = {
 export type VideoCadence = 4 | 8;
 
 /**
- * Preço da matriz normal — chave é `${perfilCount}x${videos}`. A matriz normal vai até 2 perfis
- * (Pascoal Zona Sul + Pascoal Zona Norte); 2 perfis × 8 vídeos/perfil não é oferecido (estouraria
- * o teto de R$ 7.000–8.000 no topo da matriz normal — ver comentário em
- * content/clients/pascoal/proposal.ts). Com 2 perfis, a cadência de vídeo fica fixa em 4/perfil.
+ * Preço da matriz normal — até 2 perfis (Pascoal Zona Sul + Pascoal Zona Norte); 2 perfis × 8
+ * vídeos/perfil não é oferecido (estouraria o teto de R$7.000–8.000 no topo da matriz normal —
+ * ver memória de cálculo em content/clients/pascoal/proposal.ts). Com 2 perfis, a cadência de
+ * vídeo fica fixa em 4/perfil — no fluxo conversacional isso significa que a Pergunta 3
+ * (frequência) é pulada quando o cliente escolhe 2 perfis.
  */
 export type NormalMatrixPrice = { perfilCount: 1 | 2; videos: VideoCadence; price: number };
 
-export type PlanoCompleto = {
-  sectionTitle: string;
-  headline: string;
-  description: string;
-  conditionNote: string;
-  price: number;
-  perfis: Perfil[];
-  videosTotal: number;
-  videosNote: string;
-  trafficFollowersNote: string;
-  trafficLeadsNote: string;
-  mediaInvestment: number;
-  mediaNote: string;
-  acquisitionNote: string;
-  rateioNote: string;
-};
+export type GrowthFront = { id: string; label: string; price: number };
 
-export type GrowthFront = { id: string; label: string; benefit: string; price: number };
+/** Uma pergunta de múltipla escolha do criador de orçamento conversacional. */
+export type ConversationalQuestion<TValue extends string> = {
+  question: string;
+  options: { label: string; value: TValue }[];
+};
 
 export type PascoalProposalContent = {
   slug: "pascoal";
@@ -75,26 +65,35 @@ export type PascoalProposalContent = {
   serviceSteps: ServiceStep[];
 
   configurator: {
-    eyebrow: string;
-    heading: string;
-    subheading: string;
-    /** Assessoria de Marketing — sempre incluída, ponto de partida do total. Não é card selecionável. */
+    /** Ponto de partida do total — só a Assessoria, antes de qualquer resposta com valor. */
     baseLabel: string;
     basePrice: number;
-    content: {
-      stepLabel: string;
-      moduleLabel: string;
-      moduleBenefit: string;
-      perfis: Perfil[];
-      videoOptions: { value: VideoCadence; label: string }[];
-      matrixPrices: NormalMatrixPrice[];
-      planoCompleto: PlanoCompleto;
+    matrixPrices: NormalMatrixPrice[];
+    perfis: Perfil[];
+    growthFronts: GrowthFront[];
+
+    questions: {
+      scope: ConversationalQuestion<"1" | "2" | "3+">;
+      perfil: ConversationalQuestion<PerfilId>;
+      cadence: ConversationalQuestion<"1x" | "2x">;
+      intent: ConversationalQuestion<"visibilidade" | "vendas" | "ambas" | "nenhum">;
+      upsell: ConversationalQuestion<"sim" | "nao">;
     };
-    growth: {
-      stepLabel: string;
-      moduleLabel: string;
-      lockedNote: string;
-      fronts: GrowthFront[];
+
+    completo: {
+      headline: string;
+      description: string;
+      detailsLine: string;
+      price: number;
+      mediaInvestment: number;
+      mediaNote: string;
+      chooseLabel: string;
+      backLabel: string;
+    };
+
+    summary: {
+      heading: string;
+      mediaWarning: string;
     };
   };
 
@@ -107,7 +106,5 @@ export type PascoalProposalContent = {
   cta: {
     label: string;
     note: string;
-    confirmationHeading: string;
-    confirmationSubheading: string;
   };
 };
