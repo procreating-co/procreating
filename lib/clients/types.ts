@@ -97,7 +97,12 @@ export type ClientConfig = {
     prospeccaoCtaLabel: string;
     /** Opcional — um link extra no menu (desktop e mobile), ex.: uma proposta comercial.
      *  Ausente (padrão) = menu igual a sempre foi, sem item extra. */
-    extraLink?: { label: string; href: string };
+    extraLink?: {
+      label: string;
+      href: string;
+      /** Opcional — atraso (ms) antes do link aparecer no menu. Ausente (padrão) = aparece imediatamente. */
+      delayMs?: number;
+    };
   };
   hero: {
     /** As duas linhas da animação de boas-vindas digitada. */

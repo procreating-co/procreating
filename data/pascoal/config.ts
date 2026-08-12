@@ -18,7 +18,8 @@ export const clientConfig: ClientConfig = {
   nav: {
     galleryLabel: "Acessar Galeria",
     prospeccaoCtaLabel: "Prospectar Parceiros",
-    extraLink: { label: "Proposta de Continuidade", href: "/clients/pascoal/public/proposta" },
+    // Easter egg: o botão só aparece no menu depois de 10s na página — ver components/landing/navigation.tsx.
+    extraLink: { label: "Proposta de Continuidade", href: "/clients/pascoal/public/proposta", delayMs: 10000 },
   },
 
   hero: {

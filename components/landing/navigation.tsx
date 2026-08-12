@@ -12,7 +12,7 @@ export type NavigationProps = {
   prospeccaoCtaLabel: string;
   showProspeccaoCta: boolean;
   /** Opcional — item extra no menu (ex.: link pra uma proposta comercial). Ausente = menu igual a sempre foi. */
-  extraLink?: { label: string; href: string };
+  extraLink?: { label: string; href: string; delayMs?: number };
 };
 
 export function Navigation({ brandName, homeHref, galleryHref, galleryLabel, prospeccaoCtaLabel, showProspeccaoCta, extraLink }: NavigationProps) {
@@ -20,6 +20,18 @@ export function Navigation({ brandName, homeHref, galleryHref, galleryLabel, pro
   const [isHidden, setIsHidden] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const lastScrollY = useRef(0);
+  // Easter egg opcional: se extraLink.delayMs estiver presente, o item some do menu até esse
+  // tempo passar. Sem delayMs (caso padrão — inclusive o da Elenita), aparece na hora, como sempre.
+  const [extraLinkRevealed, setExtraLinkRevealed] = useState(!extraLink?.delayMs);
+
+  useEffect(() => {
+    if (!extraLink?.delayMs) return;
+    const timeout = setTimeout(() => setExtraLinkRevealed(true), extraLink.delayMs);
+    return () => clearTimeout(timeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [extraLink?.delayMs]);
+
+  const showExtraLink = Boolean(extraLink) && extraLinkRevealed;
 
   useEffect(() => {
     let ticking = false;
@@ -103,7 +115,7 @@ export function Navigation({ brandName, homeHref, galleryHref, galleryLabel, pro
                   </a>
                 </Button>
               )}
-              {extraLink && (
+              {showExtraLink && extraLink && (
                 <Button
                   asChild
                   size="sm"
@@ -164,7 +176,7 @@ export function Navigation({ brandName, homeHref, galleryHref, galleryLabel, pro
                 </a>
               </Button>
             )}
-            {extraLink && (
+            {showExtraLink && extraLink && (
               <Button asChild variant="outline" className="rounded-full h-14 text-base">
                 <a href={extraLink.href} onClick={() => setIsMobileMenuOpen(false)} className="inline-flex items-center justify-center gap-2">
                   <FileText className="size-4" />
