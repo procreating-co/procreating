@@ -10,8 +10,11 @@ export type ProjectStatus = "creating" | "draft" | "ready_for_preview" | "publis
 /**
  * Forma "achatada" pra UI do admin (cards, tabela) — não confundir com `ClientConfig`
  * (`lib/clients/types.ts`), que é o formato completo consumido pelas rotas públicas
- * `/clients/[client]`. Quando o Supabase conectar de verdade, isto é o shape que uma query
- * `projects` (`lib/supabase/types/database.ts`) + agregados de analytics devem produzir.
+ * `/clients/[client]`, nem com `InternalProject` (`lib/dashboard/demo-data.ts`), que é projeto
+ * de PRODUÇÃO interna (ex.: "Vídeo institucional Pascoal") — um domínio totalmente diferente.
+ * `AdminProject`/`Project` (`lib/supabase/types/database.ts`) são sempre `DeliveryProject` no
+ * vocabulário da Fase 1 (Foundation): entrega de site ao cliente. Quando o Supabase conectar de
+ * verdade, isto é o shape que uma query `projects` + agregados de analytics devem produzir.
  *
  * Um projeto pertence a um `AdminClient` (`clientId`, `lib/admin/clients/types.ts`) e nasce de
  * um `AdminTemplate` (`templateId`, `lib/admin/templates/types.ts`) — um cliente pode ter

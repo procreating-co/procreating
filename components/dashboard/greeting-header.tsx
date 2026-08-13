@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useAdminUser } from "@/lib/admin/auth/auth-context";
 
 function greetingForHour(hour: number) {
   if (hour < 12) return "Bom dia";
@@ -8,12 +9,20 @@ function greetingForHour(hour: number) {
   return "Boa noite";
 }
 
+/** Primeiro nome só — "Santiago Martins" vira "Santiago" no cumprimento. */
+function firstName(name: string) {
+  return name.trim().split(/\s+/)[0] ?? name;
+}
+
 /**
- * Saudação calculada no cliente (hora local de quem abre a página) — não há autenticação
- * ainda, então não personaliza por nome. Renderiza "Bem-vindo" até o primeiro mount pra
- * evitar mismatch de hidratação entre servidor e cliente.
+ * Saudação calculada no cliente (hora local de quem abre a página), personalizada com o nome
+ * real desde a Fase 1 (Foundation) — antes disso não havia autenticação, então não personalizava
+ * (comentário antigo). Renderiza "Bem-vindo" (sem nome) até o primeiro mount, só pra evitar
+ * mismatch de hidratação entre servidor e cliente na hora do dia — o nome em si já vem pronto do
+ * servidor via `useAdminUser()`.
  */
 export function GreetingHeader() {
+  const user = useAdminUser();
   const [greeting, setGreeting] = useState<string | null>(null);
 
   useEffect(() => {
@@ -22,7 +31,7 @@ export function GreetingHeader() {
 
   return (
     <div className="flex flex-col gap-1">
-      <h1 className="font-display text-3xl">{greeting ?? "Bem-vindo"}</h1>
+      <h1 className="font-display text-3xl">{greeting ? `${greeting}, ${firstName(user.name)}` : "Bem-vindo"}</h1>
       <p className="text-sm text-muted-foreground">Visão geral da operação</p>
     </div>
   );

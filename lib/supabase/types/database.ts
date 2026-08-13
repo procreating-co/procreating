@@ -15,10 +15,12 @@
  */
 
 // ---------------------------------------------------------------------------
-// User — perfil do usuário do admin, vinculado ao `auth.users` do Supabase Auth
-// (a linha em si não guarda senha/credencial — isso é o Supabase Auth que cuida).
+// User — perfil do usuário do admin/ERP interno, vinculado ao `auth.users` do Supabase Auth
+// (a linha em si não guarda senha/credencial — isso é o Supabase Auth que cuida). `role` é o
+// vocabulário de papel de toda a plataforma (Fase 1, Foundation) — só gravado por enquanto, sem
+// enforcement de RBAC granular por módulo ainda (ver docs/project-creation.md, seção 8/18).
 // ---------------------------------------------------------------------------
-export type UserRole = "admin" | "editor";
+export type UserRole = "owner" | "admin" | "commercial" | "marketing" | "operations" | "finance" | "production" | "client";
 
 export type User = {
   /** Mesmo `id` do `auth.users` correspondente. */
@@ -31,11 +33,24 @@ export type User = {
 
 // ---------------------------------------------------------------------------
 // Client — a empresa/pessoa que contrata a Procreating (ex.: "Pascoal Bombas",
-// "Dra. Elenita"). Existe uma vez só, independente de quantos projetos tiver.
+// "Dra. Elenita"). Existe uma vez só, independente de quantos projetos tiver. Fonte única de
+// identidade de cliente pro ERP interno (`lib/erp/clients/`) E pra plataforma pública
+// (`slug` bate com `lib/clients/registry.ts`/`workspace-registry.ts`) — ver "Auditoria
+// Procreating OS", achado F.1, sobre a fragmentação que esta tabela resolve.
 // ---------------------------------------------------------------------------
+export type ClientStatus = "lead" | "onboarding" | "ativo" | "atencao" | "risco" | "churn";
+
 export type Client = {
   id: string;
   name: string;
+  slug: string;
+  status: ClientStatus;
+  document: string | null;
+  segment: string | null;
+  /** Estratégia comercial de origem (`Strategy`, abaixo) — `null` quando o cliente não veio de
+   *  uma estratégia formal. Adicionado na migration de Comercial/Financeiro/Onboarding, pra essa
+   *  estratégia continuar recebendo crédito pela receita gerada (ver `Lead.strategy_id`). */
+  strategy_id: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -181,11 +196,20 @@ export type Asset = {
 };
 
 // ---------------------------------------------------------------------------
-// Event — auditoria de ações administrativas/sistema (baixo volume, sempre sabe quem/quando).
-// Não confundir com Analytics/Downloads abaixo (visitante público, alto volume, sem actor_id) —
-// ver a tabela de mapeamento em docs/project-creation.md.
+// Event — Activity Log genérico (auditoria administrativa/sistema, baixo volume, sempre sabe
+// quem/quando). Não confundir com Analytics/Downloads abaixo (visitante público, alto volume,
+// sem actor_id).
+//
+// Generalizado na Fase 1 (Foundation): `entity_type`/`entity_id` substituem os antigos
+// `project_id`/`client_id` — associação polimórfica deliberada (um evento aponta pra qualquer
+// entidade futura — lead, opportunity, financial_rule, habit — sem FK por tipo). `type` deixou
+// de ser union fechada no banco; os 9 valores abaixo continuam a convenção usada pelo domínio de
+// projeto/deploy, só não são mais impostos por `check` (CRM/Financeiro/Pessoal registram os
+// próprios tipos nas fases seguintes sem migration nova).
 // ---------------------------------------------------------------------------
-export type EventType =
+export type EventEntityType = "project" | "client" | string;
+
+export type ProjectEventType =
   | "project_created"
   | "project_updated"
   | "deploy_performed"
@@ -198,12 +222,193 @@ export type EventType =
 
 export type Event = {
   id: string;
-  project_id: string | null;
-  client_id: string | null;
+  entity_type: EventEntityType;
+  entity_id: string | null;
   /** `null` = ação do sistema, não de uma pessoa. */
   actor_id: string | null;
-  type: EventType;
+  type: string;
   metadata: Record<string, unknown>;
+  created_at: string;
+};
+
+// ---------------------------------------------------------------------------
+// PipelineStage — funil comercial configurável (tabela, não union fechada — mesmo raciocínio de
+// `lib/prospeccao/stages.ts`, migração Comercial/Financeiro/Onboarding). `is_won`/`is_lost`
+// marcam os estágios terminais; o resto do código nunca compara `key === "fechado"` direto.
+// ---------------------------------------------------------------------------
+export type PipelineStage = {
+  id: string;
+  key: string;
+  label: string;
+  color: string;
+  sort_order: number;
+  is_won: boolean;
+  is_lost: boolean;
+  created_at: string;
+};
+
+// ---------------------------------------------------------------------------
+// Strategy — definição de campanha/público-alvo comercial. Não confundir com
+// `Strategy`/`StrategyCategory` de `lib/prospeccao/types.ts` (playbook de abordagem da Central de
+// Prospecção da Pascoal, client-side, domínio totalmente diferente apesar do mesmo nome).
+// ---------------------------------------------------------------------------
+export type Strategy = {
+  id: string;
+  name: string;
+  target_audience: string | null;
+  segment: string | null;
+  location: string | null;
+  icp: string | null;
+  qualification_criteria: string | null;
+  offer: string | null;
+  sales_pitch: string | null;
+  prospecting_channel: string | null;
+  prospecting_goal: number | null;
+  meetings_goal: number | null;
+  closing_goal: number | null;
+  revenue_goal: number | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+};
+
+// ---------------------------------------------------------------------------
+// Lead — generalização de `Oficina` (`lib/prospeccao/types.ts`) pro CRM interno do ERP. Histórico
+// de interação vive em `Event` (`entity_type: "lead"`), não numa tabela paralela.
+// ---------------------------------------------------------------------------
+export type Lead = {
+  id: string;
+  company_name: string;
+  contact_name: string | null;
+  role_title: string | null;
+  whatsapp: string | null;
+  email: string | null;
+  source: string | null;
+  strategy_id: string | null;
+  potential_value: number | null;
+  owner_id: string | null;
+  stage_id: string;
+  last_contact_at: string | null;
+  next_contact_at: string | null;
+  notes: string | null;
+  /** Setado só na conversão via `close_lead_and_create_client` (RPC) — lead convertido nunca é
+   *  reaberto/reutilizado por outro cliente. */
+  client_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+// ---------------------------------------------------------------------------
+// Contract / ContractScopeItem — Etapas 2 e 3 do modal de onboarding.
+// ---------------------------------------------------------------------------
+export type ContractType = "pontual" | "recorrente";
+export type ContractStatus = "ativo" | "encerrado" | "cancelado";
+
+export type Contract = {
+  id: string;
+  client_id: string;
+  type: ContractType;
+  status: ContractStatus;
+  start_date: string;
+  end_date: string | null;
+  monthly_value: number | null;
+  due_day: number | null;
+  auto_renew: boolean;
+  total_value: number | null;
+  payment_terms: string | null;
+  special_conditions: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ContractScopeItem = {
+  id: string;
+  contract_id: string;
+  service: string;
+  quantity: number | null;
+  frequency: string | null;
+  deadline: string | null;
+  notes: string | null;
+  created_at: string;
+};
+
+// ---------------------------------------------------------------------------
+// ClientOnboarding / ClientContact — Etapas 1 e 4 do modal.
+// ---------------------------------------------------------------------------
+export type ClientOnboarding = {
+  id: string;
+  client_id: string;
+  legal_name: string | null;
+  trade_name: string | null;
+  cnpj: string | null;
+  cpf: string | null;
+  address: string | null;
+  billing_info: string | null;
+  objective: string | null;
+  target_audience: string | null;
+  offer: string | null;
+  positioning: string | null;
+  channels: string | null;
+  goals: string | null;
+  commercial_notes: string | null;
+  created_by: string;
+  created_at: string;
+};
+
+export type ClientContact = {
+  id: string;
+  client_id: string;
+  name: string;
+  role_title: string | null;
+  email: string | null;
+  whatsapp: string | null;
+  is_primary: boolean;
+  created_at: string;
+};
+
+// ---------------------------------------------------------------------------
+// OnboardingTask — mínimo pedido pra Etapa 5 não ficar só no papel; não é um sistema de tarefas
+// geral (fora de escopo desta fase).
+// ---------------------------------------------------------------------------
+export type OnboardingTaskStatus = "pending" | "done";
+
+export type OnboardingTask = {
+  id: string;
+  client_id: string;
+  title: string;
+  status: OnboardingTaskStatus;
+  created_at: string;
+};
+
+// ---------------------------------------------------------------------------
+// Revenue / Expense — Financeiro. `status` tem 4 valores de propósito (nunca um boolean
+// pago/não-pago) — o que um fluxo de cobrança futuro (fora de escopo agora) vai precisar
+// diferenciar sem migração de dado.
+// ---------------------------------------------------------------------------
+export type FinancialEntryStatus = "pendente" | "pago" | "atrasado" | "cancelado";
+
+export type Revenue = {
+  id: string;
+  client_id: string | null;
+  contract_id: string | null;
+  description: string;
+  amount: number;
+  due_date: string;
+  status: FinancialEntryStatus;
+  paid_at: string | null;
+  created_at: string;
+};
+
+export type Expense = {
+  id: string;
+  category: string;
+  description: string;
+  amount: number;
+  due_date: string;
+  status: FinancialEntryStatus;
+  paid_at: string | null;
+  created_by: string;
   created_at: string;
 };
 
@@ -246,8 +451,16 @@ export type Download = {
 // Aproximação do formato gerado por `supabase gen types typescript`. `Insert`/`Update` aqui
 // são só `Partial<Row>` — o gerado de verdade tem nullability exata por coluna. Trocar por esse
 // quando o schema existir num projeto real.
+//
+// `Relationships: []` é obrigatório pelo `GenericTable`/`GenericView` do `@supabase/postgrest-js`
+// (ver `node_modules/@supabase/postgrest-js/dist/index.d.cts`) — sem ele, `Database` não bate
+// estruturalmente com o que o client genérico espera, e toda query (`select`/`insert`/`update`)
+// infere `never` silenciosamente em vez de dar erro claro no ponto certo. Array vazio é
+// literalmente correto aqui: nenhuma tabela deste projeto é consultada via embed do PostgREST
+// (`select("*, outra_tabela(*)")`) — todo join é feito manualmente em TypeScript, de propósito
+// (ver comentário no topo de `lib/comercial/queries.ts`).
 // ---------------------------------------------------------------------------
-type TableDef<Row> = { Row: Row; Insert: Partial<Row>; Update: Partial<Row> };
+type TableDef<Row> = { Row: Row; Insert: Partial<Row>; Update: Partial<Row>; Relationships: [] };
 
 export type Database = {
   public: {
@@ -263,11 +476,29 @@ export type Database = {
       events: TableDef<Event>;
       analytics: TableDef<Analytics>;
       downloads: TableDef<Download>;
+      pipeline_stages: TableDef<PipelineStage>;
+      strategies: TableDef<Strategy>;
+      leads: TableDef<Lead>;
+      contracts: TableDef<Contract>;
+      contract_scope_items: TableDef<ContractScopeItem>;
+      client_onboarding: TableDef<ClientOnboarding>;
+      client_contacts: TableDef<ClientContact>;
+      onboarding_tasks: TableDef<OnboardingTask>;
+      revenue: TableDef<Revenue>;
+      expenses: TableDef<Expense>;
     };
     Views: {
       /** `WHERE status IN ('published', 'archived')` — evita repetir esse filtro em toda
        *  consulta/dashboard que não deveria enxergar rascunhos. Ver docs/project-creation.md. */
-      published_projects: { Row: Project };
+      published_projects: { Row: Project; Relationships: [] };
+    };
+    Functions: {
+      /** A transação real da Etapa 5 do onboarding — ver o comentário completo na migration
+       *  `20260813010000_comercial_financeiro_onboarding.sql`. Retorna o `id` do `Client` criado. */
+      close_lead_and_create_client: {
+        Args: { p_lead_id: string; p_payload: Record<string, unknown> };
+        Returns: string;
+      };
     };
   };
 };

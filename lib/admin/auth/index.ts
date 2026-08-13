@@ -1,16 +1,15 @@
-import { mockAuthProvider } from "@/lib/admin/auth/mock-provider";
+import { supabaseAuthProvider } from "@/lib/admin/auth/supabase-provider";
 import type { AuthProvider } from "@/lib/admin/auth/types";
 
 export type { AdminUser, AdminRole, AuthSession, AuthProvider, SignInResult } from "@/lib/admin/auth/types";
 export { ADMIN_SESSION_COOKIE, ADMIN_LOGIN_PATH, ADMIN_HOME_PATH } from "@/lib/admin/auth/constants";
 
 /**
- * Única linha que muda quando o Supabase Auth entrar: trocar `mockAuthProvider` por um
- * provider real que satisfaça a mesma interface `AuthProvider`. `getSession`/`signIn`/
- * `signOut` abaixo mantêm a assinatura — layouts, Server Actions e o middleware nunca
- * precisam mudar.
+ * Fase 1 (Foundation): `mockAuthProvider` foi substituído por `supabaseAuthProvider` (Supabase
+ * Auth real). `getSession`/`signIn`/`signOut` abaixo mantêm a assinatura de sempre — layouts,
+ * Server Actions e `proxy.ts` não precisaram mudar por causa desta troca.
  */
-const authProvider: AuthProvider = mockAuthProvider;
+const authProvider: AuthProvider = supabaseAuthProvider;
 
 export const getSession = authProvider.getSession;
 export const signIn = authProvider.signIn;

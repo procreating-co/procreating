@@ -1,11 +1,15 @@
 /**
- * Tipos da autenticação administrativa. Hoje implementados por um provider mock
- * (`mock-provider.ts`), amanhã por um provider que fala com o Supabase Auth — mesma ideia do
- * `ClientDataProvider` em `lib/clients/provider.ts`: o contrato fica estável, só a
- * implementação por trás muda.
+ * Tipos da autenticação administrativa — implementados por `supabase-provider.ts` (Fase 1,
+ * Foundation) via Supabase Auth. Mesma ideia do `ClientDataProvider` em
+ * `lib/clients/provider.ts`: o contrato fica estável, só a implementação por trás muda.
  */
 
-export type AdminRole = "admin" | "editor";
+import type { UserRole } from "@/lib/supabase/types/database";
+
+/** Vocabulário de papel único da plataforma — ver `lib/supabase/types/database.ts` (`UserRole`,
+ *  o mesmo valor gravado em `public.users.role`). Não redeclare uma lista de papéis paralela em
+ *  outro lugar do código; `lib/dashboard/roles.ts` reexporta este tipo pelo mesmo motivo. */
+export type AdminRole = UserRole;
 
 export type AdminUser = {
   id: string;

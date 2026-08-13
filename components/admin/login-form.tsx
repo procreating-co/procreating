@@ -1,11 +1,13 @@
 "use client";
 
 import { useActionState } from "react";
+import Link from "next/link";
 import { signInAction, type SignInFormState } from "@/app/admin/login/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { ADMIN_SIGNUP_PATH } from "@/lib/admin/auth/constants";
 
 const initialState: SignInFormState = undefined;
 
@@ -36,6 +38,9 @@ export function LoginForm() {
           <Button type="submit" disabled={isPending} className="mt-2">
             {isPending ? "Entrando..." : "Entrar"}
           </Button>
+          <Link href={ADMIN_SIGNUP_PATH} className="text-center text-sm text-muted-foreground transition-colors hover:text-foreground">
+            Primeiro acesso do Eduardo? Cadastre-se
+          </Link>
         </form>
       </CardContent>
     </Card>

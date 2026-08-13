@@ -11,7 +11,15 @@ export type DemoTeamMember = {
   role: string;
 };
 
-export type DemoProject = {
+/**
+ * Projeto de PRODUÇÃO interna (ex.: "Vídeo institucional Pascoal") — nomeado `InternalProject`
+ * de propósito, pra não colidir com `Project`/`AdminProject`, que no schema (`lib/supabase/
+ * types/database.ts`) e no painel legado (`lib/admin/projects/types.ts`) significam "entrega de
+ * site ao cliente" (`DeliveryProject` no vocabulário da Fase 1, Foundation) — dois conceitos
+ * diferentes que hoje compartilhariam o nome "Project" se não fossem distinguidos assim. Ainda
+ * mock; ganhar tabela própria é trabalho da Fase 7 (Operação) do roadmap.
+ */
+export type InternalProject = {
   key: string;
   name: string;
   clientKey: string;
@@ -55,7 +63,7 @@ export const DEMO_TEAM: DemoTeamMember[] = [
   { key: "santiago", name: "Santiago", role: "CEO" },
 ];
 
-export const DEMO_PROJECTS: DemoProject[] = [
+export const DEMO_PROJECTS: InternalProject[] = [
   {
     key: "pascoal",
     name: "Pascoal Bombas",

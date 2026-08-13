@@ -4,19 +4,24 @@ import type { ReactNode } from "react";
 import { motion } from "framer-motion";
 
 /**
- * Valores são mock — não há dados reais ainda. Por isso todo tile carrega a etiqueta "Demo"
- * de forma visível, em vez de aparentar ser um número real da operação.
+ * `demo` (default `true`) mostra a etiqueta "Demo" — era hardcoded até a Fase 2-5 (Comercial/
+ * Financeiro/Onboarding), quando o primeiro dado REAL passou a alimentar este componente
+ * (Estratégias, Financeiro, Home). Default `true` preserva o comportamento de toda tela que
+ * ainda lê de `lib/dashboard/demo-data.ts` sem precisar tocar em cada call site; quem já tem
+ * dado real passa `demo={false}` explicitamente — nunca implícito.
  */
 export function StatTile({
   icon,
   label,
   value,
   delay = 0,
+  demo = true,
 }: {
   icon: ReactNode;
   label: string;
   value: string;
   delay?: number;
+  demo?: boolean;
 }) {
   return (
     <motion.div
@@ -29,9 +34,11 @@ export function StatTile({
         <div className="flex size-9 items-center justify-center rounded-lg bg-foreground/10 text-foreground">
           {icon}
         </div>
-        <span className="rounded-full border border-border/60 px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
-          Demo
-        </span>
+        {demo && (
+          <span className="rounded-full border border-border/60 px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+            Demo
+          </span>
+        )}
       </div>
       <div className="flex flex-col gap-1">
         <p className="text-2xl font-semibold">{value}</p>

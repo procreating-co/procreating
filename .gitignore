@@ -40,3 +40,6 @@ public/videos/*
 !public/videos/elenita-social-01-protocolo-elleve.mp4
 !public/videos/elenita-social-02-voce-decidiu-se-priorizar.mp4
 !public/videos/elenita-social-03-educativo.mp4
+.vercel
+.env*
+supabase/.temp

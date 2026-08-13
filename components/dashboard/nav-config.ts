@@ -1,7 +1,6 @@
 import {
   BarChart3,
   Building2,
-  Contact2,
   Factory,
   FileText,
   FolderKanban,
@@ -10,6 +9,7 @@ import {
   Megaphone,
   PackageCheck,
   Settings,
+  TrendingUp,
   UserCog,
   Users,
   UsersRound,
@@ -64,17 +64,6 @@ export const DASHBOARD_SECTIONS: DashboardSection[] = [
         category: "Clientes & Relacionamento",
         actionLabel: "Abrir Client Hub",
         lastAction: { label: "Workspace do Pascoal atualizado há 2h", demo: true },
-      },
-      {
-        key: "crm",
-        label: "CRM",
-        description: "Relacionamento e funil comercial com clientes.",
-        icon: Contact2,
-        status: "available",
-        href: "/operacao/crm",
-        category: "Clientes & Relacionamento",
-        actionLabel: "Abrir CRM",
-        lastAction: { label: "Empresa Y recebeu proposta enviada", demo: true },
       },
       {
         key: "projetos",
@@ -136,16 +125,92 @@ export const DASHBOARD_SECTIONS: DashboardSection[] = [
   {
     key: "administracao",
     label: "Administração",
-    description: "Gestão da empresa, crescimento, financeiro e planejamento.",
+    description: "Gestão da empresa, crescimento e planejamento.",
     href: "/administracao",
     icon: Building2,
     modules: [
-      { key: "financeiro", label: "Financeiro", description: "Receitas, despesas e fluxo de caixa.", icon: Wallet, status: "soon", category: "Financeiro & Comercial" },
-      { key: "comercial", label: "Comercial", description: "Pipeline comercial e propostas.", icon: Handshake, status: "soon", category: "Financeiro & Comercial" },
+      // "financeiro" e "comercial" saíram daqui na Fase 2-5 — viraram produtos reais em
+      // /financeiro e /comercial, não fazem mais sentido como card "em breve".
       { key: "marketing", label: "Marketing", description: "Campanhas, posicionamento e crescimento.", icon: Megaphone, status: "soon", category: "Marketing & Indicadores" },
       { key: "indicadores", label: "Indicadores", description: "Métricas e desempenho da empresa.", icon: BarChart3, status: "soon", category: "Marketing & Indicadores" },
       { key: "rh", label: "RH", description: "Gestão de pessoas e processos internos.", icon: UserCog, status: "soon", category: "Pessoas & Configurações" },
       { key: "configuracoes", label: "Configurações", description: "Preferências e configurações da plataforma.", icon: Settings, status: "soon", category: "Pessoas & Configurações" },
     ],
+  },
+];
+
+export type NavGroupItem = {
+  key: string;
+  label: string;
+  href: string;
+};
+
+export type NavGroup = {
+  key: string;
+  label: string;
+  icon: LucideIcon;
+  items: NavGroupItem[];
+};
+
+/**
+ * Navegação em grupos colapsáveis da sidebar. Estrutura final da Fase 2-5 (Comercial/Onboarding/
+ * Financeiro) — Comercial e Financeiro agora são produtos reais (`/comercial/**`,
+ * `/financeiro/**`), não mais placeholders "em breve" apontando pra `/administracao` (Fase 1).
+ * "Clientes conquistados" (dentro de Comercial) leva pra `/clientes` — a visão 360º interna,
+ * deliberadamente um segmento diferente de `/clients` (Client Hub público, domínio de entrega ao
+ * cliente, intocado). "Relatórios" e "Configurações" continuam placeholder, apontando pro mesmo
+ * card "em breve" de sempre (`/administracao`) — nenhuma página nova só pra preencher o menu.
+ *
+ * "Operação" mantém Equipe/Conteúdo além de Projetos/Produção/Entregas — já existem, já
+ * funcionam, não faz sentido tirar do menu só porque a árvore pedida não os citou.
+ */
+export const NAV_GROUPS: NavGroup[] = [
+  {
+    key: "comercial",
+    label: "Comercial",
+    icon: Handshake,
+    items: [
+      { key: "estrategias", label: "Estratégias", href: "/comercial/estrategias" },
+      { key: "leads", label: "Leads", href: "/comercial/leads" },
+      { key: "pipeline", label: "Pipeline", href: "/comercial/pipeline" },
+      { key: "clientes-conquistados", label: "Clientes conquistados", href: "/clientes" },
+      { key: "metricas-comerciais", label: "Métricas comerciais", href: "/comercial" },
+    ],
+  },
+  {
+    key: "operacao-grupo",
+    label: "Operação",
+    icon: Layers,
+    items: [
+      { key: "projetos", label: "Projetos", href: "/operacao/projetos" },
+      { key: "producao", label: "Produção", href: "/operacao/producao" },
+      { key: "entregas", label: "Entregas", href: "/operacao/entregas" },
+      { key: "equipe", label: "Equipe", href: "/operacao/equipe" },
+      { key: "conteudo", label: "Conteúdo", href: "/operacao/conteudo" },
+    ],
+  },
+  {
+    key: "financeiro-grupo",
+    label: "Financeiro",
+    icon: Wallet,
+    items: [
+      { key: "financeiro-overview", label: "Overview", href: "/financeiro" },
+      { key: "receitas", label: "Receitas", href: "/financeiro/receitas" },
+      { key: "despesas", label: "Despesas", href: "/financeiro/despesas" },
+      { key: "contas-a-receber", label: "Contas a receber", href: "/financeiro/contas-a-receber" },
+      { key: "contas-a-pagar", label: "Contas a pagar", href: "/financeiro/contas-a-pagar" },
+    ],
+  },
+  {
+    key: "relatorios",
+    label: "Relatórios",
+    icon: TrendingUp,
+    items: [{ key: "relatorios-em-breve", label: "Em desenvolvimento", href: "/administracao" }],
+  },
+  {
+    key: "configuracoes",
+    label: "Configurações",
+    icon: Settings,
+    items: [{ key: "empresa", label: "Empresa", href: "/administracao" }],
   },
 ];
