@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getClientProposal } from "@/lib/clients/proposal-registry";
+import { ProposalScrollProgress } from "@/components/proposal/proposal-scroll-progress";
 import { ProposalHero } from "@/components/proposal/proposal-hero";
 import { ProposalPillars } from "@/components/proposal/proposal-pillars";
+import { ProposalRoadmap } from "@/components/proposal/proposal-roadmap";
 import { ProposalTvProgram } from "@/components/proposal/proposal-tv-program";
 import { ProposalAcquisition } from "@/components/proposal/proposal-acquisition";
-import { ProposalConfigurator } from "@/components/proposal/proposal-configurator";
+import { ProposalBudget } from "@/components/proposal/proposal-budget";
+import { ProposalUpsell } from "@/components/proposal/proposal-upsell";
 import { ProposalClosing } from "@/components/proposal/proposal-closing";
 
 /**
@@ -15,8 +18,8 @@ import { ProposalClosing } from "@/components/proposal/proposal-closing";
  * conteúdo próprio em `content/clients/<slug>/proposal.ts`. Hoje só a Elenita tem uma proposta
  * cadastrada; qualquer outro slug cai em notFound(), sem afetar nenhuma rota existente.
  *
- * Pensada pra apresentação AO VIVO — por isso não tem CTA comercial em lugar nenhum; o
- * configurador é a própria ferramenta de apresentação, ajustado na hora.
+ * Pensada pra apresentação AO VIVO — por isso não tem CTA comercial em lugar nenhum; o upsell é
+ * a própria ferramenta de apresentação, ajustado na hora.
  */
 export async function generateMetadata({ params }: { params: Promise<{ client: string }> }): Promise<Metadata> {
   const { client } = await params;
@@ -38,11 +41,14 @@ export default async function ProposalPage({ params }: { params: Promise<{ clien
 
   return (
     <main className="min-h-screen bg-black">
+      <ProposalScrollProgress accent={accent} />
       <ProposalHero content={proposal.hero} accent={accent} />
       <ProposalPillars intro={proposal.pillarsIntro} pillars={proposal.pillars} accent={accent} />
+      <ProposalRoadmap content={proposal.roadmap} accent={accent} />
       <ProposalTvProgram content={proposal.tvProgram} accent={accent} />
       <ProposalAcquisition content={proposal.acquisition} accent={accent} />
-      <ProposalConfigurator content={proposal.configurator} accent={accent} />
+      <ProposalBudget content={proposal.budget} accent={accent} />
+      <ProposalUpsell content={proposal.upsell} basePrice={proposal.budget.heroNumber} accent={accent} />
       <ProposalClosing content={proposal.closing} brandName={proposal.brandName} />
     </main>
   );

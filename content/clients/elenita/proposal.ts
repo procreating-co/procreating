@@ -4,17 +4,12 @@ import type { ProposalContent } from "@/lib/clients/proposal-types";
  * Proposta de Continuidade — Dra. Elenita Luzardo. Página comercial isolada
  * (`/clients/elenita/public/proposta`), pensada pra apresentação AO VIVO.
  *
- * PREÇOS DO ORÇAMENTO — `fixedPrice` é sempre somado (é a fundação, nunca desliga). Os itens em
- * `configurator.variableItems` são as camadas que a cliente adiciona por cima, cada um com seu
- * `price` somado só quando ativo. "videos" tem `unlockedBy: "posicionamento"` — só aparece (e só
- * conta no total) quando o toggle "posicionamento" está ativo:
- *   Posicionamento OFF                              → 3.500 (só a fundação)
- *   Posicionamento ON (+1.200) + 4 vídeos (+1.500)   → 6.200
- *   Posicionamento ON (+1.200) + 8 vídeos (+2.300)   → 7.000
- *   + Tráfego pago (+500), + Estratégia de prospecção ativa (+900), cada um somando por cima
- *     de qualquer configuração acima.
- * Pra mudar um valor: edite só o `price` do item correspondente (ou `fixedPrice`) — o total em
- * proposal-configurator.tsx é sempre fixedPrice + soma dos itens variáveis ativos.
+ * PREÇOS — `budget.heroNumber` (R$4.500) é a base fixa, sempre presente, nunca desliga. Os itens
+ * em `upsell.items` são camadas OPCIONAIS que a cliente adiciona por cima, cada um com seu
+ * `price` somado só quando selecionado (preço fica oculto até selecionar — ver
+ * proposal-upsell.tsx). Pra mudar um valor: edite só o `price` do item correspondente ou
+ * `budget.heroNumber` — o total em proposal-upsell.tsx é sempre heroNumber + soma dos itens
+ * selecionados.
  */
 export const elenitaProposal: ProposalContent = {
   slug: "elenita",
@@ -24,15 +19,15 @@ export const elenitaProposal: ProposalContent = {
   metaDescription: "Uma parceria estratégica de marketing.",
 
   hero: {
-    eyebrow: "Parceria estratégica de marketing",
-    title: "Uma nova era se inicia agora...",
-    subtitle: "Uma estrutura contínua para fortalecer marca, audiência e oportunidades.",
+    eyebrow: "PROPOSTA DE PARCERIA ESTRATÉGIA",
+    title: "Os próximos capítulos começam aqui...",
+    subtitle: "Queremos juntos construir um projeto focado em crescimento mútuo, unindo estratégia, posicionamento, conteúdo e performance.",
   },
 
   pillarsIntro: {
     eyebrow: "",
-    heading: "O que propomos",
-    subtitle: "Uma assessoria estratégica de marketing em diferentes frentes.",
+    heading: "Mapa do Projeto.",
+    subtitle: "Um plano completo para tornar a Dra. Elenita referência em Harmonização para o público de alto padrão em Porto Alegre.",
   },
 
   pillars: [
@@ -55,6 +50,40 @@ export const elenitaProposal: ProposalContent = {
       items: ["Tráfego pago", "Distribuição estratégica", "Otimização baseada em dados", "Expansão de alcance"],
     },
   ],
+
+  roadmap: {
+    heading: "AGOSTO - DEZEMBRO",
+    subtitle: "Diferentes frentes, um único caminho.",
+    stages: [
+      {
+        number: "01",
+        title: "Posicionamento de Autoridade",
+        items: [
+          "Elaboração de linha editorial — formatos, quadros e funis de conteúdo",
+          "Organização de perfil como vitrine profissional",
+          "Estratégia de monetização",
+        ],
+      },
+      {
+        number: "02",
+        title: "Alcance",
+        items: ["Tráfego estratégico voltado a seguidores qualificados — o foco não é volume, é a audiência certa"],
+      },
+      {
+        number: "03",
+        title: "Atração e Crescimento",
+        items: [
+          "Estratégias B2B — parcerias com outras marcas, profissionais e clínicas",
+          "Funil de atração de pacientes — prova social e conversão",
+        ],
+      },
+      {
+        number: "04",
+        title: "Programa: Cara a Cara com a Beleza",
+        items: ["Procreating como produtora do conteúdo — curadoria de entrevistados, formatos e direção criativa"],
+      },
+    ],
+  },
 
   tvProgram: {
     eyebrow: "Integrado à operação",
@@ -94,32 +123,30 @@ export const elenitaProposal: ProposalContent = {
     ],
   },
 
-  configurator: {
-    heading: "",
-    fixedLabel: "Estrutura fixa",
-    fixedPrice: 3500,
-    fixedItems: [
-      { id: "estrategia-marketing", label: "Estratégia de marketing" },
-      { id: "linha-editorial", label: "Linha editorial de conteúdo" },
-      { id: "roteirizacao", label: "Roteirização" },
-      { id: "programa-tv", label: "Produção do programa Cara a Cara com a Beleza" },
+  budget: {
+    heroNumber: 4500,
+    heroLabel: "Base Estratégica",
+    heroCaption: "A inteligência por trás do projeto.",
+    pillars: [
+      { title: "Estratégia", items: ["Posicionamento", "Planejamento", "Direção"] },
+      { title: "Conteúdo", items: ["Pilares", "Roteiros", "Direcionamento"] },
+      { title: "Gestão", items: ["Acompanhamento", "Análise", "Otimização"] },
+      { title: "Produção", items: ["1 captação · 10 vídeos brutos", "4 vídeos editados/mês"] },
     ],
-    variableLabel: "O que pode adicionar",
-    variableItems: [
-      { kind: "toggle", id: "posicionamento", label: "Posicionamento", price: 1200, defaultOn: false },
-      {
-        kind: "video-tier",
-        id: "videos",
-        label: "Conteúdo em vídeo",
-        unlockedBy: "posicionamento",
-        defaultOptionId: "8",
-        options: [
-          { id: "4", count: 4, label: "4 vídeos/mês", price: 1500 },
-          { id: "8", count: 8, label: "8 vídeos/mês", price: 2300 },
-        ],
-      },
-      { kind: "toggle", id: "trafego-pago", label: "Tráfego pago", price: 500, defaultOn: false },
-      { kind: "toggle", id: "prospeccao-ativa", label: "Estratégia de prospecção ativa", price: 900, defaultOn: false },
+    includedLabel: "Incluso",
+    includedItems: ["Estratégia completa", "Posicionamento", "Planejamento", "Direção de conteúdo", "Acompanhamento estratégico", "Captação audiovisual", "4 vídeos editados/mês"],
+    additionalLabel: "Adicionais",
+    additionalItems: ["Social media dedicada", "Designs", "Postagens", "Estratégia B2B", "Tráfego pago", "Verba de mídia", "Produções adicionais"],
+    flowSteps: ["Estratégia", "Planejamento", "Direção", "Execução"],
+  },
+
+  upsell: {
+    heading: "Potencialize a operação",
+    subtitle: "Selecione o que faz sentido para este momento.",
+    items: [
+      { id: "videos-extra", label: "8 vídeos editados/mês", description: "Dobra a entrega mensal de conteúdo editado.", price: 800 },
+      { id: "trafego-pago", label: "Tráfego pago", description: "Estratégia e gestão de campanhas — verba de mídia à parte.", price: 740 },
+      { id: "prospeccao-ativa", label: "Estratégia de prospecção ativa", description: "Estrutura comercial para novas oportunidades.", price: 1000 },
     ],
   },
 

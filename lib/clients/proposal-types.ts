@@ -20,21 +20,23 @@ export type AcquisitionCard = {
   items: string[];
 };
 
-/** Item fixo do orçamento — sempre incluso, indicador discreto, nunca clicável, nunca pesa no preço. */
-export type FixedBudgetItem = { id: string; label: string };
+export type RoadmapStage = {
+  number: string;
+  title: string;
+  items: string[];
+};
 
-/**
- * Item variável do orçamento — 2 formas:
- *  - "toggle": liga/desliga, soma `price` ao total quando ligado.
- *  - "video-tier": grupo de opções mutuamente exclusivas (rádio) — só uma fica acesa por vez,
- *    cada uma com seu próprio `price` (o preço da opção SUBSTITUI, não soma). `unlockedBy`
- *    opcional — se presente, o item só aparece (e só conta no total) quando o toggle com esse
- *    `id` estiver ativo; ausente = sempre visível.
- * Preço nunca aparece na interface — só o total geral muda.
- */
-export type VariableBudgetItem =
-  | { kind: "toggle"; id: string; label: string; price: number; defaultOn: boolean }
-  | { kind: "video-tier"; id: string; label: string; options: { id: string; count: number; label: string; price: number }[]; defaultOptionId: string; unlockedBy?: string };
+export type BudgetPillarCard = {
+  title: string;
+  items: string[];
+};
+
+export type UpsellItem = {
+  id: string;
+  label: string;
+  description: string;
+  price: number;
+};
 
 export type ProposalContent = {
   slug: string;
@@ -52,6 +54,12 @@ export type ProposalContent = {
   pillarsIntro: { eyebrow: string; heading: string; subtitle: string };
   pillars: ProposalPillar[];
 
+  roadmap: {
+    heading: string;
+    subtitle: string;
+    stages: RoadmapStage[];
+  };
+
   tvProgram: {
     eyebrow: string;
     heading: string;
@@ -65,14 +73,22 @@ export type ProposalContent = {
     cards: AcquisitionCard[];
   };
 
-  configurator: {
+  budget: {
+    heroNumber: number;
+    heroLabel: string;
+    heroCaption: string;
+    pillars: BudgetPillarCard[];
+    includedLabel: string;
+    includedItems: string[];
+    additionalLabel: string;
+    additionalItems: string[];
+    flowSteps: string[];
+  };
+
+  upsell: {
     heading: string;
-    fixedLabel: string;
-    /** Preço-base da estrutura fixa — sempre presente no total, independente de qualquer toggle. */
-    fixedPrice: number;
-    fixedItems: FixedBudgetItem[];
-    variableLabel: string;
-    variableItems: VariableBudgetItem[];
+    subtitle: string;
+    items: UpsellItem[];
   };
 
   closing: {
