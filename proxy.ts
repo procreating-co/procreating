@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { ADMIN_HOME_PATH, ADMIN_LOGIN_PATH, ADMIN_SESSION_COOKIE, ADMIN_SIGNUP_PATH } from "@/lib/admin/auth/constants";
+import { ADMIN_LOGIN_PATH, ADMIN_SESSION_COOKIE, ADMIN_SIGNUP_PATH, POST_LOGIN_PATH } from "@/lib/admin/auth/constants";
 
 /**
  * Gate de borda pro ERP interno inteiro — `/admin/*` (painel legado) e todo o grupo protegido
@@ -28,7 +28,7 @@ export function proxy(request: NextRequest) {
   }
 
   if (hasSession && isPublicAuthPage) {
-    return NextResponse.redirect(new URL(ADMIN_HOME_PATH, request.url));
+    return NextResponse.redirect(new URL(POST_LOGIN_PATH, request.url));
   }
 
   return NextResponse.next();

@@ -2,7 +2,7 @@ import { supabaseAuthProvider } from "@/lib/admin/auth/supabase-provider";
 import type { AuthProvider } from "@/lib/admin/auth/types";
 
 export type { AdminUser, AdminRole, AuthSession, AuthProvider, SignInResult } from "@/lib/admin/auth/types";
-export { ADMIN_SESSION_COOKIE, ADMIN_LOGIN_PATH, ADMIN_HOME_PATH } from "@/lib/admin/auth/constants";
+export { ADMIN_SESSION_COOKIE, ADMIN_LOGIN_PATH, POST_LOGIN_PATH } from "@/lib/admin/auth/constants";
 
 /**
  * Fase 1 (Foundation): `mockAuthProvider` foi substituído por `supabaseAuthProvider` (Supabase

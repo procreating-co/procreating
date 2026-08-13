@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isPartnerEmail } from "@/lib/admin/auth/partners";
 import { setAdminSessionCookie } from "@/lib/admin/auth/session-cookie";
-import { ADMIN_HOME_PATH } from "@/lib/admin/auth/constants";
+import { POST_LOGIN_PATH } from "@/lib/admin/auth/constants";
 
 export type SignUpFormState = { error?: string; success?: string } | undefined;
 
@@ -51,5 +51,5 @@ export async function signUpAction(_prevState: SignUpFormState, formData: FormDa
   }
 
   await setAdminSessionCookie();
-  redirect(ADMIN_HOME_PATH);
+  redirect(POST_LOGIN_PATH);
 }
