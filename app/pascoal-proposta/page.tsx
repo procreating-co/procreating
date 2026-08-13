@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import { pascoalProposal } from "@/content/clients/pascoal/proposal";
 import { ProposalPascoalHero } from "@/components/proposal-pascoal/proposal-pascoal-hero";
-import { ProposalPascoalServiceSteps } from "@/components/proposal-pascoal/proposal-pascoal-service-steps";
-import { ProposalPascoalConfigurator } from "@/components/proposal-pascoal/proposal-pascoal-configurator";
+import { ProposalPascoalOperationSystem } from "@/components/proposal-pascoal/proposal-pascoal-operation-system";
+import { ProposalPascoalPositioning } from "@/components/proposal-pascoal/proposal-pascoal-positioning";
+import { ProposalPascoalScope } from "@/components/proposal-pascoal/proposal-pascoal-scope";
+import { ProposalPascoalFormat } from "@/components/proposal-pascoal/proposal-pascoal-format";
+import { ProposalPascoalInvestment } from "@/components/proposal-pascoal/proposal-pascoal-investment";
 
 /**
  * Proposta de Continuidade — Pascoal Bombas.
@@ -12,9 +15,10 @@ import { ProposalPascoalConfigurator } from "@/components/proposal-pascoal/propo
  * (`lib/pascoal-proposal/types.ts`) totalmente próprios — zero import de código usado pela
  * Elenita ou de qualquer coisa da Prospecção (`/clients/pascoal/public/prospeccao`, intocada).
  *
- * Estrutura: Hero → "Como Construímos Sua Operação" (timeline de 3 etapas) → Configurador ("Seu
- * Orçamento", com matriz normal de até 2 perfis, Plano Completo como produto à parte, e CTA de
- * WhatsApp).
+ * VERSÃO FINAL — dirigida à Júlia, já alinhada numa reunião anterior. Hero intocado. Estrutura:
+ * Hero → Como projetamos sua operação (+ animação de 3 perfis conectados) → Posicionamento →
+ * O que a proposta contempla → Formato: teste e continuidade → Investimento (preço estático,
+ * sem configurador — o criador conversacional da versão anterior foi substituído por completo).
  */
 export const metadata: Metadata = {
   title: pascoalProposal.metaTitle,
@@ -28,8 +32,11 @@ export default function PascoalPropostaPage() {
   return (
     <main className="min-h-screen bg-black">
       <ProposalPascoalHero content={pascoalProposal.hero} accent={accent} />
-      <ProposalPascoalServiceSteps intro={pascoalProposal.servicesIntro} steps={pascoalProposal.serviceSteps} accent={accent} />
-      <ProposalPascoalConfigurator content={pascoalProposal} accent={accent} />
+      <ProposalPascoalOperationSystem content={pascoalProposal.operationSystem} accent={accent} />
+      <ProposalPascoalPositioning content={pascoalProposal.positioning} accent={accent} />
+      <ProposalPascoalScope content={pascoalProposal.scope} accent={accent} />
+      <ProposalPascoalFormat content={pascoalProposal.format} accent={accent} />
+      <ProposalPascoalInvestment content={pascoalProposal} accent={accent} />
     </main>
   );
 }

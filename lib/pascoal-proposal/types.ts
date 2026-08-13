@@ -3,51 +3,17 @@
  * relação de código com `lib/clients/proposal-types.ts` (usado pela proposta da Elenita). Existe
  * outro agente trabalhando simultaneamente em outras partes do projeto; para não correr nenhum
  * risco de conflito, este arquivo é uma cópia conceitual independente, com sua própria evolução.
+ *
+ * Versão final da proposta (pedido explícito de "execução única") — substitui inteiramente o
+ * criador conversacional e a matriz de preços por combinação: agora é uma proposta estática,
+ * já alinhada com a Júlia numa reunião anterior, com um preço final único (R$7.500/mês).
  */
 
-/** Uma das 3 etapas da jornada ("Nossos Serviços" virou timeline vertical numerada). */
-export type ServiceStep = {
-  number: string;
-  title: string;
-  copy: string;
-  includesLabel: string;
-  /** Etapas 01/02 usam lista simples. */
-  includeItems?: string[];
-  /** Só a etapa 03 usa isso — 2 frentes em vez de bullets soltos. */
-  includeFronts?: { title: string; description: string }[];
-  excludesLabel: string;
-  excludeItems: string[];
-  closing: string;
-};
+export type PositioningCard = { title: string; description: string };
 
-export type PerfilId = "zona-sul" | "zona-norte" | "julia";
+export type ScopeItem = { title: string; description: string };
 
-export type Perfil = {
-  id: PerfilId;
-  name: string;
-  description: string;
-  /** Só a Julia — não existe fora do Plano Completo. */
-  exclusiveToCompleto?: boolean;
-};
-
-export type VideoCadence = 4 | 8;
-
-/**
- * Preço da matriz normal — até 2 perfis (Pascoal Zona Sul + Pascoal Zona Norte); 2 perfis × 8
- * vídeos/perfil não é oferecido (estouraria o teto de R$7.000–8.000 no topo da matriz normal —
- * ver memória de cálculo em content/clients/pascoal/proposal.ts). Com 2 perfis, a cadência de
- * vídeo fica fixa em 4/perfil — no fluxo conversacional isso significa que a Pergunta 3
- * (frequência) é pulada quando o cliente escolhe 2 perfis.
- */
-export type NormalMatrixPrice = { perfilCount: 1 | 2; videos: VideoCadence; price: number };
-
-export type GrowthFront = { id: string; label: string; price: number };
-
-/** Uma pergunta de múltipla escolha do criador de orçamento conversacional. */
-export type ConversationalQuestion<TValue extends string> = {
-  question: string;
-  options: { label: string; value: TValue }[];
-};
+export type FormatStep = { number: string; title: string; description: string };
 
 export type PascoalProposalContent = {
   slug: "pascoal";
@@ -61,40 +27,42 @@ export type PascoalProposalContent = {
     title: string;
   };
 
-  servicesIntro: { badge: string; heading: string };
-  serviceSteps: ServiceStep[];
+  /** Seção 1 — "Como projetamos sua operação": título + parágrafo + animação de assinatura (3 perfis conectados). */
+  operationSystem: {
+    badge: string;
+    heading: string;
+    paragraph: string;
+  };
 
-  configurator: {
-    /** Ponto de partida do total — só a Assessoria, antes de qualquer resposta com valor. */
-    baseLabel: string;
-    basePrice: number;
-    matrixPrices: NormalMatrixPrice[];
-    perfis: Perfil[];
-    growthFronts: GrowthFront[];
+  /** Seção 2 — "Posicionamento": só 2 cards, direto. */
+  positioning: {
+    heading: string;
+    cards: PositioningCard[];
+  };
 
-    questions: {
-      scope: ConversationalQuestion<"1" | "2" | "3+">;
-      perfil: ConversationalQuestion<PerfilId>;
-      cadence: ConversationalQuestion<"1x" | "2x">;
-      intent: ConversationalQuestion<"visibilidade" | "vendas" | "ambas" | "nenhum">;
-      upsell: ConversationalQuestion<"sim" | "nao">;
-    };
+  /** Seção 3 — "O que a proposta contempla": escopo completo em 6 itens escaneáveis. */
+  scope: {
+    heading: string;
+    items: ScopeItem[];
+    closing: string;
+  };
 
-    completo: {
-      headline: string;
-      description: string;
-      detailsLine: string;
-      price: number;
-      mediaInvestment: number;
-      mediaNote: string;
-      chooseLabel: string;
-      backLabel: string;
-    };
+  /** Seção 4 — "Formato: teste e continuidade": 2 etapas no tempo. */
+  format: {
+    heading: string;
+    steps: FormatStep[];
+  };
 
-    summary: {
-      heading: string;
-      mediaWarning: string;
-    };
+  /** Seção 5 — "Investimento": ancoragem de preço, sem interatividade. */
+  investment: {
+    heading: string;
+    perfilLabel: string;
+    perfilPrice: number;
+    referenceLabel: string;
+    referencePrice: number;
+    finalPrice: number;
+    reinforcement: string;
+    note: string;
   };
 
   whatsapp: {
