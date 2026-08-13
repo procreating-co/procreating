@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Check, MessageCircle } from "lucide-react";
+import { ProposalPascoalSectionTexture } from "@/components/proposal-pascoal/proposal-pascoal-section-texture";
 import type { PascoalProposalContent } from "@/lib/pascoal-proposal/types";
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
@@ -12,7 +13,7 @@ function buildWhatsAppMessage(content: PascoalProposalContent): string {
   return [
     `Olá, ${whatsapp.ceoFirstName}! Estou entrando em contato através da proposta da Pascoal Bombas e gostaria de fechar a estrutura apresentada.`,
     "",
-    "Estrutura: os 3 perfis (Pascoal + perfil pessoal da Júlia), começando pelo mês de teste.",
+    "Estrutura: Pascoal Bombas Zona Sul, Pascoal Bombas Zona Norte e o perfil pessoal da Julia, começando pelo mês de teste.",
     `Valor: ${currency.format(investment.finalPrice)}/mês.`,
     "",
     "Gostaria de avançar com essa estrutura.",
@@ -20,9 +21,8 @@ function buildWhatsAppMessage(content: PascoalProposalContent): string {
 }
 
 /**
- * Ancoragem de preço, sem interatividade — proposta final e estática, já alinhada com a Júlia.
- * R$3.500/perfil (contexto) → R$10.500 riscado (referência de comparação, nunca preço a pagar) →
- * R$7.500 em destaque (o valor real, tipografia forte).
+ * Ancoragem de preço, sem interatividade. R$3.500/perfil (contexto) então R$10.500 riscado
+ * (referência de comparação, nunca preço a pagar) então R$7.500 em destaque (o valor real).
  */
 export function ProposalPascoalInvestment({ content, accent }: { content: PascoalProposalContent; accent: string }) {
   const { investment, cta, whatsapp } = content;
@@ -39,16 +39,19 @@ export function ProposalPascoalInvestment({ content, accent }: { content: Pascoa
   };
 
   return (
-    <section className="border-t border-white/10 bg-black px-6 py-24 text-white lg:px-12 lg:py-32">
-      <div className="mx-auto max-w-xl">
+    <section className="relative overflow-hidden border-t border-white/10 bg-black px-6 py-24 text-white lg:px-12 lg:py-32">
+      <ProposalPascoalSectionTexture accent={accent} corner="top-right" />
+
+      <div className="relative mx-auto max-w-xl">
         <h2 className="text-balance text-center font-display text-3xl leading-[1.05] tracking-tight text-white sm:text-4xl">{investment.heading}</h2>
+        <p className="mx-auto mt-3 max-w-sm text-balance text-center text-sm leading-relaxed text-white/55">{investment.coverageNote}</p>
 
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.4 }}
           transition={{ duration: 0.5, ease: "easeOut" }}
-          className="relative mt-12 overflow-hidden border border-white/15 px-6 py-12 text-center sm:px-10"
+          className="relative mt-10 overflow-hidden border border-white/15 px-6 py-12 text-center sm:px-10"
           style={{ background: `radial-gradient(ellipse 120% 100% at 50% 0%, ${accent}12, transparent 60%), rgba(255,255,255,0.02)` }}
         >
           <p className="font-mono text-xs uppercase tracking-wide text-white/40">{investment.perfilLabel}</p>
@@ -80,7 +83,7 @@ export function ProposalPascoalInvestment({ content, accent }: { content: Pascoa
           >
             {ctaState === "confirming" ? (
               <>
-                <Check className="size-4" /> Confirmado — abrindo WhatsApp
+                <Check className="size-4" /> Confirmado, abrindo WhatsApp
               </>
             ) : (
               <>

@@ -5,24 +5,24 @@ import type { PascoalProposalContent } from "@/lib/pascoal-proposal/types";
  * (`/clients/pascoal/public/proposta`, servida via rewrite — ver `next.config.mjs` — por um app
  * route próprio em `app/pascoal-proposta/page.tsx`).
  *
- * VERSÃO FINAL (execução única) — dirigida à Júlia, sócia/responsável pela Pascoal Bombas, já
- * alinhada numa reunião anterior. Substitui inteiramente o criador conversacional e a matriz de
- * preços por combinação (perfis × vídeos) da versão anterior: agora é uma proposta estática, com
- * um único preço final.
+ * REFORMULAÇÃO DE COPY (pedido explícito) — regras seguidas em todo o arquivo:
+ *   - Nenhum travessão (—) em lugar nenhum. Ideias conectadas com ponto final, dois pontos, ou
+ *     frase reestruturada.
+ *   - Sem frases de efeito vazias ("não são ações soltas, é um sistema" e afins foram cortadas).
+ *   - Os 3 perfis (Pascoal Bombas Zona Sul, Pascoal Bombas Zona Norte, Julia Brigidio) nomeados
+ *     explicitamente já na primeira seção depois do Hero, cada um com a estratégia dele.
  *
- * PREÇOS — dados diretamente no pedido, sem cálculo:
+ * PREÇOS — inalterados, dados diretamente pelo cliente, sem cálculo:
  *   R$ 3.500/mês por perfil trabalhado isoladamente
- *   R$ 10.500/mês = referência de comparação (3 × 3.500), exibida riscada/discreta, nunca como
- *     preço a pagar
- *   R$ 7.500/mês = preço final do pacote completo (3 perfis — os 2 da loja + o pessoal da
- *     Júlia), em destaque. Vale para o mês de teste E para o plano de 6 meses subsequente, mesmo
- *     valor nas duas fases.
+ *   R$ 10.500/mês = referência de comparação (3 × 3.500), exibida riscada/discreta
+ *   R$ 7.500/mês = preço final cobrindo os 2 perfis de loja (Zona Sul + Zona Norte) e o perfil
+ *     pessoal da Julia. Vale para o mês de teste e para o plano de 6 meses subsequente.
  */
 export const pascoalProposal: PascoalProposalContent = {
   slug: "pascoal",
   brandName: "Pascoal Bombas",
   accentColor: "#d4af6a",
-  metaTitle: "Proposta de Continuidade — Pascoal Bombas",
+  metaTitle: "Proposta de Continuidade: Pascoal Bombas",
   metaDescription: "Uma parceria estratégica de marketing.",
 
   hero: {
@@ -33,47 +33,72 @@ export const pascoalProposal: PascoalProposalContent = {
   operationSystem: {
     badge: "Proposta de continuidade",
     heading: "Como projetamos sua operação",
-    paragraph: "Não são ações soltas. É um sistema: cada perfil, cada conteúdo e cada métrica trabalham conectados, na mesma direção.",
+    paragraph: "São 3 perfis, cada um com uma estratégia própria. As duas lojas focam em prospecção comercial e tráfego pago. O perfil da Julia foca em autoridade profissional. Todos seguem a mesma identidade visual e o mesmo calendário de conteúdo.",
+    profiles: [
+      { name: "Pascoal Bombas Zona Sul", tag: "Loja", strategy: "Prospecção de parceiros comerciais e tráfego pago para ampliar o alcance dos vídeos, gerando contato via WhatsApp com outras empresas." },
+      { name: "Pascoal Bombas Zona Norte", tag: "Loja", strategy: "Mesma estratégia da Zona Sul: prospecção comercial e tráfego pago, com pauta e ritmo próprios." },
+      { name: "Julia Brigidio", tag: "Perfil pessoal", strategy: "Construção de autoridade profissional, com social media dedicada cuidando da rotina de posts." },
+    ],
+    diagramCaption: "Estratégias diferentes. Identidade visual e calendário compartilhados.",
   },
 
   positioning: {
     heading: "Posicionamento",
     cards: [
-      { title: "Captação de Conteúdo", description: "Produção presencial organizada por pauta, respeitando o ritmo de cada perfil." },
-      { title: "Produção de Vídeos", description: "Edição e finalização com identidade própria para cada linha editorial." },
+      { title: "Captação de Conteúdo", description: "Uma gravação mensal alimenta os 3 perfis: material organizado por pauta, pronto para virar conteúdo das duas lojas e do perfil da Julia." },
+      { title: "Produção de Vídeos", description: "Cada vídeo é editado para o perfil que vai publicá-lo: tom comercial nas lojas, tom pessoal no perfil da Julia." },
     ],
   },
 
   scope: {
     heading: "O que a proposta contempla",
-    items: [
-      { title: "Linha editorial para os 3 perfis", description: "Posicionamento, temas, formatos e direcionamento de conteúdo definidos para cada perfil." },
-      { title: "Criação de conteúdo para os 3 perfis", description: "Estratégia conectada entre eles, respeitando o objetivo e o posicionamento individual de cada um." },
-      { title: "Tráfego pago para o perfil da Pascoal", description: "Foco em geração de oportunidades e crescimento comercial." },
-      { title: "Aquisição de empresas via WhatsApp (Pascoal)", description: "Campanhas específicas para alcançar empresas e transformar tráfego em conversas comerciais." },
-      { title: "Projeto completo do Perfil Pro da Júlia", description: "Do posicionamento à apresentação visual e estratégica do perfil profissional." },
-      { title: "Social Media dedicado ao perfil da Júlia", description: "Rotina de posts, organização de conteúdo e execução da linha editorial definida." },
+    groups: [
+      {
+        label: "Base para os 3 perfis",
+        tag: "Fundação",
+        items: [
+          { title: "Linha editorial para os 3 perfis", description: "Pauta, formato e frequência definidos para cada perfil, dentro do mesmo calendário de conteúdo." },
+          { title: "Criação de conteúdo para os 3 perfis", description: "Produção mensal que abastece as duas lojas e o perfil da Julia com o mesmo material captado." },
+        ],
+      },
+      {
+        label: "Zona Sul e Zona Norte",
+        tag: "Lojas",
+        items: [
+          { title: "Tráfego pago para os vídeos", description: "Impulsionamento para ampliar o alcance além de quem já segue o perfil." },
+          { title: "Prospecção comercial via WhatsApp", description: "Campanhas voltadas a outras empresas, com o objetivo de gerar contato comercial direto." },
+        ],
+      },
+      {
+        label: "Julia Brigidio",
+        tag: "Perfil pessoal",
+        items: [
+          { title: "Perfil Pro completo", description: "Estruturação do perfil profissional, do posicionamento à apresentação visual." },
+          { title: "Social media dedicada", description: "Rotina de posts e execução da linha editorial, com atenção exclusiva ao perfil." },
+        ],
+      },
     ],
-    closing: "A intenção não é apenas produção de posts ou tráfego isolado — é a construção de uma estrutura digital que une posicionamento, conteúdo, aquisição e comercial em uma única operação.",
+    closing: "As lojas buscam contato comercial. A Julia constrói autoridade. Os dois lados seguem a mesma identidade visual, no mesmo calendário.",
   },
 
   format: {
     heading: "Formato: teste e continuidade",
     steps: [
-      { number: "01", title: "Mês de teste", description: "Um primeiro mês para colocar toda a estrutura em prática, validar o funcionamento da estratégia e entender os primeiros resultados." },
-      { number: "02", title: "Plano de 6 meses", description: "Com tudo validado e ajustado no mês de teste, a operação segue para um plano de 6 meses, com estratégia de crescimento mais estruturada e contínua." },
+      { number: "01", title: "Mês de teste", description: "Um mês para colocar a operação em prática. No fim dele, revisamos os resultados junto com você." },
+      { number: "02", title: "Plano de 6 meses", description: "Com o que funcionou validado no teste, seguimos por 6 meses de operação contínua, com ajustes mensais conforme os resultados." },
     ],
   },
 
   investment: {
     heading: "Investimento",
+    coverageNote: "Uma operação cobrindo os 2 perfis das lojas (Zona Sul e Zona Norte) e o perfil pessoal da Julia.",
     perfilLabel: "Cada perfil trabalhado isoladamente",
     perfilPrice: 3500,
     referenceLabel: "Referência para os 3 perfis somados",
     referencePrice: 10500,
     finalPrice: 7500,
-    reinforcement: "Abaixo da soma dos valores individuais trabalhando os 3 perfis separadamente.",
-    note: "Esse valor vale para o mês de teste e segue o mesmo durante o plano de 6 meses seguinte — uma única operação, do início à continuidade.",
+    reinforcement: "Menor que a soma dos 3 perfis contratados separadamente.",
+    note: "Esse valor vale para o mês de teste e continua o mesmo durante o plano de 6 meses seguinte.",
   },
 
   whatsapp: {
@@ -85,6 +110,6 @@ export const pascoalProposal: PascoalProposalContent = {
 
   cta: {
     label: "Fechar proposta",
-    note: "Seu escopo será enviado diretamente para nossa equipe.",
+    note: "Retorno da nossa equipe em até 1 dia útil, pelo WhatsApp, com os próximos passos.",
   },
 };

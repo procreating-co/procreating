@@ -2,14 +2,17 @@
 
 import { motion } from "framer-motion";
 import { Camera, Clapperboard } from "lucide-react";
+import { ProposalPascoalSectionTexture } from "@/components/proposal-pascoal/proposal-pascoal-section-texture";
 import type { PascoalProposalContent } from "@/lib/pascoal-proposal/types";
 
 const ICONS = [Camera, Clapperboard];
 
 export function ProposalPascoalPositioning({ content, accent }: { content: PascoalProposalContent["positioning"]; accent: string }) {
   return (
-    <section className="border-t border-white/10 bg-black px-6 py-24 text-white lg:px-12 lg:py-32">
-      <div className="mx-auto max-w-3xl">
+    <section className="relative overflow-hidden border-t border-white/10 bg-black px-6 py-24 text-white lg:px-12 lg:py-32">
+      <ProposalPascoalSectionTexture accent={accent} corner="bottom-left" />
+
+      <div className="relative mx-auto max-w-3xl">
         <h2 className="text-balance text-center font-display text-3xl leading-[1.05] tracking-tight text-white sm:text-4xl">{content.heading}</h2>
 
         <div className="mt-14 grid grid-cols-1 gap-4 sm:grid-cols-2">

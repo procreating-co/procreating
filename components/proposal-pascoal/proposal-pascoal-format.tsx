@@ -2,13 +2,16 @@
 
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
+import { ProposalPascoalSectionTexture } from "@/components/proposal-pascoal/proposal-pascoal-section-texture";
 import type { PascoalProposalContent } from "@/lib/pascoal-proposal/types";
 
-/** Sequência real no tempo (teste → continuidade) — aqui a numeração faz sentido, ao contrário das seções de serviço. */
+/** Sequência real no tempo (teste então continuidade) — aqui a numeração faz sentido, ao contrário das seções de serviço. */
 export function ProposalPascoalFormat({ content, accent }: { content: PascoalProposalContent["format"]; accent: string }) {
   return (
-    <section className="border-t border-white/10 bg-black px-6 py-24 text-white lg:px-12 lg:py-32">
-      <div className="mx-auto max-w-3xl">
+    <section className="relative overflow-hidden border-t border-white/10 bg-black px-6 py-24 text-white lg:px-12 lg:py-32">
+      <ProposalPascoalSectionTexture accent={accent} corner="bottom-right" />
+
+      <div className="relative mx-auto max-w-3xl">
         <h2 className="text-balance text-center font-display text-3xl leading-[1.05] tracking-tight text-white sm:text-4xl">{content.heading}</h2>
 
         <div className="mt-14 flex flex-col gap-4 sm:flex-row sm:items-stretch">
