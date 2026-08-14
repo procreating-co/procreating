@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Handshake, PackageCheck, Target, TrendingUp, UserPlus, Wallet } from "lucide-react";
 import { computeComercialMetrics, compareStrategies } from "@/lib/comercial/metrics";
 import { StatTile } from "@/components/dashboard/stat-tile";
+import { PageHeader } from "@/components/dashboard/page-header";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export const metadata: Metadata = {
@@ -16,22 +17,8 @@ export default async function ComercialPage() {
   const [metrics, comparison] = await Promise.all([computeComercialMetrics(), compareStrategies()]);
 
   return (
-    <main className="mx-auto flex max-w-[1400px] flex-col gap-8 px-6 py-16 lg:px-10">
-      <div className="flex flex-col gap-2">
-        <h1 className="font-display text-3xl">Comercial</h1>
-        <p className="max-w-lg text-sm text-muted-foreground">Métricas do funil e comparação entre estratégias.</p>
-        <div className="mt-2 flex flex-wrap gap-3 text-sm">
-          <Link href="/comercial/estrategias" className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
-            Estratégias
-          </Link>
-          <Link href="/comercial/leads" className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
-            Leads
-          </Link>
-          <Link href="/comercial/pipeline" className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
-            Pipeline
-          </Link>
-        </div>
-      </div>
+    <main className="mx-auto flex max-w-[1400px] flex-col gap-8 px-6 pt-8 pb-16 lg:px-10">
+      <PageHeader title="Comercial" description="Métricas do funil e comparação entre estratégias." />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <StatTile demo={false} label="Leads abertos" value={String(metrics.openLeads)} icon={<UserPlus className="size-4.5" />} />

@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { AlertTriangle, ArrowDownCircle, ArrowUpCircle, Clock, TrendingUp, Wallet } from "lucide-react";
 import { computeFinanceiroMetrics } from "@/lib/financeiro/queries";
 import { StatTile } from "@/components/dashboard/stat-tile";
 import { RevenueChart } from "@/components/financeiro/revenue-chart";
 import { SectionHeader } from "@/components/dashboard/section-header";
+import { PageHeader } from "@/components/dashboard/page-header";
 import { PeriodSelect } from "@/components/dashboard/period-select";
 
 export const metadata: Metadata = {
@@ -20,25 +20,8 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: P
   const metrics = await computeFinanceiroMetrics(months);
 
   return (
-    <main className="mx-auto flex max-w-[1400px] flex-col gap-8 px-6 py-16 lg:px-10">
-      <div className="flex flex-col gap-2">
-        <h1 className="font-display text-3xl">Financeiro</h1>
-        <p className="max-w-lg text-sm text-muted-foreground">Receita recorrente, despesas e fluxo de caixa — sem cobrança automática nem integração bancária ainda.</p>
-        <div className="mt-2 flex flex-wrap gap-3 text-sm">
-          <Link href="/financeiro/receitas" className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
-            Receitas
-          </Link>
-          <Link href="/financeiro/despesas" className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
-            Despesas
-          </Link>
-          <Link href="/financeiro/contas-a-receber" className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
-            Contas a receber
-          </Link>
-          <Link href="/financeiro/contas-a-pagar" className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
-            Contas a pagar
-          </Link>
-        </div>
-      </div>
+    <main className="mx-auto flex max-w-[1400px] flex-col gap-8 px-6 pt-8 pb-16 lg:px-10">
+      <PageHeader title="Financeiro" description="Receita recorrente, despesas e fluxo de caixa — sem cobrança automática nem integração bancária ainda." />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <StatTile demo={false} label="MRR (recorrente ativo)" value={currencyFormatter.format(metrics.mrr)} icon={<TrendingUp className="size-4.5" />} />

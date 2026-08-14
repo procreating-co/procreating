@@ -8,6 +8,7 @@ import { useAdminUser } from "@/lib/admin/auth/auth-context";
 import { NAV_GROUPS } from "@/components/dashboard/nav-config";
 import { ProcreatingMark } from "@/components/dashboard/procreating-mark";
 import { ThemeToggle } from "@/components/dashboard/theme-toggle";
+import { AccountMenu, AccountAvatar } from "@/components/dashboard/account-menu";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
@@ -52,25 +53,33 @@ function SidebarContent({ expanded, user, onNavigate }: { expanded: boolean; use
       </nav>
 
       <div className="border-t border-border/60 p-2.5">
-        <div className={cn("flex items-center gap-2 rounded-md px-1 py-1", expanded ? "justify-between" : "flex-col")}>
-          <div className="flex min-w-0 items-center gap-3 px-1.5 py-1">
-            <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-foreground/10 font-mono text-xs uppercase">{user.name.slice(0, 2)}</div>
+        {/* Mesma classe (px-2.5 py-2, gap-3) dos Link de grupo acima — mesmo eixo esquerdo
+         *  garantido, sem matemática de padding pra acertar visualmente (era o motivo do avatar
+         *  não alinhar com os ícones: 3 divs aninhados com padding próprio, cada um). */}
+        <AccountMenu user={{ name: user.name, email: user.email, avatarUrl: user.avatarUrl }}>
+          <button type="button" className="flex w-full items-center gap-3 rounded-md px-2.5 py-2 text-left text-sm transition-colors hover:bg-foreground/5">
+            <AccountAvatar user={user} className="size-7 text-[10px]" />
             <div className={cn("min-w-0 flex-1 overflow-hidden transition-opacity duration-150", expanded ? "opacity-100" : "w-0 opacity-0")}>
               <p className="truncate text-sm">{user.name}</p>
               <p className="truncate text-xs text-muted-foreground">{user.email}</p>
             </div>
-          </div>
+          </button>
+        </AccountMenu>
+
+        {/* Toggle de tema ao lado de Configurações (não mais entre o avatar e o rodapé) — os dois
+         *  ficam adjacentes tanto expandido (mesma linha) quanto recolhido (mesma coluna). */}
+        <div className={cn("mt-1 flex gap-1", expanded ? "items-center" : "flex-col")}>
+          <Link
+            href="/configuracoes"
+            onClick={onNavigate}
+            title={expanded ? undefined : "Configurações"}
+            className="flex flex-1 items-center gap-3 rounded-md px-2.5 py-2 text-sm text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground"
+          >
+            <Settings className="size-4 shrink-0" />
+            <span className={cn("overflow-hidden whitespace-nowrap transition-opacity duration-150", expanded ? "opacity-100" : "w-0 opacity-0")}>Configurações</span>
+          </Link>
           <ThemeToggle />
         </div>
-        <Link
-          href="/configuracoes"
-          onClick={onNavigate}
-          title={expanded ? undefined : "Configurações"}
-          className="mt-1 flex w-full items-center gap-3 rounded-md px-2.5 py-2 text-sm text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground"
-        >
-          <Settings className="size-4 shrink-0" />
-          <span className={cn("overflow-hidden whitespace-nowrap transition-opacity duration-150", expanded ? "opacity-100" : "w-0 opacity-0")}>Configurações</span>
-        </Link>
       </div>
     </>
   );

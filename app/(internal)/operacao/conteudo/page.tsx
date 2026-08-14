@@ -25,7 +25,7 @@ const DEMO_CONTENT: { title: string; client: string; status: string; tone: Statu
 
 export default function ConteudoPage() {
   return (
-      <main className="mx-auto flex max-w-[1400px] flex-col gap-8 px-6 py-16 lg:px-10">
+      <main className="mx-auto flex max-w-[1400px] flex-col gap-8 px-6 pt-8 pb-16 lg:px-10">
         <Link
           href="/operacao"
           className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"

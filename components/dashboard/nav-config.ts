@@ -43,17 +43,6 @@ export const NAV_GROUPS: NavGroupDef[] = [
 
 export type TopNavTab = { label: string; href: string };
 
-/** Meu Dia é o conteúdo real de sempre; Tarefas é nova (todas as tarefas do usuário, não só as de
- *  hoje); Calendário/Inbox ainda não têm entidade nenhuma por trás — `ComingSoon`. Conquistas é o
- *  workspace gamificado (XP/streak/timer/conquistas), nova nesta fase. */
-export const WORKSPACE_TABS: TopNavTab[] = [
-  { label: "Meu Dia", href: "/meu-dia" },
-  { label: "Tarefas", href: "/meu-dia/tarefas" },
-  { label: "Calendário", href: "/meu-dia/calendario" },
-  { label: "Inbox", href: "/meu-dia/inbox" },
-  { label: "Conquistas", href: "/meu-dia/conquistas" },
-];
-
 /** Visão Geral (métricas comerciais reais, já existia em `/comercial`) e Clientes (visão 360º,
  *  `/clientes`) foram acrescentadas além da lista literal do pedido (CRM/Pipeline/Estratégias/
  *  Simuladores/Relatórios) — sem elas, conteúdo real perderia navegação. Relatórios não existe

@@ -35,7 +35,7 @@ export default async function EstrategiaDetailPage({ params }: { params: Promise
   const conversionRate = funnel.totalLeads > 0 ? funnel.wonLeads / funnel.totalLeads : null;
 
   return (
-    <main className="mx-auto flex max-w-[1400px] flex-col gap-8 px-6 py-16 lg:px-10">
+    <main className="mx-auto flex max-w-[1400px] flex-col gap-8 px-6 pt-8 pb-16 lg:px-10">
       <StrategyDetailHeader strategy={strategy} />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

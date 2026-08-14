@@ -14,7 +14,7 @@ export default async function CustosPage() {
   const monthlyTotal = costs.reduce((sum, cost) => sum + Number(cost.amount), 0);
 
   return (
-    <main className="mx-auto flex max-w-[1400px] flex-col gap-8 px-6 py-16 lg:px-10">
+    <main className="mx-auto flex max-w-[1400px] flex-col gap-8 px-6 pt-8 pb-16 lg:px-10">
       <div className="flex flex-col gap-2">
         <h1 className="font-display text-3xl">Custos</h1>
         <p className="max-w-lg text-sm text-muted-foreground">

@@ -21,7 +21,7 @@ export default async function RegrasFinanceirasPage() {
   const preview = await computeDistribution(100);
 
   return (
-    <main className="mx-auto flex max-w-[1400px] flex-col gap-8 px-6 py-16 lg:px-10">
+    <main className="mx-auto flex max-w-[1400px] flex-col gap-8 px-6 pt-8 pb-16 lg:px-10">
       <div className="flex flex-col gap-2">
         <h1 className="font-display text-3xl">Regras financeiras</h1>
         <p className="max-w-lg text-sm text-muted-foreground">

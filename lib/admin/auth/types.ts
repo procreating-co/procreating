@@ -18,6 +18,8 @@ export type AdminUser = {
   role: AdminRole;
   /** Preferência de tema salva na conta — `null` se nunca escolhida. Ver `lib/theme/`. */
   theme: UserTheme | null;
+  /** URL pública do bucket `avatars` — `null` até o primeiro upload (menu de conta, sidebar). */
+  avatarUrl: string | null;
 };
 
 /** `null` quando não há sessão ativa. */

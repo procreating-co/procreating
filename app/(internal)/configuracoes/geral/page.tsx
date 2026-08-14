@@ -32,7 +32,7 @@ export default async function ConfiguracoesGeralPage() {
   const goal = await getCurrentMonthGoal();
 
   return (
-    <main className="mx-auto flex max-w-[1400px] flex-col gap-8 px-6 py-16 lg:px-10">
+    <main className="mx-auto flex max-w-[1400px] flex-col gap-8 px-6 pt-8 pb-16 lg:px-10">
       <div className="flex flex-col gap-2">
         <h1 className="font-display text-3xl">General</h1>
         <p className="max-w-lg text-sm text-muted-foreground">Sua conta e a meta de faturamento que o Dashboard usa pra medir ritmo do mês.</p>

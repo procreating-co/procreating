@@ -40,7 +40,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
   const d = metrics.details;
 
   return (
-    <main className="mx-auto flex max-w-[1400px] flex-col gap-10 px-6 py-16 lg:px-10">
+    <main className="mx-auto flex max-w-[1400px] flex-col gap-10 px-6 pt-8 pb-16 lg:px-10">
       <DashboardDateHeader goal={metrics.goal} />
 
       {/* Linha de KPIs */}
