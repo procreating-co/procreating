@@ -1,0 +1,11 @@
+# O Vercel CLI (`vercel deploy` local) não respeita `.gitignore` de forma confiável em todos os
+# casos — vídeos de origem locais que ficam fora do git (hospedados no Cloudflare R2, ver
+# `.gitignore`) ainda assim eram enviados no bundle do deploy e estouravam o limite de 100MB por
+# arquivo do Vercel. Espelha exatamente a mesma exceção de `.gitignore`: os 5 vídeos pequenos que
+# ficam no git continuam indo pro deploy; o resto (fonte grande, só local) fica de fora.
+public/videos/*
+!public/videos/hero-background.mp4
+!public/videos/elenita-hero-background.mp4
+!public/videos/elenita-social-01-protocolo-elleve.mp4
+!public/videos/elenita-social-02-voce-decidiu-se-priorizar.mp4
+!public/videos/elenita-social-03-educativo.mp4
