@@ -5,6 +5,7 @@ import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import { CheckIcon, ChevronRightIcon, CircleIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { usePortalContainer } from "@/lib/theme/portal-container";
 
 function DropdownMenu({ ...props }: React.ComponentProps<typeof DropdownMenuPrimitive.Root>) {
   return <DropdownMenuPrimitive.Root data-slot="dropdown-menu" {...props} />;
@@ -14,9 +15,12 @@ function DropdownMenuTrigger({ ...props }: React.ComponentProps<typeof DropdownM
   return <DropdownMenuPrimitive.Trigger data-slot="dropdown-menu-trigger" {...props} />;
 }
 
+/** Portal dentro de `.os-shell` quando aplicável — mesmo raciocínio de `dialog.tsx`/`sheet.tsx`
+ *  (ver `portal-container.tsx`), senão o menu nasce fora do escopo de tema. */
 function DropdownMenuContent({ className, sideOffset = 6, ...props }: React.ComponentProps<typeof DropdownMenuPrimitive.Content>) {
+  const container = usePortalContainer();
   return (
-    <DropdownMenuPrimitive.Portal>
+    <DropdownMenuPrimitive.Portal container={container}>
       <DropdownMenuPrimitive.Content
         data-slot="dropdown-menu-content"
         sideOffset={sideOffset}

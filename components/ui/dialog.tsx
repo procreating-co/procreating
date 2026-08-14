@@ -5,6 +5,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { XIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { usePortalContainer } from "@/lib/theme/portal-container";
 
 function Dialog({ ...props }: React.ComponentProps<typeof DialogPrimitive.Root>) {
   return <DialogPrimitive.Root data-slot="dialog" {...props} />;
@@ -14,8 +15,11 @@ function DialogTrigger({ ...props }: React.ComponentProps<typeof DialogPrimitive
   return <DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} />;
 }
 
-function DialogPortal({ ...props }: React.ComponentProps<typeof DialogPrimitive.Portal>) {
-  return <DialogPrimitive.Portal data-slot="dialog-portal" {...props} />;
+/** `container` (quando dentro do shell interno) mantém o portal DENTRO de `.os-shell` — senão o
+ *  conteúdo do modal nasce em `document.body`, fora do escopo de tema (ver `portal-container.tsx`). */
+function DialogPortal({ container, ...props }: React.ComponentProps<typeof DialogPrimitive.Portal>) {
+  const osShellContainer = usePortalContainer();
+  return <DialogPrimitive.Portal data-slot="dialog-portal" container={container ?? osShellContainer} {...props} />;
 }
 
 function DialogClose({ ...props }: React.ComponentProps<typeof DialogPrimitive.Close>) {
