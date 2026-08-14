@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { LeadsTable } from "@/components/comercial/leads-table";
 import { PipelineBoard } from "@/components/comercial/pipeline-board";
 import { StrategiesList } from "@/components/comercial/strategies-list";
+import { CrmFilters } from "@/components/comercial/crm-filters";
 import { SimulatorForm } from "@/components/marketing/simulator-form";
 import { cn } from "@/lib/utils";
 
@@ -40,23 +41,34 @@ const TABS = [
  * (`/comercial/estrategias/[id]`) — é uma página de detalhe de verdade. Relatórios (`/reports`)
  * foi removido, não migrado — era um placeholder vazio desde sempre, zero funcionalidade real.
  */
-export default async function ComercialPage({ searchParams }: { searchParams: Promise<{ tab?: string; view?: string }> }) {
-  const { tab: tabParam, view: viewParam } = await searchParams;
+export default async function ComercialPage({ searchParams }: { searchParams: Promise<{ tab?: string; view?: string; owner?: string; strategy?: string }> }) {
+  const { tab: tabParam, view: viewParam, owner: ownerParam, strategy: strategyParam } = await searchParams;
   const tab = tabParam ?? "overview";
   const view: "pipeline" | "lista" = viewParam === "lista" ? "lista" : "pipeline";
+  const ownerId = ownerParam ?? "todos";
+  const strategyId = strategyParam ?? "todos";
 
   let content: ReactNode;
   let wide = false;
 
   if (tab === "crm") {
-    const [leads, stages, strategies, users] = await Promise.all([listOpenLeads(), listPipelineStages(), listStrategies(), listUsers()]);
+    const [allLeads, stages, strategies, users] = await Promise.all([listOpenLeads(), listPipelineStages(), listStrategies(), listUsers()]);
+    // Owner/Estratégia filtram UMA vez aqui — Pipeline e Lista recebem a mesma lista já cortada,
+    // sem duplicar a lógica de filtro em cada view. Persistem sozinhos ao trocar Pipeline↔Lista
+    // (e ao voltar depois) porque são `?param=` na URL, não estado em memória.
+    const leads = allLeads.filter((lead) => (ownerId === "todos" || lead.owner_id === ownerId) && (strategyId === "todos" || lead.strategy_id === strategyId));
     wide = view === "pipeline";
     content = (
       <div className="flex flex-col gap-4">
         <SectionHeader
           title="CRM"
           description={view === "pipeline" ? 'Arraste um card pra mudar de estágio. Soltar em "Fechado" abre o onboarding do cliente.' : "Todos os leads em aberto — clique numa linha pra ver/editar o detalhe."}
-          action={<ViewToggle view={view} />}
+          action={
+            <div className="flex flex-wrap items-center gap-2">
+              <CrmFilters owners={users} strategies={strategies} ownerId={ownerId} strategyId={strategyId} />
+              <ViewToggle view={view} ownerId={ownerId} strategyId={strategyId} />
+            </div>
+          }
         />
         {view === "pipeline" ? <PipelineBoard leads={leads} stages={stages} users={users} /> : <LeadsTable leads={leads} stages={stages} strategies={strategies} users={users} />}
       </div>
@@ -146,14 +158,24 @@ export default async function ComercialPage({ searchParams }: { searchParams: Pr
   );
 }
 
-function ViewToggle({ view }: { view: "pipeline" | "lista" }) {
+function ViewToggle({ view, ownerId, strategyId }: { view: "pipeline" | "lista"; ownerId: string; strategyId: string }) {
+  // Preserva owner/estratégia ao trocar de view — hardcoded `?tab=crm` sem os outros params
+  // faria o filtro sumir só de clicar em "Lista"/"Pipeline".
+  const extra = new URLSearchParams();
+  if (ownerId !== "todos") extra.set("owner", ownerId);
+  if (strategyId !== "todos") extra.set("strategy", strategyId);
+  const extraQuery = extra.toString() ? `&${extra.toString()}` : "";
+
   return (
     <div className="flex items-center gap-1 rounded-md border border-border/60 p-0.5 text-xs">
-      <Link href="/comercial?tab=crm" className={cn("rounded px-2 py-1 transition-colors", view === "pipeline" ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:text-foreground")}>
+      <Link
+        href={`/comercial?tab=crm${extraQuery}`}
+        className={cn("rounded px-2 py-1 transition-colors", view === "pipeline" ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:text-foreground")}
+      >
         Pipeline
       </Link>
       <Link
-        href="/comercial?tab=crm&view=lista"
+        href={`/comercial?tab=crm&view=lista${extraQuery}`}
         className={cn("rounded px-2 py-1 transition-colors", view === "lista" ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:text-foreground")}
       >
         Lista

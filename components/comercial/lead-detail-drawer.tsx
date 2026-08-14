@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { getLeadEventsAction, logLeadActivityAction, updateLeadAction } from "@/lib/comercial/actions";
 import { stageColorClasses } from "@/lib/comercial/stage-colors";
 import type { Event, User } from "@/lib/supabase/types/database";
@@ -27,15 +27,14 @@ function toPatch(lead: LeadWithRelations): LeadPatch {
 
 const dateTimeFormatter = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" });
 
-export function LeadDetailDialog({
-  lead,
-  users,
-  onOpenChange,
-}: {
-  lead: LeadWithRelations | null;
-  users: User[];
-  onOpenChange: (open: boolean) => void;
-}) {
+/**
+ * Drawer lateral (era `lead-detail-dialog.tsx`, modal centralizado) — mesmo conteúdo/campos/
+ * histórico de sempre, só o container mudou pra `Sheet` (`components/ui/sheet.tsx`, já existe,
+ * já usado pelo drawer mobile da sidebar — primeira vez usado pra detalhe de entidade). Manter
+ * o foco no que estava aberto sem tirar a tela inteira do usuário, mesmo padrão de Linear/Apple
+ * ("abrir drawer, não navegar pra uma página nova").
+ */
+export function LeadDetailDrawer({ lead, users, onOpenChange }: { lead: LeadWithRelations | null; users: User[]; onOpenChange: (open: boolean) => void }) {
   const router = useRouter();
   const [patch, setPatch] = useState<LeadPatch>({});
   const [note, setNote] = useState("");
@@ -83,16 +82,16 @@ export function LeadDetailDialog({
   }
 
   return (
-    <Dialog open={lead !== null} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl">
-        <div className="flex max-h-[80vh] flex-col gap-6 overflow-y-auto">
-          <DialogHeader>
+    <Sheet open={lead !== null} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-full gap-0 overflow-y-auto bg-popover p-6 text-popover-foreground sm:max-w-md">
+        <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-1.5">
             <div className="flex items-center gap-2">
-              <DialogTitle>{lead.company_name}</DialogTitle>
+              <SheetTitle>{lead.company_name}</SheetTitle>
               <span className={cn("rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-wide", stage.badge)}>{lead.stage.label}</span>
             </div>
-            <DialogDescription>{lead.strategy ? `Estratégia: ${lead.strategy.name}` : "Sem estratégia de origem"}</DialogDescription>
-          </DialogHeader>
+            <SheetDescription>{lead.strategy ? `Estratégia: ${lead.strategy.name}` : "Sem estratégia de origem"}</SheetDescription>
+          </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
@@ -164,11 +163,9 @@ export function LeadDetailDialog({
             </p>
           )}
 
-          <DialogFooter>
-            <Button type="button" onClick={handleSave} disabled={isPending}>
-              {isPending ? "Salvando..." : "Salvar alterações"}
-            </Button>
-          </DialogFooter>
+          <Button type="button" onClick={handleSave} disabled={isPending}>
+            {isPending ? "Salvando..." : "Salvar alterações"}
+          </Button>
 
           <div className="flex flex-col gap-3 border-t border-border/60 pt-4">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Histórico</p>
@@ -192,8 +189,8 @@ export function LeadDetailDialog({
             </div>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }
 

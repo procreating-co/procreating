@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { LeadFormDialog } from "@/components/comercial/lead-form-dialog";
-import { LeadDetailDialog } from "@/components/comercial/lead-detail-dialog";
+import { LeadDetailDrawer } from "@/components/comercial/lead-detail-drawer";
 import { stageColorClasses } from "@/lib/comercial/stage-colors";
 import type { LeadWithRelations, PipelineStage } from "@/lib/comercial/types";
 import type { Strategy, User } from "@/lib/supabase/types/database";
@@ -107,7 +107,7 @@ export function LeadsTable({
       )}
 
       <LeadFormDialog open={creating} onOpenChange={setCreating} strategies={strategies} />
-      <LeadDetailDialog lead={selected} users={users} onOpenChange={(open) => !open && setSelectedId(null)} />
+      <LeadDetailDrawer lead={selected} users={users} onOpenChange={(open) => !open && setSelectedId(null)} />
     </div>
   );
 }

@@ -298,6 +298,19 @@
     -webkit-appearance: none;
   }
 
+  /* Esconde a barra de scroll nativa sem tirar a capacidade de rolar (trackpad/wheel continuam
+     funcionando) — pro Pipeline (`components/comercial/pipeline-board.tsx`), cuja rolagem
+     horizontal com scrollbar visível ficava "uma barra enorme e desagradável" quando há muitos
+     estágios. Não é uma cor/token, puramente estrutural — mesma categoria de utility do
+     .font-display acima. */
+  .scrollbar-hide {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
   @keyframes name-reveal {
     from {
       opacity: 0;

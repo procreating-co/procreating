@@ -4,15 +4,43 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { moveLeadStageAction } from "@/lib/comercial/actions";
 import { stageColorClasses } from "@/lib/comercial/stage-colors";
-import { LeadDetailDialog } from "@/components/comercial/lead-detail-dialog";
+import { LeadDetailDrawer } from "@/components/comercial/lead-detail-drawer";
 import { OnboardingModal } from "@/components/onboarding/onboarding-modal";
 import type { LeadWithRelations, PipelineStage } from "@/lib/comercial/types";
 import type { User } from "@/lib/supabase/types/database";
 import { cn } from "@/lib/utils";
 
 const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+const todayISO = () => new Date().toISOString().slice(0, 10);
 
-function LeadCard({ lead, dragging, onOpen }: { lead: LeadWithRelations; dragging: boolean; onOpen: () => void }) {
+/** "Próxima ação" do card — só aparece se `next_contact_at` existir de verdade (nunca inventado).
+ *  Atrasado = tom `danger` (chama atenção sem precisar ler a data), hoje/futuro = neutro. */
+function nextActionLabel(nextContactAt: string | null): { label: string; overdue: boolean } | null {
+  if (!nextContactAt) return null;
+  const dateOnly = nextContactAt.slice(0, 10);
+  const today = todayISO();
+  if (dateOnly < today) return { label: "Atrasado", overdue: true };
+  if (dateOnly === today) return { label: "Hoje", overdue: false };
+  return { label: new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit" }).format(new Date(`${dateOnly}T00:00:00`)), overdue: false };
+}
+
+function OwnerChip({ owner }: { owner: User | undefined }) {
+  if (!owner) return null;
+  return (
+    <span
+      title={owner.name}
+      className="flex size-5 shrink-0 items-center justify-center rounded-full bg-foreground/10 font-mono text-[9px] uppercase text-muted-foreground"
+    >
+      {owner.name.slice(0, 2)}
+    </span>
+  );
+}
+
+/** Card compacto — só Empresa / Valor / Responsável / Próxima ação (o resto — contato, estratégia
+ *  — mora no drawer de detalhe ou já está implícito no filtro ativo). Antes tinha 4 linhas
+ *  (empresa/contato/valor+estratégia), difícil escanear uma coluna inteira de relance. */
+function LeadCard({ lead, owner, dragging, onOpen }: { lead: LeadWithRelations; owner: User | undefined; dragging: boolean; onOpen: () => void }) {
+  const nextAction = nextActionLabel(lead.next_contact_at);
   return (
     <button
       type="button"
@@ -23,16 +51,16 @@ function LeadCard({ lead, dragging, onOpen }: { lead: LeadWithRelations; draggin
       }}
       onClick={onOpen}
       className={cn(
-        "flex w-full flex-col gap-1.5 rounded-lg border border-border/60 bg-card/60 p-3 text-left transition-all hover:border-border hover:bg-card active:cursor-grabbing",
+        "flex w-full flex-col gap-2 rounded-lg border border-border/60 bg-card/60 p-3 text-left transition-all hover:border-border hover:bg-card active:cursor-grabbing",
         dragging && "opacity-30",
       )}
     >
       <p className="truncate text-sm font-medium">{lead.company_name}</p>
-      <p className="truncate text-xs text-muted-foreground">{lead.contact_name || "Sem contato definido"}</p>
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span>{lead.potential_value != null ? currencyFormatter.format(lead.potential_value) : "—"}</span>
-        {lead.strategy && <span className="truncate">{lead.strategy.name}</span>}
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs text-muted-foreground">{lead.potential_value != null ? currencyFormatter.format(lead.potential_value) : "—"}</span>
+        <OwnerChip owner={owner} />
       </div>
+      {nextAction && <span className={cn("text-[11px]", nextAction.overdue ? "text-danger" : "text-muted-foreground")}>{nextAction.label}</span>}
     </button>
   );
 }
@@ -44,6 +72,8 @@ export function PipelineBoard({ leads, stages, users }: { leads: LeadWithRelatio
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [onboardingLeadId, setOnboardingLeadId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  const userById = useMemo(() => new Map(users.map((user) => [user.id, user])), [users]);
 
   const byStage = useMemo(() => {
     const map = new Map<string, LeadWithRelations[]>();
@@ -80,7 +110,11 @@ export function PipelineBoard({ leads, stages, users }: { leads: LeadWithRelatio
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="-mx-6 flex gap-3 overflow-x-auto px-6 pb-4 lg:-mx-10 lg:px-10">
+      {/* `scrollbar-hide` (app/globals.css) — rolagem horizontal continua funcionando via
+       *  trackpad/wheel, só a barra visual nativa some (era "uma barra enorme e desagradável"
+       *  com 8+ estágios). `snap-x`/`snap-mandatory` + `snap-start` por coluna deixam a rolagem
+       *  presa em cada coluna, em vez de parar em qualquer ponto intermediário. */}
+      <div className="scrollbar-hide -mx-6 flex snap-x snap-mandatory gap-3 overflow-x-auto px-6 pb-2 lg:-mx-10 lg:px-10">
         {stages.map((stage) => {
           const columnLeads = byStage.get(stage.id) ?? [];
           const colors = stageColorClasses(stage.color);
@@ -100,7 +134,7 @@ export function PipelineBoard({ leads, stages, users }: { leads: LeadWithRelatio
                 handleDrop(stage);
               }}
               className={cn(
-                "flex w-[280px] shrink-0 flex-col gap-3 rounded-xl border border-border/60 bg-card/10 p-3 transition-colors",
+                "flex w-[240px] shrink-0 snap-start flex-col gap-3 rounded-xl border border-border/60 bg-card/10 p-3 transition-colors",
                 isDragOver && "border-foreground/40 bg-card/30",
               )}
             >
@@ -118,7 +152,7 @@ export function PipelineBoard({ leads, stages, users }: { leads: LeadWithRelatio
                 ) : (
                   columnLeads.map((lead) => (
                     <div key={lead.id} onDragStart={() => setDraggingId(lead.id)} onDragEnd={() => setDraggingId(null)}>
-                      <LeadCard lead={lead} dragging={draggingId === lead.id} onOpen={() => setSelectedId(lead.id)} />
+                      <LeadCard lead={lead} owner={lead.owner_id ? userById.get(lead.owner_id) : undefined} dragging={draggingId === lead.id} onOpen={() => setSelectedId(lead.id)} />
                     </div>
                   ))
                 )}
@@ -130,7 +164,7 @@ export function PipelineBoard({ leads, stages, users }: { leads: LeadWithRelatio
 
       {isPending && <p className="text-xs text-muted-foreground">Movendo...</p>}
 
-      <LeadDetailDialog lead={selected} users={users} onOpenChange={(open) => !open && setSelectedId(null)} />
+      <LeadDetailDrawer lead={selected} users={users} onOpenChange={(open) => !open && setSelectedId(null)} />
 
       {onboardingLead && (
         <OnboardingModal
