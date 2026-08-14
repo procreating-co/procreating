@@ -6,6 +6,9 @@ import { Building2, CheckSquare2, Handshake, Search, Settings, Sun, TrendingUp, 
 import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandShortcut } from "@/components/ui/command";
 import { Button } from "@/components/ui/button";
 import { searchCommandPaletteAction, type CommandPaletteResults } from "@/lib/command-palette/search";
+import { createTaskAction } from "@/lib/tasks/actions";
+import { createLeadAction } from "@/lib/comercial/actions";
+import { useAdminUser } from "@/lib/admin/auth/auth-context";
 import { cn } from "@/lib/utils";
 
 type QuickNavItem = { label: string; href: string; icon: LucideIcon };
@@ -29,10 +32,13 @@ const QUICK_NAV: QuickNavItem[] = [
  */
 export function CommandPalette() {
   const router = useRouter();
+  const user = useAdminUser();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<CommandPaletteResults>({ clients: [], leads: [], tasks: [] });
   const [isPending, startTransition] = useTransition();
+  const [isCreating, startCreateTransition] = useTransition();
+  const [createError, setCreateError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -67,6 +73,53 @@ export function CommandPalette() {
     [router],
   );
 
+  // Criação rápida — só Tarefa e Lead têm formato "um campo, enter" (o resto exige campo demais
+  // pra caber aqui, ver o plano). Ao contrário de `navigate`, NÃO troca de tela — cria e fica
+  // onde o usuário estava, `router.refresh()` só pra revalidar o que já estiver visível.
+  const createTask = useCallback(
+    (title: string) => {
+      setCreateError(null);
+      startCreateTransition(async () => {
+        const result = await createTaskAction({ title, assigneeId: user.id, dueDate: null, contextType: null, contextId: null });
+        if (!result.ok) {
+          setCreateError(result.error);
+          return;
+        }
+        setOpen(false);
+        setQuery("");
+        router.refresh();
+      });
+    },
+    [router, user.id],
+  );
+
+  const createLead = useCallback(
+    (companyName: string) => {
+      setCreateError(null);
+      startCreateTransition(async () => {
+        const result = await createLeadAction({
+          companyName,
+          contactName: "",
+          roleTitle: "",
+          whatsapp: "",
+          email: "",
+          source: "",
+          strategyId: null,
+          potentialValue: null,
+          notes: "",
+        });
+        if (!result.ok) {
+          setCreateError(result.error);
+          return;
+        }
+        setOpen(false);
+        setQuery("");
+        router.refresh();
+      });
+    },
+    [router],
+  );
+
   const hasQuery = query.trim().length > 0;
   const hasResults = results.clients.length > 0 || results.leads.length > 0 || results.tasks.length > 0;
 
@@ -83,10 +136,27 @@ export function CommandPalette() {
         <CommandShortcut className="hidden rounded border border-border/60 bg-muted px-1.5 py-0.5 font-mono text-[10px] sm:inline">⌘K</CommandShortcut>
       </Button>
 
-      <CommandDialog open={open} onOpenChange={setOpen} title="Buscar" description="Buscar clientes, leads e tarefas" shouldFilter={false}>
-        <CommandInput placeholder="Buscar qualquer coisa..." value={query} onValueChange={setQuery} />
+      <CommandDialog
+        open={open}
+        onOpenChange={(next) => {
+          setOpen(next);
+          if (!next) setCreateError(null);
+        }}
+        title="Buscar"
+        description="Buscar clientes, leads e tarefas"
+        shouldFilter={false}
+      >
+        <CommandInput
+          placeholder="Buscar ou criar..."
+          value={query}
+          onValueChange={(value) => {
+            setQuery(value);
+            setCreateError(null);
+          }}
+        />
         <CommandList>
-          {hasQuery && !isPending && !hasResults && <CommandEmpty>Nenhum resultado encontrado.</CommandEmpty>}
+          {hasQuery && !isPending && !hasResults && !createError && <CommandEmpty>Nenhum resultado encontrado.</CommandEmpty>}
+          {createError && <CommandEmpty className="text-destructive">{createError}</CommandEmpty>}
 
           {!hasQuery && (
             <CommandGroup heading="Navegação rápida">
@@ -96,6 +166,19 @@ export function CommandPalette() {
                   {item.label}
                 </CommandItem>
               ))}
+            </CommandGroup>
+          )}
+
+          {hasQuery && (
+            <CommandGroup heading="Ações rápidas">
+              <CommandItem disabled={isCreating} onSelect={() => createTask(query.trim())}>
+                <CheckSquare2 className="size-4 text-muted-foreground" />
+                Criar tarefa &ldquo;{query.trim()}&rdquo;
+              </CommandItem>
+              <CommandItem disabled={isCreating} onSelect={() => createLead(query.trim())}>
+                <Handshake className="size-4 text-muted-foreground" />
+                Criar lead &ldquo;{query.trim()}&rdquo;
+              </CommandItem>
             </CommandGroup>
           )}
 
