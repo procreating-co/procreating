@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserId } from "@/lib/supabase/current-user";
+import { todayISO } from "@/lib/date";
 import type { CostInput, ExpenseInput } from "@/lib/financeiro/types";
 import type { FinancialEntryStatus } from "@/lib/supabase/types/database";
 
@@ -34,7 +35,7 @@ export async function updateRevenueStatusAction(id: string, status: FinancialEnt
   const supabase = await createClient();
   const { error } = await supabase
     .from("revenue")
-    .update({ status, paid_at: status === "pago" ? new Date().toISOString().slice(0, 10) : null })
+    .update({ status, paid_at: status === "pago" ? todayISO() : null })
     .eq("id", id);
   if (error) return { ok: false, error: error.message };
 
@@ -46,7 +47,7 @@ export async function updateExpenseStatusAction(id: string, status: FinancialEnt
   const supabase = await createClient();
   const { error } = await supabase
     .from("expenses")
-    .update({ status, paid_at: status === "pago" ? new Date().toISOString().slice(0, 10) : null })
+    .update({ status, paid_at: status === "pago" ? todayISO() : null })
     .eq("id", id);
   if (error) return { ok: false, error: error.message };
 

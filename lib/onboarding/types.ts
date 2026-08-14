@@ -5,6 +5,8 @@
  * `lib/onboarding/actions.ts`, não deste arquivo.
  */
 
+import { todayISO } from "@/lib/date";
+
 export type OnboardingContact = {
   name: string;
   roleTitle: string;
@@ -69,7 +71,7 @@ export function createInitialOnboardingData(clientNameFallback: string): Onboard
     billingInfo: "",
     contacts: [{ name: "", roleTitle: "", email: "", whatsapp: "", isPrimary: true }],
     contractType: "recorrente",
-    startDate: new Date().toISOString().slice(0, 10),
+    startDate: todayISO(),
     endDate: "",
     monthlyValue: "",
     dueDay: "5",

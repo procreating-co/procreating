@@ -6,12 +6,12 @@ import { moveLeadStageAction } from "@/lib/comercial/actions";
 import { stageColorClasses } from "@/lib/comercial/stage-colors";
 import { LeadDetailDrawer } from "@/components/comercial/lead-detail-drawer";
 import { OnboardingModal } from "@/components/onboarding/onboarding-modal";
+import { todayISO } from "@/lib/date";
 import type { LeadWithRelations, PipelineStage } from "@/lib/comercial/types";
 import type { User } from "@/lib/supabase/types/database";
 import { cn } from "@/lib/utils";
 
 const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
-const todayISO = () => new Date().toISOString().slice(0, 10);
 
 /** "Próxima ação" do card — só aparece se `next_contact_at` existir de verdade (nunca inventado).
  *  Atrasado = tom `danger` (chama atenção sem precisar ler a data), hoje/futuro = neutro. */

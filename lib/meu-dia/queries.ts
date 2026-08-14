@@ -2,6 +2,7 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { listMyDueTasks, listTodayAndOverdueTasks, listUpcomingTasks } from "@/lib/tasks/queries";
 import { listPipelineStages } from "@/lib/comercial/queries";
+import { addDaysISO, todayISO } from "@/lib/date";
 import type { Task } from "@/lib/supabase/types/database";
 
 // ---------------------------------------------------------------------------
@@ -23,19 +24,12 @@ export type WorkspaceOverview = {
   otherUser: OtherUserOverview | null;
 };
 
-function toISODate(date: Date): string {
-  return date.toISOString().slice(0, 10);
-}
-
 const STALE_LEAD_DAYS = 3;
 
 export async function computeWorkspaceOverview(userId: string): Promise<WorkspaceOverview> {
   const supabase = await createClient();
-  const today = new Date();
-  const todayISO = toISODate(today);
-  const staleThreshold = new Date(today);
-  staleThreshold.setDate(staleThreshold.getDate() - STALE_LEAD_DAYS);
-  const staleThresholdISO = toISODate(staleThreshold);
+  const todayDate = todayISO();
+  const staleThresholdISO = addDaysISO(todayDate, -STALE_LEAD_DAYS);
 
   const [dueTasks, upcomingTasks, stages, { data: openLeads }, { data: overdueRevenue }, { data: dueTodayRevenue }, { data: overdueExpenses }, { data: dueTodayExpenses }, { data: otherUsers }] =
     await Promise.all([
@@ -44,9 +38,9 @@ export async function computeWorkspaceOverview(userId: string): Promise<Workspac
       listPipelineStages(),
       supabase.from("leads").select("id, last_contact_at, created_at, stage_id").is("client_id", null),
       supabase.from("revenue").select("id").eq("status", "atrasado"),
-      supabase.from("revenue").select("id").eq("status", "pendente").eq("due_date", todayISO),
+      supabase.from("revenue").select("id").eq("status", "pendente").eq("due_date", todayDate),
       supabase.from("expenses").select("id").eq("status", "atrasado"),
-      supabase.from("expenses").select("id").eq("status", "pendente").eq("due_date", todayISO),
+      supabase.from("expenses").select("id").eq("status", "pendente").eq("due_date", todayDate),
       supabase.from("users").select("id, name").neq("id", userId).limit(1),
     ]);
 
@@ -91,7 +85,7 @@ export async function computeWorkspaceOverview(userId: string): Promise<Workspac
 
   // Progresso do dia — só entre as tarefas com prazo EXATAMENTE hoje (não as atrasadas de antes),
   // e só aparece se houver alguma (nunca "0 de 0").
-  const dueExactlyToday = dueTasks.filter((task) => task.due_date === todayISO);
+  const dueExactlyToday = dueTasks.filter((task) => task.due_date === todayDate);
   const todayProgress: TodayProgress | null = dueExactlyToday.length > 0 ? { done: dueExactlyToday.filter((task) => task.status === "done").length, total: dueExactlyToday.length } : null;
 
   const otherUserRow = (otherUsers ?? [])[0];

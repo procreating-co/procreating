@@ -1,5 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import { addDaysISO, todayISO } from "@/lib/date";
 import type { Task } from "@/lib/supabase/types/database";
 
 /** Todas as tarefas de um contexto (ex.: `context_type: "client_onboarding"`, `context_id:
@@ -30,7 +31,7 @@ export async function listTasksByAssignee(userId: string): Promise<Task[]> {
  *  outro sócio no Workspace (`lib/meu-dia/queries.ts`), onde só o que está pendente importa. */
 export async function listMyDueTasks(userId: string): Promise<Task[]> {
   const supabase = await createClient();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayISO();
   const { data } = await supabase
     .from("tasks")
     .select("*")
@@ -47,7 +48,7 @@ export async function listMyDueTasks(userId: string): Promise<Task[]> {
  *  sumir da tela) — sem duas queries pra a mesma coisa. */
 export async function listTodayAndOverdueTasks(userId: string): Promise<Task[]> {
   const supabase = await createClient();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayISO();
   const { data } = await supabase.from("tasks").select("*").eq("assignee_id", userId).lte("due_date", today).order("due_date", { ascending: true });
   return data ?? [];
 }
@@ -56,13 +57,8 @@ export async function listTodayAndOverdueTasks(userId: string): Promise<Task[]> 
  *  "Próximos prazos" do Workspace, uma lista cronológica simples, não um calendário. */
 export async function listUpcomingTasks(userId: string, days = 7): Promise<Task[]> {
   const supabase = await createClient();
-  const today = new Date();
-  const from = new Date(today);
-  from.setDate(from.getDate() + 1);
-  const to = new Date(today);
-  to.setDate(to.getDate() + days);
-  const fromISO = from.toISOString().slice(0, 10);
-  const toISO = to.toISOString().slice(0, 10);
+  const fromISO = addDaysISO(todayISO(), 1);
+  const toISO = addDaysISO(todayISO(), days);
   const { data } = await supabase
     .from("tasks")
     .select("*")

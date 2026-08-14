@@ -7,9 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { createExpenseAction } from "@/lib/financeiro/actions";
+import { todayISO } from "@/lib/date";
 import type { ExpenseInput } from "@/lib/financeiro/types";
 
-const EMPTY_INPUT: ExpenseInput = { category: "", description: "", amount: 0, dueDate: new Date().toISOString().slice(0, 10) };
+const EMPTY_INPUT: ExpenseInput = { category: "", description: "", amount: 0, dueDate: todayISO() };
 
 export function ExpenseFormDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const router = useRouter();

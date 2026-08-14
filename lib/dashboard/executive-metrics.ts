@@ -4,6 +4,7 @@ import { getCurrentMonthGoal } from "@/lib/dashboard/goals";
 import { computeComercialMetrics } from "@/lib/comercial/metrics";
 import { listPipelineStages } from "@/lib/comercial/queries";
 import { computeFinanceiroMetrics } from "@/lib/financeiro/queries";
+import { dayOfMonthOf, todayUTCAnchor } from "@/lib/date";
 import type { Client, Contract, Lead } from "@/lib/supabase/types/database";
 
 // ---------------------------------------------------------------------------
@@ -19,16 +20,21 @@ import type { Client, Contract, Lead } from "@/lib/supabase/types/database";
 // correspondente; nunca um resumo recalculado, sempre os mesmos dados-fonte.
 // ---------------------------------------------------------------------------
 
+// Toda a aritmética de mês abaixo é sobre um `Date` já ancorado em `todayUTCAnchor()` (hoje em
+// Brasília, representado como UTC-midnight) — por isso os getters/construtores são sempre `UTC*`,
+// nunca os locais (`getFullYear`/`getMonth`/`getDate`/`new Date(y,m,d)`): misturar os dois é
+// exatamente o viés de fuso descrito em `lib/date.ts` — funciona só "por coincidência" quando o
+// runtime do servidor está em UTC (caso da Vercel hoje), quebra em qualquer outro fuso.
 function daysInMonth(year: number, monthIndex: number): number {
-  return new Date(year, monthIndex + 1, 0).getDate();
+  return new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate();
 }
 
 function startOfMonth(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth(), 1);
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
 }
 
 function startOfPreviousMonth(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth() - 1, 1);
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() - 1, 1));
 }
 
 function toISODate(date: Date): string {
@@ -123,8 +129,8 @@ async function sumRealizedExpenses(fromISO: string, toISO: string): Promise<numb
  *  KPI row. Uma query por tipo (não por mês) pra não fazer N chamadas. */
 async function monthlyRealizedSeries(months: number): Promise<{ revenue: number[]; expenses: number[] }> {
   const supabase = await createClient();
-  const now = new Date();
-  const from = new Date(now.getFullYear(), now.getMonth() - (months - 1), 1);
+  const now = todayUTCAnchor();
+  const from = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (months - 1), 1));
 
   const [{ data: revenueRows }, { data: expenseRows }] = await Promise.all([
     supabase.from("revenue").select("amount, paid_at").eq("status", "pago").gte("paid_at", toISODate(from)),
@@ -135,8 +141,11 @@ async function monthlyRealizedSeries(months: number): Promise<{ revenue: number[
     const sums = new Array(months).fill(0);
     for (const row of rows ?? []) {
       if (!row.paid_at) continue;
+      // `paid_at` é `date` (sem hora, ex. "2026-08-14") — `new Date(str)` é sempre parseado como
+      // UTC-midnight pra strings ISO date-only, e `from` já é UTC-anchored acima, então os
+      // getters UTC dos dois lados são consistentes entre si (nunca misturar com getters locais).
       const paid = new Date(row.paid_at);
-      const index = (paid.getFullYear() - from.getFullYear()) * 12 + (paid.getMonth() - from.getMonth());
+      const index = (paid.getUTCFullYear() - from.getUTCFullYear()) * 12 + (paid.getUTCMonth() - from.getUTCMonth());
       if (index >= 0 && index < months) sums[index] += Number(row.amount);
     }
     return sums;
@@ -149,9 +158,9 @@ async function monthlyRealizedSeries(months: number): Promise<{ revenue: number[
  *  Health) — o resto do Dashboard (KPIs do mês, meta, pipeline) não muda com isso. */
 export async function computeExecutiveDashboard(cashFlowMonths = 6): Promise<ExecutiveMetrics> {
   const supabase = await createClient();
-  const now = new Date();
+  const now = todayUTCAnchor();
   const monthStart = startOfMonth(now);
-  const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const nextMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
   const prevMonthStart = startOfPreviousMonth(now);
 
   const [
@@ -208,8 +217,8 @@ export async function computeExecutiveDashboard(cashFlowMonths = 6): Promise<Exe
   const clientNameById = new Map(clients.map((client) => [client.id, client.name]));
 
   // --- Goal / Revenue vs. Target ---
-  const daysThisMonth = daysInMonth(now.getFullYear(), now.getMonth());
-  const dayOfMonth = now.getDate();
+  const daysThisMonth = daysInMonth(now.getUTCFullYear(), now.getUTCMonth());
+  const dayOfMonth = now.getUTCDate();
   const goal: GoalProgress | null = goalRow
     ? {
         amount: Number(goalRow.amount),
@@ -222,7 +231,9 @@ export async function computeExecutiveDashboard(cashFlowMonths = 6): Promise<Exe
   const dailyRealizedMap = new Map<number, number>();
   for (const row of revenueDaily ?? []) {
     if (!row.paid_at) continue;
-    const day = new Date(row.paid_at).getDate();
+    // `paid_at` é `date` (sem hora) — extrai o dia direto da string, nunca via `new Date(str).getDate()`
+    // (que reintroduziria o mesmo viés de fuso que este arquivo inteiro está corrigindo).
+    const day = dayOfMonthOf(row.paid_at);
     dailyRealizedMap.set(day, (dailyRealizedMap.get(day) ?? 0) + Number(row.amount));
   }
   let cumulative = 0;
