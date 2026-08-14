@@ -7,7 +7,9 @@ import { SectionCard } from "@/components/dashboard/section-card";
 import { DASHBOARD_SECTIONS } from "@/components/dashboard/nav-config";
 import { computeComercialMetrics } from "@/lib/comercial/metrics";
 import { computeFinanceiroMetrics } from "@/lib/financeiro/queries";
-import { listClients, listPendingOnboardingTasks } from "@/lib/clientes/queries";
+import { listClients } from "@/lib/clientes/queries";
+import { listMyDueTasks } from "@/lib/tasks/queries";
+import { getCurrentUserId } from "@/lib/supabase/current-user";
 import {
   DEMO_DELIVERIES,
   DEMO_PROJECTS,
@@ -37,11 +39,12 @@ const PENDING_DELIVERIES = DEMO_DELIVERIES.filter((delivery) => delivery.tone ==
  * vêm de `lib/comercial/metrics.ts` + `lib/financeiro/queries.ts` + `lib/clientes/queries.ts`.
  */
 export default async function Home() {
-  const [comercial, financeiro, clients, pendingTasks] = await Promise.all([
+  const userId = await getCurrentUserId();
+  const [comercial, financeiro, clients, dueTasks] = await Promise.all([
     computeComercialMetrics(),
     computeFinanceiroMetrics(),
     listClients(),
-    listPendingOnboardingTasks(),
+    userId ? listMyDueTasks(userId) : Promise.resolve([]),
   ]);
   const activeClients = clients.filter((client) => client.status === "ativo").length;
 
@@ -133,20 +136,23 @@ export default async function Home() {
       </section>
 
       <section className="flex flex-col gap-4">
-        <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Próximas tarefas importantes</h2>
+        <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">O que precisa de atenção hoje</h2>
         <div className="rounded-xl border border-border/60 bg-card/40 p-5">
-          {pendingTasks.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhuma tarefa de onboarding pendente.</p>
+          {dueTasks.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhuma tarefa sua vencendo hoje ou atrasada.</p>
           ) : (
             <ul className="flex flex-col gap-3">
-              {pendingTasks.map((task) => (
-                <li key={task.id} className="flex items-center justify-between gap-3 text-sm">
-                  <span>{task.title}</span>
-                  <Link href={`/clientes/${task.clientId}`} className="text-xs text-muted-foreground hover:text-foreground hover:underline">
-                    {task.clientName}
-                  </Link>
-                </li>
-              ))}
+              {dueTasks.map((task) => {
+                const href = task.context_type === "client_onboarding" && task.context_id ? `/clientes/${task.context_id}` : "/meu-dia";
+                return (
+                  <li key={task.id} className="flex items-center justify-between gap-3 text-sm">
+                    <span>{task.title}</span>
+                    <Link href={href} className="text-xs text-muted-foreground hover:text-foreground hover:underline">
+                      Ver
+                    </Link>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>

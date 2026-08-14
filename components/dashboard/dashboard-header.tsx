@@ -2,10 +2,25 @@
 
 import { usePathname } from "next/navigation";
 import { User } from "lucide-react";
-import { DASHBOARD_SECTIONS } from "@/components/dashboard/nav-config";
+import { DASHBOARD_SECTIONS, NAV_GROUPS } from "@/components/dashboard/nav-config";
 
+/**
+ * Título do header = nome do item ativo na sidebar (`NAV_GROUPS`), não mais só "Dashboard"
+ * genérico. Antes só reconhecia `DASHBOARD_SECTIONS` (Operação/Administração) — toda rota nova
+ * desta fase (Comercial, Marketing, Clientes, Financeiro, Meu Dia, Configurações) caía no
+ * fallback. Casamento pelo item mais específico (maior `href`) evita que `/financeiro/custos`
+ * e `/financeiro` mostrem o mesmo rótulo por engano quando ambos batem por prefixo.
+ */
 function useSectionTitle() {
   const pathname = usePathname();
+  if (pathname === "/") return "Visão geral";
+
+  const allItems = NAV_GROUPS.flatMap((group) => group.items);
+  const match = allItems
+    .filter((item) => pathname === item.href || pathname.startsWith(`${item.href}/`))
+    .sort((a, b) => b.href.length - a.href.length)[0];
+  if (match) return match.label;
+
   const section = DASHBOARD_SECTIONS.find((item) => pathname === item.href || pathname.startsWith(`${item.href}/`));
   return section?.label ?? "Dashboard";
 }

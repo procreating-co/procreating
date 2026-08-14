@@ -1,6 +1,7 @@
 import {
   BarChart3,
   Building2,
+  CalendarCheck,
   Factory,
   FileText,
   FolderKanban,
@@ -9,7 +10,6 @@ import {
   Megaphone,
   PackageCheck,
   Settings,
-  TrendingUp,
   UserCog,
   Users,
   UsersRound,
@@ -130,11 +130,11 @@ export const DASHBOARD_SECTIONS: DashboardSection[] = [
     icon: Building2,
     modules: [
       // "financeiro" e "comercial" saíram daqui na Fase 2-5 — viraram produtos reais em
-      // /financeiro e /comercial, não fazem mais sentido como card "em breve".
-      { key: "marketing", label: "Marketing", description: "Campanhas, posicionamento e crescimento.", icon: Megaphone, status: "soon", category: "Marketing & Indicadores" },
-      { key: "indicadores", label: "Indicadores", description: "Métricas e desempenho da empresa.", icon: BarChart3, status: "soon", category: "Marketing & Indicadores" },
-      { key: "rh", label: "RH", description: "Gestão de pessoas e processos internos.", icon: UserCog, status: "soon", category: "Pessoas & Configurações" },
-      { key: "configuracoes", label: "Configurações", description: "Preferências e configurações da plataforma.", icon: Settings, status: "soon", category: "Pessoas & Configurações" },
+      // /financeiro e /comercial. "marketing" e "configuracoes" saíram nesta fase pelo mesmo
+      // motivo — viraram grupos reais na sidebar (/marketing, /configuracoes/**), não fazem mais
+      // sentido duplicados aqui como card "em breve" sem link nenhum.
+      { key: "indicadores", label: "Indicadores", description: "Métricas e desempenho da empresa.", icon: BarChart3, status: "soon", category: "Indicadores & Pessoas" },
+      { key: "rh", label: "RH", description: "Gestão de pessoas e processos internos.", icon: UserCog, status: "soon", category: "Indicadores & Pessoas" },
     ],
   },
 ];
@@ -153,16 +153,22 @@ export type NavGroup = {
 };
 
 /**
- * Navegação em grupos colapsáveis da sidebar. Estrutura final da Fase 2-5 (Comercial/Onboarding/
- * Financeiro) — Comercial e Financeiro agora são produtos reais (`/comercial/**`,
- * `/financeiro/**`), não mais placeholders "em breve" apontando pra `/administracao` (Fase 1).
- * "Clientes conquistados" (dentro de Comercial) leva pra `/clientes` — a visão 360º interna,
- * deliberadamente um segmento diferente de `/clients` (Client Hub público, domínio de entrega ao
- * cliente, intocado). "Relatórios" e "Configurações" continuam placeholder, apontando pro mesmo
- * card "em breve" de sempre (`/administracao`) — nenhuma página nova só pra preencher o menu.
+ * Navegação em grupos colapsáveis da sidebar. Reescrita completa nesta fase (esqueleto de
+ * navegação + Simulation Engine + Financeiro) pra bater com a árvore final pedida: Comercial,
+ * Marketing, Clientes, Financeiro, Operação, Meu Espaço, Configurações — nessa ordem. Antes,
+ * "Clientes conquistados" vivia dentro de Comercial e não existiam "Marketing" nem "Meu Espaço";
+ * "Relatórios" era um grupo placeholder solto sem lugar na árvore nova — removido (nunca teve
+ * conteúdo, só apontava de volta pra `/administracao`).
+ *
+ * "Clientes" (`/clientes`) é a visão 360º interna, deliberadamente um segmento diferente de
+ * `/clients` (Client Hub público, domínio de entrega ao cliente, intocado).
  *
  * "Operação" mantém Equipe/Conteúdo além de Projetos/Produção/Entregas — já existem, já
  * funcionam, não faz sentido tirar do menu só porque a árvore pedida não os citou.
+ *
+ * Rotas ainda sem conteúdo real (`/marketing`, `/configuracoes/empresa`, `/configuracoes/
+ * usuarios`) usam `ComingSoon` na própria página — o link aqui já é o definitivo, não um
+ * apontamento provisório pra `/administracao` como antes.
  */
 export const NAV_GROUPS: NavGroup[] = [
   {
@@ -170,11 +176,42 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Comercial",
     icon: Handshake,
     items: [
+      { key: "comercial-dashboard", label: "Dashboard", href: "/comercial" },
       { key: "estrategias", label: "Estratégias", href: "/comercial/estrategias" },
+      { key: "pipeline", label: "CRM / Pipeline", href: "/comercial/pipeline" },
       { key: "leads", label: "Leads", href: "/comercial/leads" },
-      { key: "pipeline", label: "Pipeline", href: "/comercial/pipeline" },
-      { key: "clientes-conquistados", label: "Clientes conquistados", href: "/clientes" },
-      { key: "metricas-comerciais", label: "Métricas comerciais", href: "/comercial" },
+    ],
+  },
+  {
+    key: "marketing",
+    label: "Marketing",
+    icon: Megaphone,
+    items: [
+      { key: "marketing-dashboard", label: "Dashboard", href: "/marketing" },
+      { key: "simuladores", label: "Simuladores", href: "/marketing/simuladores" },
+    ],
+  },
+  {
+    key: "clientes",
+    label: "Clientes",
+    icon: Users,
+    items: [
+      { key: "clientes-todos", label: "Todos", href: "/clientes" },
+      { key: "clientes-onboarding", label: "Onboarding", href: "/clientes/onboarding" },
+    ],
+  },
+  {
+    key: "financeiro-grupo",
+    label: "Financeiro",
+    icon: Wallet,
+    items: [
+      { key: "financeiro-dashboard", label: "Dashboard", href: "/financeiro" },
+      { key: "receitas", label: "Receitas", href: "/financeiro/receitas" },
+      { key: "despesas", label: "Despesas", href: "/financeiro/despesas" },
+      { key: "custos", label: "Custos", href: "/financeiro/custos" },
+      { key: "distribuicao", label: "Distribuição", href: "/financeiro/distribuicao" },
+      { key: "contas-a-receber", label: "Contas a receber", href: "/financeiro/contas-a-receber" },
+      { key: "contas-a-pagar", label: "Contas a pagar", href: "/financeiro/contas-a-pagar" },
     ],
   },
   {
@@ -190,27 +227,19 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    key: "financeiro-grupo",
-    label: "Financeiro",
-    icon: Wallet,
-    items: [
-      { key: "financeiro-overview", label: "Overview", href: "/financeiro" },
-      { key: "receitas", label: "Receitas", href: "/financeiro/receitas" },
-      { key: "despesas", label: "Despesas", href: "/financeiro/despesas" },
-      { key: "contas-a-receber", label: "Contas a receber", href: "/financeiro/contas-a-receber" },
-      { key: "contas-a-pagar", label: "Contas a pagar", href: "/financeiro/contas-a-pagar" },
-    ],
-  },
-  {
-    key: "relatorios",
-    label: "Relatórios",
-    icon: TrendingUp,
-    items: [{ key: "relatorios-em-breve", label: "Em desenvolvimento", href: "/administracao" }],
+    key: "meu-espaco",
+    label: "Meu Espaço",
+    icon: CalendarCheck,
+    items: [{ key: "meu-dia", label: "Meu Dia", href: "/meu-dia" }],
   },
   {
     key: "configuracoes",
     label: "Configurações",
     icon: Settings,
-    items: [{ key: "empresa", label: "Empresa", href: "/administracao" }],
+    items: [
+      { key: "empresa", label: "Empresa", href: "/configuracoes/empresa" },
+      { key: "usuarios", label: "Usuários", href: "/configuracoes/usuarios" },
+      { key: "regras-financeiras", label: "Regras financeiras", href: "/configuracoes/regras-financeiras" },
+    ],
   },
 ];

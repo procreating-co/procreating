@@ -5,8 +5,9 @@ import { ADMIN_LOGIN_PATH, ADMIN_SESSION_COOKIE, ADMIN_SIGNUP_PATH, POST_LOGIN_P
 /**
  * Gate de borda pro ERP interno inteiro — `/admin/*` (painel legado) e todo o grupo protegido
  * `app/(internal)/**` (`/`, `/operacao/*`, `/administracao/*` desde a Fase 1; `/comercial/*`,
- * `/clientes/*`, `/financeiro/*` desde a Fase 2-5 — ver `matcher` abaixo). Nunca toca em rota
- * pública (`/clients/[client]/...`). Checa só a presença do cookie de sessão (rápido, sem I/O);
+ * `/clientes/*`, `/financeiro/*` desde a Fase 2-5; `/marketing/*`, `/meu-dia`, `/configuracoes/*`
+ * desde a fase de navegação completa — ver `matcher` abaixo). Nunca toca em rota pública
+ * (`/clients/[client]/...`). Checa só a presença do cookie de sessão (rápido, sem I/O);
  * a validação "de verdade" acontece nos layouts protegidos (`app/admin/(protected)/layout.tsx`,
  * `app/(internal)/layout.tsx`), que rodam no servidor e consultam o Supabase Auth de fato via
  * `lib/admin/auth` (`getSession()`).
@@ -35,5 +36,16 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/", "/operacao/:path*", "/administracao/:path*", "/comercial/:path*", "/clientes/:path*", "/financeiro/:path*"],
+  matcher: [
+    "/admin/:path*",
+    "/",
+    "/operacao/:path*",
+    "/administracao/:path*",
+    "/comercial/:path*",
+    "/clientes/:path*",
+    "/financeiro/:path*",
+    "/marketing/:path*",
+    "/meu-dia",
+    "/configuracoes/:path*",
+  ],
 };
