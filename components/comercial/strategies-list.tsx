@@ -2,10 +2,12 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StrategyFormDialog } from "@/components/comercial/strategy-form-dialog";
+import { EmptyState } from "@/components/dashboard/empty-state";
+import { EmptyInline } from "@/components/dashboard/empty-inline";
 import type { Strategy } from "@/lib/comercial/types";
 
 export function StrategiesList({ strategies }: { strategies: Strategy[] }) {
@@ -19,6 +21,27 @@ export function StrategiesList({ strategies }: { strategies: Strategy[] }) {
       (strategy) => strategy.name.toLowerCase().includes(normalized) || (strategy.target_audience ?? "").toLowerCase().includes(normalized),
     );
   }, [strategies, query]);
+
+  // Zero estratégia cadastrada é um caso diferente de "a busca não achou nada" — o primeiro
+  // precisa de uma ação clara (criar a primeira), o segundo só precisa dizer que não achou.
+  if (strategies.length === 0) {
+    return (
+      <>
+        <EmptyState
+          icon={Target}
+          title="Nenhuma estratégia ainda"
+          description="Estratégias organizam de onde seus leads vêm e quanto cada campanha converte. Crie a primeira pra começar a ver o funil."
+          action={
+            <Button type="button" onClick={() => setCreating(true)} className="gap-2">
+              <Plus className="size-4" />
+              Nova estratégia
+            </Button>
+          }
+        />
+        <StrategyFormDialog open={creating} onOpenChange={setCreating} />
+      </>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -34,9 +57,7 @@ export function StrategiesList({ strategies }: { strategies: Strategy[] }) {
       </div>
 
       {visible.length === 0 ? (
-        <div className="rounded-xl border border-border/60 bg-card/20 px-6 py-16 text-center text-muted-foreground">
-          {strategies.length === 0 ? "Nenhuma estratégia cadastrada ainda." : "Nenhuma estratégia encontrada."}
-        </div>
+        <EmptyInline icon={Search} label="Nenhuma estratégia encontrada pra essa busca." />
       ) : (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {visible.map((strategy) => (

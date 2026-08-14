@@ -14,11 +14,21 @@ export const CHART_SEQUENTIAL = [
   "oklch(0.20 0.008 90)",
 ] as const;
 
-/** Cores de status já usadas em `StatusDot` (`components/dashboard/status-dot.tsx`) — mesmos
- *  hex/token, não uma paleta nova só pra gráfico. */
+/**
+ * Cor de marca do produto (mesmo valor de `--brand` em `app/globals.css`) — pra gráficos onde a
+ * série principal merece o mesmo dourado usado em ação primária/métrica-âncora (ex.: a série de
+ * "Receita" no gráfico de evolução do Financeiro). Nunca usar pra mais de uma série no mesmo
+ * gráfico — é identidade de marca, não uma categórica.
+ */
+export const CHART_BRAND = "oklch(0.8 0.095 90)";
+
+/** Cores de status — mesmos valores de `--success`/`--warning`/`--danger`/`--muted-foreground`
+ *  em `app/globals.css`, não uma paleta paralela. `warning` deliberadamente distante de
+ *  `CHART_BRAND` (ΔE ≈16, calculado antes de aplicar) pra nunca ficar parecido com a cor de
+ *  marca quando os dois aparecem no mesmo gráfico. */
 export const CHART_STATUS = {
-  positive: "oklch(0.7 0.15 155)", // emerald-400
-  warning: "oklch(0.77 0.15 75)", // amber-400
-  danger: "oklch(0.65 0.2 25)", // red-400
-  neutral: "oklch(0.55 0.015 90)", // muted-foreground
+  positive: "oklch(0.72 0.17 155)", // --success
+  warning: "oklch(0.74 0.19 38)", // --warning
+  danger: "oklch(0.66 0.2 25)", // --danger
+  neutral: "oklch(0.55 0.015 90)", // --muted-foreground
 } as const;

@@ -2,6 +2,10 @@
 
 import type { ReactNode } from "react";
 import { motion } from "framer-motion";
+import { ArrowDown, ArrowUp } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+export type StatTrend = { value: string; direction: "up" | "down" };
 
 /**
  * `demo` (default `true`) mostra a etiqueta "Demo" — era hardcoded até a Fase 2-5 (Comercial/
@@ -9,6 +13,11 @@ import { motion } from "framer-motion";
  * (Estratégias, Financeiro, Home). Default `true` preserva o comportamento de toda tela que
  * ainda lê de `lib/dashboard/demo-data.ts` sem precisar tocar em cada call site; quem já tem
  * dado real passa `demo={false}` explicitamente — nunca implícito.
+ *
+ * Fase B (redesign): `featured` marca a métrica-âncora de uma tela (ex.: Receita este mês na
+ * Home) com um wash sutil de marca — nem todo número pesa igual, e antes todos os tiles eram
+ * visualmente idênticos. `trend` mostra variação vs. período anterior quando fizer sentido
+ * comparar (nunca inventado — só passe quando o dado de comparação existir de verdade).
  */
 export function StatTile({
   icon,
@@ -16,22 +25,29 @@ export function StatTile({
   value,
   delay = 0,
   demo = true,
+  featured = false,
+  trend,
 }: {
   icon: ReactNode;
   label: string;
   value: string;
   delay?: number;
   demo?: boolean;
+  featured?: boolean;
+  trend?: StatTrend;
 }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay, ease: "easeOut" }}
-      className="flex flex-col gap-4 rounded-xl border border-border/60 bg-card/40 p-5"
+      className={cn(
+        "flex flex-col gap-4 rounded-xl border p-5",
+        featured ? "border-brand-subtle-border bg-gradient-to-br from-brand-subtle to-card" : "border-border/60 bg-card/40",
+      )}
     >
       <div className="flex items-center justify-between">
-        <div className="flex size-9 items-center justify-center rounded-lg bg-foreground/10 text-foreground">
+        <div className={cn("flex size-9 items-center justify-center rounded-lg", featured ? "bg-brand/20 text-brand" : "bg-foreground/10 text-foreground")}>
           {icon}
         </div>
         {demo && (
@@ -39,9 +55,15 @@ export function StatTile({
             Demo
           </span>
         )}
+        {!demo && trend && (
+          <span className={cn("flex items-center gap-0.5 font-mono text-[11px]", trend.direction === "up" ? "text-success" : "text-danger")}>
+            {trend.direction === "up" ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />}
+            {trend.value}
+          </span>
+        )}
       </div>
       <div className="flex flex-col gap-1">
-        <p className="text-2xl font-semibold">{value}</p>
+        <p className="text-[28px] leading-none font-semibold tracking-tight tabular-nums">{value}</p>
         <p className="text-sm text-muted-foreground">{label}</p>
       </div>
     </motion.div>

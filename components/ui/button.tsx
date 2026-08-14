@@ -9,7 +9,10 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: 'bg-primary text-primary-foreground hover:bg-primary/90',
+        // Ação primária do Procreating OS é sempre a cor de marca (dourado) — ver app/globals.css.
+        // `--primary` (branco quase puro) continua existindo pra outros usos (ring, contraste),
+        // só deixou de ser a cor de botão default.
+        default: 'bg-brand text-brand-foreground hover:bg-brand-strong',
         destructive:
           'bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60',
         outline:
