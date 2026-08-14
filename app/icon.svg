@@ -1,0 +1,12 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" fill="#1a1a1a" />
+  <g transform="translate(50.8,81.4) scale(0.8732)">
+    <mask id="mark-ring">
+      <rect x="180" y="70" width="260" height="260" rx="65" fill="white" />
+      <circle cx="310" cy="200" r="90" fill="black" />
+    </mask>
+    <ellipse cx="50" cy="200" rx="20" ry="130" fill="#f5f5f0" />
+    <ellipse cx="108" cy="200" rx="20" ry="130" fill="#f5f5f0" />
+    <rect x="180" y="70" width="260" height="260" rx="65" fill="#f5f5f0" mask="url(#mark-ring)" />
+  </g>
+</svg>
