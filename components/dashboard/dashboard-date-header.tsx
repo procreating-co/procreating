@@ -33,7 +33,7 @@ export function DashboardDateHeader({ goal }: { goal: GoalProgress | null }) {
           <ProgressBar label={`${goal.percentage.toFixed(1)}% da meta mensal`} percentage={goal.percentage} />
         </div>
       ) : (
-        <p className="text-sm text-muted-foreground">Meta mensal não definida — configure em Settings → General.</p>
+        <p className="text-sm text-muted-foreground">Meta mensal não definida — configure em Configurações → Geral.</p>
       )}
     </div>
   );

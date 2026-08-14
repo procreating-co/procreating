@@ -65,11 +65,11 @@ function SidebarContent({ expanded, user, onNavigate }: { expanded: boolean; use
         <Link
           href="/configuracoes"
           onClick={onNavigate}
-          title={expanded ? undefined : "Settings"}
+          title={expanded ? undefined : "Configurações"}
           className="mt-1 flex w-full items-center gap-3 rounded-md px-2.5 py-2 text-sm text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground"
         >
           <Settings className="size-4 shrink-0" />
-          <span className={cn("overflow-hidden whitespace-nowrap transition-opacity duration-150", expanded ? "opacity-100" : "w-0 opacity-0")}>Settings</span>
+          <span className={cn("overflow-hidden whitespace-nowrap transition-opacity duration-150", expanded ? "opacity-100" : "w-0 opacity-0")}>Configurações</span>
         </Link>
       </div>
     </>

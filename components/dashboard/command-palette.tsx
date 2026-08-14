@@ -13,7 +13,7 @@ type QuickNavItem = { label: string; href: string; icon: LucideIcon };
 /** Navegação estática — não é toda a árvore de `nav-config.ts`, só os destinos mais usados
  *  (evita uma lista de 30 itens idênticos; um clique a mais pra algo raro é aceitável). */
 const QUICK_NAV: QuickNavItem[] = [
-  { label: "My Day", href: "/meu-dia", icon: Sun },
+  { label: "Meu Dia", href: "/meu-dia", icon: Sun },
   { label: "Pipeline", href: "/comercial/pipeline", icon: Handshake },
   { label: "Simuladores", href: "/marketing/simuladores", icon: TrendingUp },
   { label: "Clientes", href: "/clientes", icon: Building2 },
@@ -79,17 +79,17 @@ export function CommandPalette() {
         className="h-8 gap-2 px-2.5 text-muted-foreground sm:px-3"
       >
         <Search className="size-3.5" />
-        <span className="hidden sm:inline">Search...</span>
+        <span className="hidden sm:inline">Buscar...</span>
         <CommandShortcut className="hidden rounded border border-border/60 bg-muted px-1.5 py-0.5 font-mono text-[10px] sm:inline">⌘K</CommandShortcut>
       </Button>
 
-      <CommandDialog open={open} onOpenChange={setOpen} title="Search" description="Search clients, leads and tasks" shouldFilter={false}>
-        <CommandInput placeholder="Search anything..." value={query} onValueChange={setQuery} />
+      <CommandDialog open={open} onOpenChange={setOpen} title="Buscar" description="Buscar clientes, leads e tarefas" shouldFilter={false}>
+        <CommandInput placeholder="Buscar qualquer coisa..." value={query} onValueChange={setQuery} />
         <CommandList>
-          {hasQuery && !isPending && !hasResults && <CommandEmpty>No results found.</CommandEmpty>}
+          {hasQuery && !isPending && !hasResults && <CommandEmpty>Nenhum resultado encontrado.</CommandEmpty>}
 
           {!hasQuery && (
-            <CommandGroup heading="Quick nav">
+            <CommandGroup heading="Navegação rápida">
               {QUICK_NAV.map((item) => (
                 <CommandItem key={item.href} onSelect={() => navigate(item.href)}>
                   <item.icon className="size-4 text-muted-foreground" />
@@ -100,7 +100,7 @@ export function CommandPalette() {
           )}
 
           {results.clients.length > 0 && (
-            <CommandGroup heading="Clients">
+            <CommandGroup heading="Clientes">
               {results.clients.map((client) => (
                 <CommandItem key={client.id} onSelect={() => navigate(`/clientes/${client.id}`)}>
                   <Building2 className="size-4 text-muted-foreground" />
@@ -122,7 +122,7 @@ export function CommandPalette() {
           )}
 
           {results.tasks.length > 0 && (
-            <CommandGroup heading="Tasks">
+            <CommandGroup heading="Tarefas">
               {results.tasks.map((task) => (
                 <CommandItem key={task.id} onSelect={() => navigate("/meu-dia/tarefas")}>
                   <CheckSquare2 className="size-4 text-muted-foreground" />

@@ -75,7 +75,7 @@ export type ExecutiveMetrics = {
   };
   operations: { headcount: number };
   team: { headcount: number };
-  attention: { label: string; detail: string; tone: "danger" | "warning" | "success" }[];
+  attention: { label: string; detail: string; tone: "danger" | "warning" | "success"; kind?: "overdue_revenue" | "overdue_expenses" | "cash_flow" }[];
   pulse: string[];
   details: {
     revenueEntries: DetailEntry[];
@@ -95,8 +95,8 @@ const currency = (value: number) => new Intl.NumberFormat("pt-BR", { style: "cur
 const shortDate = (iso: string | null) => (iso ? new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit" }).format(new Date(iso)) : "—");
 
 const ROLE_LABEL: Record<string, string> = {
-  owner: "Owner",
-  admin: "Admin",
+  owner: "Sócio",
+  admin: "Administrador",
   commercial: "Comercial",
   marketing: "Marketing",
   operations: "Operações",
@@ -294,38 +294,45 @@ export async function computeExecutiveDashboard(cashFlowMonths = 6): Promise<Exe
   const attention: ExecutiveMetrics["attention"] = [];
   if (overdueRevenueList.length > 0) {
     attention.push({
-      label: `${overdueRevenueList.length} invoice${overdueRevenueList.length === 1 ? "" : "s"} overdue`,
-      detail: `${formatCurrency(overdueRevenueTotal)} outstanding`,
+      label: `${overdueRevenueList.length} fatura${overdueRevenueList.length === 1 ? "" : "s"} atrasada${overdueRevenueList.length === 1 ? "" : "s"}`,
+      detail: `${formatCurrency(overdueRevenueTotal)} em aberto`,
       tone: "danger",
+      kind: "overdue_revenue",
     });
   }
   if (overdueExpensesList.length > 0) {
     attention.push({
-      label: `${overdueExpensesList.length} bill${overdueExpensesList.length === 1 ? "" : "s"} overdue`,
-      detail: `${formatCurrency(overdueExpensesTotal)} outstanding`,
+      label: `${overdueExpensesList.length} conta${overdueExpensesList.length === 1 ? "" : "s"} atrasada${overdueExpensesList.length === 1 ? "" : "s"}`,
+      detail: `${formatCurrency(overdueExpensesTotal)} em aberto`,
       tone: "warning",
+      kind: "overdue_expenses",
     });
   }
   attention.push({
-    label: cashFlowThisMonth >= 0 ? "Cash flow positive" : "Cash flow negative",
-    detail: `${cashFlowThisMonth >= 0 ? "+" : ""}${formatCurrency(cashFlowThisMonth)} this month`,
+    label: cashFlowThisMonth >= 0 ? "Fluxo de caixa positivo" : "Fluxo de caixa negativo",
+    detail: `${cashFlowThisMonth >= 0 ? "+" : ""}${formatCurrency(cashFlowThisMonth)} este mês`,
     tone: cashFlowThisMonth >= 0 ? "success" : "danger",
+    kind: "cash_flow",
   });
 
   // --- Business pulse (template, não IA — preparado pra virar isso depois) ---
   const pulse: string[] = [];
   if (revenueDeltaPct != null) {
-    pulse.push(`Revenue ${revenueDeltaPct >= 0 ? "increased" : "decreased"} ${Math.abs(revenueDeltaPct).toFixed(0)}% this month vs. last month.`);
+    pulse.push(`Receita ${revenueDeltaPct >= 0 ? "aumentou" : "caiu"} ${Math.abs(revenueDeltaPct).toFixed(0)}% este mês em relação ao mês passado.`);
   }
   if (comercial.newLeadsThisMonth > 0) {
-    pulse.push(`${comercial.newLeadsThisMonth} new lead${comercial.newLeadsThisMonth === 1 ? "" : "s"} entered the pipeline this month.`);
+    pulse.push(
+      comercial.newLeadsThisMonth === 1
+        ? `1 novo lead entrou no pipeline este mês.`
+        : `${comercial.newLeadsThisMonth} novos leads entraram no pipeline este mês.`,
+    );
   }
   if (goal) {
     const gap = goal.percentage - goal.expectedPacePercentage;
     pulse.push(
       gap >= 0
-        ? `Revenue pace is ${gap.toFixed(0)}pp ahead of the expected pace for this point in the month.`
-        : `Revenue pace is ${Math.abs(gap).toFixed(0)}pp behind the expected pace for this point in the month.`,
+        ? `O ritmo de receita está ${gap.toFixed(0)}pp acima do esperado pra este ponto do mês.`
+        : `O ritmo de receita está ${Math.abs(gap).toFixed(0)}pp abaixo do esperado pra este ponto do mês.`,
     );
   }
 
