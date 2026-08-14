@@ -3,26 +3,22 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu } from "lucide-react";
-import { GROWTH_TABS, OPERATIONS_TABS, FINANCE_TABS, SETTINGS_TABS, type TopNavTab } from "@/components/dashboard/nav-config";
+import { NAV_GROUPS, SETTINGS_TABS, type TopNavTab } from "@/components/dashboard/nav-config";
 import { CommandPalette } from "@/components/dashboard/command-palette";
 import { cn } from "@/lib/utils";
 
 /**
- * Cada área com sub-navegação própria mapeia pra sua lista de abas, por prefixo de rota — mesmo
- * raciocínio de `matchPrefixes` que `nav-config.ts` já usa pra sidebar. Workspace (`/meu-dia`) e
- * Dashboard (`/`) não entram aqui: são páginas únicas, sem sub-navegação, então a barra fica só
- * com o botão de menu mobile + a busca.
+ * Abas da área atual — lidas direto de `NAV_GROUPS[*].tabs` (`nav-config.ts`), a única fonte:
+ * antes disso existia um segundo array de prefixos aqui, em paralelo ao de `NAV_GROUPS`, e os
+ * dois podiam ficar dessincronizados (foi exatamente o que quase aconteceu movendo Clientes de
+ * Growth pra Operations — só um dos dois arrays teria sido atualizado se não fossem unificados
+ * agora). `/configuracoes` é caso à parte: não é um grupo da sidebar (só existe no rodapé), então
+ * não tem entrada em `NAV_GROUPS` — checado antes por padrão de prefixo fixo.
  */
-const AREA_TABS: { prefixes: string[]; tabs: TopNavTab[] }[] = [
-  { prefixes: ["/comercial", "/marketing", "/clientes", "/reports"], tabs: GROWTH_TABS },
-  { prefixes: ["/operacao"], tabs: OPERATIONS_TABS },
-  { prefixes: ["/financeiro"], tabs: FINANCE_TABS },
-  { prefixes: ["/configuracoes"], tabs: SETTINGS_TABS },
-];
-
 function getAreaTabs(pathname: string): TopNavTab[] | null {
-  const area = AREA_TABS.find((candidate) => candidate.prefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)));
-  return area?.tabs ?? null;
+  if (pathname === "/configuracoes" || pathname.startsWith("/configuracoes/")) return SETTINGS_TABS;
+  const group = NAV_GROUPS.find((candidate) => candidate.matchPrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)));
+  return group?.tabs ?? null;
 }
 
 /**

@@ -2,12 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, CheckSquare2, Handshake, Search, Settings, Sun, TrendingUp, Wallet, type LucideIcon } from "lucide-react";
+import { Building2, CheckSquare2, Handshake, Receipt, Search, Settings, Sun, Target, TrendingUp, Wallet, type LucideIcon } from "lucide-react";
 import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandShortcut } from "@/components/ui/command";
 import { Button } from "@/components/ui/button";
 import { searchCommandPaletteAction, type CommandPaletteResults } from "@/lib/command-palette/search";
 import { createTaskAction } from "@/lib/tasks/actions";
-import { createLeadAction } from "@/lib/comercial/actions";
+import { createLeadAction, createStrategyAction } from "@/lib/comercial/actions";
 import { useAdminUser } from "@/lib/admin/auth/auth-context";
 import { cn } from "@/lib/utils";
 
@@ -26,16 +26,19 @@ const QUICK_NAV: QuickNavItem[] = [
 
 /**
  * ⌘K / Ctrl+K global — montado uma vez em `app/(internal)/layout.tsx` (nunca em `/admin` nem
- * `/clients`). Busca real em clientes/leads/tarefas (`searchCommandPaletteAction`, debounced) +
- * navegação rápida estática quando a busca está vazia. Sem fluxo de criação embutido — "Create
- * Client"/"Create Task" etc. navegam pra tela onde a criação já existe, em vez de duplicar UI.
+ * `/clients`). Busca real em clientes/leads/tarefas/estratégias/despesas/custos
+ * (`searchCommandPaletteAction`, debounced) + navegação rápida estática quando a busca está
+ * vazia. Criação rápida embutida só pra Tarefa/Lead/Estratégia — os únicos fluxos do produto que
+ * cabem num "digitou, enter" (1 campo obrigatório); o resto (Cliente, Despesa, Custo — todos
+ * exigem campo demais ou um wizard) continua navegando pra tela onde a criação já existe, em vez
+ * de duplicar UI.
  */
 export function CommandPalette() {
   const router = useRouter();
   const user = useAdminUser();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<CommandPaletteResults>({ clients: [], leads: [], tasks: [] });
+  const [results, setResults] = useState<CommandPaletteResults>({ clients: [], leads: [], tasks: [], strategies: [], expenses: [], costs: [] });
   const [isPending, startTransition] = useTransition();
   const [isCreating, startCreateTransition] = useTransition();
   const [createError, setCreateError] = useState<string | null>(null);
@@ -120,8 +123,45 @@ export function CommandPalette() {
     [router],
   );
 
+  const createStrategy = useCallback(
+    (name: string) => {
+      setCreateError(null);
+      startCreateTransition(async () => {
+        const result = await createStrategyAction({
+          name,
+          targetAudience: "",
+          segment: "",
+          location: "",
+          icp: "",
+          qualificationCriteria: "",
+          offer: "",
+          salesPitch: "",
+          prospectingChannel: "",
+          prospectingGoal: null,
+          meetingsGoal: null,
+          closingGoal: null,
+          revenueGoal: null,
+        });
+        if (!result.ok) {
+          setCreateError(result.error);
+          return;
+        }
+        setOpen(false);
+        setQuery("");
+        router.refresh();
+      });
+    },
+    [router],
+  );
+
   const hasQuery = query.trim().length > 0;
-  const hasResults = results.clients.length > 0 || results.leads.length > 0 || results.tasks.length > 0;
+  const hasResults =
+    results.clients.length > 0 ||
+    results.leads.length > 0 ||
+    results.tasks.length > 0 ||
+    results.strategies.length > 0 ||
+    results.expenses.length > 0 ||
+    results.costs.length > 0;
 
   return (
     <>
@@ -143,7 +183,7 @@ export function CommandPalette() {
           if (!next) setCreateError(null);
         }}
         title="Buscar"
-        description="Buscar clientes, leads e tarefas"
+        description="Buscar clientes, leads, tarefas, estratégias, despesas e custos"
         shouldFilter={false}
       >
         <CommandInput
@@ -179,6 +219,10 @@ export function CommandPalette() {
                 <Handshake className="size-4 text-muted-foreground" />
                 Criar lead &ldquo;{query.trim()}&rdquo;
               </CommandItem>
+              <CommandItem disabled={isCreating} onSelect={() => createStrategy(query.trim())}>
+                <Target className="size-4 text-muted-foreground" />
+                Criar estratégia &ldquo;{query.trim()}&rdquo;
+              </CommandItem>
             </CommandGroup>
           )}
 
@@ -207,9 +251,42 @@ export function CommandPalette() {
           {results.tasks.length > 0 && (
             <CommandGroup heading="Tarefas">
               {results.tasks.map((task) => (
-                <CommandItem key={task.id} onSelect={() => navigate("/meu-dia/tarefas")}>
+                <CommandItem key={task.id} onSelect={() => navigate("/meu-dia")}>
                   <CheckSquare2 className="size-4 text-muted-foreground" />
                   {task.title}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          )}
+
+          {results.strategies.length > 0 && (
+            <CommandGroup heading="Estratégias">
+              {results.strategies.map((strategy) => (
+                <CommandItem key={strategy.id} onSelect={() => navigate(`/comercial/estrategias/${strategy.id}`)}>
+                  <Target className="size-4 text-muted-foreground" />
+                  {strategy.name}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          )}
+
+          {results.expenses.length > 0 && (
+            <CommandGroup heading="Despesas">
+              {results.expenses.map((expense) => (
+                <CommandItem key={expense.id} onSelect={() => navigate("/financeiro/despesas")}>
+                  <Receipt className="size-4 text-muted-foreground" />
+                  {expense.description}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          )}
+
+          {results.costs.length > 0 && (
+            <CommandGroup heading="Custos">
+              {results.costs.map((cost) => (
+                <CommandItem key={cost.id} onSelect={() => navigate("/financeiro/custos")}>
+                  <Wallet className="size-4 text-muted-foreground" />
+                  {cost.name}
                 </CommandItem>
               ))}
             </CommandGroup>
