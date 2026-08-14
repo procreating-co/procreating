@@ -2,13 +2,11 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { AnimatePresence, motion } from "framer-motion";
 import { CalendarCheck, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/dashboard/empty-state";
 import { createTaskAction, updateTaskStatusAction } from "@/lib/tasks/actions";
-import { completeTaskAction } from "@/lib/gamification/actions";
 import type { Task } from "@/lib/supabase/types/database";
 import { cn } from "@/lib/utils";
 
@@ -20,7 +18,6 @@ export function MyDayTasks({ tasks, userId }: { tasks: Task[]; userId: string })
   const [dueDate, setDueDate] = useState("");
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [xpFeedbackTaskId, setXpFeedbackTaskId] = useState<string | null>(null);
 
   function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -37,21 +34,9 @@ export function MyDayTasks({ tasks, userId }: { tasks: Task[]; userId: string })
     });
   }
 
-  // Concluir (pending/in_progress → done) passa pela RPC de gamificação (+10 XP, uma vez por
-  // tarefa — nunca duplica). Desmarcar (done → pending) continua no update simples de sempre:
-  // não reverte XP, já foi ganho de verdade.
   function toggle(task: Task) {
-    const willComplete = task.status !== "done";
     startTransition(async () => {
-      if (willComplete) {
-        const result = await completeTaskAction(task.id);
-        if (result.ok && result.result.xpAwarded) {
-          setXpFeedbackTaskId(task.id);
-          setTimeout(() => setXpFeedbackTaskId(null), 2000);
-        }
-      } else {
-        await updateTaskStatusAction(task.id, "pending");
-      }
+      await updateTaskStatusAction(task.id, task.status === "done" ? "pending" : "done");
       router.refresh();
     });
   }
@@ -84,33 +69,21 @@ export function MyDayTasks({ tasks, userId }: { tasks: Task[]; userId: string })
       {tasks.length === 0 ? (
         <EmptyState
           icon={CalendarCheck}
-          title="Nenhuma tarefa ainda"
-          description="Adicione a primeira tarefa do seu dia acima."
+          title="Nenhuma tarefa vencendo hoje ou atrasada"
+          description="Adicione uma tarefa acima, ou aproveite o dia livre."
           fullBleed={false}
         />
       ) : (
         <div className="flex flex-col gap-6">
-          <TaskGroup title="Pendentes" tasks={pending} onToggle={toggle} disabled={isPending} xpFeedbackTaskId={xpFeedbackTaskId} />
-          {done.length > 0 && <TaskGroup title="Concluídas" tasks={done} onToggle={toggle} disabled={isPending} xpFeedbackTaskId={xpFeedbackTaskId} />}
+          <TaskGroup title="Pendentes" tasks={pending} onToggle={toggle} disabled={isPending} />
+          {done.length > 0 && <TaskGroup title="Concluídas" tasks={done} onToggle={toggle} disabled={isPending} />}
         </div>
       )}
     </div>
   );
 }
 
-function TaskGroup({
-  title,
-  tasks,
-  onToggle,
-  disabled,
-  xpFeedbackTaskId,
-}: {
-  title: string;
-  tasks: Task[];
-  onToggle: (task: Task) => void;
-  disabled: boolean;
-  xpFeedbackTaskId: string | null;
-}) {
+function TaskGroup({ title, tasks, onToggle, disabled }: { title: string; tasks: Task[]; onToggle: (task: Task) => void; disabled: boolean }) {
   if (tasks.length === 0) return <p className="text-sm text-muted-foreground">Nenhuma tarefa pendente — dia livre.</p>;
   return (
     <div className="flex flex-col gap-3">
@@ -126,18 +99,6 @@ function TaskGroup({
               className="size-4 rounded border-input"
             />
             <span className={cn("flex-1 text-sm", task.status === "done" && "text-muted-foreground line-through")}>{task.title}</span>
-            <AnimatePresence>
-              {xpFeedbackTaskId === task.id && (
-                <motion.span
-                  initial={{ opacity: 0, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  className="rounded-full bg-brand-subtle px-2 py-0.5 text-xs font-medium text-brand"
-                >
-                  +10 XP
-                </motion.span>
-              )}
-            </AnimatePresence>
             {task.due_date && <span className="text-xs text-muted-foreground">{dateFormatter.format(new Date(`${task.due_date}T00:00:00`))}</span>}
           </li>
         ))}

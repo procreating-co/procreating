@@ -26,8 +26,8 @@ export async function listTasksByAssignee(userId: string): Promise<Task[]> {
   return data ?? [];
 }
 
-/** Tarefas do usuário vencendo hoje ou atrasadas, ainda não concluídas — "o que precisa da
- *  minha atenção hoje" da Home. */
+/** Tarefas do usuário vencendo hoje ou atrasadas, ainda não concluídas — usada pro resumo do
+ *  outro sócio no Workspace (`lib/meu-dia/queries.ts`), onde só o que está pendente importa. */
 export async function listMyDueTasks(userId: string): Promise<Task[]> {
   const supabase = await createClient();
   const today = new Date().toISOString().slice(0, 10);
@@ -37,6 +37,39 @@ export async function listMyDueTasks(userId: string): Promise<Task[]> {
     .eq("assignee_id", userId)
     .neq("status", "done")
     .lte("due_date", today)
+    .order("due_date", { ascending: true });
+  return data ?? [];
+}
+
+/** Tarefas do usuário com prazo hoje ou atrasado, QUALQUER status (inclui concluídas) — base da
+ *  seção "Tarefas de hoje" do Workspace: a MESMA lista alimenta a contagem de "atenção" (filtrando
+ *  `status !== "done"`) e o checklist em si (que precisa ver as concluídas pra riscar, não só
+ *  sumir da tela) — sem duas queries pra a mesma coisa. */
+export async function listTodayAndOverdueTasks(userId: string): Promise<Task[]> {
+  const supabase = await createClient();
+  const today = new Date().toISOString().slice(0, 10);
+  const { data } = await supabase.from("tasks").select("*").eq("assignee_id", userId).lte("due_date", today).order("due_date", { ascending: true });
+  return data ?? [];
+}
+
+/** Tarefas do usuário com prazo nos próximos `days` dias (padrão 7), ainda não concluídas —
+ *  "Próximos prazos" do Workspace, uma lista cronológica simples, não um calendário. */
+export async function listUpcomingTasks(userId: string, days = 7): Promise<Task[]> {
+  const supabase = await createClient();
+  const today = new Date();
+  const from = new Date(today);
+  from.setDate(from.getDate() + 1);
+  const to = new Date(today);
+  to.setDate(to.getDate() + days);
+  const fromISO = from.toISOString().slice(0, 10);
+  const toISO = to.toISOString().slice(0, 10);
+  const { data } = await supabase
+    .from("tasks")
+    .select("*")
+    .eq("assignee_id", userId)
+    .neq("status", "done")
+    .gte("due_date", fromISO)
+    .lte("due_date", toISO)
     .order("due_date", { ascending: true });
   return data ?? [];
 }

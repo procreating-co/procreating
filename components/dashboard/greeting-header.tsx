@@ -19,7 +19,8 @@ function firstName(name: string) {
  * real desde a Fase 1 (Foundation) — antes disso não havia autenticação, então não personalizava
  * (comentário antigo). Renderiza "Bem-vindo" (sem nome) até o primeiro mount, só pra evitar
  * mismatch de hidratação entre servidor e cliente na hora do dia — o nome em si já vem pronto do
- * servidor via `useAdminUser()`.
+ * servidor via `useAdminUser()`. Sem subtítulo — "Visão geral da operação" não dizia nada; o
+ * conteúdo real da página (seção "Atenção agora") começa logo abaixo.
  */
 export function GreetingHeader() {
   const user = useAdminUser();
@@ -29,10 +30,5 @@ export function GreetingHeader() {
     setGreeting(greetingForHour(new Date().getHours()));
   }, []);
 
-  return (
-    <div className="flex flex-col gap-1">
-      <h1 className="font-display text-3xl">{greeting ? `${greeting}, ${firstName(user.name)}` : "Bem-vindo"}</h1>
-      <p className="text-sm text-muted-foreground">Visão geral da operação</p>
-    </div>
-  );
+  return <h1 className="font-display text-3xl">{greeting ? `${greeting}, ${firstName(user.name)}.` : "Bem-vindo."}</h1>;
 }

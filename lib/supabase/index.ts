@@ -42,13 +42,4 @@ export type {
   FinancialRule,
   PartnerShare,
   RevenueGoal,
-  UserStats,
-  XpTransaction,
-  XpTransactionReason,
-  XpTransactionSourceType,
-  AchievementDefinition,
-  AchievementCriteriaType,
-  UserAchievement,
-  WorkSession,
-  GamificationRpcResult,
 } from "@/lib/supabase/types/database";
