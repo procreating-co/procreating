@@ -1,12 +1,14 @@
-import type { Lead, PipelineStage, Strategy } from "@/lib/supabase/types/database";
+import type { Lead, PipelineStage, ProspectingList, Strategy } from "@/lib/supabase/types/database";
 
-export type { Lead, PipelineStage, Strategy } from "@/lib/supabase/types/database";
+export type { Lead, PipelineStage, Strategy, ProspectingList } from "@/lib/supabase/types/database";
 
 /** Lead com o estágio já resolvido — evita todo consumidor ter que cruzar `stage_id` com a lista
- *  de estágios na mão. `strategy` é `null` quando o lead não veio de uma estratégia formal. */
+ *  de estágios na mão. `strategy`/`list` são `null` quando o lead não veio de uma estratégia
+ *  formal / não foi importado de uma lista (criado manualmente). */
 export type LeadWithRelations = Lead & {
   stage: PipelineStage;
   strategy: Pick<Strategy, "id" | "name"> | null;
+  list: Pick<ProspectingList, "id" | "name"> | null;
 };
 
 /** Payload de criação de lead — o que o formulário/drawer coleta; `stage_id`/`id`/timestamps
@@ -66,4 +68,26 @@ export type StrategyFunnel = {
   wonLeads: number;
   totalRevenue: number;
   averageTicket: number | null;
+};
+
+// ---------------------------------------------------------------------------
+// Motor de Listas — ver `lib/comercial/csv.ts` (parser) e `components/comercial/list-import-
+// drawer.tsx` (fluxo: importar → mapear → deduplicar → confirmar).
+// ---------------------------------------------------------------------------
+import type { ParsedLeadRow } from "@/lib/comercial/csv";
+
+/** Resultado da checagem de duplicados — computado no servidor (nunca traz a base inteira de
+ *  leads pro navegador, só compara chaves normalizadas). `duplicateOf` aponta o motivo pra UI
+ *  poder mostrar "já existe por WhatsApp"/"por e-mail"/etc. */
+export type DedupCheckResult = {
+  rows: Array<{ row: ParsedLeadRow; status: "novo" | "existente" | "duplicado_na_lista"; duplicateOf?: string }>;
+  newCount: number;
+  existingCount: number;
+  duplicateInListCount: number;
+};
+
+export type ImportListInput = {
+  listName: string;
+  strategyId: string | null;
+  rows: ParsedLeadRow[];
 };

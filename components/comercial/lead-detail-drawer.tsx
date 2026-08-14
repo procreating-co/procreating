@@ -90,7 +90,9 @@ export function LeadDetailDrawer({ lead, users, onOpenChange }: { lead: LeadWith
               <SheetTitle>{lead.company_name}</SheetTitle>
               <span className={cn("rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-wide", stage.badge)}>{lead.stage.label}</span>
             </div>
-            <SheetDescription>{lead.strategy ? `Estratégia: ${lead.strategy.name}` : "Sem estratégia de origem"}</SheetDescription>
+            <SheetDescription>
+              {[lead.strategy ? `Estratégia: ${lead.strategy.name}` : null, lead.list ? `Lista: ${lead.list.name}` : null].filter(Boolean).join(" · ") || "Sem estratégia/lista de origem"}
+            </SheetDescription>
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

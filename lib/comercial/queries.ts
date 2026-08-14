@@ -1,6 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import type { Event, Lead, PipelineStage, Strategy } from "@/lib/supabase/types/database";
+import type { Event, Lead, PipelineStage, ProspectingList, Strategy } from "@/lib/supabase/types/database";
 import type { LeadWithRelations } from "@/lib/comercial/types";
 
 /**
@@ -41,16 +41,35 @@ export async function getStrategy(id: string): Promise<Strategy | null> {
   return data ?? null;
 }
 
-function joinLeads(leads: Lead[], stages: PipelineStage[], strategies: Strategy[]): LeadWithRelations[] {
+export async function listProspectingLists(): Promise<ProspectingList[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("prospecting_lists").select("*").order("created_at", { ascending: false });
+  return data ?? [];
+}
+
+export async function getProspectingList(id: string): Promise<ProspectingList | null> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("prospecting_lists").select("*").eq("id", id).maybeSingle();
+  return data ?? null;
+}
+
+function joinLeads(leads: Lead[], stages: PipelineStage[], strategies: Strategy[], lists: ProspectingList[]): LeadWithRelations[] {
   const stageById = new Map(stages.map((stage) => [stage.id, stage]));
   const strategyById = new Map(strategies.map((strategy) => [strategy.id, strategy]));
+  const listById = new Map(lists.map((list) => [list.id, list]));
 
   return leads
     .map((lead) => {
       const stage = stageById.get(lead.stage_id);
       if (!stage) return null; // nunca deveria acontecer (FK not null) — só protege contra corrida entre queries
       const strategy = lead.strategy_id ? strategyById.get(lead.strategy_id) : undefined;
-      return { ...lead, stage, strategy: strategy ? { id: strategy.id, name: strategy.name } : null };
+      const list = lead.list_id ? listById.get(lead.list_id) : undefined;
+      return {
+        ...lead,
+        stage,
+        strategy: strategy ? { id: strategy.id, name: strategy.name } : null,
+        list: list ? { id: list.id, name: list.name } : null,
+      };
     })
     .filter((lead): lead is LeadWithRelations => lead !== null);
 }
@@ -58,33 +77,36 @@ function joinLeads(leads: Lead[], stages: PipelineStage[], strategies: Strategy[
 /** Leads ainda abertos (não convertidos) — o que o Kanban/tabela de Leads mostra por padrão. */
 export async function listOpenLeads(): Promise<LeadWithRelations[]> {
   const supabase = await createClient();
-  const [{ data: leads }, stages, strategies] = await Promise.all([
+  const [{ data: leads }, stages, strategies, lists] = await Promise.all([
     supabase.from("leads").select("*").is("client_id", null).order("created_at", { ascending: false }),
     listPipelineStages(),
     listStrategies(),
+    listProspectingLists(),
   ]);
-  return joinLeads(leads ?? [], stages, strategies);
+  return joinLeads(leads ?? [], stages, strategies, lists);
 }
 
 export async function listLeadsByStrategy(strategyId: string): Promise<LeadWithRelations[]> {
   const supabase = await createClient();
-  const [{ data: leads }, stages, strategies] = await Promise.all([
+  const [{ data: leads }, stages, strategies, lists] = await Promise.all([
     supabase.from("leads").select("*").eq("strategy_id", strategyId),
     listPipelineStages(),
     listStrategies(),
+    listProspectingLists(),
   ]);
-  return joinLeads(leads ?? [], stages, strategies);
+  return joinLeads(leads ?? [], stages, strategies, lists);
 }
 
 export async function getLead(id: string): Promise<LeadWithRelations | null> {
   const supabase = await createClient();
-  const [{ data: lead }, stages, strategies] = await Promise.all([
+  const [{ data: lead }, stages, strategies, lists] = await Promise.all([
     supabase.from("leads").select("*").eq("id", id).maybeSingle(),
     listPipelineStages(),
     listStrategies(),
+    listProspectingLists(),
   ]);
   if (!lead) return null;
-  return joinLeads([lead], stages, strategies)[0] ?? null;
+  return joinLeads([lead], stages, strategies, lists)[0] ?? null;
 }
 
 /** Histórico do lead — `public.events` com `entity_type = "lead"` (Fase 1, generalizado; ver

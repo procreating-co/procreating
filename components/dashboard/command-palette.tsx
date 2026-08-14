@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, CheckSquare2, Handshake, Receipt, Search, Settings, Sun, Target, TrendingUp, Wallet, type LucideIcon } from "lucide-react";
+import { Building2, CheckSquare2, Handshake, ListChecks, Receipt, Search, Settings, Sun, Target, TrendingUp, Wallet, type LucideIcon } from "lucide-react";
 import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandShortcut } from "@/components/ui/command";
 import { Button } from "@/components/ui/button";
 import { searchCommandPaletteAction, type CommandPaletteResults } from "@/lib/command-palette/search";
@@ -18,7 +18,8 @@ type QuickNavItem = { label: string; href: string; icon: LucideIcon };
 const QUICK_NAV: QuickNavItem[] = [
   { label: "Meu Dia", href: "/meu-dia", icon: Sun },
   { label: "Pipeline", href: "/comercial?tab=crm", icon: Handshake },
-  { label: "Simuladores", href: "/comercial?tab=simuladores", icon: TrendingUp },
+  { label: "Prospecção", href: "/comercial?tab=prospeccao", icon: ListChecks },
+  { label: "Planejamento", href: "/comercial?tab=planejamento", icon: TrendingUp },
   { label: "Clientes", href: "/clientes", icon: Building2 },
   { label: "Financeiro", href: "/financeiro", icon: Wallet },
   { label: "Configurações", href: "/configuracoes", icon: Settings },

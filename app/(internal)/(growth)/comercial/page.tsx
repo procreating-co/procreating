@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { Handshake, PackageCheck, Target, TrendingUp, UserPlus, Wallet } from "lucide-react";
 import { computeComercialMetrics, compareStrategies } from "@/lib/comercial/metrics";
-import { listOpenLeads, listPipelineStages, listStrategies } from "@/lib/comercial/queries";
+import { listOpenLeads, listPipelineStages, listProspectingLists, listStrategies } from "@/lib/comercial/queries";
 import { listUsers } from "@/lib/admin/users/queries";
 import { computeSimulationDefaults } from "@/lib/simulation/defaults";
 import { StatTile } from "@/components/dashboard/stat-tile";
@@ -15,6 +15,9 @@ import { LeadsTable } from "@/components/comercial/leads-table";
 import { PipelineBoard } from "@/components/comercial/pipeline-board";
 import { StrategiesList } from "@/components/comercial/strategies-list";
 import { CrmFilters } from "@/components/comercial/crm-filters";
+import { ProspeccaoView } from "@/components/comercial/prospeccao-view";
+import { GestureNav, type GestureTab } from "@/components/comercial/gesture-nav";
+import { TabTransition } from "@/components/comercial/tab-transition";
 import { SimulatorForm } from "@/components/marketing/simulator-form";
 import { cn } from "@/lib/utils";
 
@@ -28,35 +31,48 @@ const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", cu
 const TABS = [
   { key: "overview", label: "Visão Geral" },
   { key: "crm", label: "CRM" },
+  { key: "prospeccao", label: "Prospecção" },
   { key: "estrategias", label: "Estratégias" },
-  { key: "simuladores", label: "Simuladores" },
+  { key: "planejamento", label: "Planejamento" },
 ];
 
 /**
- * Comercial (Growth) — consolidado de 6 rotas pra 1 com abas internas (`PageTabs`). CRM (tabela)
- * e Pipeline (Kanban) eram a MESMA busca (`listOpenLeads`+`listPipelineStages`+`listUsers`), só o
- * componente de render mudava — viraram um `ViewToggle` dentro da mesma aba "CRM", não duas abas
- * pra cima do mesmo dado. Simuladores (calculadora autocontida, sem tabela própria) e Estratégias
- * (lista) migram pra cá também; a página de detalhe de estratégia continua com rota própria
- * (`/comercial/estrategias/[id]`) — é uma página de detalhe de verdade. Relatórios (`/reports`)
- * foi removido, não migrado — era um placeholder vazio desde sempre, zero funcionalidade real.
+ * Comercial (Growth) — máquina única (não um conjunto de páginas, seção 1 do prompt de evolução
+ * profunda). CRM (tabela) e Pipeline (Kanban) são a MESMA busca (`listOpenLeads`+
+ * `listPipelineStages`+`listUsers`), só o componente de render muda — um `ViewToggle` dentro da
+ * aba "CRM". Prospecção (motor de listas — CSV → dedup → lista → leads) é uma aba nova que
+ * alimenta o CRM (clicar numa lista filtra o CRM por `?list=`, não abre uma página própria de
+ * detalhe). Planejamento (era "Simuladores") é onde o planejador de crescimento mora — mesmo
+ * princípio de "aglutinar", nada disso é uma rota própria. Navegação por gesto (`GestureNav`)
+ * troca essas 5 abas com swipe de trackpad, sem quebrar scroll vertical nem o scroll horizontal
+ * do Kanban.
  */
-export default async function ComercialPage({ searchParams }: { searchParams: Promise<{ tab?: string; view?: string; owner?: string; strategy?: string }> }) {
-  const { tab: tabParam, view: viewParam, owner: ownerParam, strategy: strategyParam } = await searchParams;
+export default async function ComercialPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string; view?: string; owner?: string; strategy?: string; list?: string }>;
+}) {
+  const { tab: tabParam, view: viewParam, owner: ownerParam, strategy: strategyParam, list: listParam } = await searchParams;
   const tab = tabParam ?? "overview";
   const view: "pipeline" | "lista" = viewParam === "lista" ? "lista" : "pipeline";
   const ownerId = ownerParam ?? "todos";
   const strategyId = strategyParam ?? "todos";
+  const listId = listParam ?? "todos";
 
   let content: ReactNode;
   let wide = false;
 
   if (tab === "crm") {
-    const [allLeads, stages, strategies, users] = await Promise.all([listOpenLeads(), listPipelineStages(), listStrategies(), listUsers()]);
-    // Owner/Estratégia filtram UMA vez aqui — Pipeline e Lista recebem a mesma lista já cortada,
-    // sem duplicar a lógica de filtro em cada view. Persistem sozinhos ao trocar Pipeline↔Lista
-    // (e ao voltar depois) porque são `?param=` na URL, não estado em memória.
-    const leads = allLeads.filter((lead) => (ownerId === "todos" || lead.owner_id === ownerId) && (strategyId === "todos" || lead.strategy_id === strategyId));
+    const [allLeads, stages, strategies, users, lists] = await Promise.all([listOpenLeads(), listPipelineStages(), listStrategies(), listUsers(), listProspectingLists()]);
+    // Owner/Estratégia/Lista filtram UMA vez aqui — Pipeline e Lista recebem a mesma lista já
+    // cortada, sem duplicar a lógica de filtro em cada view. Persistem sozinhos ao trocar
+    // Pipeline↔Lista (e ao voltar depois) porque são `?param=` na URL, não estado em memória.
+    const leads = allLeads.filter(
+      (lead) =>
+        (ownerId === "todos" || lead.owner_id === ownerId) &&
+        (strategyId === "todos" || lead.strategy_id === strategyId) &&
+        (listId === "todos" || lead.list_id === listId)
+    );
     wide = view === "pipeline";
     content = (
       <div className="flex flex-col gap-4">
@@ -65,12 +81,20 @@ export default async function ComercialPage({ searchParams }: { searchParams: Pr
           description={view === "pipeline" ? 'Arraste um card pra mudar de estágio. Soltar em "Fechado" abre o onboarding do cliente.' : "Todos os leads em aberto — clique numa linha pra ver/editar o detalhe."}
           action={
             <div className="flex flex-wrap items-center gap-2">
-              <CrmFilters owners={users} strategies={strategies} ownerId={ownerId} strategyId={strategyId} />
-              <ViewToggle view={view} ownerId={ownerId} strategyId={strategyId} />
+              <CrmFilters owners={users} strategies={strategies} lists={lists} ownerId={ownerId} strategyId={strategyId} listId={listId} />
+              <ViewToggle view={view} ownerId={ownerId} strategyId={strategyId} listId={listId} />
             </div>
           }
         />
         {view === "pipeline" ? <PipelineBoard leads={leads} stages={stages} users={users} /> : <LeadsTable leads={leads} stages={stages} strategies={strategies} users={users} />}
+      </div>
+    );
+  } else if (tab === "prospeccao") {
+    const [lists, strategies] = await Promise.all([listProspectingLists(), listStrategies()]);
+    content = (
+      <div className="flex flex-col gap-4">
+        <SectionHeader title="Prospecção" description="Motor de listas — importe um CSV, o sistema deduplica e organiza em listas conectadas às estratégias." />
+        <ProspeccaoView lists={lists} strategies={strategies} />
       </div>
     );
   } else if (tab === "estrategias") {
@@ -81,11 +105,11 @@ export default async function ComercialPage({ searchParams }: { searchParams: Pr
         <StrategiesList strategies={strategies} />
       </div>
     );
-  } else if (tab === "simuladores") {
+  } else if (tab === "planejamento") {
     const defaults = await computeSimulationDefaults();
     content = (
       <div className="flex flex-col gap-4">
-        <SectionHeader title="Simulador" description="Quanto de lead, proposta e cliente é preciso pra bater uma meta de faturamento — três cenários lado a lado, recalculados a cada mudança." />
+        <SectionHeader title="Planejamento" description="Quanto de lead, proposta e cliente é preciso pra bater uma meta de faturamento — três cenários lado a lado, recalculados a cada mudança." />
         <SimulatorForm defaults={defaults} />
       </div>
     );
@@ -147,23 +171,30 @@ export default async function ComercialPage({ searchParams }: { searchParams: Pr
     );
   }
 
+  // Mesma construção de href que `PageTabs` usa (primeira aba = URL limpa) — o gesto de swipe
+  // precisa navegar exatamente pros mesmos lugares que clicar na aba levaria.
+  const gestureTabs: GestureTab[] = TABS.map((t, index) => ({ key: t.key, href: index === 0 ? "/comercial" : `/comercial?tab=${t.key}` }));
+
   return (
     <main className={cn("mx-auto flex flex-col gap-6 px-6 pt-8 pb-16 lg:px-10", wide ? "max-w-[1600px]" : "max-w-[1400px]")}>
       <div className="flex flex-col gap-4">
         <PageHeader title="Comercial" description="Aquisição, prospecção, CRM e estratégias de crescimento." />
         <PageTabs tabs={TABS} activeKey={tab} />
       </div>
-      <div className="flex flex-col gap-8">{content}</div>
+      <GestureNav tabs={gestureTabs} activeKey={tab}>
+        <TabTransition key={tab}>{content}</TabTransition>
+      </GestureNav>
     </main>
   );
 }
 
-function ViewToggle({ view, ownerId, strategyId }: { view: "pipeline" | "lista"; ownerId: string; strategyId: string }) {
-  // Preserva owner/estratégia ao trocar de view — hardcoded `?tab=crm` sem os outros params
+function ViewToggle({ view, ownerId, strategyId, listId }: { view: "pipeline" | "lista"; ownerId: string; strategyId: string; listId: string }) {
+  // Preserva owner/estratégia/lista ao trocar de view — hardcoded `?tab=crm` sem os outros params
   // faria o filtro sumir só de clicar em "Lista"/"Pipeline".
   const extra = new URLSearchParams();
   if (ownerId !== "todos") extra.set("owner", ownerId);
   if (strategyId !== "todos") extra.set("strategy", strategyId);
+  if (listId !== "todos") extra.set("list", listId);
   const extraQuery = extra.toString() ? `&${extra.toString()}` : "";
 
   return (

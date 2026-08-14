@@ -297,6 +297,9 @@ export type Lead = {
   email: string | null;
   source: string | null;
   strategy_id: string | null;
+  /** Lista de prospecção que originou este lead — `null` pra leads criados manualmente/avulsos
+   *  (nem todo lead vem de uma importação). Ver `ProspectingList` logo abaixo. */
+  list_id: string | null;
   potential_value: number | null;
   owner_id: string | null;
   stage_id: string;
@@ -306,6 +309,26 @@ export type Lead = {
   /** Setado só na conversão via `close_lead_and_create_client` (RPC) — lead convertido nunca é
    *  reaberto/reutilizado por outro cliente. */
   client_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+// ---------------------------------------------------------------------------
+// ProspectingList — Motor de Listas (migration `20260814260000_prospecting_lists.sql`). Uma
+// importação de CSV (ou, futuramente, XLSX/API/scraping) vira UMA lista; cada lead importado
+// carrega `list_id`. `lead_count` é só a contagem no momento da importação (exibição rápida nos
+// cards) — a fonte de verdade pra "quantos leads tem hoje" é sempre `count(*) where list_id = x`.
+// ---------------------------------------------------------------------------
+export type ProspectingListStatus = "em_prospeccao" | "pausada" | "concluida";
+
+export type ProspectingList = {
+  id: string;
+  name: string;
+  origin: string;
+  strategy_id: string | null;
+  status: ProspectingListStatus;
+  lead_count: number;
+  created_by: string;
   created_at: string;
   updated_at: string;
 };
@@ -576,6 +599,7 @@ export type Database = {
       pipeline_stages: TableDef<PipelineStage>;
       strategies: TableDef<Strategy>;
       leads: TableDef<Lead>;
+      prospecting_lists: TableDef<ProspectingList>;
       contracts: TableDef<Contract>;
       contract_scope_items: TableDef<ContractScopeItem>;
       client_onboarding: TableDef<ClientOnboarding>;

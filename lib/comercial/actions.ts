@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserId } from "@/lib/supabase/current-user";
 import { getInitialStage, getLeadEvents, listPipelineStages } from "@/lib/comercial/queries";
-import type { LeadInput, LeadPatch, StrategyInput } from "@/lib/comercial/types";
+import { normalizeCompanyName, normalizeEmail, normalizePhone, type ParsedLeadRow } from "@/lib/comercial/csv";
+import type { DedupCheckResult, ImportListInput, LeadInput, LeadPatch, StrategyInput } from "@/lib/comercial/types";
 import type { Event } from "@/lib/supabase/types/database";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
@@ -184,4 +185,101 @@ export async function logLeadActivityAction(leadId: string, message: string): Pr
 
   revalidatePath("/comercial");
   return { ok: true };
+}
+
+/**
+ * Checagem de duplicados — roda no servidor pra nunca precisar mandar a base inteira de leads
+ * pro navegador (seção 38 do prompt: performance/escala). Só busca as 3 colunas usadas pra
+ * dedup dos leads ainda abertos, monta 3 sets normalizados e classifica cada linha da planilha:
+ * "existente" (bate com um lead já na base), "duplicado_na_lista" (bate com outra linha ANTES
+ * dela na própria planilha — a primeira ocorrência é "novo", as repetições depois são a
+ * duplicata), ou "novo".
+ */
+export async function checkDuplicateLeadsAction(rows: ParsedLeadRow[]): Promise<DedupCheckResult> {
+  const supabase = await createClient();
+  const { data: existing } = await supabase.from("leads").select("company_name, whatsapp, email").is("client_id", null);
+
+  const existingPhones = new Set((existing ?? []).map((lead) => (lead.whatsapp ? normalizePhone(lead.whatsapp) : "")).filter(Boolean));
+  const existingEmails = new Set((existing ?? []).map((lead) => (lead.email ? normalizeEmail(lead.email) : "")).filter(Boolean));
+  const existingNames = new Set((existing ?? []).map((lead) => normalizeCompanyName(lead.company_name)));
+
+  const seenPhones = new Set<string>();
+  const seenEmails = new Set<string>();
+  const seenNames = new Set<string>();
+
+  const result: DedupCheckResult["rows"] = rows.map((row) => {
+    const phone = row.whatsapp ? normalizePhone(row.whatsapp) : "";
+    const email = row.email ? normalizeEmail(row.email) : "";
+    const name = normalizeCompanyName(row.companyName);
+
+    if ((phone && existingPhones.has(phone)) || (email && existingEmails.has(email)) || existingNames.has(name)) {
+      return { row, status: "existente", duplicateOf: phone && existingPhones.has(phone) ? "WhatsApp" : email && existingEmails.has(email) ? "e-mail" : "nome da empresa" };
+    }
+    if ((phone && seenPhones.has(phone)) || (email && seenEmails.has(email)) || seenNames.has(name)) {
+      return { row, status: "duplicado_na_lista" };
+    }
+    if (phone) seenPhones.add(phone);
+    if (email) seenEmails.add(email);
+    seenNames.add(name);
+    return { row, status: "novo" };
+  });
+
+  return {
+    rows: result,
+    newCount: result.filter((r) => r.status === "novo").length,
+    existingCount: result.filter((r) => r.status === "existente").length,
+    duplicateInListCount: result.filter((r) => r.status === "duplicado_na_lista").length,
+  };
+}
+
+/**
+ * Cria a Lista (entidade) + insere só os leads marcados como "novo" pela checagem acima — quem
+ * chama já filtrou existente/duplicado_na_lista antes de mandar aqui (drawer de importação,
+ * botão "Importar novos"). Todo lead nasce no estágio inicial, com `source` = nome da lista e
+ * `list_id`/`strategy_id` preenchidos — a mesma trilha que `createLeadAction` usa pra um lead
+ * avulso, só que em lote.
+ */
+export async function importListAction(input: ImportListInput): Promise<ActionResult & { listId?: string }> {
+  if (!input.listName.trim()) return { ok: false, error: "Dê um nome pra lista." };
+  if (input.rows.length === 0) return { ok: false, error: "Nenhum lead novo pra importar." };
+
+  const userId = await getCurrentUserId();
+  if (!userId) return { ok: false, error: "Sessão expirada — faça login de novo." };
+
+  const initialStage = await getInitialStage();
+  if (!initialStage) return { ok: false, error: "Nenhum estágio inicial configurado em pipeline_stages." };
+
+  const supabase = await createClient();
+  const { data: list, error: listError } = await supabase
+    .from("prospecting_lists")
+    .insert({
+      name: input.listName,
+      origin: "CSV",
+      strategy_id: input.strategyId,
+      lead_count: input.rows.length,
+      created_by: userId,
+    })
+    .select("id")
+    .single();
+  if (listError || !list) return { ok: false, error: listError?.message ?? "Falha ao criar a lista." };
+
+  const { error: leadsError } = await supabase.from("leads").insert(
+    input.rows.map((row) => ({
+      company_name: row.companyName,
+      contact_name: row.contactName || null,
+      role_title: row.roleTitle || null,
+      whatsapp: row.whatsapp || null,
+      email: row.email || null,
+      potential_value: row.potentialValue,
+      source: input.listName,
+      strategy_id: input.strategyId,
+      list_id: list.id,
+      owner_id: userId,
+      stage_id: initialStage.id,
+    }))
+  );
+  if (leadsError) return { ok: false, error: leadsError.message };
+
+  revalidatePath("/comercial");
+  return { ok: true, listId: list.id };
 }
