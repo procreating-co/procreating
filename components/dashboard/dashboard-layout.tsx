@@ -14,12 +14,18 @@ import { useTheme } from "@/lib/theme/theme-provider";
  *
  * `lg:pl-16` (não mais `lg:pl-64`) — a sidebar nova fica recolhida por padrão e expande em cima
  * do conteúdo como overlay (`dashboard-sidebar.tsx`), não empurra mais o layout.
+ *
+ * `font-sans` aplicado aqui, explicitamente — `body` (app/layout.tsx) já aplica `font-sans` uma
+ * vez, e `font-family` herda como VALOR COMPUTADO, não como referência viva a `var()`. Sem
+ * reaplicar a classe neste elemento, o Geist escopado em `.os-shell` (app/globals.css) nunca
+ * seria reavaliado — a herança ficaria presa no Instrument Sans que `body` resolveu a partir do
+ * `:root`.
  */
 export function DashboardLayout({ children }: { children: ReactNode }) {
   const { theme } = useTheme();
 
   return (
-    <div className="os-shell min-h-screen bg-background text-foreground" data-theme={theme}>
+    <div className="os-shell min-h-screen bg-background text-foreground font-sans" data-theme={theme}>
       <DashboardSidebar />
       <div className="lg:pl-16">
         <DashboardHeader />

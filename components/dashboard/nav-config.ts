@@ -80,6 +80,7 @@ export const FINANCE_TABS: TopNavTab[] = [
 ];
 
 export const SETTINGS_TABS: TopNavTab[] = [
+  { label: "General", href: "/configuracoes/geral" },
   { label: "Company", href: "/configuracoes/empresa" },
   { label: "Users", href: "/configuracoes/usuarios" },
   { label: "Financial Rules", href: "/configuracoes/regras-financeiras" },

@@ -5,6 +5,7 @@ import { Command as CommandPrimitive } from "cmdk";
 import { SearchIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 
 function Command({ className, ...props }: React.ComponentProps<typeof CommandPrimitive>) {
   return (
@@ -13,6 +14,31 @@ function Command({ className, ...props }: React.ComponentProps<typeof CommandPri
       className={cn("flex w-full flex-col overflow-hidden bg-transparent text-foreground", className)}
       {...props}
     />
+  );
+}
+
+/** `Command` dentro de um `Dialog` — o modal de verdade, faltava (só existia o primitivo
+ *  embutível, usado hoje em `/clients` como seletor de workspace numa página inteira, não um
+ *  overlay). `title`/`description` viram um cabeçalho só-leitor-de-tela (`sr-only`) — Radix Dialog
+ *  exige um `DialogTitle` acessível mesmo quando o Command já tem sua própria UI de busca. */
+function CommandDialog({
+  title = "Buscar",
+  description = "Busque um cliente, lead ou tarefa",
+  children,
+  className,
+  shouldFilter,
+  ...props
+}: React.ComponentProps<typeof Dialog> & { title?: string; description?: string; className?: string; shouldFilter?: boolean }) {
+  return (
+    <Dialog {...props}>
+      <DialogContent showCloseButton={false} className={cn("max-w-xl gap-0 overflow-hidden p-0", className)}>
+        <DialogTitle className="sr-only">{title}</DialogTitle>
+        <DialogDescription className="sr-only">{description}</DialogDescription>
+        <Command shouldFilter={shouldFilter} className="[&_[data-slot=command-input-wrapper]]:h-14 [&_[data-slot=command-input-wrapper]]:px-5">
+          {children}
+        </Command>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -75,4 +101,8 @@ function CommandItem({ className, ...props }: React.ComponentProps<typeof Comman
   );
 }
 
-export { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem };
+function CommandShortcut({ className, ...props }: React.ComponentProps<"span">) {
+  return <span data-slot="command-shortcut" className={cn("ml-auto text-xs tracking-widest text-muted-foreground", className)} {...props} />;
+}
+
+export { Command, CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem, CommandShortcut };
