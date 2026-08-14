@@ -20,8 +20,9 @@ export const elenitaProposal: ProposalContent = {
 
   hero: {
     eyebrow: "PROPOSTA DE PARCERIA ESTRATÉGIA",
-    title: "Os próximos capítulos começam aqui...",
-    subtitle: "Queremos juntos construir um projeto focado em crescimento mútuo, unindo estratégia, posicionamento, conteúdo e performance.",
+    /** `\n` = quebra de linha proposital (ver proposal-typing-headline.tsx) — não fica por conta do wrap automático. */
+    title: "Os próximos capítulos\ncomeçam aqui...",
+    subtitle: "Queremos juntos transformar estratégia em resultados.",
   },
 
   pillarsIntro: {
