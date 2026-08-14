@@ -27,8 +27,6 @@ export async function createExpenseAction(input: ExpenseInput): Promise<ActionRe
   if (error) return { ok: false, error: error.message };
 
   revalidatePath("/financeiro");
-  revalidatePath("/financeiro/despesas");
-  revalidatePath("/financeiro/contas-a-pagar");
   return { ok: true };
 }
 
@@ -41,8 +39,6 @@ export async function updateRevenueStatusAction(id: string, status: FinancialEnt
   if (error) return { ok: false, error: error.message };
 
   revalidatePath("/financeiro");
-  revalidatePath("/financeiro/receitas");
-  revalidatePath("/financeiro/contas-a-receber");
   return { ok: true };
 }
 
@@ -55,8 +51,6 @@ export async function updateExpenseStatusAction(id: string, status: FinancialEnt
   if (error) return { ok: false, error: error.message };
 
   revalidatePath("/financeiro");
-  revalidatePath("/financeiro/despesas");
-  revalidatePath("/financeiro/contas-a-pagar");
   return { ok: true };
 }
 
@@ -78,7 +72,6 @@ export async function createCostAction(input: CostInput): Promise<ActionResult> 
   if (error) return { ok: false, error: error.message };
 
   revalidatePath("/financeiro");
-  revalidatePath("/financeiro/custos");
   return { ok: true };
 }
 
@@ -88,6 +81,5 @@ export async function deleteCostAction(id: string): Promise<ActionResult> {
   if (error) return { ok: false, error: error.message };
 
   revalidatePath("/financeiro");
-  revalidatePath("/financeiro/custos");
   return { ok: true };
 }

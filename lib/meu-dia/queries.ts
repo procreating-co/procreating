@@ -73,19 +73,19 @@ export async function computeWorkspaceOverview(userId: string): Promise<Workspac
   if (staleLeadsCount > 0) {
     attention.push({
       label: `${staleLeadsCount} lead${staleLeadsCount === 1 ? "" : "s"} sem contato há mais de ${STALE_LEAD_DAYS} dias`,
-      href: "/comercial/pipeline",
+      href: "/comercial?tab=crm",
     });
   }
   if (revenueDueCount > 0) {
     attention.push({
       label: `${revenueDueCount} conta${revenueDueCount === 1 ? "" : "s"} a receber vencendo hoje ou atrasada${revenueDueCount === 1 ? "" : "s"}`,
-      href: "/financeiro/contas-a-receber",
+      href: "/financeiro?tab=receivables",
     });
   }
   if (expensesDueCount > 0) {
     attention.push({
       label: `${expensesDueCount} conta${expensesDueCount === 1 ? "" : "s"} a pagar vencendo hoje ou atrasada${expensesDueCount === 1 ? "" : "s"}`,
-      href: "/financeiro/contas-a-pagar",
+      href: "/financeiro?tab=payables",
     });
   }
 

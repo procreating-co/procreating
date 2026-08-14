@@ -12,7 +12,7 @@ export function StrategyDetailHeader({ strategy }: { strategy: Strategy }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <Link href="/comercial/estrategias" className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground">
+      <Link href="/comercial?tab=estrategias" className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground">
         <ArrowLeft className="size-3.5" />
         Estratégias
       </Link>

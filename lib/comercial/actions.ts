@@ -41,7 +41,7 @@ export async function createStrategyAction(input: StrategyInput): Promise<Action
   });
   if (error) return { ok: false, error: error.message };
 
-  revalidatePath("/comercial/estrategias");
+  revalidatePath("/comercial");
   return { ok: true };
 }
 
@@ -70,7 +70,7 @@ export async function updateStrategyAction(id: string, input: StrategyInput): Pr
     .eq("id", id);
   if (error) return { ok: false, error: error.message };
 
-  revalidatePath("/comercial/estrategias");
+  revalidatePath("/comercial");
   revalidatePath(`/comercial/estrategias/${id}`);
   return { ok: true };
 }
@@ -100,8 +100,7 @@ export async function createLeadAction(input: LeadInput): Promise<ActionResult> 
   });
   if (error) return { ok: false, error: error.message };
 
-  revalidatePath("/comercial/leads");
-  revalidatePath("/comercial/pipeline");
+  revalidatePath("/comercial");
   return { ok: true };
 }
 
@@ -123,9 +122,7 @@ export async function updateLeadAction(id: string, patch: LeadPatch): Promise<Ac
     .eq("id", id);
   if (error) return { ok: false, error: error.message };
 
-  revalidatePath("/comercial/leads");
-  revalidatePath(`/comercial/leads/${id}`);
-  revalidatePath("/comercial/pipeline");
+  revalidatePath("/comercial");
   return { ok: true };
 }
 
@@ -165,8 +162,7 @@ export async function moveLeadStageAction(leadId: string, toStageId: string): Pr
     metadata: { from: fromStage?.key ?? null, to: toStage.key },
   });
 
-  revalidatePath("/comercial/pipeline");
-  revalidatePath("/comercial/leads");
+  revalidatePath("/comercial");
   return { ok: true };
 }
 
@@ -186,6 +182,6 @@ export async function logLeadActivityAction(leadId: string, message: string): Pr
 
   await supabase.from("leads").update({ last_contact_at: new Date().toISOString() }).eq("id", leadId);
 
-  revalidatePath(`/comercial/leads/${leadId}`);
+  revalidatePath("/comercial");
   return { ok: true };
 }

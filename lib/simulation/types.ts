@@ -1,6 +1,6 @@
 /**
  * Motor de simulação central — Entrada → Regras de negócio → Cálculo → Cenário → Resultado.
- * Puro, sem I/O (ver `engine.ts`) — reaproveitável por Marketing (`/marketing/simuladores`) e
+ * Puro, sem I/O (ver `engine.ts`) — reaproveitável por Growth (`/comercial?tab=simuladores`) e
  * Financeiro ao mesmo tempo, nunca lógica presa num componente. `defaults.ts` (server-only) é a
  * única peça que toca banco, pra sugerir valores iniciais a partir do histórico real do CRM.
  */

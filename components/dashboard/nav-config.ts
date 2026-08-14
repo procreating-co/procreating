@@ -5,33 +5,24 @@ import { Layers, LayoutDashboard, Sun, TrendingUp, Wallet, type LucideIcon } fro
  * hover-to-expand + top nav contextual). Antes disso existiam 7 grupos colapsáveis na própria
  * sidebar (accordion com submenu) mais um `DASHBOARD_SECTIONS` separado (grade de cards em
  * `/operacao` e `/administracao`) — os dois são substituídos por isto: 5 grupos fixos na
- * sidebar (nunca submenu ali) + uma lista de abas por grupo, renderizada como top nav contextual
- * dentro do `dashboard-header.tsx` (que resolve a área atual direto por `NAV_GROUPS`, sem manter
- * uma segunda lista de prefixos em paralelo — era assim antes e um dos dois ficou desatualizado
- * quando Clientes mudou de área, a raiz do bug).
+ * sidebar (nunca submenu ali) + uma lista de abas por grupo (só pras áreas que ainda têm
+ * sub-rotas de verdade), renderizada como top nav contextual dentro do `dashboard-header.tsx`
+ * (que resolve a área atual direto por `NAV_GROUPS`, sem manter uma segunda lista de prefixos em
+ * paralelo — era assim antes e um dos dois ficou desatualizado quando Clientes mudou de área, a
+ * raiz do bug).
+ *
+ * Growth e Finance NÃO têm mais `tabs` aqui — cada um virou uma rota só
+ * (`/comercial`, `/financeiro`) com abas internas (`components/dashboard/page-tabs.tsx`, dentro
+ * da própria página) no lugar de sub-rotas. Manter um array de tabs aqui pra essas duas áreas
+ * recriaria a mesma duplicação de navegação (duas barras de aba) que foi corrigida quando o
+ * header e o top-nav antigo foram unificados.
  *
  * Casca de navegação (rótulos de grupo e de aba) em português — mesma língua do resto do produto.
- *
- * URLs não foram renomeadas: cada aba aponta pra uma rota que já existe (ou, quando marcado, uma
- * nova) — a reestruturação é de navegação, não uma tradução de rota.
  */
 export type TopNavTab = { label: string; href: string };
 
-/** Visão Geral (métricas comerciais reais, já existia em `/comercial`) foi acrescentada além da
- *  lista literal do pedido (CRM/Pipeline/Estratégias/Simuladores/Relatórios) — sem ela, conteúdo
- *  real perderia navegação. Relatórios não existe ainda: `ComingSoon`. Clientes NÃO está aqui —
- *  pertence à Operação (dono da entrega/relação contínua), não ao Comercial (dono da conquista do
- *  lead) — corrigido depois de ter ficado em Growth por engano numa fase anterior. */
-export const GROWTH_TABS: TopNavTab[] = [
-  { label: "Visão Geral", href: "/comercial" },
-  { label: "CRM", href: "/comercial/leads" },
-  { label: "Pipeline", href: "/comercial/pipeline" },
-  { label: "Estratégias", href: "/comercial/estrategias" },
-  { label: "Simuladores", href: "/marketing/simuladores" },
-  { label: "Relatórios", href: "/reports" },
-];
-
-/** Clientes (visão 360º, `/clientes`) mora aqui — não em Growth (ver comentário acima). */
+/** Clientes (visão 360º, `/clientes`) mora aqui — não em Growth (é a Operação que é dona da
+ *  entrega/relação contínua com o cliente, não o Comercial, que é dono da conquista do lead). */
 export const OPERATIONS_TABS: TopNavTab[] = [
   { label: "Clientes", href: "/clientes" },
   { label: "Projetos", href: "/operacao/projetos" },
@@ -39,16 +30,6 @@ export const OPERATIONS_TABS: TopNavTab[] = [
   { label: "Entregas", href: "/operacao/entregas" },
   { label: "Equipe", href: "/operacao/equipe" },
   { label: "Recursos", href: "/operacao/conteudo" },
-];
-
-export const FINANCE_TABS: TopNavTab[] = [
-  { label: "Dashboard", href: "/financeiro" },
-  { label: "Receitas", href: "/financeiro/receitas" },
-  { label: "Despesas", href: "/financeiro/despesas" },
-  { label: "Custos", href: "/financeiro/custos" },
-  { label: "Distribuição", href: "/financeiro/distribuicao" },
-  { label: "Contas a Receber", href: "/financeiro/contas-a-receber" },
-  { label: "Contas a Pagar", href: "/financeiro/contas-a-pagar" },
 ];
 
 /** Não vive num grupo de `NAV_GROUPS` (Settings só existe no rodapé da sidebar, ver comentário
@@ -70,9 +51,10 @@ export type NavGroupDef = {
   href: string;
   /** Prefixos de rota que contam como "este grupo está ativo". */
   matchPrefixes: string[];
-  /** Abas do top nav dessa área — `undefined` pras duas páginas únicas sem sub-navegação
-   *  (Workspace, Dashboard). Única fonte pro top nav — `dashboard-header.tsx` lê daqui direto,
-   *  não existe mais um array de prefixos duplicado em paralelo. */
+  /** Abas do top nav dessa área — `undefined` pras páginas que são uma rota só, sem sub-navegação
+   *  externa (Workspace, Dashboard, Growth, Finance — as duas últimas têm abas, só que internas
+   *  à própria página, não aqui). Única fonte pro top nav quando existe — `dashboard-header.tsx`
+   *  lê daqui direto, não existe um array de prefixos duplicado em paralelo. */
   tabs?: TopNavTab[];
 };
 
@@ -86,6 +68,6 @@ export const NAV_GROUPS: NavGroupDef[] = [
   { key: "workspace", label: "Workspace", icon: Sun, href: "/meu-dia", matchPrefixes: ["/meu-dia"] },
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: "/", matchPrefixes: ["/"] },
   { key: "operations", label: "Operação", icon: Layers, href: "/operacao", matchPrefixes: ["/operacao", "/clientes"], tabs: OPERATIONS_TABS },
-  { key: "growth", label: "Comercial", icon: TrendingUp, href: "/comercial", matchPrefixes: ["/comercial", "/marketing", "/reports"], tabs: GROWTH_TABS },
-  { key: "finance", label: "Financeiro", icon: Wallet, href: "/financeiro", matchPrefixes: ["/financeiro"], tabs: FINANCE_TABS },
+  { key: "growth", label: "Comercial", icon: TrendingUp, href: "/comercial", matchPrefixes: ["/comercial"] },
+  { key: "finance", label: "Financeiro", icon: Wallet, href: "/financeiro", matchPrefixes: ["/financeiro"] },
 ];

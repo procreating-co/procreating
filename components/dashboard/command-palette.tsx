@@ -17,8 +17,8 @@ type QuickNavItem = { label: string; href: string; icon: LucideIcon };
  *  (evita uma lista de 30 itens idênticos; um clique a mais pra algo raro é aceitável). */
 const QUICK_NAV: QuickNavItem[] = [
   { label: "Meu Dia", href: "/meu-dia", icon: Sun },
-  { label: "Pipeline", href: "/comercial/pipeline", icon: Handshake },
-  { label: "Simuladores", href: "/marketing/simuladores", icon: TrendingUp },
+  { label: "Pipeline", href: "/comercial?tab=crm", icon: Handshake },
+  { label: "Simuladores", href: "/comercial?tab=simuladores", icon: TrendingUp },
   { label: "Clientes", href: "/clientes", icon: Building2 },
   { label: "Financeiro", href: "/financeiro", icon: Wallet },
   { label: "Configurações", href: "/configuracoes", icon: Settings },
@@ -240,7 +240,7 @@ export function CommandPalette() {
           {results.leads.length > 0 && (
             <CommandGroup heading="Leads">
               {results.leads.map((lead) => (
-                <CommandItem key={lead.id} onSelect={() => navigate("/comercial/pipeline")}>
+                <CommandItem key={lead.id} onSelect={() => navigate("/comercial?tab=crm")}>
                   <Handshake className="size-4 text-muted-foreground" />
                   {lead.company_name}
                 </CommandItem>
@@ -273,7 +273,7 @@ export function CommandPalette() {
           {results.expenses.length > 0 && (
             <CommandGroup heading="Despesas">
               {results.expenses.map((expense) => (
-                <CommandItem key={expense.id} onSelect={() => navigate("/financeiro/despesas")}>
+                <CommandItem key={expense.id} onSelect={() => navigate("/financeiro?tab=payables&status=todas")}>
                   <Receipt className="size-4 text-muted-foreground" />
                   {expense.description}
                 </CommandItem>
@@ -284,7 +284,7 @@ export function CommandPalette() {
           {results.costs.length > 0 && (
             <CommandGroup heading="Custos">
               {results.costs.map((cost) => (
-                <CommandItem key={cost.id} onSelect={() => navigate("/financeiro/custos")}>
+                <CommandItem key={cost.id} onSelect={() => navigate("/financeiro?tab=costs")}>
                   <Wallet className="size-4 text-muted-foreground" />
                   {cost.name}
                 </CommandItem>
