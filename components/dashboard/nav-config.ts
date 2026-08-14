@@ -1,4 +1,4 @@
-import { Layers, LayoutDashboard, Settings, Sun, TrendingUp, Wallet, type LucideIcon } from "lucide-react";
+import { Layers, LayoutDashboard, Sun, TrendingUp, Wallet, type LucideIcon } from "lucide-react";
 
 /**
  * Navegação do shell interno (Procreating OS) — reescrita completa nesta fase (sidebar
@@ -27,13 +27,18 @@ export type NavGroupDef = {
   matchPrefixes: string[];
 };
 
+/**
+ * Settings NÃO está aqui — só existe uma vez no rodapé da sidebar (perto do avatar/toggle de
+ * tema, `dashboard-sidebar.tsx`), não duplicado como um 7º ícone de grupo aqui. `matchPrefixes`
+ * de `/configuracoes` continua coberto (só não por um grupo desta lista) — o link do rodapé leva
+ * pra lá, e `SETTINGS_TABS`/`TopNav` seguem funcionando normalmente por dentro da página.
+ */
 export const NAV_GROUPS: NavGroupDef[] = [
   { key: "workspace", label: "Workspace", icon: Sun, href: "/meu-dia", matchPrefixes: ["/meu-dia"] },
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: "/", matchPrefixes: ["/"] },
   { key: "operations", label: "Operations", icon: Layers, href: "/operacao", matchPrefixes: ["/operacao"] },
   { key: "growth", label: "Growth", icon: TrendingUp, href: "/comercial", matchPrefixes: ["/comercial", "/marketing", "/clientes", "/reports"] },
   { key: "finance", label: "Finance", icon: Wallet, href: "/financeiro", matchPrefixes: ["/financeiro"] },
-  { key: "settings", label: "Settings", icon: Settings, href: "/configuracoes", matchPrefixes: ["/configuracoes"] },
 ];
 
 export type TopNavTab = { label: string; href: string };

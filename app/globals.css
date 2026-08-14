@@ -279,8 +279,14 @@
 }
 
 @layer utilities {
+  /* Referencia --font-family-display direto (não var(--font-display), o alias de
+     @theme inline) — mesmo motivo do --font-sans/--font-mono: uma regra escrita à mão em
+     @layer utilities que só enxerga o alias via @layer theme não pega a sobrescrita de
+     .os-shell corretamente (achado: "Procreating OS"/headers continuavam em Instrument Serif
+     mesmo com --font-family-display já correto em .os-shell — só a classe .font-display não
+     repassava). Referenciar a variável "real" direto resolve igual ao font-sans/font-mono. */
   .font-display {
-    font-family: var(--font-display);
+    font-family: var(--font-family-display);
   }
 
   /* Esconde o botão nativo de play que o iOS/Safari desenha por cima de qualquer <video>
