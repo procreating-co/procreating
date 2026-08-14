@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { ADMIN_LOGIN_PATH, ADMIN_SESSION_COOKIE, ADMIN_SIGNUP_PATH, POST_LOGIN_PATH } from "@/lib/admin/auth/constants";
+import { ADMIN_LOGIN_PATH, ADMIN_SESSION_COOKIE, ADMIN_SIGNUP_PATH } from "@/lib/admin/auth/constants";
 
 /**
  * Gate de borda pro ERP interno inteiro — `/admin/*` (painel legado) e todo o grupo protegido
@@ -17,6 +17,15 @@ import { ADMIN_LOGIN_PATH, ADMIN_SESSION_COOKIE, ADMIN_SIGNUP_PATH, POST_LOGIN_P
  * layout sozinho não basta: sem o cookie sendo checado na borda, uma request sem sessão chega
  * direto no layout e cai na mesma tentativa de `createClient()` que qualquer rota autenticada
  * faria, o que é 500 (Supabase sem env var) em vez do redirect limpo pro login.
+ *
+ * NÃO redireciona quem tem `admin_session` pra fora de `/admin/login` — chegou a fazer isso, e
+ * causava loop de redirecionamento (ERR_TOO_MANY_REDIRECTS): `admin_session` é só um sinal
+ * rápido (sobrevive 8h) e pode continuar presente mesmo com a sessão real do Supabase Auth já
+ * expirada/inválida; nesse caso o layout protegido manda de volta pro login (via `getSession()`,
+ * a validação de verdade) e, se o middleware também mandasse de volta pra `/` só por ver o
+ * cookie, virava ping-pong infinito entre os dois. Middleware não pode validar a sessão de
+ * verdade sem I/O (por isso é só um sinal rápido) — então só bloqueia quem claramente não tem
+ * nada; deixar alguém com cookie stale ver a tela de login de novo é inofensivo, um loop não é.
  */
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -27,10 +36,6 @@ export function proxy(request: NextRequest) {
 
   if (!hasSession && !isPublicAuthPage) {
     return NextResponse.redirect(new URL(ADMIN_LOGIN_PATH, request.url));
-  }
-
-  if (hasSession && isPublicAuthPage) {
-    return NextResponse.redirect(new URL(POST_LOGIN_PATH, request.url));
   }
 
   return NextResponse.next();
