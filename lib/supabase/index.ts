@@ -41,4 +41,5 @@ export type {
   CostRecurrence,
   FinancialRule,
   PartnerShare,
+  RevenueGoal,
 } from "@/lib/supabase/types/database";

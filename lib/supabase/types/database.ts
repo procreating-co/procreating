@@ -249,6 +249,10 @@ export type PipelineStage = {
   sort_order: number;
   is_won: boolean;
   is_lost: boolean;
+  /** Probabilidade de fechamento desta etapa (0–100), pra "Weighted Pipeline" — `null` até
+   *  alguém configurar (nunca um chute default). Sem editor nesta fase; a coluna já existe pronta
+   *  pra quando isso for priorizado. */
+  probability: number | null;
   created_at: string;
 };
 
@@ -466,6 +470,21 @@ export type PartnerShare = {
 };
 
 // ---------------------------------------------------------------------------
+// RevenueGoal — meta mensal de faturamento da EMPRESA (não confundir com
+// `Strategy.revenue_goal`, meta por campanha/estratégia). Uma linha por mês-calendário (`month`,
+// sempre dia 1) — meses passados preservam a meta que valia na época mesmo que a meta futura
+// mude. Sem linha pro mês corrente = Dashboard mostra "meta não definida", nunca inventa.
+// ---------------------------------------------------------------------------
+export type RevenueGoal = {
+  id: string;
+  month: string;
+  amount: number;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+};
+
+// ---------------------------------------------------------------------------
 // Analytics — evento bruto de VISITANTE (page view, desbloqueio de galeria/prospecção), por
 // projeto. Alto volume — em produção real, os cards de dashboard devem ler de uma tabela de
 // rollup (`project_daily_stats`, esboçada em docs/project-creation.md), nunca somar isto direto.
@@ -542,6 +561,7 @@ export type Database = {
       costs: TableDef<Cost>;
       financial_rules: TableDef<FinancialRule>;
       partner_shares: TableDef<PartnerShare>;
+      revenue_goals: TableDef<RevenueGoal>;
     };
     Views: {
       /** `WHERE status IN ('published', 'archived')` — evita repetir esse filtro em toda
