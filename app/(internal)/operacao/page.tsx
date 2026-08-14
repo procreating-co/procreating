@@ -1,14 +1,7 @@
-import type { Metadata } from "next";
-import { ModuleGrid } from "@/components/dashboard/module-grid";
-import { DASHBOARD_SECTIONS } from "@/components/dashboard/nav-config";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = {
-  title: "Operação — Procreating",
-  robots: { index: false, follow: false },
-};
-
-const section = DASHBOARD_SECTIONS.find((item) => item.key === "operacao")!;
-
+/** A antiga grade de módulos (`ModuleGrid`) só linkava pras 5 páginas que agora são as abas do
+ *  `TopNav` deste grupo — redundante. `/operacao` sozinha leva direto pra primeira. */
 export default function OperacaoPage() {
-  return <ModuleGrid section={section} />;
+  redirect("/operacao/projetos");
 }

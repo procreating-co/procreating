@@ -2,27 +2,18 @@
 
 import { usePathname } from "next/navigation";
 import { User } from "lucide-react";
-import { DASHBOARD_SECTIONS, NAV_GROUPS } from "@/components/dashboard/nav-config";
+import { FINANCE_TABS, GROWTH_TABS, OPERATIONS_TABS, SETTINGS_TABS, WORKSPACE_TABS } from "@/components/dashboard/nav-config";
 
-/**
- * Título do header = nome do item ativo na sidebar (`NAV_GROUPS`), não mais só "Dashboard"
- * genérico. Antes só reconhecia `DASHBOARD_SECTIONS` (Operação/Administração) — toda rota nova
- * desta fase (Comercial, Marketing, Clientes, Financeiro, Meu Dia, Configurações) caía no
- * fallback. Casamento pelo item mais específico (maior `href`) evita que `/financeiro/custos`
- * e `/financeiro` mostrem o mesmo rótulo por engano quando ambos batem por prefixo.
- */
+const ALL_TABS = [...WORKSPACE_TABS, ...GROWTH_TABS, ...OPERATIONS_TABS, ...FINANCE_TABS, ...SETTINGS_TABS];
+
+/** Título = rótulo da aba ativa (a mais específica, maior `href`) — cobre toda rota que vive
+ *  dentro de um `TopNav`. `/` (Dashboard) não tem aba nenhuma, então cai no fallback fixo. */
 function useSectionTitle() {
   const pathname = usePathname();
-  if (pathname === "/") return "Visão geral";
+  if (pathname === "/") return "Dashboard";
 
-  const allItems = NAV_GROUPS.flatMap((group) => group.items);
-  const match = allItems
-    .filter((item) => pathname === item.href || pathname.startsWith(`${item.href}/`))
-    .sort((a, b) => b.href.length - a.href.length)[0];
-  if (match) return match.label;
-
-  const section = DASHBOARD_SECTIONS.find((item) => pathname === item.href || pathname.startsWith(`${item.href}/`));
-  return section?.label ?? "Dashboard";
+  const match = ALL_TABS.filter((tab) => pathname === tab.href || pathname.startsWith(`${tab.href}/`)).sort((a, b) => b.href.length - a.href.length)[0];
+  return match?.label ?? "Procreating OS";
 }
 
 export function DashboardHeader() {

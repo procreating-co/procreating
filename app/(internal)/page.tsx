@@ -3,8 +3,6 @@ import { Handshake, PackageCheck, TrendingUp, UserPlus, Users, Wallet } from "lu
 import { GreetingHeader } from "@/components/dashboard/greeting-header";
 import { StatTile } from "@/components/dashboard/stat-tile";
 import { StatusDot } from "@/components/dashboard/status-dot";
-import { SectionCard } from "@/components/dashboard/section-card";
-import { DASHBOARD_SECTIONS } from "@/components/dashboard/nav-config";
 import { computeComercialMetrics } from "@/lib/comercial/metrics";
 import { computeFinanceiroMetrics } from "@/lib/financeiro/queries";
 import { listClients } from "@/lib/clientes/queries";
@@ -155,25 +153,6 @@ export default async function Home() {
               })}
             </ul>
           )}
-        </div>
-      </section>
-
-      <section className="flex flex-col gap-4">
-        <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Acesso rápido</h2>
-        <div className="grid gap-6 sm:grid-cols-2">
-          {DASHBOARD_SECTIONS.map((section, index) => {
-            const Icon = section.icon;
-            return (
-              <SectionCard
-                key={section.key}
-                href={section.href}
-                label={section.label}
-                description={section.description}
-                icon={<Icon className="size-5" />}
-                delay={index * 0.08}
-              />
-            );
-          })}
         </div>
       </section>
     </main>
