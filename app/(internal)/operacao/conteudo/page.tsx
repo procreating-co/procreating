@@ -10,17 +10,19 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-/** Indicadores mockados — sem backend ainda, por isso o `StatTile` carrega a etiqueta "Demo". */
-const STATS = [
-  { key: "planejados", label: "Conteúdos planejados", value: "7", icon: Calendar },
-  { key: "producao", label: "Em produção", value: "4", icon: Clapperboard },
-  { key: "publicados", label: "Publicados", value: "12", icon: Send },
-];
-
-/** Listagem mockada — mesma ressalva do `STATS`, sem CRUD nem dados reais ainda. */
+/** Listagem mockada — sem CRUD nem dados reais ainda. */
 const DEMO_CONTENT: { title: string; client: string; status: string; tone: StatusTone }[] = [
   { title: "Reels institucional Pascoal", client: "Pascoal", status: "Produção", tone: "active" },
   { title: "Estratégia de posicionamento Elenita", client: "Dra. Elenita", status: "Planejamento", tone: "pending" },
+];
+
+/** Indicadores mockados — sem backend ainda, por isso o `StatTile` carrega a etiqueta "Demo".
+ *  Derivados do próprio `DEMO_CONTENT` (antes eram literais que nem batiam com a tabela logo
+ *  abaixo — ex. "12 publicados" quando nenhuma linha do mock tem esse status). */
+const STATS = [
+  { key: "planejados", label: "Planejados", value: String(DEMO_CONTENT.filter((item) => item.tone === "pending").length), icon: Calendar },
+  { key: "producao", label: "Em produção", value: String(DEMO_CONTENT.filter((item) => item.tone === "active").length), icon: Clapperboard },
+  { key: "total", label: "Total de conteúdos", value: String(DEMO_CONTENT.length), icon: Send },
 ];
 
 export default function ConteudoPage() {

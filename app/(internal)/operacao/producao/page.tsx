@@ -11,11 +11,13 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-/** Indicadores mockados — sem backend ainda, por isso o `StatTile` carrega a etiqueta "Demo". */
+/** Indicadores mockados — sem backend ainda, por isso o `StatTile` carrega a etiqueta "Demo".
+ *  Derivados do próprio `DEMO_PRODUCTIONS` (antes eram literais que nem batiam com a tabela
+ *  logo abaixo — ex. "6" com só 3 linhas no mock). */
 const STATS = [
-  { key: "producao", label: "Conteúdos em produção", value: "6", icon: Clapperboard },
-  { key: "aprovacao", label: "Aguardando aprovação", value: "3", icon: Clock },
-  { key: "entregas", label: "Entregas desta semana", value: "4", icon: PackageCheck },
+  { key: "producao", label: "Em produção", value: String(DEMO_PRODUCTIONS.filter((item) => item.tone === "active").length), icon: Clapperboard },
+  { key: "roteiro", label: "Em roteiro", value: String(DEMO_PRODUCTIONS.filter((item) => item.tone === "pending").length), icon: Clock },
+  { key: "total", label: "Total de conteúdos", value: String(DEMO_PRODUCTIONS.length), icon: PackageCheck },
 ];
 
 export default function ProducaoPage() {

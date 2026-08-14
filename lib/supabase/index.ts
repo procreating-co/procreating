@@ -42,4 +42,6 @@ export type {
   FinancialRule,
   PartnerShare,
   RevenueGoal,
+  ProductionProject,
+  ProductionProjectStatus,
 } from "@/lib/supabase/types/database";

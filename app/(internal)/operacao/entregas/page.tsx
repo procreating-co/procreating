@@ -11,11 +11,13 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-/** Indicadores mockados — sem backend ainda, por isso o `StatTile` carrega a etiqueta "Demo". */
+/** Indicadores mockados — sem backend ainda, por isso o `StatTile` carrega a etiqueta "Demo".
+ *  Derivados do próprio `DEMO_DELIVERIES` (antes eram literais que nem batiam com a tabela logo
+ *  abaixo — ex. "9 entregues" quando nenhuma linha do mock tem esse status). */
 const STATS = [
-  { key: "semana", label: "Entregas esta semana", value: "5", icon: PackageCheck },
-  { key: "aprovacao", label: "Aguardando aprovação", value: "2", icon: Clock },
-  { key: "entregues", label: "Entregues", value: "9", icon: CheckCheck },
+  { key: "total", label: "Entregas em andamento", value: String(DEMO_DELIVERIES.length), icon: PackageCheck },
+  { key: "aprovacao", label: "Aguardando aprovação", value: String(DEMO_DELIVERIES.filter((item) => item.status === "Aguardando aprovação").length), icon: Clock },
+  { key: "revisao", label: "Em revisão", value: String(DEMO_DELIVERIES.filter((item) => item.tone === "active").length), icon: CheckCheck },
 ];
 
 export default function EntregasPage() {

@@ -401,6 +401,28 @@ export type Task = {
 };
 
 // ---------------------------------------------------------------------------
+// ProductionProject — primeiro slice real da Operação (`/operacao/projetos`), substitui o mock
+// `InternalProject` de `lib/dashboard/demo-data.ts`. Nome deliberadamente diferente de `Project`
+// (acima — esse é a entrega de SITE pro cliente, Template→Project→Deployment, conceito
+// completamente diferente) — projeto de produção interna (vídeo/conteúdo/landing page) pra um
+// cliente já fechado. Produção/Entregas continuam fora desta fase — workflow próprio (edição,
+// roteiro, revisão), merece tabela dedicada depois, não forçado aqui dentro.
+// ---------------------------------------------------------------------------
+export type ProductionProjectStatus = "planejamento" | "em_producao" | "em_revisao" | "aguardando_aprovacao" | "concluido" | "atrasado";
+
+export type ProductionProject = {
+  id: string;
+  client_id: string;
+  name: string;
+  status: ProductionProjectStatus;
+  assigned_to: string | null;
+  deadline: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+};
+
+// ---------------------------------------------------------------------------
 // Revenue / Expense — Financeiro. `status` tem 4 valores de propósito (nunca um boolean
 // pago/não-pago) — o que um fluxo de cobrança futuro (fora de escopo agora) vai precisar
 // diferenciar sem migração de dado.
@@ -565,6 +587,7 @@ export type Database = {
       financial_rules: TableDef<FinancialRule>;
       partner_shares: TableDef<PartnerShare>;
       revenue_goals: TableDef<RevenueGoal>;
+      production_projects: TableDef<ProductionProject>;
     };
     Views: {
       /** `WHERE status IN ('published', 'archived')` — evita repetir esse filtro em toda
