@@ -33,7 +33,7 @@ export default async function EquipePage() {
       <PageHeader title="Equipe" description="Quem tem acesso ao Procreating OS." />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <StatTile demo={false} label="Pessoas cadastradas" value={String(users.length)} icon={<Users className="size-4.5" />} />
+        <StatTile demo={false} label="Pessoas cadastradas" value={String(users.length)} icon={<Users className="size-4.5" />} tone="brand" />
       </div>
 
       <div className="flex flex-col gap-3">

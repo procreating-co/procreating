@@ -150,12 +150,12 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: P
     content = (
       <>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <StatTile demo={false} label="MRR (recorrente ativo)" value={currencyFormatter.format(metrics.mrr)} icon={<TrendingUp className="size-4.5" />} />
-          <StatTile demo={false} label="Receita este mês" value={currencyFormatter.format(metrics.revenueThisMonth)} icon={<ArrowUpCircle className="size-4.5" />} />
-          <StatTile demo={false} label="Despesas este mês" value={currencyFormatter.format(metrics.expensesThisMonth)} icon={<ArrowDownCircle className="size-4.5" />} />
-          <StatTile demo={false} label="A receber (pendente)" value={currencyFormatter.format(metrics.receivablesPending)} icon={<Clock className="size-4.5" />} />
-          <StatTile demo={false} label="A receber (atrasado)" value={currencyFormatter.format(metrics.receivablesOverdue)} icon={<AlertTriangle className="size-4.5" />} />
-          <StatTile demo={false} label="A pagar (pendente + atrasado)" value={currencyFormatter.format(metrics.payablesPending + metrics.payablesOverdue)} icon={<Wallet className="size-4.5" />} />
+          <StatTile demo={false} label="MRR (recorrente ativo)" value={currencyFormatter.format(metrics.mrr)} icon={<TrendingUp className="size-4.5" />} tone="brand" />
+          <StatTile demo={false} label="Receita este mês" value={currencyFormatter.format(metrics.revenueThisMonth)} icon={<ArrowUpCircle className="size-4.5" />} tone="success" />
+          <StatTile demo={false} label="Despesas este mês" value={currencyFormatter.format(metrics.expensesThisMonth)} icon={<ArrowDownCircle className="size-4.5" />} tone="info" />
+          <StatTile demo={false} label="A receber (pendente)" value={currencyFormatter.format(metrics.receivablesPending)} icon={<Clock className="size-4.5" />} tone="warning" />
+          <StatTile demo={false} label="A receber (atrasado)" value={currencyFormatter.format(metrics.receivablesOverdue)} icon={<AlertTriangle className="size-4.5" />} tone="danger" />
+          <StatTile demo={false} label="A pagar (pendente + atrasado)" value={currencyFormatter.format(metrics.payablesPending + metrics.payablesOverdue)} icon={<Wallet className="size-4.5" />} tone="warning" />
         </div>
 
         <section className="flex flex-col gap-4">

@@ -29,9 +29,9 @@ export default async function ProjetosPage() {
       <PageHeader title="Projetos" description="Projetos de produção interna — vídeo, conteúdo, landing page — pros clientes já fechados." />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <StatTile demo={false} label="Projetos ativos" value={String(activeCount)} icon={<FolderKanban className="size-4.5" />} />
-        <StatTile demo={false} label="Clientes envolvidos" value={String(distinctClients)} icon={<Users className="size-4.5" />} />
-        <StatTile demo={false} label="Concluídos" value={String(projects.length - activeCount)} icon={<CheckCircle2 className="size-4.5" />} />
+        <StatTile demo={false} label="Projetos ativos" value={String(activeCount)} icon={<FolderKanban className="size-4.5" />} tone="info" />
+        <StatTile demo={false} label="Clientes envolvidos" value={String(distinctClients)} icon={<Users className="size-4.5" />} tone="brand" />
+        <StatTile demo={false} label="Concluídos" value={String(projects.length - activeCount)} icon={<CheckCircle2 className="size-4.5" />} tone="success" />
       </div>
 
       <ProjectsGrid projects={projects} clients={clients} users={users} />

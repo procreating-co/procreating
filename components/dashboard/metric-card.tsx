@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { motion } from "framer-motion";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { MiniChart } from "@/components/dashboard/mini-chart";
+import { METRIC_TONE_ICON_CLASS, type MetricTone } from "@/lib/dashboard/metric-tone";
 import { cn } from "@/lib/utils";
 
 export type MetricDelta = { value: string; direction: "up" | "down" };
@@ -13,7 +14,9 @@ export type MetricDelta = { value: string; direction: "up" | "down" };
  * row do Dashboard executivo: mesmo esqueleto compacto, + slot de sparkline (`MiniChart`) e delta
  * sempre colorido por `--success`/`--danger` (nunca `--brand` — cor de estado é família
  * separada da cor de ação). Sem `demo`: se não há dado real, o caller passa `value="—"` e omite
- * `sparkline`/`delta`, nunca inventa um "0".
+ * `sparkline`/`delta`, nunca inventa um "0". `tone` colore o badge do ícone por significado
+ * (`lib/dashboard/metric-tone.ts`, mesma tabela que `StatTile` usa) — antes todo card usava o
+ * mesmo `bg-muted` cinza não importa a métrica, difícil de escanear rápido numa fileira de 6.
  */
 export function MetricCard({
   icon,
@@ -22,6 +25,7 @@ export function MetricCard({
   delta,
   sparkline,
   sparklineTone = "brand",
+  tone = "neutral",
   delay = 0,
 }: {
   icon: ReactNode;
@@ -30,6 +34,7 @@ export function MetricCard({
   delta?: MetricDelta;
   sparkline?: number[];
   sparklineTone?: "brand" | "positive" | "danger" | "info";
+  tone?: MetricTone;
   delay?: number;
 }) {
   return (
@@ -41,7 +46,7 @@ export function MetricCard({
     >
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-muted text-foreground">{icon}</span>
+          <span className={cn("flex size-6 shrink-0 items-center justify-center rounded-md", METRIC_TONE_ICON_CLASS[tone])}>{icon}</span>
           {label}
         </div>
         {delta && (

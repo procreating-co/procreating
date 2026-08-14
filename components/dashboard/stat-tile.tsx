@@ -3,9 +3,11 @@
 import type { ReactNode } from "react";
 import { motion } from "framer-motion";
 import { ArrowDown, ArrowUp } from "lucide-react";
+import { METRIC_TONE_ICON_CLASS, type MetricTone } from "@/lib/dashboard/metric-tone";
 import { cn } from "@/lib/utils";
 
 export type StatTrend = { value: string; direction: "up" | "down" };
+export type StatTileTone = MetricTone;
 
 /**
  * `demo` (default `true`) mostra a etiqueta "Demo" — era hardcoded até a Fase 2-5 (Comercial/
@@ -17,7 +19,8 @@ export type StatTrend = { value: string; direction: "up" | "down" };
  * Fase B (redesign): `featured` marca a métrica-âncora de uma tela (ex.: Receita este mês na
  * Home) com um wash sutil de marca — nem todo número pesa igual, e antes todos os tiles eram
  * visualmente idênticos. `trend` mostra variação vs. período anterior quando fizer sentido
- * comparar (nunca inventado — só passe quando o dado de comparação existir de verdade).
+ * comparar (nunca inventado — só passe quando o dado de comparação existir de verdade). `tone`
+ * (novo) colore o ícone por significado quando o tile não é `featured` — ver `StatTileTone`.
  */
 export function StatTile({
   icon,
@@ -26,6 +29,7 @@ export function StatTile({
   delay = 0,
   demo = true,
   featured = false,
+  tone = "neutral",
   trend,
 }: {
   icon: ReactNode;
@@ -34,6 +38,7 @@ export function StatTile({
   delay?: number;
   demo?: boolean;
   featured?: boolean;
+  tone?: StatTileTone;
   trend?: StatTrend;
 }) {
   return (
@@ -47,7 +52,7 @@ export function StatTile({
       )}
     >
       <div className="flex items-center justify-between">
-        <div className={cn("flex size-9 items-center justify-center rounded-lg", featured ? "bg-brand/20 text-brand" : "bg-foreground/10 text-foreground")}>
+        <div className={cn("flex size-9 items-center justify-center rounded-lg", featured ? "bg-brand/20 text-brand" : METRIC_TONE_ICON_CLASS[tone])}>
           {icon}
         </div>
         {demo && (

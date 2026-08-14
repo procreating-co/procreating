@@ -39,19 +39,21 @@ export default async function EstrategiaDetailPage({ params }: { params: Promise
       <StrategyDetailHeader strategy={strategy} />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile demo={false} label="Leads" value={String(funnel.totalLeads)} icon={<Users className="size-4.5" />} />
-        <StatTile demo={false} label="Fechados" value={String(funnel.wonLeads)} icon={<Target className="size-4.5" />} />
+        <StatTile demo={false} label="Leads" value={String(funnel.totalLeads)} icon={<Users className="size-4.5" />} tone="info" />
+        <StatTile demo={false} label="Fechados" value={String(funnel.wonLeads)} icon={<Target className="size-4.5" />} tone="success" />
         <StatTile
           demo={false}
           label="Conversão lead → fechado"
           value={conversionRate != null ? `${(conversionRate * 100).toFixed(0)}%` : "—"}
           icon={<TrendingUp className="size-4.5" />}
+          tone="success"
         />
         <StatTile
           demo={false}
           label="Ticket médio"
           value={funnel.averageTicket != null ? currencyFormatter.format(funnel.averageTicket) : "—"}
           icon={<Wallet className="size-4.5" />}
+          tone="brand"
         />
       </div>
 

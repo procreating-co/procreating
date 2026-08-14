@@ -14,6 +14,8 @@ import { CardWithDetail } from "@/components/dashboard/card-with-detail";
 import { ChartExpandDialog } from "@/components/dashboard/chart-expand-dialog";
 import { DetailList } from "@/components/dashboard/detail-list";
 import { DataTable } from "@/components/dashboard/data-table";
+import type { MetricTone } from "@/lib/dashboard/metric-tone";
+import { cn } from "@/lib/utils";
 import type { DetailEntry } from "@/lib/dashboard/executive-metrics";
 
 const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -52,6 +54,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
             value={compactCurrencyFormatter.format(metrics.kpis.revenue.value)}
             sparkline={metrics.kpis.revenue.sparkline}
             delta={metrics.kpis.revenue.deltaPct != null ? { value: percentFormatter(Math.abs(metrics.kpis.revenue.deltaPct)), direction: metrics.kpis.revenue.deltaPct >= 0 ? "up" : "down" } : undefined}
+            tone={metrics.kpis.revenue.deltaPct == null ? "info" : metrics.kpis.revenue.deltaPct >= 0 ? "success" : "danger"}
           />
         </CardWithDetail>
         <CardWithDetail
@@ -68,7 +71,13 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
             />
           }
         >
-          <MetricCard icon={<Wallet className="size-3.5" />} label="Lucro Líquido" value={compactCurrencyFormatter.format(metrics.kpis.netProfit.value)} sparkline={metrics.kpis.netProfit.sparkline} />
+          <MetricCard
+            icon={<Wallet className="size-3.5" />}
+            label="Lucro Líquido"
+            value={compactCurrencyFormatter.format(metrics.kpis.netProfit.value)}
+            sparkline={metrics.kpis.netProfit.sparkline}
+            tone={metrics.kpis.netProfit.value >= 0 ? "success" : "danger"}
+          />
         </CardWithDetail>
         <CardWithDetail
           title="Fluxo de Caixa"
@@ -84,16 +93,22 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
             />
           }
         >
-          <MetricCard icon={<Banknote className="size-3.5" />} label="Fluxo de Caixa" value={compactCurrencyFormatter.format(metrics.kpis.cashFlow.value)} sparkline={metrics.kpis.cashFlow.sparkline} />
+          <MetricCard
+            icon={<Banknote className="size-3.5" />}
+            label="Fluxo de Caixa"
+            value={compactCurrencyFormatter.format(metrics.kpis.cashFlow.value)}
+            sparkline={metrics.kpis.cashFlow.sparkline}
+            tone={metrics.kpis.cashFlow.value >= 0 ? "success" : "danger"}
+          />
         </CardWithDetail>
         <CardWithDetail title="Pipeline" description="Leads abertos, por valor potencial." detail={<DetailList items={d.openLeads} emptyLabel="Nenhum lead aberto." />}>
-          <MetricCard icon={<Handshake className="size-3.5" />} label="Pipeline" value={compactCurrencyFormatter.format(metrics.kpis.pipeline.value)} />
+          <MetricCard icon={<Handshake className="size-3.5" />} label="Pipeline" value={compactCurrencyFormatter.format(metrics.kpis.pipeline.value)} tone="info" />
         </CardWithDetail>
         <CardWithDetail title="Clientes Ativos" description="Clientes com status ativo." detail={<DetailList items={d.activeClients} emptyLabel="Nenhum cliente ativo ainda." />}>
-          <MetricCard icon={<Users className="size-3.5" />} label="Clientes Ativos" value={String(metrics.kpis.activeClients.value)} />
+          <MetricCard icon={<Users className="size-3.5" />} label="Clientes Ativos" value={String(metrics.kpis.activeClients.value)} tone="success" />
         </CardWithDetail>
         <CardWithDetail title="Equipe" description="Quem tem acesso ao Procreating OS." detail={<DetailList items={d.teamMembers} emptyLabel="Nenhum usuário cadastrado." />}>
-          <MetricCard icon={<UsersRound className="size-3.5" />} label="Equipe" value={String(metrics.kpis.team.value)} />
+          <MetricCard icon={<UsersRound className="size-3.5" />} label="Equipe" value={String(metrics.kpis.team.value)} tone="brand" />
         </CardWithDetail>
       </section>
 
@@ -149,7 +164,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
               />
             }
           >
-            <FinancialBlock label="Lucro Líquido" value={currencyFormatter.format(metrics.financialHealth.netProfit)} />
+            <FinancialBlock label="Lucro Líquido" value={currencyFormatter.format(metrics.financialHealth.netProfit)} tone={metrics.financialHealth.netProfit >= 0 ? "success" : "danger"} />
           </CardWithDetail>
           <CardWithDetail
             title="Fluxo de Caixa"
@@ -164,7 +179,11 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
               />
             }
           >
-            <FinancialBlock label="Fluxo de Caixa" value={`${metrics.financialHealth.cashFlow >= 0 ? "+" : ""}${currencyFormatter.format(metrics.financialHealth.cashFlow)}`} />
+            <FinancialBlock
+              label="Fluxo de Caixa"
+              value={`${metrics.financialHealth.cashFlow >= 0 ? "+" : ""}${currencyFormatter.format(metrics.financialHealth.cashFlow)}`}
+              tone={metrics.financialHealth.cashFlow >= 0 ? "success" : "danger"}
+            />
           </CardWithDetail>
         </div>
         <ChartExpandDialog
@@ -244,7 +263,11 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
                 />
               }
             >
-              <FinancialBlock label="Conversão (Lead → Cliente)" value={metrics.salesPipeline.conversionRate != null ? percentFormatter(metrics.salesPipeline.conversionRate * 100) : "Sem dados disponíveis"} />
+              <FinancialBlock
+                label="Conversão (Lead → Cliente)"
+                value={metrics.salesPipeline.conversionRate != null ? percentFormatter(metrics.salesPipeline.conversionRate * 100) : "Sem dados disponíveis"}
+                tone={metrics.salesPipeline.conversionRate != null ? "success" : "neutral"}
+              />
             </CardWithDetail>
             <CardWithDetail title="Ticket Médio" description="Ticket médio dos negócios fechados." detail={<DetailList items={d.wonDeals} emptyLabel="Nenhum negócio fechado com valor registrado ainda." />}>
               <FinancialBlock label="Ticket Médio" value={metrics.salesPipeline.averageDeal != null ? currencyFormatter.format(metrics.salesPipeline.averageDeal) : "Sem dados disponíveis"} />
@@ -262,7 +285,11 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
                 )
               }
             >
-              <FinancialBlock label="Pipeline Ponderado" value={metrics.salesPipeline.weightedPipeline != null ? currencyFormatter.format(metrics.salesPipeline.weightedPipeline) : "Dados insuficientes"} />
+              <FinancialBlock
+                label="Pipeline Ponderado"
+                value={metrics.salesPipeline.weightedPipeline != null ? currencyFormatter.format(metrics.salesPipeline.weightedPipeline) : "Dados insuficientes"}
+                tone={metrics.salesPipeline.weightedPipeline != null ? "info" : "neutral"}
+              />
             </CardWithDetail>
           </div>
         </div>
@@ -273,13 +300,17 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
         <SectionHeader title="Saúde de Clientes" />
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <CardWithDetail title="Clientes Ativos" description="Clientes com status ativo." detail={<DetailList items={d.activeClients} emptyLabel="Nenhum cliente ativo ainda." />}>
-            <FinancialBlock label="Clientes Ativos" value={String(metrics.customerHealth.activeClients)} />
+            <FinancialBlock label="Clientes Ativos" value={String(metrics.customerHealth.activeClients)} tone="success" />
           </CardWithDetail>
           <CardWithDetail title="Concentração de Receita" description="Top 5 clientes por receita de contrato ativo." detail={<DetailList items={d.topClients} emptyLabel="Sem contrato ativo suficiente." />}>
             <FinancialBlock label="Concentração de Receita (Top 5)" value={metrics.customerHealth.concentrationTop5Pct != null ? percentFormatter(metrics.customerHealth.concentrationTop5Pct) : "Sem dados disponíveis"} />
           </CardWithDetail>
           <CardWithDetail title="Churn (atual)" description="Clientes com status churn, no momento." detail={<DetailList items={d.churnedClients} emptyLabel="Nenhum cliente em churn." />}>
-            <FinancialBlock label="Churn (atual)" value={metrics.customerHealth.churnPct != null ? percentFormatter(metrics.customerHealth.churnPct) : "Sem dados disponíveis"} />
+            <FinancialBlock
+              label="Churn (atual)"
+              value={metrics.customerHealth.churnPct != null ? percentFormatter(metrics.customerHealth.churnPct) : "Sem dados disponíveis"}
+              tone={metrics.customerHealth.churnPct == null ? "neutral" : metrics.customerHealth.churnPct > 0 ? "danger" : "success"}
+            />
           </CardWithDetail>
           <CardWithDetail title="Valor Médio por Cliente" description="Receita de contrato ativo, por cliente." detail={<DetailList items={d.topClients} emptyLabel="Sem contrato ativo suficiente." />}>
             <FinancialBlock label="Valor Médio por Cliente" value={metrics.customerHealth.averageClientValue != null ? currencyFormatter.format(metrics.customerHealth.averageClientValue) : "Sem dados disponíveis"} />
@@ -344,11 +375,33 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
   );
 }
 
-function FinancialBlock({ label, value, muted = false }: { label: string; value: string; muted?: boolean }) {
+const FINANCIAL_BLOCK_BORDER_CLASS: Record<MetricTone, string> = {
+  brand: "border-l-brand",
+  success: "border-l-success",
+  warning: "border-l-warning",
+  danger: "border-l-danger",
+  info: "border-l-info",
+  neutral: "border-l-transparent",
+};
+
+const FINANCIAL_BLOCK_TEXT_CLASS: Record<MetricTone, string> = {
+  brand: "text-brand",
+  success: "text-success",
+  warning: "text-warning",
+  danger: "text-danger",
+  info: "text-info",
+  neutral: "",
+};
+
+/** `tone` (opcional) — borda esquerda + cor do valor pelo mesmo token semântico que
+ *  `MetricCard`/`StatTile` usam (`lib/dashboard/metric-tone.ts`) — só nos blocos onde o número
+ *  já tem um significado claro de bom/ruim/neutro (Lucro Líquido negativo, Churn > 0...), nunca
+ *  decorativo. Sem `tone`, comportamento idêntico a antes (texto neutro). */
+function FinancialBlock({ label, value, muted = false, tone = "neutral" }: { label: string; value: string; muted?: boolean; tone?: MetricTone }) {
   return (
-    <div className="flex h-full flex-col gap-1 rounded-xl border border-border/60 bg-card p-4">
+    <div className={cn("flex h-full flex-col gap-1 rounded-xl border border-l-2 border-border/60 bg-card p-4", FINANCIAL_BLOCK_BORDER_CLASS[tone])}>
       <span className="text-xs text-muted-foreground">{label}</span>
-      <span className={muted ? "text-sm text-muted-foreground" : "text-xl font-semibold tabular-nums"}>{value}</span>
+      <span className={cn(muted ? "text-sm text-muted-foreground" : "text-xl font-semibold tabular-nums", !muted && FINANCIAL_BLOCK_TEXT_CLASS[tone])}>{value}</span>
     </div>
   );
 }
