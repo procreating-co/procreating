@@ -52,6 +52,12 @@
   --warning: oklch(0.74 0.19 38);
   --danger: oklch(0.66 0.2 25);
 
+  /* Superfície elevada (ex.: hover de linha de tabela) e texto de apoio de menor ênfase — só
+     usados dentro do escopo `.os-shell` (ver bloco abaixo), com fallback neutro aqui pra não
+     deixar a classe Tailwind "solta" fora dele. */
+  --card-raised: var(--card);
+  --faint-foreground: var(--muted-foreground);
+
   --radius: 0.75rem;
   --sidebar: oklch(0.06 0.008 260);
   --sidebar-foreground: oklch(0.94 0.005 90);
@@ -63,6 +69,124 @@
   --sidebar-ring: oklch(0.55 0.015 90);
 }
 
+/*
+ * Shell interno do Procreating OS (`app/(internal)/**`) — paleta própria, escopada, que NUNCA
+ * toca em `:root` acima. `:root` continua servindo `/admin/**` (painel legado) e
+ * `/clients/[client]/(workspace)/**` (workspace interno de cliente), que usam os mesmos tokens
+ * compartilhados — mudar `:root` vazaria visualmente pra essas duas áreas, que não fazem parte
+ * desta reestruturação. `.os-shell` é a classe que `components/dashboard/dashboard-layout.tsx`
+ * aplica no wrapper raiz; `[data-theme="dark"]` no mesmo elemento alterna pro escuro (ver
+ * `lib/theme/`). Como `@theme inline` mantém os tokens `--color-*` como referência em runtime
+ * (não resolve em build-time), toda classe Tailwind já existente (`bg-background`,
+ * `text-foreground`, `bg-brand`...) pega automaticamente o valor deste escopo dentro dele —
+ * nenhum componente precisa trocar de classe.
+ *
+ * Light = paleta no espírito Notion (neutro na base, acento único de baixa saturação — um
+ * azul-acinzentado sóbrio, não um azul de link vibrante). Dark = fundo no espírito ChatGPT
+ * (cinza bem escuro quase neutro, nunca `#000` puro, com camadas de superfície sutilmente mais
+ * claras). Status (success/warning/danger) recalculados pra contraste correto em cada fundo,
+ * sempre com separação de matiz grande o bastante do novo brand (azul ~250° vs. verde ~155°/
+ * laranja ~50°/vermelho ~25° — separação de matiz muito maior que a do dourado anterior, que já
+ * exigia ΔE calculado à mão por ficar perto do laranja de warning).
+ */
+.os-shell {
+  --background: oklch(0.99 0.002 90);
+  --foreground: oklch(0.19 0.006 90);
+  --card: oklch(0.97 0.003 90);
+  --card-foreground: oklch(0.19 0.006 90);
+  --card-raised: oklch(0.945 0.004 90);
+  --popover: oklch(0.99 0.002 90);
+  --popover-foreground: oklch(0.19 0.006 90);
+  --primary: oklch(0.19 0.006 90);
+  --primary-foreground: oklch(0.99 0.002 90);
+  --secondary: oklch(0.95 0.003 90);
+  --secondary-foreground: oklch(0.19 0.006 90);
+  --muted: oklch(0.95 0.003 90);
+  --muted-foreground: oklch(0.48 0.01 90);
+  --faint-foreground: oklch(0.62 0.008 90);
+  --accent: oklch(0.94 0.004 90);
+  --accent-foreground: oklch(0.19 0.006 90);
+  --destructive: oklch(0.55 0.19 25);
+  --destructive-foreground: oklch(0.99 0.002 90);
+  --border: oklch(0.9 0.005 90);
+  --input: oklch(0.9 0.005 90);
+  --ring: oklch(0.48 0.05 250);
+
+  --brand: oklch(0.48 0.05 250);
+  --brand-strong: oklch(0.4 0.06 250);
+  --brand-foreground: oklch(0.99 0.004 250);
+  --brand-subtle: oklch(0.94 0.018 250);
+  --brand-subtle-border: oklch(0.75 0.04 250 / 40%);
+
+  --success: oklch(0.5 0.14 155);
+  --warning: oklch(0.55 0.16 60);
+  --danger: oklch(0.55 0.19 25);
+
+  --chart-1: oklch(0.19 0.006 90);
+  --chart-2: oklch(0.4 0.008 90);
+  --chart-3: oklch(0.58 0.01 90);
+  --chart-4: oklch(0.74 0.008 90);
+  --chart-5: oklch(0.88 0.006 90);
+
+  --sidebar: oklch(0.97 0.003 90);
+  --sidebar-foreground: oklch(0.19 0.006 90);
+  --sidebar-primary: oklch(0.19 0.006 90);
+  --sidebar-primary-foreground: oklch(0.99 0.002 90);
+  --sidebar-accent: oklch(0.94 0.004 90);
+  --sidebar-accent-foreground: oklch(0.19 0.006 90);
+  --sidebar-border: oklch(0.9 0.005 90);
+  --sidebar-ring: oklch(0.48 0.05 250);
+}
+
+.os-shell[data-theme="dark"] {
+  --background: oklch(0.16 0.003 90);
+  --foreground: oklch(0.94 0.003 90);
+  --card: oklch(0.2 0.004 90);
+  --card-foreground: oklch(0.94 0.003 90);
+  --card-raised: oklch(0.24 0.005 90);
+  --popover: oklch(0.2 0.004 90);
+  --popover-foreground: oklch(0.94 0.003 90);
+  --primary: oklch(0.94 0.003 90);
+  --primary-foreground: oklch(0.16 0.003 90);
+  --secondary: oklch(0.24 0.005 90);
+  --secondary-foreground: oklch(0.94 0.003 90);
+  --muted: oklch(0.24 0.005 90);
+  --muted-foreground: oklch(0.62 0.006 90);
+  --faint-foreground: oklch(0.45 0.006 90);
+  --accent: oklch(0.26 0.005 90);
+  --accent-foreground: oklch(0.94 0.003 90);
+  --destructive: oklch(0.66 0.2 25);
+  --destructive-foreground: oklch(0.94 0.003 90);
+  --border: oklch(0.29 0.005 90);
+  --input: oklch(0.26 0.005 90);
+  --ring: oklch(0.72 0.08 250);
+
+  --brand: oklch(0.72 0.08 250);
+  --brand-strong: oklch(0.78 0.09 250);
+  --brand-foreground: oklch(0.15 0.02 250);
+  --brand-subtle: oklch(0.27 0.04 250);
+  --brand-subtle-border: oklch(0.5 0.07 250 / 40%);
+
+  --success: oklch(0.72 0.15 155);
+  --warning: oklch(0.74 0.17 60);
+  --danger: oklch(0.68 0.19 25);
+
+  --chart-1: oklch(0.94 0.003 90);
+  --chart-2: oklch(0.78 0.006 90);
+  --chart-3: oklch(0.6 0.008 90);
+  --chart-4: oklch(0.42 0.006 90);
+  --chart-5: oklch(0.28 0.005 90);
+
+  --sidebar: oklch(0.14 0.003 90);
+  --sidebar-foreground: oklch(0.94 0.003 90);
+  --sidebar-primary: oklch(0.94 0.003 90);
+  --sidebar-primary-foreground: oklch(0.16 0.003 90);
+  --sidebar-accent: oklch(0.24 0.005 90);
+  --sidebar-accent-foreground: oklch(0.94 0.003 90);
+  --sidebar-border: oklch(0.27 0.005 90);
+  --sidebar-ring: oklch(0.72 0.08 250);
+}
+
 @theme inline {
   --font-sans: var(--font-instrument), 'Instrument Sans', system-ui, sans-serif;
   --font-mono: var(--font-jetbrains), 'JetBrains Mono', monospace;
@@ -71,6 +195,7 @@
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+  --color-card-raised: var(--card-raised);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
@@ -79,6 +204,7 @@
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
+  --color-faint-foreground: var(--faint-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
@@ -95,6 +221,7 @@
   --color-brand-strong: var(--brand-strong);
   --color-brand-foreground: var(--brand-foreground);
   --color-brand-subtle: var(--brand-subtle);
+  --color-brand-subtle-border: var(--brand-subtle-border);
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-danger: var(--danger);

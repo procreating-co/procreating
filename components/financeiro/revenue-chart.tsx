@@ -1,18 +1,19 @@
 "use client";
 
 import { Area, AreaChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { CHART_SEQUENTIAL } from "@/lib/charts/colors";
+import { useChartColors } from "@/lib/charts/colors";
 import type { MonthlyEvolutionPoint } from "@/lib/financeiro/types";
 
 const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
-// Duas séries na MESMA escala (R$) — não é eixo duplo, é identidade categórica dentro da rampa
-// monocromática já usada no resto do app (ver lib/charts/colors.ts): receita no tom mais claro,
-// despesa no mais escuro. Não usa vermelho/verde de status — "despesa" não é um estado de erro.
-const REVENUE_COLOR = CHART_SEQUENTIAL[0];
-const EXPENSES_COLOR = CHART_SEQUENTIAL[3];
-
 export function RevenueChart({ data }: { data: MonthlyEvolutionPoint[] }) {
+  // Duas séries na MESMA escala (R$) — não é eixo duplo, é identidade categórica dentro da rampa
+  // monocromática já usada no resto do app (ver lib/charts/colors.ts): receita no tom mais claro,
+  // despesa no mais escuro. Não usa vermelho/verde de status — "despesa" não é um estado de erro.
+  const { sequential } = useChartColors();
+  const REVENUE_COLOR = sequential[0];
+  const EXPENSES_COLOR = sequential[3];
+
   return (
     <div className="h-[280px] w-full">
       <ResponsiveContainer width="100%" height="100%">

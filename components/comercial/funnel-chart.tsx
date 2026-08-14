@@ -1,26 +1,27 @@
 "use client";
 
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { CHART_SEQUENTIAL } from "@/lib/charts/colors";
+import { useChartColors } from "@/lib/charts/colors";
 import type { FunnelStep } from "@/lib/comercial/types";
 
 /** Cor por posição no funil — mesma rampa sequencial monocromática de `lib/charts/colors.ts`,
  *  clara→escura (mais leads no topo, mais escuro/concentrado nas etapas finais). Índice
  *  interpolado pra caber os N passos do funil nos 5 tons disponíveis, sem repetir a mesma cor em
  *  passos adjacentes quando N ≤ 5 (funis normalmente têm 8 estágios "não perdidos"). */
-function colorForStep(index: number, total: number): string {
-  if (total <= 1) return CHART_SEQUENTIAL[0];
+function colorForStep(sequential: readonly string[], index: number, total: number): string {
+  if (total <= 1) return sequential[0];
   const position = index / (total - 1);
-  const rampIndex = Math.round(position * (CHART_SEQUENTIAL.length - 1));
-  return CHART_SEQUENTIAL[rampIndex];
+  const rampIndex = Math.round(position * (sequential.length - 1));
+  return sequential[rampIndex];
 }
 
 export function FunnelChart({ steps }: { steps: FunnelStep[] }) {
+  const { sequential } = useChartColors();
   const data = steps.map((step, index) => ({
     name: step.stage.label,
     count: step.count,
     conversion: step.conversionFromPrevious,
-    fill: colorForStep(index, steps.length),
+    fill: colorForStep(sequential, index, steps.length),
   }));
 
   return (
