@@ -57,6 +57,18 @@
      deixar a classe Tailwind "solta" fora dele. */
   --card-raised: var(--card);
   --faint-foreground: var(--muted-foreground);
+  --info: oklch(0.55 0.14 250);
+
+  /* Indireção igual à das cores (`--background` real + `--color-background: var(--background)`
+     no `@theme inline`) — precisa ser assim pros fonts também, não só um `--font-sans` direto
+     dentro de `@theme inline`: o Tailwind emite o bloco `@theme` num ponto fixo do CSS
+     compilado, então uma classe normal como `.os-shell` sobrescrevendo `--font-sans` direto
+     perde a briga de especificidade/ordem-de-origem contra o que o `@theme` gerou. Sobrescrever
+     esta variável "de verdade" (plain `:root`), que o `@theme inline` só referencia, funciona
+     igual às cores. */
+  --font-family-sans: var(--font-instrument), 'Instrument Sans', system-ui, sans-serif;
+  --font-family-mono: var(--font-jetbrains), 'JetBrains Mono', monospace;
+  --font-family-display: var(--font-instrument-serif), 'Instrument Serif', Georgia, serif;
 
   --radius: 0.75rem;
   --sidebar: oklch(0.06 0.008 260);
@@ -81,116 +93,130 @@
  * `text-foreground`, `bg-brand`...) pega automaticamente o valor deste escopo dentro dele —
  * nenhum componente precisa trocar de classe.
  *
- * Light = paleta no espírito Notion (neutro na base, acento único de baixa saturação — um
- * azul-acinzentado sóbrio, não um azul de link vibrante). Dark = fundo no espírito ChatGPT
- * (cinza bem escuro quase neutro, nunca `#000` puro, com camadas de superfície sutilmente mais
- * claras). Status (success/warning/danger) recalculados pra contraste correto em cada fundo,
- * sempre com separação de matiz grande o bastante do novo brand (azul ~250° vs. verde ~155°/
- * laranja ~50°/vermelho ~25° — separação de matiz muito maior que a do dourado anterior, que já
- * exigia ΔE calculado à mão por ficar perto do laranja de warning).
+ * Redesign monocromático: `--brand` deixou de ser um matiz próprio (era azul, hue 250) — agora é
+ * literalmente o neutro invertido (quase-preto sobre quase-branco no light, o oposto no dark),
+ * o mesmo tratamento de "ação primária" que Linear/Stripe/Vercel usam (botão sólido na cor do
+ * texto, não uma cor de marca à parte). `--info` é novo — é pra onde o azul antigo se aposentou,
+ * só como estado (ex.: uma nota informativa), nunca decorativo. `--success`/`--warning`/
+ * `--danger` continuam existindo só pra estado/alerta, como sempre.
  */
 .os-shell {
-  --background: oklch(0.99 0.002 90);
-  --foreground: oklch(0.19 0.006 90);
-  --card: oklch(0.97 0.003 90);
-  --card-foreground: oklch(0.19 0.006 90);
-  --card-raised: oklch(0.945 0.004 90);
-  --popover: oklch(0.99 0.002 90);
-  --popover-foreground: oklch(0.19 0.006 90);
-  --primary: oklch(0.19 0.006 90);
-  --primary-foreground: oklch(0.99 0.002 90);
-  --secondary: oklch(0.95 0.003 90);
-  --secondary-foreground: oklch(0.19 0.006 90);
-  --muted: oklch(0.95 0.003 90);
-  --muted-foreground: oklch(0.48 0.01 90);
-  --faint-foreground: oklch(0.62 0.008 90);
-  --accent: oklch(0.94 0.004 90);
-  --accent-foreground: oklch(0.19 0.006 90);
-  --destructive: oklch(0.55 0.19 25);
-  --destructive-foreground: oklch(0.99 0.002 90);
-  --border: oklch(0.9 0.005 90);
-  --input: oklch(0.9 0.005 90);
-  --ring: oklch(0.48 0.05 250);
+  /* Geist no lugar de Instrument Sans/Serif — só dentro do shell interno (ver `app/layout.tsx`,
+     que carrega os dois além dos fonts já existentes). Sem serif de exibição aqui: números e
+     headings usam Geist Sans + Geist Mono pros números tabulares — bate com a direção
+     Linear/Stripe/Vercel pedida. `.os-shell` também precisa da classe `font-sans` aplicada nela
+     mesma (`dashboard-layout.tsx`) pra este valor ser reavaliado a partir daqui — `font-family`
+     é herdado como valor computado, não como referência viva a `var()`; sem reaplicar a classe
+     neste elemento, a herança travaria no Instrument Sans que `body` já resolveu no `:root`.
+     Sobrescreve `--font-family-*` (a variável "real", plain `:root`), não `--font-sans` direto
+     — ver nota em `:root` acima sobre por que precisa ser assim. */
+  --font-family-sans: var(--font-geist-sans), 'Geist', system-ui, sans-serif;
+  --font-family-mono: var(--font-geist-mono), 'Geist Mono', ui-monospace, monospace;
+  --font-family-display: var(--font-geist-sans), 'Geist', system-ui, sans-serif;
 
-  --brand: oklch(0.48 0.05 250);
-  --brand-strong: oklch(0.4 0.06 250);
-  --brand-foreground: oklch(0.99 0.004 250);
-  --brand-subtle: oklch(0.94 0.018 250);
-  --brand-subtle-border: oklch(0.75 0.04 250 / 40%);
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --card-raised: oklch(0.97 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.145 0 0);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.96 0 0);
+  --secondary-foreground: oklch(0.145 0 0);
+  --muted: oklch(0.96 0 0);
+  --muted-foreground: oklch(0.5 0 0);
+  --faint-foreground: oklch(0.65 0 0);
+  --accent: oklch(0.95 0 0);
+  --accent-foreground: oklch(0.145 0 0);
+  --destructive: oklch(0.55 0.19 25);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.9 0 0);
+  --input: oklch(0.9 0 0);
+  --ring: oklch(0.55 0 0);
+
+  --brand: oklch(0.145 0 0);
+  --brand-strong: oklch(0.08 0 0);
+  --brand-foreground: oklch(1 0 0);
+  --brand-subtle: oklch(0.95 0 0);
+  --brand-subtle-border: oklch(0.8 0 0 / 40%);
 
   --success: oklch(0.5 0.14 155);
   --warning: oklch(0.55 0.16 60);
   --danger: oklch(0.55 0.19 25);
+  --info: oklch(0.5 0.1 250);
 
-  --chart-1: oklch(0.19 0.006 90);
-  --chart-2: oklch(0.4 0.008 90);
-  --chart-3: oklch(0.58 0.01 90);
-  --chart-4: oklch(0.74 0.008 90);
-  --chart-5: oklch(0.88 0.006 90);
+  --chart-1: oklch(0.145 0 0);
+  --chart-2: oklch(0.4 0 0);
+  --chart-3: oklch(0.58 0 0);
+  --chart-4: oklch(0.74 0 0);
+  --chart-5: oklch(0.88 0 0);
 
-  --sidebar: oklch(0.97 0.003 90);
-  --sidebar-foreground: oklch(0.19 0.006 90);
-  --sidebar-primary: oklch(0.19 0.006 90);
-  --sidebar-primary-foreground: oklch(0.99 0.002 90);
-  --sidebar-accent: oklch(0.94 0.004 90);
-  --sidebar-accent-foreground: oklch(0.19 0.006 90);
-  --sidebar-border: oklch(0.9 0.005 90);
-  --sidebar-ring: oklch(0.48 0.05 250);
+  --sidebar: oklch(0.99 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.145 0 0);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.95 0 0);
+  --sidebar-accent-foreground: oklch(0.145 0 0);
+  --sidebar-border: oklch(0.9 0 0);
+  --sidebar-ring: oklch(0.55 0 0);
 }
 
 .os-shell[data-theme="dark"] {
-  --background: oklch(0.16 0.003 90);
-  --foreground: oklch(0.94 0.003 90);
-  --card: oklch(0.2 0.004 90);
-  --card-foreground: oklch(0.94 0.003 90);
-  --card-raised: oklch(0.24 0.005 90);
-  --popover: oklch(0.2 0.004 90);
-  --popover-foreground: oklch(0.94 0.003 90);
-  --primary: oklch(0.94 0.003 90);
-  --primary-foreground: oklch(0.16 0.003 90);
-  --secondary: oklch(0.24 0.005 90);
-  --secondary-foreground: oklch(0.94 0.003 90);
-  --muted: oklch(0.24 0.005 90);
-  --muted-foreground: oklch(0.62 0.006 90);
-  --faint-foreground: oklch(0.45 0.006 90);
-  --accent: oklch(0.26 0.005 90);
-  --accent-foreground: oklch(0.94 0.003 90);
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.96 0 0);
+  --card: oklch(0.19 0 0);
+  --card-foreground: oklch(0.96 0 0);
+  --card-raised: oklch(0.24 0 0);
+  --popover: oklch(0.19 0 0);
+  --popover-foreground: oklch(0.96 0 0);
+  --primary: oklch(0.96 0 0);
+  --primary-foreground: oklch(0.145 0 0);
+  --secondary: oklch(0.24 0 0);
+  --secondary-foreground: oklch(0.96 0 0);
+  --muted: oklch(0.24 0 0);
+  --muted-foreground: oklch(0.63 0 0);
+  --faint-foreground: oklch(0.45 0 0);
+  --accent: oklch(0.26 0 0);
+  --accent-foreground: oklch(0.96 0 0);
   --destructive: oklch(0.66 0.2 25);
-  --destructive-foreground: oklch(0.94 0.003 90);
-  --border: oklch(0.29 0.005 90);
-  --input: oklch(0.26 0.005 90);
-  --ring: oklch(0.72 0.08 250);
+  --destructive-foreground: oklch(0.96 0 0);
+  --border: oklch(0.28 0 0);
+  --input: oklch(0.26 0 0);
+  --ring: oklch(0.7 0 0);
 
-  --brand: oklch(0.72 0.08 250);
-  --brand-strong: oklch(0.78 0.09 250);
-  --brand-foreground: oklch(0.15 0.02 250);
-  --brand-subtle: oklch(0.27 0.04 250);
-  --brand-subtle-border: oklch(0.5 0.07 250 / 40%);
+  --brand: oklch(0.96 0 0);
+  --brand-strong: oklch(1 0 0);
+  --brand-foreground: oklch(0.145 0 0);
+  --brand-subtle: oklch(0.26 0 0);
+  --brand-subtle-border: oklch(0.4 0 0 / 40%);
 
   --success: oklch(0.72 0.15 155);
   --warning: oklch(0.74 0.17 60);
   --danger: oklch(0.68 0.19 25);
+  --info: oklch(0.72 0.09 250);
 
-  --chart-1: oklch(0.94 0.003 90);
-  --chart-2: oklch(0.78 0.006 90);
-  --chart-3: oklch(0.6 0.008 90);
-  --chart-4: oklch(0.42 0.006 90);
-  --chart-5: oklch(0.28 0.005 90);
+  --chart-1: oklch(0.96 0 0);
+  --chart-2: oklch(0.78 0 0);
+  --chart-3: oklch(0.6 0 0);
+  --chart-4: oklch(0.42 0 0);
+  --chart-5: oklch(0.28 0 0);
 
-  --sidebar: oklch(0.14 0.003 90);
-  --sidebar-foreground: oklch(0.94 0.003 90);
-  --sidebar-primary: oklch(0.94 0.003 90);
-  --sidebar-primary-foreground: oklch(0.16 0.003 90);
-  --sidebar-accent: oklch(0.24 0.005 90);
-  --sidebar-accent-foreground: oklch(0.94 0.003 90);
-  --sidebar-border: oklch(0.27 0.005 90);
-  --sidebar-ring: oklch(0.72 0.08 250);
+  --sidebar: oklch(0.12 0 0);
+  --sidebar-foreground: oklch(0.96 0 0);
+  --sidebar-primary: oklch(0.96 0 0);
+  --sidebar-primary-foreground: oklch(0.145 0 0);
+  --sidebar-accent: oklch(0.24 0 0);
+  --sidebar-accent-foreground: oklch(0.96 0 0);
+  --sidebar-border: oklch(0.28 0 0);
+  --sidebar-ring: oklch(0.7 0 0);
 }
 
 @theme inline {
-  --font-sans: var(--font-instrument), 'Instrument Sans', system-ui, sans-serif;
-  --font-mono: var(--font-jetbrains), 'JetBrains Mono', monospace;
-  --font-display: var(--font-instrument-serif), 'Instrument Serif', Georgia, serif;
+  --font-sans: var(--font-family-sans);
+  --font-mono: var(--font-family-mono);
+  --font-display: var(--font-family-display);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -225,6 +251,7 @@
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-danger: var(--danger);
+  --color-info: var(--info);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
