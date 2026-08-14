@@ -183,7 +183,7 @@ export default async function ClienteDetailPage({ params }: { params: Promise<Pa
 
           <section className="flex flex-col gap-3 rounded-xl border border-border/60 bg-card/40 p-5">
             <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Tarefas de onboarding</h2>
-            <OnboardingTasksList clientId={client.id} tasks={tasks} />
+            <OnboardingTasksList tasks={tasks} />
           </section>
         </div>
       </div>

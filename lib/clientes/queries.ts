@@ -11,19 +11,22 @@ export async function listClients(): Promise<Client[]> {
 
 export type PendingOnboardingTask = { id: string; title: string; clientId: string; clientName: string };
 
-/** Card "Próximas tarefas importantes" da Home (`app/(internal)/page.tsx`) — não existe um
- *  sistema de tarefas geral ainda (fora de escopo desta fase), só `onboarding_tasks`; é a única
- *  fonte real disponível pra esse card, então é isso que ele mostra. */
-export async function listPendingOnboardingTasks(limit = 5): Promise<PendingOnboardingTask[]> {
+/** Tarefas de onboarding pendentes de todos os clientes, agrupáveis por cliente (usado por
+ *  `/clientes/onboarding` e pelo bloco de atenção da Home). Lê `public.tasks` com
+ *  `context_type = "client_onboarding"` — não existe mais tabela própria pra isso (ver
+ *  `lib/tasks/queries.ts`). */
+export async function listPendingOnboardingTasks(limit?: number): Promise<PendingOnboardingTask[]> {
   const supabase = await createClient();
-  const { data: tasks } = await supabase.from("onboarding_tasks").select("*").eq("status", "pending").order("created_at").limit(limit);
+  let query = supabase.from("tasks").select("*").eq("context_type", "client_onboarding").eq("status", "pending").order("created_at");
+  if (limit) query = query.limit(limit);
+  const { data: tasks } = await query;
   if (!tasks || tasks.length === 0) return [];
 
-  const clientIds = Array.from(new Set(tasks.map((task) => task.client_id)));
+  const clientIds = Array.from(new Set(tasks.map((task) => task.context_id).filter((id): id is string => id != null)));
   const { data: clients } = await supabase.from("clients").select("*").in("id", clientIds);
   const nameById = new Map((clients ?? []).map((client) => [client.id, client.name]));
 
-  return tasks.map((task) => ({ id: task.id, title: task.title, clientId: task.client_id, clientName: nameById.get(task.client_id) ?? "—" }));
+  return tasks.map((task) => ({ id: task.id, title: task.title, clientId: task.context_id ?? "", clientName: nameById.get(task.context_id ?? "") ?? "—" }));
 }
 
 /** Junção manual em TS (não embed do PostgREST) — mesmo motivo documentado em
@@ -42,7 +45,7 @@ export async function getClientFull(id: string): Promise<ClientFull | null> {
       supabase.from("client_contacts").select("*").eq("client_id", id).order("is_primary", { ascending: false }),
       supabase.from("contracts").select("*").eq("client_id", id).order("created_at", { ascending: false }),
       supabase.from("revenue").select("*").eq("client_id", id).order("due_date"),
-      supabase.from("onboarding_tasks").select("*").eq("client_id", id).order("created_at"),
+      supabase.from("tasks").select("*").eq("context_type", "client_onboarding").eq("context_id", id).order("created_at"),
       supabase.from("events").select("*").eq("entity_type", "client").eq("entity_id", id).order("created_at", { ascending: false }),
     ]);
 

@@ -2,11 +2,13 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { toggleOnboardingTaskAction } from "@/lib/clientes/actions";
-import type { OnboardingTask } from "@/lib/supabase/types/database";
+import { updateTaskStatusAction } from "@/lib/tasks/actions";
+import type { Task } from "@/lib/supabase/types/database";
 import { cn } from "@/lib/utils";
 
-export function OnboardingTasksList({ clientId, tasks }: { clientId: string; tasks: OnboardingTask[] }) {
+/** Lê `public.tasks` filtradas por `context_type: "client_onboarding"` (ver
+ *  `lib/clientes/queries.ts`) — não existe mais uma tabela `onboarding_tasks` própria. */
+export function OnboardingTasksList({ tasks }: { tasks: Task[] }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -23,7 +25,7 @@ export function OnboardingTasksList({ clientId, tasks }: { clientId: string; tas
             onChange={(e) => {
               const done = e.target.checked;
               startTransition(async () => {
-                await toggleOnboardingTaskAction(task.id, clientId, done);
+                await updateTaskStatusAction(task.id, done ? "done" : "pending");
                 router.refresh();
               });
             }}

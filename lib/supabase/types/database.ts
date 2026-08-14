@@ -368,17 +368,24 @@ export type ClientContact = {
 };
 
 // ---------------------------------------------------------------------------
-// OnboardingTask — mínimo pedido pra Etapa 5 não ficar só no papel; não é um sistema de tarefas
-// geral (fora de escopo desta fase).
+// Task — substitui `OnboardingTask` (Fase 2-5) nesta fase: "TASK é uma só", não uma entidade
+// paralela por módulo. `context_type`/`context_id` são a mesma associação polimórfica de `Event`
+// abaixo (sem FK, de propósito) — hoje só `context_type: "client_onboarding"` (RPC
+// `close_lead_and_create_client`) é gravado; `context_type` nulo = tarefa solta (Meu Dia).
 // ---------------------------------------------------------------------------
-export type OnboardingTaskStatus = "pending" | "done";
+export type TaskStatus = "pending" | "in_progress" | "done";
 
-export type OnboardingTask = {
+export type Task = {
   id: string;
-  client_id: string;
   title: string;
-  status: OnboardingTaskStatus;
+  status: TaskStatus;
+  assignee_id: string | null;
+  due_date: string | null;
+  context_type: string | null;
+  context_id: string | null;
+  created_by: string;
   created_at: string;
+  updated_at: string;
 };
 
 // ---------------------------------------------------------------------------
@@ -409,6 +416,47 @@ export type Expense = {
   status: FinancialEntryStatus;
   paid_at: string | null;
   created_by: string;
+  created_at: string;
+};
+
+// ---------------------------------------------------------------------------
+// Cost — estrutura de custo fixo/variável da empresa (aluguel, ferramentas, pró-labore...). Não
+// confundir com `Expense` acima: `Expense` é um lançamento datado com status de pagamento;
+// `Cost` é a definição da estrutura, sem data/status individual — mesma relação conceitual que
+// `Contract` tem com `Revenue` (definição vs. parcelas geradas). Não gera `Expense`
+// automaticamente ainda.
+// ---------------------------------------------------------------------------
+export type CostRecurrence = "fixo" | "variavel";
+
+export type Cost = {
+  id: string;
+  name: string;
+  amount: number;
+  category: string;
+  recurrence: CostRecurrence;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+};
+
+// ---------------------------------------------------------------------------
+// FinancialRule / PartnerShare — a regra 20% operacional / 80% distribuível, centralizada (nunca
+// hardcoded em componente — ver `lib/financeiro/rules.ts`, único lugar que lê isto).
+// `PartnerShare` só existe pra sobrescrever o percentual de um sócio específico dentro dos 80%
+// distribuíveis; sem nenhuma linha, a divisão é igual entre todo `User.role === "owner"`,
+// calculada em runtime — não uma constante "50/50" gravada.
+// ---------------------------------------------------------------------------
+export type FinancialRule = {
+  id: string;
+  operational_percentage: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type PartnerShare = {
+  id: string;
+  user_id: string;
+  percentage: number;
   created_at: string;
 };
 
@@ -483,9 +531,12 @@ export type Database = {
       contract_scope_items: TableDef<ContractScopeItem>;
       client_onboarding: TableDef<ClientOnboarding>;
       client_contacts: TableDef<ClientContact>;
-      onboarding_tasks: TableDef<OnboardingTask>;
+      tasks: TableDef<Task>;
       revenue: TableDef<Revenue>;
       expenses: TableDef<Expense>;
+      costs: TableDef<Cost>;
+      financial_rules: TableDef<FinancialRule>;
+      partner_shares: TableDef<PartnerShare>;
     };
     Views: {
       /** `WHERE status IN ('published', 'archived')` — evita repetir esse filtro em toda
@@ -494,7 +545,9 @@ export type Database = {
     };
     Functions: {
       /** A transação real da Etapa 5 do onboarding — ver o comentário completo na migration
-       *  `20260813010000_comercial_financeiro_onboarding.sql`. Retorna o `id` do `Client` criado. */
+       *  `20260814000000_navigation_simulation_financeiro.sql` (versão corrente; a lógica nasceu
+       *  em `20260813010000_comercial_financeiro_onboarding.sql`). Retorna o `id` do `Client`
+       *  criado. */
       close_lead_and_create_client: {
         Args: { p_lead_id: string; p_payload: Record<string, unknown> };
         Returns: string;
