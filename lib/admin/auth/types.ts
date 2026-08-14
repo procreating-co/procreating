@@ -4,7 +4,7 @@
  * `lib/clients/provider.ts`: o contrato fica estável, só a implementação por trás muda.
  */
 
-import type { UserRole } from "@/lib/supabase/types/database";
+import type { UserRole, UserTheme } from "@/lib/supabase/types/database";
 
 /** Vocabulário de papel único da plataforma — ver `lib/supabase/types/database.ts` (`UserRole`,
  *  o mesmo valor gravado em `public.users.role`). Não redeclare uma lista de papéis paralela em
@@ -16,6 +16,8 @@ export type AdminUser = {
   name: string;
   email: string;
   role: AdminRole;
+  /** Preferência de tema salva na conta — `null` se nunca escolhida. Ver `lib/theme/`. */
+  theme: UserTheme | null;
 };
 
 /** `null` quando não há sessão ativa. */

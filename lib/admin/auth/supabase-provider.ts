@@ -25,10 +25,10 @@ export const supabaseAuthProvider: AuthProvider = {
     // `auth.users` — provisionada hoje via `supabase/seed-foundation.sql`. Sem ela, tratamos
     // como sessão inválida em vez de inventar um perfil: role indefinido não deveria acessar
     // nada do painel.
-    const { data: profile } = await supabase.from("users").select("id, name, email, role").eq("id", user.id).single();
+    const { data: profile } = await supabase.from("users").select("id, name, email, role, theme").eq("id", user.id).single();
     if (!profile) return null;
 
-    const adminUser: AdminUser = { id: profile.id, name: profile.name, email: profile.email, role: profile.role };
+    const adminUser: AdminUser = { id: profile.id, name: profile.name, email: profile.email, role: profile.role, theme: profile.theme };
     return { user: adminUser };
   },
 

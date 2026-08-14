@@ -22,12 +22,17 @@
 // ---------------------------------------------------------------------------
 export type UserRole = "owner" | "admin" | "commercial" | "marketing" | "operations" | "finance" | "production" | "client";
 
+export type UserTheme = "light" | "dark";
+
 export type User = {
   /** Mesmo `id` do `auth.users` correspondente. */
   id: string;
   name: string;
   email: string;
   role: UserRole;
+  /** Preferência de tema salva — `null` = sem preferência ainda (resolvido via cookie ou "dark",
+   *  ver `lib/theme/`). */
+  theme: UserTheme | null;
   created_at: string;
 };
 

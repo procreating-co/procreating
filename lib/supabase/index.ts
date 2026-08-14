@@ -2,6 +2,7 @@ export type {
   Database,
   User,
   UserRole,
+  UserTheme,
   Client,
   ClientStatus,
   Template,
