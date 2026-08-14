@@ -485,6 +485,80 @@ export type RevenueGoal = {
 };
 
 // ---------------------------------------------------------------------------
+// UserStats / XpTransaction / AchievementDefinition / UserAchievement / WorkSession — Workspace
+// gamificado (`/meu-dia`). XP só nasce de comportamento real (tarefa concluída, sessão de foco
+// fechada) — nunca um gatilho fabricado. `xp_transactions` é o ledger append-only (uma linha por
+// concessão, `source_type`+`source_id`+`reason` únicos no banco — marcar/desmarcar uma tarefa ou
+// fechar uma sessão duas vezes nunca duplica XP). `user_stats` é o cache denormalizado (total,
+// streak atual/recorde) mantido pela função `award_xp` (migration
+// `20260814210000_workspace_gamification.sql`), nunca escrito direto pela aplicação. Nível =
+// `xp_total / 100 + 1` (`lib/gamification/level.ts`, mesma fórmula usada em `check_achievements`
+// no banco). `achievement_definitions` é catálogo fixo (seed na migration); `user_achievements`
+// é só o que já foi desbloqueado, sempre via `check_achievements` — nunca marcado manualmente.
+// ---------------------------------------------------------------------------
+export type UserStats = {
+  user_id: string;
+  total_xp: number;
+  current_streak: number;
+  longest_streak: number;
+  last_activity_date: string | null;
+  updated_at: string;
+};
+
+export type XpTransactionReason = "task_completed" | "focus_session";
+export type XpTransactionSourceType = "task" | "session";
+
+export type XpTransaction = {
+  id: string;
+  user_id: string;
+  amount: number;
+  reason: XpTransactionReason;
+  source_type: XpTransactionSourceType;
+  source_id: string;
+  created_at: string;
+};
+
+export type AchievementCriteriaType = "task_count" | "streak_days" | "focus_minutes" | "level";
+
+export type AchievementDefinition = {
+  key: string;
+  title: string;
+  description: string;
+  criteria_type: AchievementCriteriaType;
+  criteria_value: number;
+  sort_order: number;
+};
+
+export type UserAchievement = {
+  id: string;
+  user_id: string;
+  achievement_key: string;
+  unlocked_at: string;
+};
+
+export type WorkSession = {
+  id: string;
+  user_id: string;
+  task_id: string | null;
+  started_at: string;
+  /** `null` = sessão em andamento (no máximo uma por usuário — índice parcial no banco). */
+  ended_at: string | null;
+  duration_seconds: number | null;
+  created_at: string;
+};
+
+/** Formato comum de retorno de `complete_task_and_award_xp`/`stop_focus_session` — o estado de
+ *  `user_stats` já atualizado + as `achievement_definitions.key` desbloqueadas nesta chamada
+ *  (`[]` na maioria das vezes), pra UI mostrar o "+10 XP"/celebração sem uma query extra. */
+export type GamificationRpcResult = {
+  xpAwarded: boolean;
+  totalXp: number;
+  currentStreak: number;
+  longestStreak: number;
+  unlocked: string[];
+};
+
+// ---------------------------------------------------------------------------
 // Analytics — evento bruto de VISITANTE (page view, desbloqueio de galeria/prospecção), por
 // projeto. Alto volume — em produção real, os cards de dashboard devem ler de uma tabela de
 // rollup (`project_daily_stats`, esboçada em docs/project-creation.md), nunca somar isto direto.
@@ -562,6 +636,11 @@ export type Database = {
       financial_rules: TableDef<FinancialRule>;
       partner_shares: TableDef<PartnerShare>;
       revenue_goals: TableDef<RevenueGoal>;
+      user_stats: TableDef<UserStats>;
+      xp_transactions: TableDef<XpTransaction>;
+      achievement_definitions: TableDef<AchievementDefinition>;
+      user_achievements: TableDef<UserAchievement>;
+      work_sessions: TableDef<WorkSession>;
     };
     Views: {
       /** `WHERE status IN ('published', 'archived')` — evita repetir esse filtro em toda
@@ -576,6 +655,18 @@ export type Database = {
       close_lead_and_create_client: {
         Args: { p_lead_id: string; p_payload: Record<string, unknown> };
         Returns: string;
+      };
+      /** Marca a tarefa como `done` + concede XP (+10, uma vez por tarefa) + streak + conquistas,
+       *  tudo atômico — ver a migration `20260814210000_workspace_gamification.sql`. */
+      complete_task_and_award_xp: {
+        Args: { p_task_id: string };
+        Returns: GamificationRpcResult;
+      };
+      /** Fecha a sessão de foco + concede XP se >= 10min (+5, uma vez por sessão) + streak +
+       *  conquistas — mesma migration. */
+      stop_focus_session: {
+        Args: { p_session_id: string };
+        Returns: GamificationRpcResult & { durationSeconds: number };
       };
     };
   };
