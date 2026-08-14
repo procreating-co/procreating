@@ -6,7 +6,7 @@ import type { MonthlyEvolutionPoint } from "@/lib/financeiro/types";
 
 const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
-export function RevenueChart({ data }: { data: MonthlyEvolutionPoint[] }) {
+export function RevenueChart({ data, height = 280 }: { data: MonthlyEvolutionPoint[]; height?: number }) {
   // Duas séries na MESMA escala (R$) — não é eixo duplo, é identidade categórica dentro da rampa
   // monocromática já usada no resto do app (ver lib/charts/colors.ts): receita no tom mais claro,
   // despesa no mais escuro. Não usa vermelho/verde de status — "despesa" não é um estado de erro.
@@ -15,7 +15,7 @@ export function RevenueChart({ data }: { data: MonthlyEvolutionPoint[] }) {
   const EXPENSES_COLOR = sequential[3];
 
   return (
-    <div className="h-[280px] w-full">
+    <div className="w-full" style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={data} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
           <defs>

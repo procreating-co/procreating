@@ -8,12 +8,12 @@ const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", cu
 
 /** Realizado (área) vs. ritmo esperado (linha) — dia a dia do mês corrente. "Ritmo esperado" =
  *  meta × (dia/dias do mês), a régua que responde "quanto deveríamos ter feito até aqui". */
-export function RevenueVsTargetChart({ points }: { points: RevenueVsTargetPoint[] }) {
+export function RevenueVsTargetChart({ points, height = 280 }: { points: RevenueVsTargetPoint[]; height?: number }) {
   const { brand, sequential } = useChartColors();
   const paceColor = sequential[2];
 
   return (
-    <div className="h-[280px] w-full">
+    <div className="w-full" style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={points} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
           <defs>

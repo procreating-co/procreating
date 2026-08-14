@@ -13,6 +13,10 @@ import type { Client, Contract, Lead } from "@/lib/supabase/types/database";
 // plano aprovado — "Revenue" aqui é REALIZADO (status='pago', paid_at no mês), diferente do
 // `revenueThisMonth` de `computeFinanceiroMetrics()` (tudo com due_date no mês, sem filtrar
 // status) — os dois convivem, só nomeados sem ambiguidade.
+//
+// `details` — todo card do Dashboard é clicável e abre um modal com a lista real por trás do
+// número (pedido explícito). Cada campo de `details` é a lista que alimenta o modal do card
+// correspondente; nunca um resumo recalculado, sempre os mesmos dados-fonte.
 // ---------------------------------------------------------------------------
 
 function daysInMonth(year: number, monthIndex: number): number {
@@ -36,6 +40,8 @@ export type GoalProgress = { amount: number; realized: number; percentage: numbe
 export type RevenueVsTargetPoint = { day: number; realized: number | null; pace: number };
 
 export type KpiCard = { value: number; sparkline?: number[]; deltaPct?: number | null };
+
+export type DetailEntry = { label: string; value?: string; meta?: string };
 
 export type ExecutiveMetrics = {
   goal: GoalProgress | null;
@@ -71,6 +77,32 @@ export type ExecutiveMetrics = {
   team: { headcount: number };
   attention: { label: string; detail: string; tone: "danger" | "warning" | "success" }[];
   pulse: string[];
+  details: {
+    revenueEntries: DetailEntry[];
+    expenseEntries: DetailEntry[];
+    openLeads: DetailEntry[];
+    wonDeals: DetailEntry[];
+    activeClients: DetailEntry[];
+    churnedClients: DetailEntry[];
+    topClients: DetailEntry[];
+    teamMembers: DetailEntry[];
+    overdueRevenue: DetailEntry[];
+    overdueExpenses: DetailEntry[];
+  };
+};
+
+const currency = (value: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+const shortDate = (iso: string | null) => (iso ? new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit" }).format(new Date(iso)) : "—");
+
+const ROLE_LABEL: Record<string, string> = {
+  owner: "Owner",
+  admin: "Admin",
+  commercial: "Comercial",
+  marketing: "Marketing",
+  operations: "Operações",
+  finance: "Financeiro",
+  production: "Produção",
+  client: "Cliente",
 };
 
 /** Soma de `revenue.amount` com `status='pago'` cujo `paid_at` cai no intervalo — "realizado",
@@ -132,7 +164,7 @@ export async function computeExecutiveDashboard(cashFlowMonths = 6): Promise<Exe
     { data: allClients },
     { data: activeContracts },
     { data: costs },
-    { count: usersCount },
+    { data: users },
     revenueThisMonthRealized,
     revenueLastMonthRealized,
     expensesThisMonthRealized,
@@ -140,24 +172,28 @@ export async function computeExecutiveDashboard(cashFlowMonths = 6): Promise<Exe
     { data: revenueDaily },
     { data: overdueRevenue },
     { data: overdueExpenses },
+    { data: revenueEntriesThisMonth },
+    { data: expenseEntriesThisMonth },
   ] = await Promise.all([
     getCurrentMonthGoal(),
     computeComercialMetrics(),
     computeFinanceiroMetrics(cashFlowMonths),
     listPipelineStages(),
     supabase.from("leads").select("*").is("client_id", null),
-    supabase.from("leads").select("potential_value, updated_at").not("client_id", "is", null),
+    supabase.from("leads").select("company_name, potential_value, updated_at").not("client_id", "is", null),
     supabase.from("clients").select("*"),
     supabase.from("contracts").select("*").eq("status", "ativo"),
     supabase.from("costs").select("amount"),
-    supabase.from("users").select("*", { count: "exact", head: true }),
+    supabase.from("users").select("id, name, role"),
     sumRealizedRevenue(toISODate(monthStart), toISODate(nextMonthStart)),
     sumRealizedRevenue(toISODate(prevMonthStart), toISODate(monthStart)),
     sumRealizedExpenses(toISODate(monthStart), toISODate(nextMonthStart)),
     monthlyRealizedSeries(6),
     supabase.from("revenue").select("amount, paid_at").eq("status", "pago").gte("paid_at", toISODate(monthStart)).lt("paid_at", toISODate(nextMonthStart)),
-    supabase.from("revenue").select("amount").eq("status", "atrasado"),
-    supabase.from("expenses").select("amount").eq("status", "atrasado"),
+    supabase.from("revenue").select("client_id, description, amount, due_date").eq("status", "atrasado"),
+    supabase.from("expenses").select("category, description, amount, due_date").eq("status", "atrasado"),
+    supabase.from("revenue").select("client_id, description, amount, paid_at").eq("status", "pago").gte("paid_at", toISODate(monthStart)).lt("paid_at", toISODate(nextMonthStart)),
+    supabase.from("expenses").select("category, description, amount, paid_at").eq("status", "pago").gte("paid_at", toISODate(monthStart)).lt("paid_at", toISODate(nextMonthStart)),
   ]);
 
   const monthlyCostsTotal = (costs ?? []).reduce((sum, cost) => sum + Number(cost.amount), 0);
@@ -167,6 +203,9 @@ export async function computeExecutiveDashboard(cashFlowMonths = 6): Promise<Exe
   const cashFlowThisMonth = revenueThisMonthRealized - expensesThisMonthRealized;
 
   const revenueDeltaPct = revenueLastMonthRealized > 0 ? ((revenueThisMonthRealized - revenueLastMonthRealized) / revenueLastMonthRealized) * 100 : null;
+
+  const clients: Client[] = allClients ?? [];
+  const clientNameById = new Map(clients.map((client) => [client.id, client.name]));
 
   // --- Goal / Revenue vs. Target ---
   const daysThisMonth = daysInMonth(now.getFullYear(), now.getMonth());
@@ -208,7 +247,8 @@ export async function computeExecutiveDashboard(cashFlowMonths = 6): Promise<Exe
     return { label: stage.label, value: leadsInStage.reduce((sum, lead) => sum + Number(lead.potential_value ?? 0), 0), count: leadsInStage.length };
   });
 
-  const wonLeadValues = (wonLeads ?? []).map((lead) => Number(lead.potential_value ?? 0)).filter((value) => value > 0);
+  const wonLeadsList = wonLeads ?? [];
+  const wonLeadValues = wonLeadsList.map((lead) => Number(lead.potential_value ?? 0)).filter((value) => value > 0);
   const averageDeal = wonLeadValues.length > 0 ? wonLeadValues.reduce((sum, value) => sum + value, 0) / wonLeadValues.length : null;
 
   const allOpenStagesHaveProbability = openStages.length > 0 && openStages.every((stage) => stage.probability != null);
@@ -221,10 +261,9 @@ export async function computeExecutiveDashboard(cashFlowMonths = 6): Promise<Exe
     : null;
 
   // --- Customer Health ---
-  const clients: Client[] = allClients ?? [];
   const activeClientsList = clients.filter((client) => client.status === "ativo");
-  const churnedCount = clients.filter((client) => client.status === "churn").length;
-  const churnPct = clients.length > 0 ? (churnedCount / clients.length) * 100 : null;
+  const churnedClientsList = clients.filter((client) => client.status === "churn");
+  const churnPct = clients.length > 0 ? (churnedClientsList.length / clients.length) * 100 : null;
 
   const contracts: Contract[] = activeContracts ?? [];
   const revenueByClient = new Map<string, number>();
@@ -238,20 +277,31 @@ export async function computeExecutiveDashboard(cashFlowMonths = 6): Promise<Exe
   const concentrationTop5Pct = totalClientRevenue > 0 ? (top5Revenue / totalClientRevenue) * 100 : null;
   const averageClientValue = clientRevenueValues.length > 0 ? totalClientRevenue / clientRevenueValues.length : null;
 
+  const topClientsRanked = Array.from(revenueByClient.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([clientId, amount]) => ({
+      label: clientNameById.get(clientId) ?? "Cliente removido",
+      value: currency(amount),
+      meta: totalClientRevenue > 0 ? `${((amount / totalClientRevenue) * 100).toFixed(1)}%` : undefined,
+    }));
+
   // --- Attention required ---
-  const overdueRevenueTotal = (overdueRevenue ?? []).reduce((sum, row) => sum + Number(row.amount), 0);
-  const overdueExpensesTotal = (overdueExpenses ?? []).reduce((sum, row) => sum + Number(row.amount), 0);
+  const overdueRevenueList = overdueRevenue ?? [];
+  const overdueExpensesList = overdueExpenses ?? [];
+  const overdueRevenueTotal = overdueRevenueList.reduce((sum, row) => sum + Number(row.amount), 0);
+  const overdueExpensesTotal = overdueExpensesList.reduce((sum, row) => sum + Number(row.amount), 0);
   const attention: ExecutiveMetrics["attention"] = [];
-  if ((overdueRevenue ?? []).length > 0) {
+  if (overdueRevenueList.length > 0) {
     attention.push({
-      label: `${(overdueRevenue ?? []).length} invoice${(overdueRevenue ?? []).length === 1 ? "" : "s"} overdue`,
+      label: `${overdueRevenueList.length} invoice${overdueRevenueList.length === 1 ? "" : "s"} overdue`,
       detail: `${formatCurrency(overdueRevenueTotal)} outstanding`,
       tone: "danger",
     });
   }
-  if ((overdueExpenses ?? []).length > 0) {
+  if (overdueExpensesList.length > 0) {
     attention.push({
-      label: `${(overdueExpenses ?? []).length} bill${(overdueExpenses ?? []).length === 1 ? "" : "s"} overdue`,
+      label: `${overdueExpensesList.length} bill${overdueExpensesList.length === 1 ? "" : "s"} overdue`,
       detail: `${formatCurrency(overdueExpensesTotal)} outstanding`,
       tone: "warning",
     });
@@ -287,7 +337,7 @@ export async function computeExecutiveDashboard(cashFlowMonths = 6): Promise<Exe
       cashFlow: { value: cashFlowThisMonth, sparkline: cashFlowSeries },
       pipeline: { value: comercial.pipelineValue, openCount: comercial.openLeads },
       activeClients: { value: activeClientsList.length, deltaCount: null },
-      team: { value: usersCount ?? 0 },
+      team: { value: users?.length ?? 0 },
     },
     revenueVsTarget: { points: revenueVsTargetPoints, goalAmount: goalRow ? Number(goalRow.amount) : null },
     financialHealth: {
@@ -309,10 +359,44 @@ export async function computeExecutiveDashboard(cashFlowMonths = 6): Promise<Exe
       churnPct,
       averageClientValue,
     },
-    operations: { headcount: usersCount ?? 0 },
-    team: { headcount: usersCount ?? 0 },
+    operations: { headcount: users?.length ?? 0 },
+    team: { headcount: users?.length ?? 0 },
     attention,
     pulse,
+    details: {
+      revenueEntries: (revenueEntriesThisMonth ?? []).map((row) => ({
+        label: row.description || clientNameById.get(row.client_id ?? "") || "Receita",
+        value: currency(Number(row.amount)),
+        meta: shortDate(row.paid_at),
+      })),
+      expenseEntries: (expenseEntriesThisMonth ?? []).map((row) => ({
+        label: row.description || row.category,
+        value: currency(Number(row.amount)),
+        meta: shortDate(row.paid_at),
+      })),
+      openLeads: leadsOpen.map((lead) => ({
+        label: lead.company_name,
+        value: currency(Number(lead.potential_value ?? 0)),
+        meta: stageById.get(lead.stage_id)?.label,
+      })),
+      wonDeals: wonLeadsList
+        .filter((lead) => Number(lead.potential_value ?? 0) > 0)
+        .map((lead) => ({ label: lead.company_name, value: currency(Number(lead.potential_value ?? 0)) })),
+      activeClients: activeClientsList.map((client) => ({ label: client.name, meta: client.segment ?? undefined })),
+      churnedClients: churnedClientsList.map((client) => ({ label: client.name, meta: client.segment ?? undefined })),
+      topClients: topClientsRanked,
+      teamMembers: (users ?? []).map((user) => ({ label: user.name, meta: ROLE_LABEL[user.role] ?? user.role })),
+      overdueRevenue: overdueRevenueList.map((row) => ({
+        label: row.description || clientNameById.get(row.client_id ?? "") || "Receita",
+        value: currency(Number(row.amount)),
+        meta: `venceu ${shortDate(row.due_date)}`,
+      })),
+      overdueExpenses: overdueExpensesList.map((row) => ({
+        label: row.description || row.category,
+        value: currency(Number(row.amount)),
+        meta: `venceu ${shortDate(row.due_date)}`,
+      })),
+    },
   };
 }
 

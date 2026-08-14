@@ -10,7 +10,7 @@ export type PipelineStageBar = { label: string; value: number; count: number };
 /** Valor de pipeline aberto por estágio — mesma rampa sequencial monocromática do resto do
  *  produto (não é o `FunnelChart` de `comercial/`, que é sobre contagem/conversão de lead; este
  *  é sobre valor em R$ por estágio). */
-export function SalesPipelineChart({ stages }: { stages: PipelineStageBar[] }) {
+export function SalesPipelineChart({ stages, height = 260 }: { stages: PipelineStageBar[]; height?: number }) {
   const { sequential } = useChartColors();
   const data = stages.map((stage, index) => ({
     ...stage,
@@ -18,7 +18,7 @@ export function SalesPipelineChart({ stages }: { stages: PipelineStageBar[] }) {
   }));
 
   return (
-    <div className="h-[260px] w-full">
+    <div className="w-full" style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} layout="vertical" margin={{ top: 4, right: 32, bottom: 4, left: 4 }} barCategoryGap={10}>
           <CartesianGrid horizontal={false} stroke="var(--border)" strokeOpacity={0.5} />
