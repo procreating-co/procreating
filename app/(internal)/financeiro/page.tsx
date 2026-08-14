@@ -4,6 +4,8 @@ import { AlertTriangle, ArrowDownCircle, ArrowUpCircle, Clock, TrendingUp, Walle
 import { computeFinanceiroMetrics } from "@/lib/financeiro/queries";
 import { StatTile } from "@/components/dashboard/stat-tile";
 import { RevenueChart } from "@/components/financeiro/revenue-chart";
+import { SectionHeader } from "@/components/dashboard/section-header";
+import { PeriodSelect } from "@/components/dashboard/period-select";
 
 export const metadata: Metadata = {
   title: "Financeiro — Procreating",
@@ -12,8 +14,10 @@ export const metadata: Metadata = {
 
 const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
-export default async function FinanceiroPage() {
-  const metrics = await computeFinanceiroMetrics();
+export default async function FinanceiroPage({ searchParams }: { searchParams: Promise<{ months?: string }> }) {
+  const { months: monthsParam } = await searchParams;
+  const months = Number(monthsParam) || 6;
+  const metrics = await computeFinanceiroMetrics(months);
 
   return (
     <main className="mx-auto flex max-w-[1400px] flex-col gap-8 px-6 py-16 lg:px-10">
@@ -46,7 +50,7 @@ export default async function FinanceiroPage() {
       </div>
 
       <section className="flex flex-col gap-4">
-        <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Evolução (últimos 6 meses)</h2>
+        <SectionHeader title={`Evolução (últimos ${months} meses)`} action={<PeriodSelect />} />
         <div className="rounded-xl border border-border/60 bg-card/40 p-5">
           <RevenueChart data={metrics.monthlyEvolution} />
         </div>

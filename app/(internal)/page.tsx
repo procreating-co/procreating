@@ -9,6 +9,7 @@ import { RevenueChart } from "@/components/financeiro/revenue-chart";
 import { SalesPipelineChart } from "@/components/dashboard/sales-pipeline-chart";
 import { EmptyInline } from "@/components/dashboard/empty-inline";
 import { StatusBadge } from "@/components/dashboard/status-badge";
+import { PeriodSelect } from "@/components/dashboard/period-select";
 
 const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const compactCurrencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", notation: "compact", maximumFractionDigits: 1 });
@@ -23,8 +24,10 @@ const percentFormatter = (value: number) => `${value.toFixed(1)}%`;
  * decisão de definição financeira e o que ficou de fora de propósito (projetos internos/
  * capacidade de equipe — não existe tabela nenhuma disso ainda).
  */
-export default async function Home() {
-  const metrics = await computeExecutiveDashboard();
+export default async function Home({ searchParams }: { searchParams: Promise<{ months?: string }> }) {
+  const { months: monthsParam } = await searchParams;
+  const cashFlowMonths = Number(monthsParam) || 6;
+  const metrics = await computeExecutiveDashboard(cashFlowMonths);
 
   return (
     <main className="mx-auto flex max-w-[1400px] flex-col gap-10 px-6 py-16 lg:px-10">
@@ -81,7 +84,7 @@ export default async function Home() {
           <FinancialBlock label="Net Profit" value={currencyFormatter.format(metrics.financialHealth.netProfit)} />
           <FinancialBlock label="Cash Flow" value={`${metrics.financialHealth.cashFlow >= 0 ? "+" : ""}${currencyFormatter.format(metrics.financialHealth.cashFlow)}`} />
         </div>
-        <ChartCard title="Cash Flow — Last 6 Months">
+        <ChartCard title={`Cash Flow — Last ${cashFlowMonths} Months`} action={<PeriodSelect />}>
           <RevenueChart data={metrics.financialHealth.monthlyEvolution} />
         </ChartCard>
       </section>

@@ -113,7 +113,9 @@ async function monthlyRealizedSeries(months: number): Promise<{ revenue: number[
   return { revenue: bucket(revenueRows), expenses: bucket(expenseRows) };
 }
 
-export async function computeExecutiveDashboard(): Promise<ExecutiveMetrics> {
+/** `cashFlowMonths` controla só a janela do gráfico "Cash Flow — Last 6 Months" (Financial
+ *  Health) — o resto do Dashboard (KPIs do mês, meta, pipeline) não muda com isso. */
+export async function computeExecutiveDashboard(cashFlowMonths = 6): Promise<ExecutiveMetrics> {
   const supabase = await createClient();
   const now = new Date();
   const monthStart = startOfMonth(now);
@@ -141,7 +143,7 @@ export async function computeExecutiveDashboard(): Promise<ExecutiveMetrics> {
   ] = await Promise.all([
     getCurrentMonthGoal(),
     computeComercialMetrics(),
-    computeFinanceiroMetrics(),
+    computeFinanceiroMetrics(cashFlowMonths),
     listPipelineStages(),
     supabase.from("leads").select("*").is("client_id", null),
     supabase.from("leads").select("potential_value, updated_at").not("client_id", "is", null),

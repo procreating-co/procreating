@@ -40,7 +40,11 @@ function lastMonths(count: number): string[] {
   return months;
 }
 
-export async function computeFinanceiroMetrics(): Promise<FinanceiroMetrics> {
+/** `evolutionMonths` controla a janela do gráfico "Evolução" (`RevenueChart`) — o resto das
+ *  métricas (mês corrente, MRR, contas pendentes/atrasadas) não muda com isso, só a série
+ *  histórica. Default 6 preserva o comportamento de sempre; `/financeiro` e o Dashboard passam o
+ *  valor escolhido no seletor de período (`PeriodSelect`). */
+export async function computeFinanceiroMetrics(evolutionMonths = 6): Promise<FinanceiroMetrics> {
   const supabase = await createClient();
   const [revenue, expenses, costs, { data: activeRecurringContracts }] = await Promise.all([
     listRevenue(),
@@ -62,7 +66,7 @@ export async function computeFinanceiroMetrics(): Promise<FinanceiroMetrics> {
   const payablesPending = expenses.filter((row) => row.status === "pendente").reduce((sum, row) => sum + Number(row.amount), 0);
   const payablesOverdue = expenses.filter((row) => row.status === "atrasado").reduce((sum, row) => sum + Number(row.amount), 0);
 
-  const months = lastMonths(6);
+  const months = lastMonths(evolutionMonths);
   const monthlyEvolution: MonthlyEvolutionPoint[] = months.map((month) => ({
     month,
     revenue: revenue.filter((row) => monthKey(row.due_date) === month).reduce((sum, row) => sum + Number(row.amount), 0),
