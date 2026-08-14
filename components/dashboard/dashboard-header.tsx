@@ -2,10 +2,36 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { Menu } from "lucide-react";
 import { NAV_GROUPS, SETTINGS_TABS, type TopNavTab } from "@/components/dashboard/nav-config";
 import { CommandPalette } from "@/components/dashboard/command-palette";
+import { QuickAddMenu } from "@/components/dashboard/quick-add-menu";
+import { ThemeToggle } from "@/components/dashboard/theme-toggle";
 import { cn } from "@/lib/utils";
+
+/** Some completamente ao rolar pra baixo, volta ao rolar pra cima — não é só perder a borda,
+ *  o header inteiro sai da tela (`translate-y-full`). `PAST` é a folga antes de começar a
+ *  esconder (rolagens pequenas no topo da página não devem esconder nada). */
+const HIDE_PAST_PX = 72;
+
+function useHideOnScrollDown() {
+  const [hidden, setHidden] = useState(false);
+  const lastY = useRef(0);
+
+  useEffect(() => {
+    function onScroll() {
+      const y = window.scrollY;
+      const scrollingDown = y > lastY.current;
+      setHidden(scrollingDown && y > HIDE_PAST_PX);
+      lastY.current = y;
+    }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  return hidden;
+}
 
 /**
  * Abas da área atual — lidas direto de `NAV_GROUPS[*].tabs` (`nav-config.ts`), a única fonte:
@@ -37,9 +63,15 @@ function getAreaTabs(pathname: string): TopNavTab[] | null {
 export function DashboardHeader({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
   const pathname = usePathname();
   const tabs = getAreaTabs(pathname);
+  const hidden = useHideOnScrollDown();
 
   return (
-    <header className="sticky top-0 z-10 border-b border-border/60 bg-background/80 backdrop-blur">
+    <header
+      className={cn(
+        "sticky top-0 z-10 bg-background/80 backdrop-blur transition-transform duration-200 ease-out",
+        hidden ? "-translate-y-full" : "translate-y-0"
+      )}
+    >
       <div className="mx-auto flex h-16 max-w-[1400px] items-center gap-3 px-4 sm:px-6 lg:px-10">
         <button
           type="button"
@@ -72,7 +104,13 @@ export function DashboardHeader({ onOpenMobileNav }: { onOpenMobileNav: () => vo
           <div className="flex-1" />
         )}
 
-        <CommandPalette />
+        {/* + (criar) → lupa (buscar) → sol/lua (tema), sempre nessa ordem — um grupo só de
+         *  ícones à direita, nada de texto/pill grande. */}
+        <div className="flex items-center gap-1">
+          <QuickAddMenu />
+          <CommandPalette />
+          <ThemeToggle />
+        </div>
       </div>
     </header>
   );

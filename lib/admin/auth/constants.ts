@@ -7,10 +7,11 @@ export const ADMIN_LOGIN_PATH = "/admin/login";
 export const ADMIN_SIGNUP_PATH = "/admin/signup";
 /**
  * Pra onde login/signup bem-sucedidos redirecionam, e pra onde `proxy.ts` manda quem já está
- * logado e tenta abrir `/admin/login`/`/admin/signup` de novo. É `/` — a Home do Procreating OS
- * novo (`app/(internal)/page.tsx`, Comercial/Operação/Financeiro/Clientes) — desde que o login
- * passou a servir esse dashboard também, não só o painel legado `/admin`. Não confundir com
- * `/admin` em si, que continua existindo como painel legado — só deixou de ser o destino padrão
- * pós-login.
+ * logado e tenta abrir `/admin/login`/`/admin/signup` de novo. É `/meu-dia` — o Workspace virou a
+ * aba inicial padrão do Procreating OS (antes era `/`, o Dashboard analítico — que continua
+ * existindo, só deixou de ser o destino padrão; seu ícone próprio na sidebar segue em
+ * `nav-config.ts`). O logo/nome na sidebar (`dashboard-sidebar.tsx`) também leva pra cá — mesmo
+ * destino, dois caminhos (login automático e clique manual). Não confundir com `/admin` em si,
+ * que continua existindo como painel legado.
  */
-export const POST_LOGIN_PATH = "/";
+export const POST_LOGIN_PATH = "/meu-dia";

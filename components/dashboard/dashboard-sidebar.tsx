@@ -7,7 +7,6 @@ import { Settings } from "lucide-react";
 import { useAdminUser } from "@/lib/admin/auth/auth-context";
 import { NAV_GROUPS } from "@/components/dashboard/nav-config";
 import { ProcreatingMark } from "@/components/dashboard/procreating-mark";
-import { ThemeToggle } from "@/components/dashboard/theme-toggle";
 import { AccountMenu, AccountAvatar } from "@/components/dashboard/account-menu";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
@@ -23,15 +22,20 @@ function SidebarContent({ expanded, user, onNavigate }: { expanded: boolean; use
 
   return (
     <>
-      <div className="flex h-16 shrink-0 items-center gap-2.5 px-4">
-        <ProcreatingMark className="size-5 shrink-0 text-foreground" />
+      {/* Logo = link pro Workspace (`/meu-dia`, aba inicial padrão agora) — Workspace perdeu o
+       *  ícone próprio na lista de grupos abaixo justamente porque o logo passou a ser o atalho
+       *  pra ele. `px-2.5` (não `px-4`) — mesmo eixo esquerdo dos ícones de grupo e do avatar no
+       *  rodapé, ver comentário lá embaixo; o símbolo em si ficou maior (`size-7`) pra ter peso
+       *  visual condizente com essa função de "logo clicável", não só mais um ícone de linha. */}
+      <Link href="/meu-dia" onClick={onNavigate} className="flex h-16 shrink-0 items-center gap-2.5 px-2.5">
+        <ProcreatingMark className="size-7 shrink-0 text-foreground" />
         <span className={cn("overflow-hidden whitespace-nowrap font-display text-lg tracking-tight transition-opacity duration-150", expanded ? "opacity-100" : "w-0 opacity-0")}>
           Procreating OS
         </span>
-      </div>
+      </Link>
 
       <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-2.5 py-2">
-        {NAV_GROUPS.map((group) => {
+        {NAV_GROUPS.filter((group) => group.key !== "workspace").map((group) => {
           const Icon = group.icon;
           const active = group.matchPrefixes.some((prefix) => (prefix === "/" ? pathname === "/" : pathname === prefix || pathname.startsWith(`${prefix}/`)));
           return (
@@ -66,20 +70,17 @@ function SidebarContent({ expanded, user, onNavigate }: { expanded: boolean; use
           </button>
         </AccountMenu>
 
-        {/* Toggle de tema ao lado de Configurações (não mais entre o avatar e o rodapé) — os dois
-         *  ficam adjacentes tanto expandido (mesma linha) quanto recolhido (mesma coluna). */}
-        <div className={cn("mt-1 flex gap-1", expanded ? "items-center" : "flex-col")}>
-          <Link
-            href="/configuracoes"
-            onClick={onNavigate}
-            title={expanded ? undefined : "Configurações"}
-            className="flex flex-1 items-center gap-3 rounded-md px-2.5 py-2 text-sm text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground"
-          >
-            <Settings className="size-4 shrink-0" />
-            <span className={cn("overflow-hidden whitespace-nowrap transition-opacity duration-150", expanded ? "opacity-100" : "w-0 opacity-0")}>Configurações</span>
-          </Link>
-          <ThemeToggle />
-        </div>
+        {/* Tema saiu daqui — mora no top nav agora, ao lado da busca (`dashboard-header.tsx`),
+         *  onde fica visível em toda página sem precisar abrir a sidebar recolhida. */}
+        <Link
+          href="/configuracoes"
+          onClick={onNavigate}
+          title={expanded ? undefined : "Configurações"}
+          className="mt-1 flex items-center gap-3 rounded-md px-2.5 py-2 text-sm text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground"
+        >
+          <Settings className="size-4 shrink-0" />
+          <span className={cn("overflow-hidden whitespace-nowrap transition-opacity duration-150", expanded ? "opacity-100" : "w-0 opacity-0")}>Configurações</span>
+        </Link>
       </div>
     </>
   );

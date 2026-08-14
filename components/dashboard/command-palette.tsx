@@ -3,8 +3,7 @@
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Building2, CheckSquare2, Handshake, ListChecks, Receipt, Search, Settings, Sun, Target, TrendingUp, Wallet, type LucideIcon } from "lucide-react";
-import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandShortcut } from "@/components/ui/command";
-import { Button } from "@/components/ui/button";
+import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { searchCommandPaletteAction, type CommandPaletteResults } from "@/lib/command-palette/search";
 import { createTaskAction } from "@/lib/tasks/actions";
 import { createLeadAction, createStrategyAction } from "@/lib/comercial/actions";
@@ -166,16 +165,18 @@ export function CommandPalette() {
 
   return (
     <>
-      <Button
+      {/* Só a lupa — era um pill com "Buscar... ⌘K" escrito; o atalho de teclado continua
+       *  funcionando (listener global logo abaixo), só parou de precisar de texto pra ser
+       *  descoberto (`title`/`aria-label` cobrem isso). */}
+      <button
         type="button"
-        variant="outline"
         onClick={() => setOpen(true)}
-        className="h-8 gap-2 px-2.5 text-muted-foreground sm:px-3"
+        aria-label="Buscar (⌘K)"
+        title="Buscar (⌘K)"
+        className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground"
       >
-        <Search className="size-3.5" />
-        <span className="hidden sm:inline">Buscar...</span>
-        <CommandShortcut className="hidden rounded border border-border/60 bg-muted px-1.5 py-0.5 font-mono text-[10px] sm:inline">⌘K</CommandShortcut>
-      </Button>
+        <Search className="size-4" />
+      </button>
 
       <CommandDialog
         open={open}

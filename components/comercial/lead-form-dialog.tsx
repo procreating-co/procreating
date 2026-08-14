@@ -22,7 +22,22 @@ const EMPTY_INPUT: LeadInput = {
   notes: "",
 };
 
-export function LeadFormDialog({ open, onOpenChange, strategies }: { open: boolean; onOpenChange: (open: boolean) => void; strategies: Strategy[] }) {
+/** `onCreated` — quando informado (menu de criação rápida, `quick-add-menu.tsx`), substitui o
+ *  `router.refresh()` padrão: quem chamou decide o que fazer depois (ex.: navegar pro CRM, "ele
+ *  ir automaticamente pra CRM" já é o comportamento natural de um lead novo, mas o usuário vendo
+ *  a tela mudar pra lá reforça isso). Sem o prop (uso normal, dentro do próprio CRM), continua
+ *  só atualizando os dados da página atual. */
+export function LeadFormDialog({
+  open,
+  onOpenChange,
+  strategies,
+  onCreated,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  strategies: Strategy[];
+  onCreated?: () => void;
+}) {
   const router = useRouter();
   const [input, setInput] = useState<LeadInput>(EMPTY_INPUT);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +54,8 @@ export function LeadFormDialog({ open, onOpenChange, strategies }: { open: boole
       }
       setInput(EMPTY_INPUT);
       onOpenChange(false);
-      router.refresh();
+      if (onCreated) onCreated();
+      else router.refresh();
     });
   }
 

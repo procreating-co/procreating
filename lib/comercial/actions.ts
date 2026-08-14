@@ -3,10 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserId } from "@/lib/supabase/current-user";
-import { getInitialStage, getLeadEvents, listPipelineStages } from "@/lib/comercial/queries";
+import { getInitialStage, getLeadEvents, getWonStage, listPipelineStages, listStrategies } from "@/lib/comercial/queries";
 import { normalizeCompanyName, normalizeEmail, normalizePhone, type ParsedLeadRow } from "@/lib/comercial/csv";
-import type { DedupCheckResult, ImportListInput, LeadInput, LeadPatch, StrategyInput } from "@/lib/comercial/types";
-import type { Event } from "@/lib/supabase/types/database";
+import type { DedupCheckResult, ImportListInput, LeadInput, LeadPatch, LeadWithRelations, StrategyInput } from "@/lib/comercial/types";
+import type { Event, Strategy } from "@/lib/supabase/types/database";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -74,6 +74,48 @@ export async function updateStrategyAction(id: string, input: StrategyInput): Pr
   revalidatePath("/comercial");
   revalidatePath(`/comercial/estrategias/${id}`);
   return { ok: true };
+}
+
+/** Wrapper `"use server"` de `listStrategies` (query `server-only`) — o menu de criação rápida
+ *  (`quick-add-menu.tsx`) é client component e precisa da lista pra oferecer "estratégia de
+ *  origem" no formulário de lead, sem duplicar a query. */
+export async function listStrategiesAction(): Promise<Strategy[]> {
+  return listStrategies();
+}
+
+/**
+ * Venda direta ("vendo sem ter lead") — cria o lead JÁ no estágio `is_won`, pulando o funil, e
+ * devolve com `stage`/`strategy`/`list` resolvidos pra abrir o `OnboardingModal` (o mesmo modal
+ * que soltar um card em "Fechado" no Kanban já abre) direto em cima dele. Reaproveita 100% do
+ * onboarding existente (Cliente → Contrato pontual/recorrente → Escopo → Operação) em vez de um
+ * formulário de venda paralelo — a única coisa nova aqui é o atalho pra chegar num lead "ganho"
+ * sem passar pelas etapas do Pipeline.
+ */
+export async function createWonLeadForSaleAction(companyName: string, potentialValue: number | null): Promise<ActionResult & { lead?: LeadWithRelations }> {
+  if (!companyName.trim()) return { ok: false, error: "Informe o nome do cliente/empresa." };
+
+  const userId = await getCurrentUserId();
+  if (!userId) return { ok: false, error: "Sessão expirada — faça login de novo." };
+
+  const wonStage = await getWonStage();
+  if (!wonStage) return { ok: false, error: "Nenhum estágio marcado como 'ganho' em pipeline_stages." };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("leads")
+    .insert({
+      company_name: companyName,
+      source: "Venda direta",
+      potential_value: potentialValue,
+      owner_id: userId,
+      stage_id: wonStage.id,
+    })
+    .select("*")
+    .single();
+  if (error || !data) return { ok: false, error: error?.message ?? "Falha ao criar." };
+
+  revalidatePath("/comercial");
+  return { ok: true, lead: { ...data, stage: wonStage, strategy: null, list: null } };
 }
 
 export async function createLeadAction(input: LeadInput): Promise<ActionResult> {
