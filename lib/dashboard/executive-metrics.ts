@@ -1,0 +1,319 @@
+import "server-only";
+import { createClient } from "@/lib/supabase/server";
+import { getCurrentMonthGoal } from "@/lib/dashboard/goals";
+import { computeComercialMetrics } from "@/lib/comercial/metrics";
+import { listPipelineStages } from "@/lib/comercial/queries";
+import { computeFinanceiroMetrics } from "@/lib/financeiro/queries";
+import type { Client, Contract, Lead } from "@/lib/supabase/types/database";
+
+// ---------------------------------------------------------------------------
+// Query central do Dashboard executivo — junta o que já existe (lib/comercial, lib/financeiro,
+// lib/dashboard/goals) com o que precisou de query nova, sempre marcando explicitamente o que
+// não tem dado suficiente (`null`/array vazio) em vez de inventar. Ver decisões documentadas no
+// plano aprovado — "Revenue" aqui é REALIZADO (status='pago', paid_at no mês), diferente do
+// `revenueThisMonth` de `computeFinanceiroMetrics()` (tudo com due_date no mês, sem filtrar
+// status) — os dois convivem, só nomeados sem ambiguidade.
+// ---------------------------------------------------------------------------
+
+function daysInMonth(year: number, monthIndex: number): number {
+  return new Date(year, monthIndex + 1, 0).getDate();
+}
+
+function startOfMonth(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+function startOfPreviousMonth(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth() - 1, 1);
+}
+
+function toISODate(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+export type GoalProgress = { amount: number; realized: number; percentage: number; expectedPacePercentage: number };
+
+export type RevenueVsTargetPoint = { day: number; realized: number | null; pace: number };
+
+export type KpiCard = { value: number; sparkline?: number[]; deltaPct?: number | null };
+
+export type ExecutiveMetrics = {
+  goal: GoalProgress | null;
+  kpis: {
+    revenue: KpiCard;
+    netProfit: KpiCard;
+    cashFlow: KpiCard;
+    pipeline: { value: number; openCount: number };
+    activeClients: { value: number; deltaCount: number | null };
+    team: { value: number };
+  };
+  revenueVsTarget: { points: RevenueVsTargetPoint[]; goalAmount: number | null };
+  financialHealth: {
+    revenue: number;
+    expenses: number;
+    netProfit: number;
+    cashFlow: number;
+    monthlyEvolution: { month: string; revenue: number; expenses: number }[];
+  };
+  salesPipeline: {
+    stages: { label: string; value: number; count: number }[];
+    conversionRate: number | null;
+    averageDeal: number | null;
+    weightedPipeline: number | null;
+  };
+  customerHealth: {
+    activeClients: number;
+    concentrationTop5Pct: number | null;
+    churnPct: number | null;
+    averageClientValue: number | null;
+  };
+  operations: { headcount: number };
+  team: { headcount: number };
+  attention: { label: string; detail: string; tone: "danger" | "warning" | "success" }[];
+  pulse: string[];
+};
+
+/** Soma de `revenue.amount` com `status='pago'` cujo `paid_at` cai no intervalo — "realizado",
+ *  não "previsto" (ver nota do módulo). */
+async function sumRealizedRevenue(fromISO: string, toISO: string): Promise<number> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("revenue").select("amount").eq("status", "pago").gte("paid_at", fromISO).lt("paid_at", toISO);
+  return (data ?? []).reduce((sum, row) => sum + Number(row.amount), 0);
+}
+
+async function sumRealizedExpenses(fromISO: string, toISO: string): Promise<number> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("expenses").select("amount").eq("status", "pago").gte("paid_at", fromISO).lt("paid_at", toISO);
+  return (data ?? []).reduce((sum, row) => sum + Number(row.amount), 0);
+}
+
+/** Série mensal (últimos `months` meses) de receita/despesa REALIZADA — base dos sparklines do
+ *  KPI row. Uma query por tipo (não por mês) pra não fazer N chamadas. */
+async function monthlyRealizedSeries(months: number): Promise<{ revenue: number[]; expenses: number[] }> {
+  const supabase = await createClient();
+  const now = new Date();
+  const from = new Date(now.getFullYear(), now.getMonth() - (months - 1), 1);
+
+  const [{ data: revenueRows }, { data: expenseRows }] = await Promise.all([
+    supabase.from("revenue").select("amount, paid_at").eq("status", "pago").gte("paid_at", toISODate(from)),
+    supabase.from("expenses").select("amount, paid_at").eq("status", "pago").gte("paid_at", toISODate(from)),
+  ]);
+
+  const bucket = (rows: { amount: number; paid_at: string | null }[] | null) => {
+    const sums = new Array(months).fill(0);
+    for (const row of rows ?? []) {
+      if (!row.paid_at) continue;
+      const paid = new Date(row.paid_at);
+      const index = (paid.getFullYear() - from.getFullYear()) * 12 + (paid.getMonth() - from.getMonth());
+      if (index >= 0 && index < months) sums[index] += Number(row.amount);
+    }
+    return sums;
+  };
+
+  return { revenue: bucket(revenueRows), expenses: bucket(expenseRows) };
+}
+
+export async function computeExecutiveDashboard(): Promise<ExecutiveMetrics> {
+  const supabase = await createClient();
+  const now = new Date();
+  const monthStart = startOfMonth(now);
+  const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const prevMonthStart = startOfPreviousMonth(now);
+
+  const [
+    goalRow,
+    comercial,
+    financeiro,
+    stages,
+    { data: openLeads },
+    { data: wonLeads },
+    { data: allClients },
+    { data: activeContracts },
+    { data: costs },
+    { count: usersCount },
+    revenueThisMonthRealized,
+    revenueLastMonthRealized,
+    expensesThisMonthRealized,
+    monthlySeries,
+    { data: revenueDaily },
+    { data: overdueRevenue },
+    { data: overdueExpenses },
+  ] = await Promise.all([
+    getCurrentMonthGoal(),
+    computeComercialMetrics(),
+    computeFinanceiroMetrics(),
+    listPipelineStages(),
+    supabase.from("leads").select("*").is("client_id", null),
+    supabase.from("leads").select("potential_value, updated_at").not("client_id", "is", null),
+    supabase.from("clients").select("*"),
+    supabase.from("contracts").select("*").eq("status", "ativo"),
+    supabase.from("costs").select("amount"),
+    supabase.from("users").select("*", { count: "exact", head: true }),
+    sumRealizedRevenue(toISODate(monthStart), toISODate(nextMonthStart)),
+    sumRealizedRevenue(toISODate(prevMonthStart), toISODate(monthStart)),
+    sumRealizedExpenses(toISODate(monthStart), toISODate(nextMonthStart)),
+    monthlyRealizedSeries(6),
+    supabase.from("revenue").select("amount, paid_at").eq("status", "pago").gte("paid_at", toISODate(monthStart)).lt("paid_at", toISODate(nextMonthStart)),
+    supabase.from("revenue").select("amount").eq("status", "atrasado"),
+    supabase.from("expenses").select("amount").eq("status", "atrasado"),
+  ]);
+
+  const monthlyCostsTotal = (costs ?? []).reduce((sum, cost) => sum + Number(cost.amount), 0);
+  const netProfitThisMonth = revenueThisMonthRealized - expensesThisMonthRealized - monthlyCostsTotal;
+  const netProfitSeries = monthlySeries.revenue.map((rev, i) => rev - monthlySeries.expenses[i] - monthlyCostsTotal);
+  const cashFlowSeries = monthlySeries.revenue.map((rev, i) => rev - monthlySeries.expenses[i]);
+  const cashFlowThisMonth = revenueThisMonthRealized - expensesThisMonthRealized;
+
+  const revenueDeltaPct = revenueLastMonthRealized > 0 ? ((revenueThisMonthRealized - revenueLastMonthRealized) / revenueLastMonthRealized) * 100 : null;
+
+  // --- Goal / Revenue vs. Target ---
+  const daysThisMonth = daysInMonth(now.getFullYear(), now.getMonth());
+  const dayOfMonth = now.getDate();
+  const goal: GoalProgress | null = goalRow
+    ? {
+        amount: Number(goalRow.amount),
+        realized: revenueThisMonthRealized,
+        percentage: (revenueThisMonthRealized / Number(goalRow.amount)) * 100,
+        expectedPacePercentage: (dayOfMonth / daysThisMonth) * 100,
+      }
+    : null;
+
+  const dailyRealizedMap = new Map<number, number>();
+  for (const row of revenueDaily ?? []) {
+    if (!row.paid_at) continue;
+    const day = new Date(row.paid_at).getDate();
+    dailyRealizedMap.set(day, (dailyRealizedMap.get(day) ?? 0) + Number(row.amount));
+  }
+  let cumulative = 0;
+  const revenueVsTargetPoints: RevenueVsTargetPoint[] = Array.from({ length: daysThisMonth }, (_, i) => {
+    const day = i + 1;
+    if (day <= dayOfMonth) cumulative += dailyRealizedMap.get(day) ?? 0;
+    return {
+      day,
+      realized: day <= dayOfMonth ? cumulative : null,
+      pace: goalRow ? Number(goalRow.amount) * (day / daysThisMonth) : 0,
+    };
+  });
+
+  // --- Sales Pipeline ---
+  const leadsOpen: Lead[] = openLeads ?? [];
+  const stageById = new Map(stages.map((stage) => [stage.id, stage]));
+  const openStages = stages
+    .filter((stage) => !stage.is_won && !stage.is_lost)
+    .sort((a, b) => a.sort_order - b.sort_order);
+  const pipelineByStage = openStages.map((stage) => {
+    const leadsInStage = leadsOpen.filter((lead) => lead.stage_id === stage.id);
+    return { label: stage.label, value: leadsInStage.reduce((sum, lead) => sum + Number(lead.potential_value ?? 0), 0), count: leadsInStage.length };
+  });
+
+  const wonLeadValues = (wonLeads ?? []).map((lead) => Number(lead.potential_value ?? 0)).filter((value) => value > 0);
+  const averageDeal = wonLeadValues.length > 0 ? wonLeadValues.reduce((sum, value) => sum + value, 0) / wonLeadValues.length : null;
+
+  const allOpenStagesHaveProbability = openStages.length > 0 && openStages.every((stage) => stage.probability != null);
+  const weightedPipeline = allOpenStagesHaveProbability
+    ? leadsOpen.reduce((sum, lead) => {
+        const stage = stageById.get(lead.stage_id);
+        const probability = stage?.probability != null ? Number(stage.probability) : 0;
+        return sum + Number(lead.potential_value ?? 0) * (probability / 100);
+      }, 0)
+    : null;
+
+  // --- Customer Health ---
+  const clients: Client[] = allClients ?? [];
+  const activeClientsList = clients.filter((client) => client.status === "ativo");
+  const churnedCount = clients.filter((client) => client.status === "churn").length;
+  const churnPct = clients.length > 0 ? (churnedCount / clients.length) * 100 : null;
+
+  const contracts: Contract[] = activeContracts ?? [];
+  const revenueByClient = new Map<string, number>();
+  for (const contract of contracts) {
+    const value = contract.type === "recorrente" ? Number(contract.monthly_value ?? 0) : Number(contract.total_value ?? 0);
+    revenueByClient.set(contract.client_id, (revenueByClient.get(contract.client_id) ?? 0) + value);
+  }
+  const clientRevenueValues = Array.from(revenueByClient.values()).sort((a, b) => b - a);
+  const totalClientRevenue = clientRevenueValues.reduce((sum, value) => sum + value, 0);
+  const top5Revenue = clientRevenueValues.slice(0, 5).reduce((sum, value) => sum + value, 0);
+  const concentrationTop5Pct = totalClientRevenue > 0 ? (top5Revenue / totalClientRevenue) * 100 : null;
+  const averageClientValue = clientRevenueValues.length > 0 ? totalClientRevenue / clientRevenueValues.length : null;
+
+  // --- Attention required ---
+  const overdueRevenueTotal = (overdueRevenue ?? []).reduce((sum, row) => sum + Number(row.amount), 0);
+  const overdueExpensesTotal = (overdueExpenses ?? []).reduce((sum, row) => sum + Number(row.amount), 0);
+  const attention: ExecutiveMetrics["attention"] = [];
+  if ((overdueRevenue ?? []).length > 0) {
+    attention.push({
+      label: `${(overdueRevenue ?? []).length} invoice${(overdueRevenue ?? []).length === 1 ? "" : "s"} overdue`,
+      detail: `${formatCurrency(overdueRevenueTotal)} outstanding`,
+      tone: "danger",
+    });
+  }
+  if ((overdueExpenses ?? []).length > 0) {
+    attention.push({
+      label: `${(overdueExpenses ?? []).length} bill${(overdueExpenses ?? []).length === 1 ? "" : "s"} overdue`,
+      detail: `${formatCurrency(overdueExpensesTotal)} outstanding`,
+      tone: "warning",
+    });
+  }
+  attention.push({
+    label: cashFlowThisMonth >= 0 ? "Cash flow positive" : "Cash flow negative",
+    detail: `${cashFlowThisMonth >= 0 ? "+" : ""}${formatCurrency(cashFlowThisMonth)} this month`,
+    tone: cashFlowThisMonth >= 0 ? "success" : "danger",
+  });
+
+  // --- Business pulse (template, não IA — preparado pra virar isso depois) ---
+  const pulse: string[] = [];
+  if (revenueDeltaPct != null) {
+    pulse.push(`Revenue ${revenueDeltaPct >= 0 ? "increased" : "decreased"} ${Math.abs(revenueDeltaPct).toFixed(0)}% this month vs. last month.`);
+  }
+  if (comercial.newLeadsThisMonth > 0) {
+    pulse.push(`${comercial.newLeadsThisMonth} new lead${comercial.newLeadsThisMonth === 1 ? "" : "s"} entered the pipeline this month.`);
+  }
+  if (goal) {
+    const gap = goal.percentage - goal.expectedPacePercentage;
+    pulse.push(
+      gap >= 0
+        ? `Revenue pace is ${gap.toFixed(0)}pp ahead of the expected pace for this point in the month.`
+        : `Revenue pace is ${Math.abs(gap).toFixed(0)}pp behind the expected pace for this point in the month.`,
+    );
+  }
+
+  return {
+    goal,
+    kpis: {
+      revenue: { value: revenueThisMonthRealized, sparkline: monthlySeries.revenue, deltaPct: revenueDeltaPct },
+      netProfit: { value: netProfitThisMonth, sparkline: netProfitSeries },
+      cashFlow: { value: cashFlowThisMonth, sparkline: cashFlowSeries },
+      pipeline: { value: comercial.pipelineValue, openCount: comercial.openLeads },
+      activeClients: { value: activeClientsList.length, deltaCount: null },
+      team: { value: usersCount ?? 0 },
+    },
+    revenueVsTarget: { points: revenueVsTargetPoints, goalAmount: goalRow ? Number(goalRow.amount) : null },
+    financialHealth: {
+      revenue: revenueThisMonthRealized,
+      expenses: expensesThisMonthRealized,
+      netProfit: netProfitThisMonth,
+      cashFlow: cashFlowThisMonth,
+      monthlyEvolution: financeiro.monthlyEvolution,
+    },
+    salesPipeline: {
+      stages: pipelineByStage,
+      conversionRate: comercial.conversionRate,
+      averageDeal,
+      weightedPipeline,
+    },
+    customerHealth: {
+      activeClients: activeClientsList.length,
+      concentrationTop5Pct,
+      churnPct,
+      averageClientValue,
+    },
+    operations: { headcount: usersCount ?? 0 },
+    team: { headcount: usersCount ?? 0 },
+    attention,
+    pulse,
+  };
+}
+
+function formatCurrency(value: number): string {
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+}
