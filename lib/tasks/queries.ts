@@ -28,7 +28,7 @@ export async function listTasksByAssignee(userId: string): Promise<Task[]> {
 }
 
 /** Tarefas do usuário vencendo hoje ou atrasadas, ainda não concluídas — usada pro resumo do
- *  outro sócio no Workspace (`lib/meu-dia/queries.ts`), onde só o que está pendente importa. */
+ *  outro sócio no Workspace (`lib/workspace/queries.ts`), onde só o que está pendente importa. */
 export async function listMyDueTasks(userId: string): Promise<Task[]> {
   const supabase = await createClient();
   const today = todayISO();

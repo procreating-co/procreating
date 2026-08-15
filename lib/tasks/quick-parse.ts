@@ -101,7 +101,7 @@ export function parseQuickTask(rawText: string, teamMembers: QuickParseTeamMembe
 
 const previewDateFormatter = new Intl.DateTimeFormat("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit" });
 
-/** Label do preview ao vivo — compartilhado entre `MyDayTasks` e `QuickAddMenu` (mesma leitura
+/** Label do preview ao vivo — compartilhado entre `WorkspaceTasks` e `QuickAddMenu` (mesma leitura
  *  do que vai ser criado, os dois lugares onde esse input de linha única existe). */
 export function describeQuickTaskPreview(rawText: string, teamMembers: QuickParseTeamMember[] = []): string {
   const parsed = parseQuickTask(rawText, teamMembers);

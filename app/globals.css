@@ -114,87 +114,94 @@
   --font-family-mono: var(--font-geist-mono), 'Geist Mono', ui-monospace, monospace;
   --font-family-display: var(--font-geist-sans), 'Geist', system-ui, sans-serif;
 
-  /* WARM IVORY — paleta light escolhida pelo usuário (Apple + Linear + "papel premium"),
-     substitui o mono cru anterior. Só o tema LIGHT do shell interno muda aqui — `.os-shell[data-
-     theme="dark"]` abaixo continua igual, e `:root` (admin/client) nem é tocado. Valores exatos
-     fornecidos em hex; convertidos 1:1 (sem reinterpretar em oklch) pra não perder a leitura
-     direta contra a especificação original quando alguém for conferir depois. */
-  --background: #f6f3ea;
-  --foreground: #24231f;
-  --card: #fbf9f3;
-  --card-foreground: #24231f;
-  --card-raised: #fffdf8; /* Surface Elevated */
-  --popover: #fffdf8; /* popover flutua por cima — mesma superfície "elevada" */
-  --popover-foreground: #24231f;
-  --primary: #24231f;
-  --primary-foreground: #fffdf8;
-  --secondary: #efebe1; /* Surface Muted */
-  --secondary-foreground: #24231f;
-  --muted: #efebe1; /* Surface Muted */
-  /* 3 níveis de texto do espec (Primary/Secondary/Muted) mapeados nos 3 tokens que já existiam
-     aqui (foreground/muted-foreground/faint-foreground) — Secondary é o "muted" de uso comum
-     (`text-muted-foreground`, usado em toda parte pra legenda/descrição); Muted é o nível mais
-     apagado (`faint-foreground`, uso raro, texto quase decorativo). */
-  --muted-foreground: #5f5c54; /* Text Secondary */
-  --faint-foreground: #89857b; /* Text Muted */
-  --accent: #f0ece3; /* Hover — token genérico do shadcn pra fundo de hover/seleção */
-  --accent-foreground: #24231f;
-  --destructive: #a65f59; /* Danger */
-  --destructive-foreground: #fffdf8;
-  --border: #e3ded2;
-  --input: #ddd7ca; /* Inputs → Border, mais específico que --border genérico */
-  --ring: #a88f5b; /* Accent como cor de foco — igual ao --brand abaixo */
+  /* Paleta light v2 — substitui a "Warm Ivory" (accent dourado) por um accent roxo/azul vívido
+     (estilo Stripe) sobre a mesma base creme. Só o tema LIGHT do shell interno muda aqui —
+     `.os-shell[data-theme="dark"]` abaixo continua igual, `:root` (admin/client) nem é tocado.
+     O usuário deu 10 cores-base (Background/Surface/Text/Secondary Text/Border/Primary-Action/
+     AI-Brain/Success/Warning/Danger) — bem mais enxuto que a v1; os demais tokens (superfície
+     elevada, borda forte, texto "faint", hover/active, soft de status, sidebar/inputs/kanban)
+     são DERIVADOS a partir dessas 10 (marcado em cada linha), mantendo a mesma estrutura de
+     tokens já em uso pelos componentes (não dá pra simplificar a estrutura sem reverter
+     `dashboard-sidebar.tsx`/`input.tsx`/`pipeline-board.tsx`/`status-dot.tsx`). */
+  --background: #f6f3ea; /* Background */
+  --foreground: #18181b; /* Text */
+  --card: #fbf9f4; /* Surface */
+  --card-foreground: #18181b;
+  --card-raised: #fffffc; /* derivado — mais claro que Surface, pro mesmo papel de "elevada" */
+  --popover: #fffffc;
+  --popover-foreground: #18181b;
+  --primary: #18181b;
+  --primary-foreground: #fbf9f4;
+  --secondary: #efece3; /* derivado — entre Background e Surface */
+  --secondary-foreground: #18181b;
+  --muted: #efece3;
+  --muted-foreground: #71717a; /* Secondary Text */
+  --faint-foreground: #9c9a93; /* derivado — um degrau mais claro que Secondary Text */
+  --accent: #f0ece2; /* derivado — fundo de hover genérico */
+  --accent-foreground: #18181b;
+  --destructive: #ef4444; /* Danger */
+  --destructive-foreground: #fffffc;
+  --border: #e4e1d8; /* Border */
+  --input: #e4e1d8;
+  --ring: #635bff; /* Primary/Action como cor de foco */
 
-  --brand: #a88f5b; /* Accent */
-  --brand-strong: #8f7a4d; /* Accent escurecido ~15% — hover/ênfase; não fornecido explicitamente */
-  --brand-foreground: #24231f; /* texto escuro lê melhor sobre o dourado médio do que branco */
-  --brand-subtle: #e8dfc9; /* Accent Soft */
-  --brand-subtle-border: #a88f5b66; /* Accent a 40% alpha, mesmo padrão do valor anterior */
+  --brand: #635bff; /* Primary / Action */
+  --brand-strong: #544dd9; /* derivado — Primary escurecido ~15%, hover/ênfase */
+  --brand-foreground: #ffffff; /* branco — Primary é escuro/saturado o bastante pra pedir texto claro */
+  --brand-subtle: #e7e5fc; /* derivado — Primary bem clareado, fundo de item ativo/seleção */
+  --brand-subtle-border: #635bff66; /* Primary a 40% alpha */
 
-  --success: #58745c;
-  --warning: #9a7840;
-  --danger: #a65f59;
-  --info: #60748a;
+  /* AI / Brain — mesmo valor de Primary hoje (o usuário deu os dois iguais), mas é um token
+     semântico à parte: preparação pra UI de IA (master prompt §73) ser sempre "isto é IA", nunca
+     confundido com uma ação primária comum, mesmo se algum dia os dois valores divergirem. */
+  --ai: #635bff;
 
-  /* Fundos suaves por status (Success/Warning/Danger/Info Soft) — não existiam como tokens
-     antes (badges usavam opacidade sobre a cor cheia); ver `StatusDot`, agora usa isto pro
-     preenchimento do pill em vez de `/25` de opacidade. */
-  --success-subtle: #e2ebdd;
-  --warning-subtle: #f0e6d0;
-  --danger-subtle: #f1dedb;
-  --info-subtle: #e1e7ed;
+  --success: #16a34a;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --info: #3b82f6; /* derivado — não fornecido; combina com o restante (mesma família Tailwind das outras 3 cores de status) */
 
-  --chart-1: #24231f;
-  --chart-2: #5f5c54;
-  --chart-3: #89857b;
-  --chart-4: #d5cfc2;
-  --chart-5: #e3ded2;
+  /* Fundos suaves por status — não fornecidos; usados os tons -100 do Tailwind que correspondem
+     exatamente às cores -500/-600 dadas (success/warning/danger/info aqui batem com as escalas
+     green/amber/red/blue do Tailwind), pra não inventar um tom desalinhado à mão. */
+  --success-subtle: #dcfce7;
+  --warning-subtle: #fef3c7;
+  --danger-subtle: #fee2e2;
+  --info-subtle: #dbeafe;
 
-  --sidebar: #f0ece3;
-  --sidebar-foreground: #302e29;
-  --sidebar-primary: #24231f;
-  --sidebar-primary-foreground: #fbf9f3;
-  --sidebar-accent: #e1d9c8; /* Active Item */
-  --sidebar-accent-foreground: #24231f;
-  --sidebar-border: #e3ded2;
-  --sidebar-ring: #a88f5b;
-  --sidebar-hover: #e7e2d8; /* distinto de Active Item — hover não é o mesmo estado de selecionado */
-  --sidebar-muted-foreground: #77736a;
+  /* Text/Secondary Text batem exatos com zinc-900/zinc-500 do Tailwind — os 2 tons intermediários
+     usam a mesma escala (zinc-600/zinc-400) por consistência, não um valor inventado à parte. */
+  --chart-1: #18181b;
+  --chart-2: #52525b;
+  --chart-3: #71717a;
+  --chart-4: #a1a1aa;
+  --chart-5: #e4e1d8;
 
-  /* Inputs — fundo preenchido (era `bg-transparent`) com hover/foco próprios, ver
-     `components/ui/input.tsx`. `--input` acima continua sendo a BORDA (convenção shadcn), estes
-     3 são a SUPERFÍCIE. */
-  --input-background: #fbf9f3;
-  --input-background-hover: #f8f5ee;
-  --input-background-focus: #fffdf8;
-  --input-placeholder: #969187;
+  --sidebar: #f0ece2; /* derivado — mesmo tom do --accent genérico */
+  --sidebar-foreground: #18181b;
+  --sidebar-primary: #18181b;
+  --sidebar-primary-foreground: #fbf9f4;
+  --sidebar-accent: #e7e5fc; /* item ativo = --brand-subtle (sem uma cor própria fornecida desta vez) */
+  --sidebar-accent-foreground: #18181b;
+  --sidebar-border: #e4e1d8;
+  --sidebar-ring: #635bff;
+  --sidebar-hover: #efece3; /* derivado — distinto do item ativo, mesmo tom do --secondary/--muted */
+  --sidebar-muted-foreground: #71717a;
 
-  /* Kanban (Pipeline) — coluna/card com tom próprio, ligeiramente distinto de
-     background/card genéricos; ver `components/comercial/pipeline-board.tsx`. */
-  --kanban-board: #f0ece3;
-  --kanban-column: #f5f1e8;
-  --kanban-card: #fbf9f3;
-  --kanban-card-hover: #fffdf8;
+  /* Inputs — fundo preenchido, hover/foco próprios (ver `components/ui/input.tsx`). `--input`
+     acima é a BORDA (convenção shadcn); estes 3 são a SUPERFÍCIE — nenhum valor próprio
+     fornecido desta vez, derivados de Surface/Background. */
+  --input-background: #fbf9f4;
+  --input-background-hover: #f5f2ea;
+  --input-background-focus: #fffffc;
+  --input-placeholder: #a1a1aa;
+
+  /* Kanban (Pipeline) — sem valores próprios fornecidos desta vez, derivados da mesma escala
+     Background→Surface→Elevada; ver `components/comercial/pipeline-board.tsx`. */
+  --kanban-board: #f0ece2;
+  --kanban-column: #f5f2ea;
+  --kanban-card: #fbf9f4;
+  --kanban-card-hover: #fffffc;
 }
 
 .os-shell[data-theme="dark"] {
@@ -290,6 +297,9 @@
   --color-brand-foreground: var(--brand-foreground);
   --color-brand-subtle: var(--brand-subtle);
   --color-brand-subtle-border: var(--brand-subtle-border);
+  /* Fallback = --brand: fora do `.os-shell` light (dark/admin/client), "IA" ainda não tem tom
+     próprio — cai na mesma cor de ação primária de lá, nunca some/unset. */
+  --color-ai: var(--ai, var(--brand));
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-danger: var(--danger);

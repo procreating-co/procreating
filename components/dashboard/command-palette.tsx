@@ -18,7 +18,7 @@ type QuickNavItem = { label: string; href: string; icon: LucideIcon };
 /** Navegação estática — não é toda a árvore de `nav-config.ts`, só os destinos mais usados
  *  (evita uma lista de 30 itens idênticos; um clique a mais pra algo raro é aceitável). */
 const QUICK_NAV: QuickNavItem[] = [
-  { label: "Meu Dia", href: "/meu-dia", icon: Sun },
+  { label: "Workspace", href: "/workspace", icon: Sun },
   { label: "Pipeline", href: "/comercial?tab=crm", icon: Handshake },
   { label: "Prospecção", href: "/comercial?tab=prospeccao", icon: ListChecks },
   { label: "Planejamento", href: "/comercial?tab=planejamento", icon: TrendingUp },
@@ -60,7 +60,7 @@ export function CommandPalette() {
   }, []);
 
   // Só carrega ao abrir de verdade (não no mount de todo `layout.tsx`) — "Criar tarefa" com
-  // `@mention` (mesmo parser de `MyDayTasks`/`QuickAddMenu`) precisa da lista de responsáveis.
+  // `@mention` (mesmo parser de `WorkspaceTasks`/`QuickAddMenu`) precisa da lista de responsáveis.
   useEffect(() => {
     if (open && teamMembers.length === 0) {
       listTeamUsersAction().then(setTeamMembers);
@@ -277,7 +277,7 @@ export function CommandPalette() {
           {results.tasks.length > 0 && (
             <CommandGroup heading="Tarefas">
               {results.tasks.map((task) => (
-                <CommandItem key={task.id} onSelect={() => navigate("/meu-dia")}>
+                <CommandItem key={task.id} onSelect={() => navigate("/workspace")}>
                   <CheckSquare2 className="size-4 text-muted-foreground" />
                   {task.title}
                 </CommandItem>

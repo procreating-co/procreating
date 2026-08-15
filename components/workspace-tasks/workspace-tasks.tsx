@@ -19,7 +19,7 @@ const dateFormatter = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: 
  * vídeo amanhã às 15h" ↵ → mesma coisa, responsável Eduardo. `parseQuickTask` roda a cada tecla
  * só pro preview (nada é salvo até enviar) e de novo no submit — mesma função, sem duplicar regra.
  */
-export function MyDayTasks({ tasks, userId, teamMembers }: { tasks: Task[]; userId: string; teamMembers: User[] }) {
+export function WorkspaceTasks({ tasks, userId, teamMembers }: { tasks: Task[]; userId: string; teamMembers: User[] }) {
   const router = useRouter();
   const [text, setText] = useState("");
   const [isPending, startTransition] = useTransition();

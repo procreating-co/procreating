@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 
 /**
  * Gate protegido do ERP interno — `/`, `/operacao/**`, `/(growth)/**`, `/financeiro/**`,
- * `/configuracoes/**`, `/meu-dia/**`, `/reports` (ver `proxy.ts` pro matcher de borda). Mesmo
+ * `/configuracoes/**`, `/workspace/**` (era `/meu-dia`), `/reports` (ver `proxy.ts` pro matcher de borda). Mesmo
  * padrão de `app/admin/(protected)/layout.tsx`: `proxy.ts` já redireciona cedo na maioria dos
  * casos (checagem rápida de cookie); esta checagem server-side é a validação de verdade, via
  * `getSession()` (Supabase Auth real desde a Fase 1, Foundation).

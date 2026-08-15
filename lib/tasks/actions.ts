@@ -26,7 +26,7 @@ export async function createTaskAction(input: TaskInput): Promise<ActionResult> 
   });
   if (error) return { ok: false, error: error.message };
 
-  revalidatePath("/meu-dia");
+  revalidatePath("/workspace");
   revalidatePath("/");
   return { ok: true };
 }
@@ -36,7 +36,7 @@ export async function updateTaskStatusAction(taskId: string, status: TaskStatus)
   const { error } = await supabase.from("tasks").update({ status, updated_at: new Date().toISOString() }).eq("id", taskId);
   if (error) return { ok: false, error: error.message };
 
-  revalidatePath("/meu-dia");
+  revalidatePath("/workspace");
   revalidatePath("/");
   revalidatePath("/clientes/onboarding");
   return { ok: true };

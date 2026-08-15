@@ -3,30 +3,30 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AlertTriangle, ArrowRight, CalendarClock, UserRound } from "lucide-react";
 import { getCurrentUserId } from "@/lib/supabase/current-user";
-import { computeWorkspaceOverview } from "@/lib/meu-dia/queries";
+import { computeWorkspaceOverview } from "@/lib/workspace/queries";
 import { listTeamUsers } from "@/lib/operacao/queries";
 import { GreetingHeader } from "@/components/dashboard/greeting-header";
-import { MyDayTasks } from "@/components/meu-dia/my-day-tasks";
+import { WorkspaceTasks } from "@/components/workspace-tasks/workspace-tasks";
 import { SectionHeader } from "@/components/dashboard/section-header";
 import { EmptyInline } from "@/components/dashboard/empty-inline";
 import { ADMIN_LOGIN_PATH } from "@/lib/admin/auth/constants";
 
 export const metadata: Metadata = {
-  title: "Meu Dia — Procreating",
+  title: "Workspace — Procreating",
   robots: { index: false, follow: false },
 };
 
 const upcomingDateFormatter = new Intl.DateTimeFormat("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit" });
 
 /**
- * Workspace — página única (revertido de 5 abas com gamificação: XP/streak/timer/conquistas
- * nunca foram pedidos de verdade, contrariam o roadmap real, onde isso é Fase 6 futura). Cockpit
- * real: o que precisa de atenção agora, tarefas de hoje com criação inline, próximos prazos,
- * progresso simples do dia (sem badge/fogo/nível), visibilidade do outro sócio — tudo dado real
- * (`lib/meu-dia/queries.ts`), nunca inventado; fonte vazia = seção/linha omitida, nunca "0
- * encontrados" forçado.
+ * Workspace (era `/meu-dia`, renomeado — mesma página) — página única (revertido de 5 abas com
+ * gamificação: XP/streak/timer/conquistas nunca foram pedidos de verdade, contrariam o roadmap
+ * real, onde isso é Fase 6 futura). Cockpit real: o que precisa de atenção agora, tarefas de hoje
+ * com criação inline, próximos prazos, progresso simples do dia (sem badge/fogo/nível),
+ * visibilidade do outro sócio — tudo dado real (`lib/workspace/queries.ts`), nunca inventado;
+ * fonte vazia = seção/linha omitida, nunca "0 encontrados" forçado.
  */
-export default async function MeuDiaPage() {
+export default async function WorkspacePage() {
   const userId = await getCurrentUserId();
   if (!userId) redirect(ADMIN_LOGIN_PATH);
 
@@ -59,7 +59,7 @@ export default async function MeuDiaPage() {
           title="Tarefas de hoje"
           description={overview.todayProgress ? `${overview.todayProgress.done} de ${overview.todayProgress.total} tarefas concluídas hoje` : undefined}
         />
-        <MyDayTasks tasks={overview.dueTasks} userId={userId} teamMembers={teamMembers} />
+        <WorkspaceTasks tasks={overview.dueTasks} userId={userId} teamMembers={teamMembers} />
       </section>
 
       <section className="flex flex-col gap-4">

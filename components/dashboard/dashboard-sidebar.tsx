@@ -22,13 +22,13 @@ function SidebarContent({ expanded, user, onNavigate }: { expanded: boolean; use
 
   return (
     <>
-      {/* Logo = também um atalho pro Workspace (`/meu-dia`) — redundante com o ícone de Meu
-       *  Workspace logo abaixo (pedido explícito: ícone de casa próprio, acima do Dashboard),
-       *  mas mantido: é convenção comum (logo sempre leva pro "home") e não atrapalha.
-       *  `px-2.5` (não `px-4`) — mesmo eixo esquerdo dos ícones de grupo e do avatar no rodapé,
-       *  ver comentário lá embaixo; o símbolo em si ficou maior (`size-7`) pra ter peso visual
-       *  condizente com essa função de "logo clicável", não só mais um ícone de linha. */}
-      <Link href="/meu-dia" onClick={onNavigate} className="flex h-16 shrink-0 items-center gap-2.5 px-2.5">
+      {/* Logo = também um atalho pro Workspace (`/workspace`, era `/meu-dia`) — redundante com o
+       *  ícone de Workspace logo abaixo (pedido explícito: ícone de casa próprio, acima do
+       *  Dashboard), mas mantido: é convenção comum (logo sempre leva pro "home") e não
+       *  atrapalha. `px-2.5` (não `px-4`) — mesmo eixo esquerdo dos ícones de grupo e do avatar
+       *  no rodapé, ver comentário lá embaixo; o símbolo em si ficou maior (`size-7`) pra ter
+       *  peso visual condizente com essa função de "logo clicável", não só mais um ícone de linha. */}
+      <Link href="/workspace" onClick={onNavigate} className="flex h-16 shrink-0 items-center gap-2.5 px-2.5">
         <ProcreatingMark className="size-7 shrink-0 text-foreground" />
         <span className={cn("overflow-hidden whitespace-nowrap font-display text-lg tracking-tight transition-opacity duration-150", expanded ? "opacity-100" : "w-0 opacity-0")}>
           Procreating OS

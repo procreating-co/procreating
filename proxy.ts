@@ -5,7 +5,7 @@ import { ADMIN_LOGIN_PATH, ADMIN_SESSION_COOKIE, ADMIN_SIGNUP_PATH } from "@/lib
 /**
  * Gate de borda pro ERP interno inteiro — `/admin/*` (painel legado) e todo o grupo protegido
  * `app/(internal)/**` (`/`, `/operacao/*` desde a Fase 1; `/comercial/*`, `/clientes/*`,
- * `/financeiro/*` desde a Fase 2-5; `/marketing/*`, `/meu-dia/*`, `/configuracoes/*` desde a fase
+ * `/financeiro/*` desde a Fase 2-5; `/marketing/*`, `/workspace/*` (era `/meu-dia`), `/configuracoes/*` desde a fase
  * de navegação completa; `/reports` desde a reestruturação de sidebar/tema — ver `matcher`
  * abaixo; `/administracao` saiu, rota removida). Nunca toca em rota pública
  * (`/clients/[client]/...`). Checa só a presença do cookie de sessão (rápido, sem I/O);
@@ -50,7 +50,7 @@ export const config = {
     "/clientes/:path*",
     "/financeiro/:path*",
     "/marketing/:path*",
-    "/meu-dia/:path*",
+    "/workspace/:path*",
     "/configuracoes/:path*",
     "/reports/:path*",
   ],

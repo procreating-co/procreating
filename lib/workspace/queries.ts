@@ -6,7 +6,7 @@ import { addDaysISO, todayISO } from "@/lib/date";
 import type { Task } from "@/lib/supabase/types/database";
 
 // ---------------------------------------------------------------------------
-// Query central do Workspace ("Meu Dia") — uma página única, cockpit real, não uma coleção de
+// Query central do Workspace (era "Meu Dia", `/meu-dia` → `/workspace`) — uma página única, cockpit real, não uma coleção de
 // abas. Junta o que já existe (`lib/tasks`, `lib/comercial`) com consultas diretas pequenas em
 // `leads`/`revenue`/`expenses`, sempre respondendo "o que a empresa precisa de mim hoje" com dado
 // real — fonte vazia = item omitido, nunca "0 encontrados" forçado.
