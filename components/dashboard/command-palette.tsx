@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, CheckSquare2, Handshake, ListChecks, Receipt, Search, Settings, Sun, Target, TrendingUp, Wallet, type LucideIcon } from "lucide-react";
+import { Building2, CheckSquare2, FileText, Handshake, ListChecks, Receipt, Search, Settings, Sun, Target, TrendingUp, Wallet, type LucideIcon } from "lucide-react";
 import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { searchCommandPaletteAction, type CommandPaletteResults } from "@/lib/command-palette/search";
 import { createTaskAction } from "@/lib/tasks/actions";
@@ -19,8 +19,10 @@ type QuickNavItem = { label: string; href: string; icon: LucideIcon };
  *  (evita uma lista de 30 itens idênticos; um clique a mais pra algo raro é aceitável). */
 const QUICK_NAV: QuickNavItem[] = [
   { label: "Workspace", href: "/workspace", icon: Sun },
+  { label: "Comercial", href: "/comercial", icon: TrendingUp },
   { label: "Pipeline", href: "/comercial?tab=crm", icon: Handshake },
-  { label: "Prospecção", href: "/comercial?tab=prospeccao", icon: ListChecks },
+  { label: "Prospecção / Importar lista", href: "/comercial?tab=prospeccao", icon: ListChecks },
+  { label: "Nova proposta", href: "/comercial?tab=crm", icon: FileText },
   { label: "Planejamento", href: "/comercial?tab=planejamento", icon: TrendingUp },
   { label: "Clientes", href: "/clientes", icon: Building2 },
   { label: "Financeiro", href: "/financeiro", icon: Wallet },
@@ -32,9 +34,12 @@ const QUICK_NAV: QuickNavItem[] = [
  * `/clients`). Busca real em clientes/leads/tarefas/estratégias/despesas/custos
  * (`searchCommandPaletteAction`, debounced) + navegação rápida estática quando a busca está
  * vazia. Criação rápida embutida só pra Tarefa/Lead/Estratégia — os únicos fluxos do produto que
- * cabem num "digitou, enter" (1 campo obrigatório); o resto (Cliente, Despesa, Custo — todos
- * exigem campo demais ou um wizard) continua navegando pra tela onde a criação já existe, em vez
- * de duplicar UI.
+ * cabem num "digitou, enter" (1 campo obrigatório); o resto (Cliente, Despesa, Custo, Orçamento —
+ * todos exigem campo demais, um wizard, ou (Orçamento) escolher primeiro QUAL lead) continua
+ * navegando pra tela onde a criação já existe, em vez de duplicar UI. Cobre a lista do master
+ * prompt §60 (Create task/opportunity/proposal, Import list, Start sequence, Search client/lead,
+ * Go to Growth/Commercial/Planning/Finance) — "Import list"/"Start sequence" convergem no mesmo
+ * lugar (aba Prospecção já é as duas coisas: motor de listas + fila de execução).
  */
 export function CommandPalette() {
   const router = useRouter();
