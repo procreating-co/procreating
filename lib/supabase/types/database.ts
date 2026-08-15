@@ -465,6 +465,31 @@ export type ProductionProject = {
 };
 
 // ---------------------------------------------------------------------------
+// ProductionItem — Produção/Entregas/Recursos de Operação (migration
+// `20260814300000_production_items.sql`). Uma tabela só, `kind` discrimina qual das 3 páginas
+// mostra a linha — as três têm o mesmo formato (título + cliente + status), não justificam 3
+// tabelas quase idênticas. `status_tone` é o mesmo union de `StatusTone`
+// (`components/dashboard/status-dot.tsx`) copiado aqui pra não importar um componente dentro da
+// camada de tipos do banco — os dois têm que ser mantidos em sincronia manualmente se
+// `StatusTone` ganhar um valor novo.
+// ---------------------------------------------------------------------------
+export type ProductionItemKind = "producao" | "entrega" | "conteudo";
+export type ProductionItemStatusTone = "active" | "pending" | "neutral" | "danger";
+
+export type ProductionItem = {
+  id: string;
+  kind: ProductionItemKind;
+  title: string;
+  client_id: string | null;
+  production_project_id: string | null;
+  status_label: string;
+  status_tone: ProductionItemStatusTone;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+};
+
+// ---------------------------------------------------------------------------
 // Revenue / Expense — Financeiro. `status` tem 4 valores de propósito (nunca um boolean
 // pago/não-pago) — o que um fluxo de cobrança futuro (fora de escopo agora) vai precisar
 // diferenciar sem migração de dado.
@@ -632,6 +657,7 @@ export type Database = {
       partner_shares: TableDef<PartnerShare>;
       revenue_goals: TableDef<RevenueGoal>;
       production_projects: TableDef<ProductionProject>;
+      production_items: TableDef<ProductionItem>;
     };
     Views: {
       /** `WHERE status IN ('published', 'archived')` — evita repetir esse filtro em toda

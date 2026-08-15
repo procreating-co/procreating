@@ -1,6 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import type { ProductionProject, User } from "@/lib/supabase/types/database";
+import type { ProductionItem, ProductionItemKind, ProductionProject, User } from "@/lib/supabase/types/database";
 
 export type ProductionProjectWithRelations = ProductionProject & {
   clientName: string;
@@ -51,4 +51,20 @@ export async function listTeamUsers(): Promise<User[]> {
   const supabase = await createClient();
   const { data } = await supabase.from("users").select("*").order("name");
   return data ?? [];
+}
+
+export type ProductionItemWithRelations = ProductionItem & { clientName: string | null };
+
+/** `kind` filtra qual das 3 páginas (Produção/Entregas/Recursos) — mesma tabela, mesmo motivo de
+ *  `listProductionProjects` não usar embed do PostgREST (join manual em TypeScript). */
+export async function listProductionItems(kind: ProductionItemKind): Promise<ProductionItemWithRelations[]> {
+  const supabase = await createClient();
+  const { data: items } = await supabase.from("production_items").select("*").eq("kind", kind).order("created_at", { ascending: false });
+  if (!items || items.length === 0) return [];
+
+  const clientIds = Array.from(new Set(items.map((item) => item.client_id).filter((id): id is string => id != null)));
+  const { data: clients } = clientIds.length > 0 ? await supabase.from("clients").select("id, name").in("id", clientIds) : { data: [] as { id: string; name: string }[] };
+  const clientNameById = new Map((clients ?? []).map((client) => [client.id, client.name]));
+
+  return items.map((item) => ({ ...item, clientName: item.client_id ? (clientNameById.get(item.client_id) ?? "Cliente removido") : null }));
 }
