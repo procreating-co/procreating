@@ -4,10 +4,12 @@ Documento de retomada. Se você é uma sessão nova retomando isto, comece por a
 o histórico inteiro — este arquivo é a fonte da verdade, não a memória de conversa de ninguém.
 
 **Atualização mais recente**: Passo 1 itens 1 e 2 concluídos e implantados (janela configurável
-+ RBAC mínimo). Item 3 (orquestrador de IA) **não iniciado** — parado no ponto exato exigido
-pela própria instrução da rodada: não existe `ANTHROPIC_API_KEY` real configurada em nenhum
-lugar (confirmado: `.env.local` não tem a variável; `vercel env ls` só lista as duas chaves do
-Supabase). Nenhuma linha do orquestrador foi escrita, nenhuma resposta de IA foi simulada.
++ RBAC mínimo). Item 3 (orquestrador de IA) e item 4 (Growth swipe) continuam **bloqueados** —
+perguntei ao usuário como seguir; a resposta foi "trabalhar em outra coisa do backlog enquanto
+isso". Duas coisas feitas nessa toada, ambas implantadas: batch actions na Lista de leads
+(§71) e ajuste de contraste do tema dark (branco puro removido). Bloqueios em si não mudaram:
+`ANTHROPIC_API_KEY` continua sem valor real em qualquer lugar (`.env.local`/Vercel), e a decisão
+de escopo do RBAC na Home/Planejamento continua em aberto.
 
 Escopo: só o Procreating OS (ERP interno — `app/(internal)/**`, `/admin`, `/clientes` etc.). O
 site público/portfolio de clientes (`/clients/[client]/**`, `/p/[client]/**`) é escopo de uma
@@ -38,6 +40,11 @@ o roadmap DELA, não deste ERP).
 - **Automação §72 — regras 1, 2 e 3**, incluindo janela de alerta configurável (ver seção
   própria abaixo).
 - **RBAC mínimo** (`can_view_financials`) — ver seção própria abaixo.
+- **Batch actions na Lista de leads** (§71) — seleção múltipla + toolbar contextual (Assign/Tag/
+  Strategy/Move/Export). Ver seção própria abaixo.
+- **Tema dark — contraste reduzido** — branco puro removido (texto e superfícies claras usam
+  `#E7E5E4` agora, não mais `#FFFFFF`/oklch~0.96-1), fundo `#0B0B0D`, texto secundário `#A1A1AA`.
+  Só `.os-shell[data-theme="dark"]`.
 - **`.env.example`** — `ANTHROPIC_API_KEY` documentada (sem valor), decisão de modelo já
   registrada (Claude API), integração NÃO escrita (ver seção IA abaixo — parada por falta de
   chave real, não por falta de tempo).
@@ -82,6 +89,32 @@ recomputação ao vivo (não rotina armazenada), mesmo motivo da regra 2.
 - Aparece em dois lugares: StatTile "Vence nos próximos N dias" em `/financeiro`, e um item na
   lista "Atenção" do Dashboard (`lib/dashboard/executive-metrics.ts`, `kind: "upcoming_revenue"`,
   clicável, mostra a lista real por trás do número).
+
+## Batch actions na Lista de leads (§71) — FEITO
+
+Trabalho de backlog (itens 3/4 do Passo 1 bloqueados, usuário pediu pra seguir com outra coisa
+útil enquanto isso). "Selecionar vários... toolbar contextual que só aparece com seleção". Do
+vocabulário do prompt (Assign/Tag/Strategy/Sequence/Move/Export/Archive), mapeado pro schema
+real: Assign→`owner_id`, Tag→`leads.tags`, Strategy→`strategy_id`, Move→`stage_id`,
+Export→CSV client-side. "Sequence" não virou ação própria (cadência já é derivada de
+`strategy_id`); "Archive" não existe no schema (mover pra "Perdido" já cobre o mesmo caso).
+
+- `components/comercial/leads-table.tsx` — checkbox por linha + "selecionar todos visíveis".
+- `components/comercial/bulk-actions-toolbar.tsx` — cada campo dispara na hora (sem botão
+  "Aplicar").
+- `lib/comercial/actions.ts` — `bulkAssignOwnerAction`, `bulkAssignStrategyAction`,
+  `bulkAddTagAction` (append, 1 leitura + 1 escrita por lead), `bulkMoveStageAction` (nunca
+  aceita `is_won` como destino, loga `stage_changed` por lead pro funil continuar correto).
+
+## Tema dark — contraste reduzido — FEITO
+
+Pedido explícito, fora do plano documentado (ajuste pontual). Branco puro removido de
+`.os-shell[data-theme="dark"]` — texto e superfícies claras (botão primário, item ativo da
+sidebar) usam `#E7E5E4` no lugar de `#FFFFFF`/oklch~0.96-1. Fundo mantido `#0B0B0D`, texto
+secundário `#A1A1AA`. Superfícies intermediárias (card/popover/secondary/muted/accent/border/
+chart) são uma rampa neutra derivada entre essas duas pontas — mesmo raciocínio já documentado
+no tema light v2. Só o dark do shell interno mudou; `:root` (`/admin`/`/clients`) e o light do
+shell não foram tocados.
 
 ## Growth como carrossel com swipe (§1-2, §45-47) — ADIADO, nada tocado
 
