@@ -29,6 +29,16 @@ export type PipelineOpportunity = {
   potentialMonthlyValue: number;
 };
 
+export type UpcomingReceivable = { id: string; description: string; amount: number; dueDate: string };
+
+/** Automação §72 regra 3 — "conta a receber vencendo em N dias → alerta interno". `status='
+ *  pendente'` (nunca `atrasado`, que já tem seu próprio alerta em `receivablesOverdue`) com
+ *  `due_date` dentro da janela (`UPCOMING_RECEIVABLES_WINDOW_DAYS`, `lib/financeiro/queries.ts`).
+ *  Recalculado ao vivo a cada carregamento — não um job/flag armazenado (não existe infra de cron
+ *  neste projeto; um valor sempre-atual é estritamente melhor que um batch que pode ficar
+ *  desatualizado por até 24h). */
+export type UpcomingReceivablesSummary = { total: number; windowDays: number; entries: UpcomingReceivable[] };
+
 export type FinanceiroMetrics = {
   mrr: number;
   revenueThisMonth: number;
@@ -49,4 +59,5 @@ export type FinanceiroMetrics = {
    *  como potencial, não realizado (regra explícita: negociação nunca vira receita). */
   pipelinePotentialMrr: number;
   pipelineOpportunities: PipelineOpportunity[];
+  upcomingReceivables: UpcomingReceivablesSummary;
 };

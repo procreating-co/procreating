@@ -352,7 +352,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
         ) : (
           <ul className="flex flex-col divide-y divide-border/60 rounded-xl border border-border/60 bg-card">
             {metrics.attention.map((item) => (
-              <AttentionRow key={item.label} item={item} overdueRevenue={d.overdueRevenue} overdueExpenses={d.overdueExpenses} />
+              <AttentionRow key={item.label} item={item} overdueRevenue={d.overdueRevenue} overdueExpenses={d.overdueExpenses} upcomingRevenue={d.upcomingRevenue} />
             ))}
           </ul>
         )}
@@ -421,12 +421,15 @@ function AttentionRow({
   item,
   overdueRevenue,
   overdueExpenses,
+  upcomingRevenue,
 }: {
-  item: { label: string; detail: string; tone: "danger" | "warning" | "success"; kind?: "overdue_revenue" | "overdue_expenses" | "cash_flow" };
+  item: { label: string; detail: string; tone: "danger" | "warning" | "success"; kind?: "overdue_revenue" | "overdue_expenses" | "upcoming_revenue" | "cash_flow" };
   overdueRevenue: DetailEntry[];
   overdueExpenses: DetailEntry[];
+  upcomingRevenue: DetailEntry[];
 }) {
-  const items = item.kind === "overdue_revenue" ? overdueRevenue : item.kind === "overdue_expenses" ? overdueExpenses : [];
+  const items =
+    item.kind === "overdue_revenue" ? overdueRevenue : item.kind === "overdue_expenses" ? overdueExpenses : item.kind === "upcoming_revenue" ? upcomingRevenue : [];
 
   const content = (
     <div className="flex items-center justify-between gap-4 px-5 py-3.5">

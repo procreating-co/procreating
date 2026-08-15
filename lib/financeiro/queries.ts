@@ -1,8 +1,13 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import { currentMonthKey, lastMonthKeys, monthKeyOf } from "@/lib/date";
+import { addDaysISO, currentMonthKey, lastMonthKeys, monthKeyOf, todayISO } from "@/lib/date";
 import type { Cost, Expense, Revenue } from "@/lib/supabase/types/database";
-import type { FinanceiroMetrics, MonthlyEvolutionPoint, MonthlyRevenueByClient, PipelineOpportunity } from "@/lib/financeiro/types";
+import type { FinanceiroMetrics, MonthlyEvolutionPoint, MonthlyRevenueByClient, PipelineOpportunity, UpcomingReceivablesSummary } from "@/lib/financeiro/types";
+
+/** Janela da automação §72 regra 3 ("vencendo em N dias") — fixa por enquanto (sem UI de
+ *  configuração ainda; ver `docs/execution-status.md` pro porquê de não ter sido feita nesta
+ *  sessão). 5 dias úteis de antecedência é o padrão adotado. */
+export const UPCOMING_RECEIVABLES_WINDOW_DAYS = 5;
 
 export async function listRevenue(): Promise<Revenue[]> {
   const supabase = await createClient();
@@ -104,6 +109,17 @@ export async function computeFinanceiroMetrics(evolutionMonths = 6): Promise<Fin
   }));
   const pipelinePotentialMrr = pipelineOpportunities.reduce((sum, lead) => sum + lead.potentialMonthlyValue, 0);
 
+  // Automação §72 regra 3 — só `pendente` (nunca `atrasado`, que já é `receivablesOverdue` acima
+  // — vencer daqui a N dias e já estar atrasado são dois avisos diferentes, nunca a mesma linha).
+  const today = todayISO();
+  const windowEnd = addDaysISO(today, UPCOMING_RECEIVABLES_WINDOW_DAYS);
+  const upcomingEntries = revenue.filter((row) => row.status === "pendente" && row.due_date >= today && row.due_date <= windowEnd);
+  const upcomingReceivables: UpcomingReceivablesSummary = {
+    total: upcomingEntries.reduce((sum, row) => sum + Number(row.amount), 0),
+    windowDays: UPCOMING_RECEIVABLES_WINDOW_DAYS,
+    entries: upcomingEntries.map((row) => ({ id: row.id, description: row.description, amount: Number(row.amount), dueDate: row.due_date })),
+  };
+
   return {
     mrr,
     revenueThisMonth,
@@ -117,5 +133,6 @@ export async function computeFinanceiroMetrics(evolutionMonths = 6): Promise<Fin
     monthlyEvolution,
     pipelinePotentialMrr,
     pipelineOpportunities,
+    upcomingReceivables,
   };
 }

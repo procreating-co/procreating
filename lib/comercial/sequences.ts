@@ -80,9 +80,14 @@ export function computeSuggestedAction(lead: { created_at: string }, steps: Sequ
 export type ExecutionQueueItem = { lead: LeadWithRelations; action: SuggestedAction };
 
 /** Fila de execução — só leads com estratégia (sem estratégia não há cadência pra seguir, seria
- *  inventar sugestão) cuja próxima ação já vence hoje ou está atrasada. Atrasado primeiro. */
+ *  inventar sugestão) cuja próxima ação já vence hoje ou está atrasada. Atrasado primeiro.
+ *
+ *  Automação §72 regra 2 (mesma condição de `pipeline-board.tsx#nextActionLabel`) — `leads`
+ *  (via `listOpenLeads`) já exclui quem virou cliente (`client_id is null`), mas NÃO excluía
+ *  "Perdido" (`is_lost`, que também nunca ganha `client_id`) — sem isto, um lead marcado perdido
+ *  ainda aparecia aqui sugerindo continuar a cadência. Corrigido. */
 export async function computeExecutionQueue(leads: LeadWithRelations[]): Promise<ExecutionQueueItem[]> {
-  const leadsWithStrategy = leads.filter((lead) => lead.strategy_id);
+  const leadsWithStrategy = leads.filter((lead) => lead.strategy_id && !lead.stage.is_lost);
   const strategyIds = Array.from(new Set(leadsWithStrategy.map((lead) => lead.strategy_id as string)));
   const [stepsByStrategy, progressByLead] = await Promise.all([listSequenceStepsByStrategies(strategyIds), loadSequenceProgress(leadsWithStrategy.map((lead) => lead.id))]);
 

@@ -51,6 +51,7 @@ export function LeadDetailDrawer({ lead, users, onOpenChange }: { lead: LeadWith
   const router = useRouter();
   const [patch, setPatch] = useState<LeadPatch>({});
   const [note, setNote] = useState("");
+  const [isPositiveResponse, setIsPositiveResponse] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
   const [quotes, setQuotes] = useState<QuoteWithItems[]>([]);
@@ -62,6 +63,7 @@ export function LeadDetailDrawer({ lead, users, onOpenChange }: { lead: LeadWith
     setPatch(toPatch(lead));
     setError(null);
     setNote("");
+    setIsPositiveResponse(false);
     setEvents([]);
     setQuotes([]);
     getLeadEventsAction(lead.id).then(setEvents);
@@ -91,12 +93,13 @@ export function LeadDetailDrawer({ lead, users, onOpenChange }: { lead: LeadWith
   function handleLogNote() {
     if (!lead || !note.trim()) return;
     startTransition(async () => {
-      const result = await logLeadActivityAction(lead.id, note);
+      const result = await logLeadActivityAction(lead.id, note, isPositiveResponse);
       if (!result.ok) {
         setError(result.error);
         return;
       }
       setNote("");
+      setIsPositiveResponse(false);
       getLeadEventsAction(lead.id).then(setEvents);
       router.refresh();
     });
@@ -242,6 +245,18 @@ export function LeadDetailDrawer({ lead, users, onOpenChange }: { lead: LeadWith
                 Registrar
               </Button>
             </div>
+            {/* Automação §72 regra 1 — marcar aqui move o lead pra "Respondeu" sozinho (só se
+             *  ele ainda não tiver passado desse estágio), reaproveitando a mesma ação do
+             *  Kanban. Nunca classificação por IA — é o humano dizendo "isto foi uma resposta". */}
+            <label className="flex items-center gap-2 text-xs text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={isPositiveResponse}
+                onChange={(e) => setIsPositiveResponse(e.target.checked)}
+                className="size-3.5 rounded border-input"
+              />
+              Foi uma resposta do lead — mover pra &ldquo;Respondeu&rdquo; automaticamente
+            </label>
             <div className="flex flex-col gap-2">
               {events.length === 0 ? (
                 <p className="text-xs text-muted-foreground">Nenhum evento registrado ainda.</p>

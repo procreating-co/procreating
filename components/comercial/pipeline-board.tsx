@@ -16,9 +16,17 @@ import { cn } from "@/lib/utils";
 const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
 /** "Próxima ação" do card — só aparece se `next_contact_at` existir de verdade (nunca inventado).
- *  Atrasado = tom `danger` (chama atenção sem precisar ler a data), hoje/futuro = neutro. */
-function nextActionLabel(nextContactAt: string | null): { label: string; overdue: boolean } | null {
-  if (!nextContactAt) return null;
+ *  Atrasado = tom `danger` (chama atenção sem precisar ler a data), hoje/futuro = neutro.
+ *
+ *  Automação §72 regra 2 ("lead sem contato há N dias → marcar como atrasado") — a condição
+ *  explícita é "lead não está em estágio terminal" (`is_won`/`is_lost`); sem isso, um negócio já
+ *  Fechado ou Perdido com `next_contact_at` antigo mostrava "Atrasado" igual a um lead ativo —
+ *  sinalização errada, corrigida aqui (terminal nunca mostra "próxima ação", faz sentido: não há
+ *  mais ação nenhuma a fazer). Preferi computar isto ao vivo (sempre no estado real) a uma
+ *  "rotina diária" armazenada — não existe infra de cron neste projeto ainda, e um flag
+ *  recalculado a cada carregamento nunca fica desatualizado por até 24h como um batch ficaria. */
+function nextActionLabel(nextContactAt: string | null, isTerminalStage: boolean): { label: string; overdue: boolean } | null {
+  if (!nextContactAt || isTerminalStage) return null;
   const dateOnly = nextContactAt.slice(0, 10);
   const today = todayISO();
   if (dateOnly < today) return { label: "Atrasado", overdue: true };
@@ -46,7 +54,7 @@ function OwnerChip({ owner }: { owner: User | undefined }) {
  *  e um `<button>` de × separado (exclui) porque HTML não permite botão dentro de botão; o ×
  *  chama `stopPropagation` pra não também abrir o drawer de leve. */
 function LeadCard({ lead, owner, dragging, onOpen, onRequestDelete }: { lead: LeadWithRelations; owner: User | undefined; dragging: boolean; onOpen: () => void; onRequestDelete: () => void }) {
-  const nextAction = nextActionLabel(lead.next_contact_at);
+  const nextAction = nextActionLabel(lead.next_contact_at, lead.stage.is_won || lead.stage.is_lost);
   return (
     <div
       draggable

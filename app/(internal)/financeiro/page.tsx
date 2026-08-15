@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { AlertTriangle, ArrowDownCircle, ArrowRight, ArrowUpCircle, Clock, TrendingUp, Wallet } from "lucide-react";
+import { AlertTriangle, ArrowDownCircle, ArrowRight, ArrowUpCircle, CalendarClock, Clock, TrendingUp, Wallet } from "lucide-react";
 import { computeFinanceiroMetrics, listCosts, listExpenses, listRevenue } from "@/lib/financeiro/queries";
 import { computeDistribution } from "@/lib/financeiro/rules";
 import { updateExpenseStatusAction, updateRevenueStatusAction } from "@/lib/financeiro/actions";
@@ -155,6 +155,13 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: P
           <StatTile demo={false} label="Despesas este mês" value={currencyFormatter.format(metrics.expensesThisMonth)} icon={<ArrowDownCircle className="size-4.5" />} tone="info" />
           <StatTile demo={false} label="A receber (pendente)" value={currencyFormatter.format(metrics.receivablesPending)} icon={<Clock className="size-4.5" />} tone="warning" />
           <StatTile demo={false} label="A receber (atrasado)" value={currencyFormatter.format(metrics.receivablesOverdue)} icon={<AlertTriangle className="size-4.5" />} tone="danger" />
+          <StatTile
+            demo={false}
+            label={`Vence nos próximos ${metrics.upcomingReceivables.windowDays} dias`}
+            value={currencyFormatter.format(metrics.upcomingReceivables.total)}
+            icon={<CalendarClock className="size-4.5" />}
+            tone="warning"
+          />
           <StatTile demo={false} label="A pagar (pendente + atrasado)" value={currencyFormatter.format(metrics.payablesPending + metrics.payablesOverdue)} icon={<Wallet className="size-4.5" />} tone="warning" />
         </div>
 

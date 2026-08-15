@@ -82,7 +82,7 @@ export type ExecutiveMetrics = {
   };
   operations: { headcount: number };
   team: { headcount: number };
-  attention: { label: string; detail: string; tone: "danger" | "warning" | "success"; kind?: "overdue_revenue" | "overdue_expenses" | "cash_flow" }[];
+  attention: { label: string; detail: string; tone: "danger" | "warning" | "success"; kind?: "overdue_revenue" | "overdue_expenses" | "upcoming_revenue" | "cash_flow" }[];
   pulse: string[];
   details: {
     revenueEntries: DetailEntry[];
@@ -95,6 +95,7 @@ export type ExecutiveMetrics = {
     teamMembers: DetailEntry[];
     overdueRevenue: DetailEntry[];
     overdueExpenses: DetailEntry[];
+    upcomingRevenue: DetailEntry[];
   };
 };
 
@@ -324,6 +325,17 @@ export async function computeExecutiveDashboard(cashFlowMonths = 6): Promise<Exe
       kind: "overdue_expenses",
     });
   }
+  // Automação §72 regra 3 — "conta a receber vencendo em N dias → alerta interno". Distinto de
+  // `overdue_revenue` acima (isto ainda não venceu, é aviso antecipado).
+  if (financeiro.upcomingReceivables.entries.length > 0) {
+    const count = financeiro.upcomingReceivables.entries.length;
+    attention.push({
+      label: `${count} conta${count === 1 ? "" : "s"} a receber vencendo em até ${financeiro.upcomingReceivables.windowDays} dias`,
+      detail: `${formatCurrency(financeiro.upcomingReceivables.total)} a confirmar`,
+      tone: "warning",
+      kind: "upcoming_revenue",
+    });
+  }
   attention.push({
     label: cashFlowThisMonth >= 0 ? "Fluxo de caixa positivo" : "Fluxo de caixa negativo",
     detail: `${cashFlowThisMonth >= 0 ? "+" : ""}${formatCurrency(cashFlowThisMonth)} este mês`,
@@ -418,6 +430,11 @@ export async function computeExecutiveDashboard(cashFlowMonths = 6): Promise<Exe
         label: row.description || row.category,
         value: currency(Number(row.amount)),
         meta: `venceu ${shortDate(row.due_date)}`,
+      })),
+      upcomingRevenue: financeiro.upcomingReceivables.entries.map((entry) => ({
+        label: entry.description,
+        value: currency(entry.amount),
+        meta: `vence ${shortDate(entry.dueDate)}`,
       })),
     },
   };

@@ -222,7 +222,15 @@ export async function moveLeadStageAction(leadId: string, toStageId: string): Pr
   return { ok: true };
 }
 
-export async function logLeadActivityAction(leadId: string, message: string): Promise<ActionResult> {
+/**
+ * `isPositiveResponse` — Automação §72, regra 1: "lead respondeu → mover pra 'Respondeu'
+ * sozinho". Trigger é este mesmo registro de contato (checkbox no drawer, não classificação por
+ * IA); condição é o lead ainda não ter passado desse estágio; ação é `moveLeadStageAction` — a
+ * MESMA função que o drag-and-drop do Kanban já chama, nunca uma segunda lógica de troca de
+ * estágio. Nenhuma automação futura deve reimplementar "mover estágio" — sempre compor em cima
+ * desta função.
+ */
+export async function logLeadActivityAction(leadId: string, message: string, isPositiveResponse = false): Promise<ActionResult> {
   if (!message.trim()) return { ok: false, error: "Escreva algo antes de salvar." };
 
   const userId = await getCurrentUserId();
@@ -232,17 +240,26 @@ export async function logLeadActivityAction(leadId: string, message: string): Pr
     entity_id: leadId,
     actor_id: userId,
     type: "note_added",
-    metadata: { message },
+    metadata: { message, positive_response: isPositiveResponse },
   });
   if (error) return { ok: false, error: error.message };
 
   // `contact_attempts` incrementa sozinho aqui — nunca é um campo pra digitar na mão, é uma
   // contagem do que já aconteceu (mesmo espírito de "dado derivado, não recadastrado").
-  const { data: current } = await supabase.from("leads").select("contact_attempts").eq("id", leadId).maybeSingle();
+  const { data: current } = await supabase.from("leads").select("contact_attempts, stage_id").eq("id", leadId).maybeSingle();
   await supabase
     .from("leads")
     .update({ last_contact_at: nowISO(), contact_attempts: (current?.contact_attempts ?? 0) + 1 })
     .eq("id", leadId);
+
+  if (isPositiveResponse && current?.stage_id) {
+    const stages = await listPipelineStages();
+    const respondeuStage = stages.find((stage) => stage.key === "respondeu");
+    const currentStage = stages.find((stage) => stage.id === current.stage_id);
+    if (respondeuStage && currentStage && currentStage.sort_order < respondeuStage.sort_order) {
+      await moveLeadStageAction(leadId, respondeuStage.id);
+    }
+  }
 
   revalidatePath("/comercial");
   return { ok: true };
