@@ -4,9 +4,9 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { getClientFull } from "@/lib/clientes/queries";
 import { ClientStatusSelect } from "@/components/clientes/client-status-select";
+import { ClientInfoDialog } from "@/components/clientes/client-info-dialog";
+import { ContractsSection } from "@/components/clientes/contracts-section";
 import { OnboardingTasksList } from "@/components/clientes/onboarding-tasks-list";
-import { StatusDot } from "@/components/dashboard/status-dot";
-import { CONTRACT_CATEGORY_LABEL, CONTRACT_CATEGORY_TONE } from "@/lib/financeiro/contract-category";
 
 type Params = { id: string };
 
@@ -52,7 +52,10 @@ export default async function ClienteDetailPage({ params }: { params: Promise<Pa
           <h1 className="font-display text-3xl">{client.name}</h1>
           {strategy && <p className="text-sm text-muted-foreground">Veio da estratégia "{strategy.name}"</p>}
         </div>
-        <ClientStatusSelect clientId={client.id} status={client.status} />
+        <div className="flex items-center gap-2">
+          <ClientStatusSelect clientId={client.id} status={client.status} />
+          <ClientInfoDialog client={client} />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -85,40 +88,7 @@ export default async function ClienteDetailPage({ params }: { params: Promise<Pa
             </section>
           )}
 
-          <section className="flex flex-col gap-3 rounded-xl border border-border/60 bg-card/40 p-5">
-            <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Contrato{contracts.length > 1 ? "s" : ""}</h2>
-            {contracts.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nenhum contrato registrado.</p>
-            ) : (
-              contracts.map((contract) => (
-                <div key={contract.id} className="flex flex-col gap-2 border-t border-border/60 pt-3 text-sm first:border-t-0 first:pt-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-medium capitalize">{contract.type}</span>
-                    <StatusDot tone={CONTRACT_CATEGORY_TONE[contract.category]} label={CONTRACT_CATEGORY_LABEL[contract.category]} />
-                    <span className="text-muted-foreground">
-                      {dateFormatter.format(new Date(contract.start_date))}
-                      {contract.end_date ? ` até ${dateFormatter.format(new Date(contract.end_date))}` : ""}
-                    </span>
-                  </div>
-                  <p className="text-muted-foreground">
-                    {contract.type === "recorrente"
-                      ? `${currencyFormatter.format(Number(contract.monthly_value ?? 0))}/mês · vencimento dia ${contract.due_day ?? "—"}`
-                      : currencyFormatter.format(Number(contract.total_value ?? 0))}
-                  </p>
-                  {contract.scopeItems.length > 0 && (
-                    <ul className="flex flex-col gap-1 text-muted-foreground">
-                      {contract.scopeItems.map((item) => (
-                        <li key={item.id}>
-                          · {item.service}
-                          {item.quantity ? ` (${item.quantity}${item.frequency ? `, ${item.frequency}` : ""})` : ""}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              ))
-            )}
-          </section>
+          <ContractsSection clientId={client.id} contracts={contracts} />
 
           <section className="flex flex-col gap-3 rounded-xl border border-border/60 bg-card/40 p-5">
             <div className="flex items-center justify-between">

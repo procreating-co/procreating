@@ -82,6 +82,10 @@ export type Client = {
   status: ClientStatus;
   document: string | null;
   segment: string | null;
+  /** Adicionados na migration do seed de dados reais (`20260815040000`) — não estavam no tipo
+   *  ainda (gap encontrado agora, corrigindo). */
+  city: string | null;
+  state: string | null;
   /** Estratégia comercial de origem (`Strategy`, abaixo) — `null` quando o cliente não veio de
    *  uma estratégia formal. Adicionado na migration de Comercial/Financeiro/Onboarding, pra essa
    *  estratégia continuar recebendo crédito pela receita gerada (ver `Lead.strategy_id`). */

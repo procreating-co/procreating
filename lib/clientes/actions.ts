@@ -18,3 +18,27 @@ export async function updateClientStatusAction(clientId: string, status: ClientS
   revalidatePath("/clientes");
   return { ok: true };
 }
+
+export type ClientInfoPatch = { name: string; document: string | null; segment: string | null; city: string | null; state: string | null };
+
+export async function updateClientInfoAction(clientId: string, patch: ClientInfoPatch): Promise<ActionResult> {
+  if (!patch.name.trim()) return { ok: false, error: "Informe o nome do cliente." };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("clients")
+    .update({
+      name: patch.name.trim(),
+      document: patch.document || null,
+      segment: patch.segment || null,
+      city: patch.city || null,
+      state: patch.state || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", clientId);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath(`/clientes/${clientId}`);
+  revalidatePath("/clientes");
+  return { ok: true };
+}
