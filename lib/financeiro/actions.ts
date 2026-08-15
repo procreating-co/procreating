@@ -2,20 +2,24 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUserId } from "@/lib/supabase/current-user";
+import { requireFinancialAccess } from "@/lib/auth/permissions";
 import { todayISO } from "@/lib/date";
 import type { CostInput, ExpenseInput } from "@/lib/financeiro/types";
 import type { FinancialEntryStatus } from "@/lib/supabase/types/database";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
+// RBAC mínimo (Passo 1 item 2) — toda action deste arquivo chama `requireFinancialAccess()`
+// primeiro (owner/admin/finance apenas). Substitui as chamadas soltas a `getCurrentUserId()`
+// que existiam antes: o resultado da permissão já traz `userId`, uma ida a menos ao servidor.
+
 export async function createExpenseAction(input: ExpenseInput): Promise<ActionResult> {
+  const access = await requireFinancialAccess();
+  if (!access.ok) return access;
+
   if (!input.category.trim()) return { ok: false, error: "Informe a categoria." };
   if (!input.description.trim()) return { ok: false, error: "Informe a descrição." };
   if (!input.dueDate) return { ok: false, error: "Informe o vencimento." };
-
-  const userId = await getCurrentUserId();
-  if (!userId) return { ok: false, error: "Sessão expirada — faça login de novo." };
 
   const supabase = await createClient();
   const { error } = await supabase.from("expenses").insert({
@@ -23,7 +27,7 @@ export async function createExpenseAction(input: ExpenseInput): Promise<ActionRe
     description: input.description,
     amount: input.amount,
     due_date: input.dueDate,
-    created_by: userId,
+    created_by: access.userId,
   });
   if (error) return { ok: false, error: error.message };
 
@@ -35,6 +39,9 @@ export async function createExpenseAction(input: ExpenseInput): Promise<ActionRe
  *  em código). Atualiza a linha mais recente de `financial_rules` (mesma tabela de config de 1
  *  linha que `operational_percentage` já usa) — nunca cria uma segunda linha. */
 export async function updateReceivablesAlertDaysAction(days: number): Promise<ActionResult> {
+  const access = await requireFinancialAccess();
+  if (!access.ok) return access;
+
   if (!Number.isFinite(days) || days <= 0) return { ok: false, error: "Informe um número de dias maior que zero." };
 
   const supabase = await createClient();
@@ -51,6 +58,9 @@ export async function updateReceivablesAlertDaysAction(days: number): Promise<Ac
 }
 
 export async function updateRevenueStatusAction(id: string, status: FinancialEntryStatus): Promise<ActionResult> {
+  const access = await requireFinancialAccess();
+  if (!access.ok) return access;
+
   const supabase = await createClient();
   const { error } = await supabase
     .from("revenue")
@@ -63,6 +73,9 @@ export async function updateRevenueStatusAction(id: string, status: FinancialEnt
 }
 
 export async function updateExpenseStatusAction(id: string, status: FinancialEntryStatus): Promise<ActionResult> {
+  const access = await requireFinancialAccess();
+  if (!access.ok) return access;
+
   const supabase = await createClient();
   const { error } = await supabase
     .from("expenses")
@@ -75,11 +88,11 @@ export async function updateExpenseStatusAction(id: string, status: FinancialEnt
 }
 
 export async function createCostAction(input: CostInput): Promise<ActionResult> {
+  const access = await requireFinancialAccess();
+  if (!access.ok) return access;
+
   if (!input.name.trim()) return { ok: false, error: "Informe o nome do custo." };
   if (!input.category.trim()) return { ok: false, error: "Informe a categoria." };
-
-  const userId = await getCurrentUserId();
-  if (!userId) return { ok: false, error: "Sessão expirada — faça login de novo." };
 
   const supabase = await createClient();
   const { error } = await supabase.from("costs").insert({
@@ -87,7 +100,7 @@ export async function createCostAction(input: CostInput): Promise<ActionResult> 
     amount: input.amount,
     category: input.category,
     recurrence: input.recurrence,
-    created_by: userId,
+    created_by: access.userId,
   });
   if (error) return { ok: false, error: error.message };
 
@@ -96,6 +109,9 @@ export async function createCostAction(input: CostInput): Promise<ActionResult> 
 }
 
 export async function deleteCostAction(id: string): Promise<ActionResult> {
+  const access = await requireFinancialAccess();
+  if (!access.ok) return access;
+
   const supabase = await createClient();
   const { error } = await supabase.from("costs").delete().eq("id", id);
   if (error) return { ok: false, error: error.message };

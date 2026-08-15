@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { AlertTriangle, ArrowDownCircle, ArrowRight, ArrowUpCircle, CalendarClock, Clock, TrendingUp, Wallet } from "lucide-react";
+import { AlertTriangle, ArrowDownCircle, ArrowRight, ArrowUpCircle, CalendarClock, Clock, ShieldAlert, TrendingUp, Wallet } from "lucide-react";
 import { computeFinanceiroMetrics, listCosts, listExpenses, listRevenue } from "@/lib/financeiro/queries";
 import { computeDistribution } from "@/lib/financeiro/rules";
 import { updateExpenseStatusAction, updateRevenueStatusAction } from "@/lib/financeiro/actions";
+import { requireFinancialAccess } from "@/lib/auth/permissions";
 import { StatTile } from "@/components/dashboard/stat-tile";
 import { RevenueChart } from "@/components/financeiro/revenue-chart";
 import { SectionHeader } from "@/components/dashboard/section-header";
@@ -14,6 +15,7 @@ import { PeriodSelect } from "@/components/dashboard/period-select";
 import { FinancialEntriesTable } from "@/components/financeiro/financial-entries-table";
 import { DespesasToolbar } from "@/components/financeiro/despesas-toolbar";
 import { CostsList } from "@/components/financeiro/costs-list";
+import { EmptyState } from "@/components/dashboard/empty-state";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
@@ -39,6 +41,17 @@ const TABS = [
  * `lib/supabase/types/database.ts` sobre `Cost` vs `Expense`).
  */
 export default async function FinanceiroPage({ searchParams }: { searchParams: Promise<{ tab?: string; months?: string; status?: string }> }) {
+  // RBAC mínimo (Passo 1 item 2) — owner/admin/finance apenas. Página inteira, todas as abas
+  // (a mesma sessão que abriria qualquer aba consultaria a mesma tabela `revenue`/`expenses`).
+  const access = await requireFinancialAccess();
+  if (!access.ok) {
+    return (
+      <main className="mx-auto flex max-w-[1400px] flex-col px-6 pt-8 pb-16 lg:px-10">
+        <EmptyState icon={ShieldAlert} title="Sem acesso" description={access.error} />
+      </main>
+    );
+  }
+
   const { tab: tabParam, months: monthsParam, status: statusParam } = await searchParams;
   const tab = tabParam ?? "overview";
   const statusFilter: "pendentes" | "todas" = statusParam === "todas" ? "todas" : "pendentes";

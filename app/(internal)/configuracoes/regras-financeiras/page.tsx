@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
-import { CalendarClock, Wallet } from "lucide-react";
+import { CalendarClock, ShieldAlert, Wallet } from "lucide-react";
 import { computeDistribution, getFinancialRule } from "@/lib/financeiro/rules";
+import { requireFinancialAccess } from "@/lib/auth/permissions";
 import { ReceivablesAlertDaysField } from "@/components/configuracoes/receivables-alert-days-field";
+import { EmptyState } from "@/components/dashboard/empty-state";
 
 export const metadata: Metadata = {
   title: "Regras financeiras — Procreating",
@@ -18,6 +20,16 @@ const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", cu
  * config de 1 linha, sem criar um sistema de settings genérico só pra isto.
  */
 export default async function RegrasFinanceirasPage() {
+  // RBAC mínimo (Passo 1 item 2) — owner/admin/finance apenas.
+  const access = await requireFinancialAccess();
+  if (!access.ok) {
+    return (
+      <main className="mx-auto flex max-w-[1400px] flex-col px-6 pt-8 pb-16 lg:px-10">
+        <EmptyState icon={ShieldAlert} title="Sem acesso" description={access.error} />
+      </main>
+    );
+  }
+
   const rule = await getFinancialRule();
   const operationalPercentage = rule?.operational_percentage ?? 20;
   const receivablesAlertDays = rule?.receivables_alert_days ?? 5;
