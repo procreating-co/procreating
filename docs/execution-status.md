@@ -106,6 +106,23 @@ Export→CSV client-side. "Sequence" não virou ação própria (cadência já �
   `bulkAddTagAction` (append, 1 leitura + 1 escrita por lead), `bulkMoveStageAction` (nunca
   aceita `is_won` como destino, loga `stage_changed` por lead pro funil continuar correto).
 
+## Bug real do tema dark — tokens novos herdando do light — CORRIGIDO
+
+Achado pelo usuário: cards do Pipeline com fundo branco/creme sólido em tema escuro, hover da
+sidebar branco. Causa raiz: `--kanban-*`, `--sidebar-hover`, `--sidebar-muted-foreground`,
+`--input-background*`/`--input-placeholder` (todos criados na v2 do tema) só tinham valor no
+bloco `.os-shell` (light) — nunca foram redefinidos em `.os-shell[data-theme="dark"]`. CSS
+custom property resolve por propriedade, não por bloco: sem redefinição no dark, o valor
+continuava vindo do light mesmo dentro do dark (o fallback do `@theme inline` só serve pra
+propriedade totalmente indefinida, não é este caso). Corrigido explicitando os 2 grupos no bloco
+dark, mesmos tons do resto da paleta escura.
+
+**Verificação**: sem screenshot literal de `/comercial` logado — Playwright não instala Chromium
+neste ambiente ("does not support chromium on mac12"). Confirmado na CSS compilada pós-build:
+cada token afetado agora tem 2 valores distintos (light e dark) em vez de herdar 1 só. Recomendo
+uma conferência visual rápida sua em produção (Pipeline + hover da sidebar, tema escuro) — não
+consegui fazer isso sozinho neste ambiente.
+
 ## Tema dark — contraste reduzido — FEITO
 
 Pedido explícito, fora do plano documentado (ajuste pontual). Branco puro removido de
