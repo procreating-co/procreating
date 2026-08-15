@@ -3,9 +3,16 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserId } from "@/lib/supabase/current-user";
-import type { ProductionItemKind, ProductionItemStatusTone, ProductionProjectStatus } from "@/lib/supabase/types/database";
+import { listTeamUsers } from "@/lib/operacao/queries";
+import type { ProductionItemKind, ProductionItemStatusTone, ProductionProjectStatus, User } from "@/lib/supabase/types/database";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
+
+/** Wrapper `"use server"` — `lib/operacao/queries.ts` é `server-only`, só chamável de Server
+ *  Component; o parser de tarefa por linha única (`@Nome`, `QuickAddMenu`) roda no client. */
+export async function listTeamUsersAction(): Promise<User[]> {
+  return listTeamUsers();
+}
 
 export type ProductionProjectInput = {
   name: string;

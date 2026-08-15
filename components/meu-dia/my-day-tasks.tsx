@@ -1,35 +1,55 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarCheck, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/dashboard/empty-state";
 import { createTaskAction, updateTaskStatusAction } from "@/lib/tasks/actions";
-import type { Task } from "@/lib/supabase/types/database";
+import { describeQuickTaskPreview, parseQuickTask } from "@/lib/tasks/quick-parse";
+import type { Task, User } from "@/lib/supabase/types/database";
 import { cn } from "@/lib/utils";
 
 const dateFormatter = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit" });
 
-export function MyDayTasks({ tasks, userId }: { tasks: Task[]; userId: string }) {
+/**
+ * Master prompt §49/§50 — uma linha só, o parser entende data/hora/responsável, sem abrir campos
+ * separados. "Editar vídeo amanhã às 15h" ↵ → task pra amanhã, 15h, comigo. "@Eduardo editar
+ * vídeo amanhã às 15h" ↵ → mesma coisa, responsável Eduardo. `parseQuickTask` roda a cada tecla
+ * só pro preview (nada é salvo até enviar) e de novo no submit — mesma função, sem duplicar regra.
+ */
+export function MyDayTasks({ tasks, userId, teamMembers }: { tasks: Task[]; userId: string; teamMembers: User[] }) {
   const router = useRouter();
-  const [title, setTitle] = useState("");
-  const [dueDate, setDueDate] = useState("");
+  const [text, setText] = useState("");
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
+  const preview = useMemo(() => describeQuickTaskPreview(text, teamMembers), [text, teamMembers]);
+
   function handleCreate(e: React.FormEvent) {
     e.preventDefault();
+    if (!text.trim()) return;
     setError(null);
+    const result = parseQuickTask(text, teamMembers);
+    if (!result.title) {
+      setError("A tarefa ficou sem título depois de tirar data/hora/responsável — reescreva.");
+      return;
+    }
     startTransition(async () => {
-      const result = await createTaskAction({ title, assigneeId: userId, dueDate: dueDate || null, contextType: null, contextId: null });
-      if (!result.ok) {
-        setError(result.error);
+      const created = await createTaskAction({
+        title: result.title,
+        assigneeId: result.assigneeId ?? userId,
+        dueDate: result.dueDate,
+        dueTime: result.dueTime,
+        contextType: null,
+        contextId: null,
+      });
+      if (!created.ok) {
+        setError(created.error);
         return;
       }
-      setTitle("");
-      setDueDate("");
+      setText("");
       router.refresh();
     });
   }
@@ -46,23 +66,20 @@ export function MyDayTasks({ tasks, userId }: { tasks: Task[]; userId: string })
 
   return (
     <div className="flex flex-col gap-8">
-      <form onSubmit={handleCreate} className="flex flex-col gap-3 rounded-xl border border-border/60 bg-card/40 p-5 sm:flex-row sm:items-end">
-        <div className="flex flex-1 flex-col gap-2">
-          <label htmlFor="task-title" className="text-xs text-muted-foreground">
-            Nova tarefa
-          </label>
-          <Input id="task-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="O que precisa ser feito hoje?" required />
+      <form onSubmit={handleCreate} className="flex flex-col gap-2 rounded-xl border border-border/60 bg-card/40 p-5">
+        <div className="flex items-center gap-3">
+          <Input
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder='"Editar vídeo amanhã às 15h" ou "@Eduardo ligar pro cliente sexta"'
+            className="flex-1"
+          />
+          <Button type="submit" disabled={isPending || !text.trim()} className="shrink-0 gap-2">
+            <Plus className="size-4" />
+            Adicionar
+          </Button>
         </div>
-        <div className="flex flex-col gap-2">
-          <label htmlFor="task-due" className="text-xs text-muted-foreground">
-            Prazo
-          </label>
-          <Input id="task-due" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="sm:w-40" />
-        </div>
-        <Button type="submit" disabled={isPending} className="gap-2">
-          <Plus className="size-4" />
-          Adicionar
-        </Button>
+        {text.trim() && <p className="text-xs text-muted-foreground">{preview}</p>}
       </form>
       {error && <p className="text-sm text-destructive">{error}</p>}
 
@@ -99,7 +116,12 @@ function TaskGroup({ title, tasks, onToggle, disabled }: { title: string; tasks:
               className="size-4 rounded border-input"
             />
             <span className={cn("flex-1 text-sm", task.status === "done" && "text-muted-foreground line-through")}>{task.title}</span>
-            {task.due_date && <span className="text-xs text-muted-foreground">{dateFormatter.format(new Date(`${task.due_date}T00:00:00`))}</span>}
+            {task.due_date && (
+              <span className="text-xs text-muted-foreground">
+                {dateFormatter.format(new Date(`${task.due_date}T00:00:00`))}
+                {task.due_time && ` · ${task.due_time.slice(0, 5)}`}
+              </span>
+            )}
           </li>
         ))}
       </ul>

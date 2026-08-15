@@ -19,6 +19,7 @@ export async function createTaskAction(input: TaskInput): Promise<ActionResult> 
     title: input.title,
     assignee_id: input.assigneeId,
     due_date: input.dueDate,
+    due_time: input.dueTime ?? null,
     context_type: input.contextType ?? null,
     context_id: input.contextId ?? null,
     created_by: userId,

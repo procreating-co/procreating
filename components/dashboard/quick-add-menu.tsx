@@ -13,10 +13,12 @@ import { ExpenseFormDialog } from "@/components/financeiro/expense-form-dialog";
 import { OnboardingModal } from "@/components/onboarding/onboarding-modal";
 import { createWonLeadForSaleAction, listStrategiesAction } from "@/lib/comercial/actions";
 import { createTaskAction } from "@/lib/tasks/actions";
+import { describeQuickTaskPreview, parseQuickTask } from "@/lib/tasks/quick-parse";
 import { inviteTeamMemberAction } from "@/lib/admin/auth/actions";
+import { listTeamUsersAction } from "@/lib/operacao/actions";
 import { useAdminUser } from "@/lib/admin/auth/auth-context";
 import type { LeadWithRelations } from "@/lib/comercial/types";
-import type { Strategy, UserRole } from "@/lib/supabase/types/database";
+import type { Strategy, User, UserRole } from "@/lib/supabase/types/database";
 
 type Step = "picker" | "lead" | "venda" | "despesa" | "tarefa" | "equipe";
 
@@ -56,13 +58,14 @@ export function QuickAddMenu() {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<Step>("picker");
   const [strategies, setStrategies] = useState<Strategy[]>([]);
+  const [teamMembers, setTeamMembers] = useState<User[]>([]);
 
   const [saleName, setSaleName] = useState("");
   const [saleValue, setSaleValue] = useState("");
   const [saleLead, setSaleLead] = useState<LeadWithRelations | null>(null);
   const [saleError, setSaleError] = useState<string | null>(null);
 
-  const [taskTitle, setTaskTitle] = useState("");
+  const [taskText, setTaskText] = useState("");
   const [taskError, setTaskError] = useState<string | null>(null);
 
   const [teamName, setTeamName] = useState("");
@@ -77,7 +80,10 @@ export function QuickAddMenu() {
     if (step === "lead" && strategies.length === 0) {
       listStrategiesAction().then(setStrategies);
     }
-  }, [step, strategies.length]);
+    if (step === "tarefa" && teamMembers.length === 0) {
+      listTeamUsersAction().then(setTeamMembers);
+    }
+  }, [step, strategies.length, teamMembers.length]);
 
   function closeAll() {
     setOpen(false);
@@ -86,7 +92,7 @@ export function QuickAddMenu() {
     setSaleValue("");
     setSaleLead(null);
     setSaleError(null);
-    setTaskTitle("");
+    setTaskText("");
     setTaskError(null);
     setTeamName("");
     setTeamEmail("");
@@ -111,10 +117,22 @@ export function QuickAddMenu() {
 
   function handleTaskSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!taskTitle.trim()) return;
+    if (!taskText.trim()) return;
     setTaskError(null);
+    const parsed = parseQuickTask(taskText, teamMembers);
+    if (!parsed.title) {
+      setTaskError("A tarefa ficou sem título depois de tirar data/hora/responsável — reescreva.");
+      return;
+    }
     startTransition(async () => {
-      const result = await createTaskAction({ title: taskTitle.trim(), assigneeId: user.id, dueDate: null, contextType: null, contextId: null });
+      const result = await createTaskAction({
+        title: parsed.title,
+        assigneeId: parsed.assigneeId ?? user.id,
+        dueDate: parsed.dueDate,
+        dueTime: parsed.dueTime,
+        contextType: null,
+        contextId: null,
+      });
       if (!result.ok) {
         setTaskError(result.error);
         return;
@@ -271,8 +289,16 @@ export function QuickAddMenu() {
                 <DialogTitle>Nova tarefa</DialogTitle>
               </DialogHeader>
               <div className="flex flex-col gap-2">
-                <Label htmlFor="task-title">O quê?</Label>
-                <Input id="task-title" value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)} required autoFocus />
+                <Label htmlFor="task-title">O quê, quando, com quem?</Label>
+                <Input
+                  id="task-title"
+                  value={taskText}
+                  onChange={(e) => setTaskText(e.target.value)}
+                  placeholder='"Editar vídeo amanhã às 15h" ou "@Eduardo ligar pro cliente sexta"'
+                  required
+                  autoFocus
+                />
+                {taskText.trim() && <p className="text-xs text-muted-foreground">{describeQuickTaskPreview(taskText, teamMembers)}</p>}
               </div>
               {taskError && (
                 <p role="alert" className="text-sm text-destructive">

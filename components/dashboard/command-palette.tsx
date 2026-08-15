@@ -6,8 +6,11 @@ import { Building2, CheckSquare2, Handshake, ListChecks, Receipt, Search, Settin
 import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { searchCommandPaletteAction, type CommandPaletteResults } from "@/lib/command-palette/search";
 import { createTaskAction } from "@/lib/tasks/actions";
+import { parseQuickTask } from "@/lib/tasks/quick-parse";
 import { createLeadAction, createStrategyAction } from "@/lib/comercial/actions";
+import { listTeamUsersAction } from "@/lib/operacao/actions";
 import { useAdminUser } from "@/lib/admin/auth/auth-context";
+import type { User } from "@/lib/supabase/types/database";
 import { cn } from "@/lib/utils";
 
 type QuickNavItem = { label: string; href: string; icon: LucideIcon };
@@ -42,6 +45,7 @@ export function CommandPalette() {
   const [isPending, startTransition] = useTransition();
   const [isCreating, startCreateTransition] = useTransition();
   const [createError, setCreateError] = useState<string | null>(null);
+  const [teamMembers, setTeamMembers] = useState<User[]>([]);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -54,6 +58,14 @@ export function CommandPalette() {
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
   }, []);
+
+  // Só carrega ao abrir de verdade (não no mount de todo `layout.tsx`) — "Criar tarefa" com
+  // `@mention` (mesmo parser de `MyDayTasks`/`QuickAddMenu`) precisa da lista de responsáveis.
+  useEffect(() => {
+    if (open && teamMembers.length === 0) {
+      listTeamUsersAction().then(setTeamMembers);
+    }
+  }, [open, teamMembers.length]);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -80,10 +92,22 @@ export function CommandPalette() {
   // pra caber aqui, ver o plano). Ao contrário de `navigate`, NÃO troca de tela — cria e fica
   // onde o usuário estava, `router.refresh()` só pra revalidar o que já estiver visível.
   const createTask = useCallback(
-    (title: string) => {
+    (rawText: string) => {
       setCreateError(null);
+      const parsed = parseQuickTask(rawText, teamMembers);
+      if (!parsed.title) {
+        setCreateError("A tarefa ficou sem título depois de tirar data/hora/responsável — reescreva.");
+        return;
+      }
       startCreateTransition(async () => {
-        const result = await createTaskAction({ title, assigneeId: user.id, dueDate: null, contextType: null, contextId: null });
+        const result = await createTaskAction({
+          title: parsed.title,
+          assigneeId: parsed.assigneeId ?? user.id,
+          dueDate: parsed.dueDate,
+          dueTime: parsed.dueTime,
+          contextType: null,
+          contextId: null,
+        });
         if (!result.ok) {
           setCreateError(result.error);
           return;
@@ -93,7 +117,7 @@ export function CommandPalette() {
         router.refresh();
       });
     },
-    [router, user.id],
+    [router, user.id, teamMembers],
   );
 
   const createLead = useCallback(

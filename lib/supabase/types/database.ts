@@ -483,6 +483,9 @@ export type Task = {
   status: TaskStatus;
   assignee_id: string | null;
   due_date: string | null;
+  /** "HH:MM:SS" — só quando o texto de criação mencionava uma hora ("amanhã às 15h"). `null` é o
+   *  caso comum (só data, ou nem isso). Ver `lib/tasks/quick-parse.ts`. */
+  due_time: string | null;
   context_type: string | null;
   context_id: string | null;
   created_by: string;

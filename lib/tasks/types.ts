@@ -6,6 +6,7 @@ export type TaskInput = {
   title: string;
   assigneeId: string | null;
   dueDate: string | null;
+  dueTime?: string | null;
   contextType?: string | null;
   contextId?: string | null;
 };

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { AlertTriangle, ArrowRight, CalendarClock, UserRound } from "lucide-react";
 import { getCurrentUserId } from "@/lib/supabase/current-user";
 import { computeWorkspaceOverview } from "@/lib/meu-dia/queries";
+import { listTeamUsers } from "@/lib/operacao/queries";
 import { GreetingHeader } from "@/components/dashboard/greeting-header";
 import { MyDayTasks } from "@/components/meu-dia/my-day-tasks";
 import { SectionHeader } from "@/components/dashboard/section-header";
@@ -29,7 +30,7 @@ export default async function MeuDiaPage() {
   const userId = await getCurrentUserId();
   if (!userId) redirect(ADMIN_LOGIN_PATH);
 
-  const overview = await computeWorkspaceOverview(userId);
+  const [overview, teamMembers] = await Promise.all([computeWorkspaceOverview(userId), listTeamUsers()]);
 
   return (
     <main className="mx-auto flex max-w-[1400px] flex-col gap-10 px-6 pt-8 pb-16 lg:px-10">
@@ -58,7 +59,7 @@ export default async function MeuDiaPage() {
           title="Tarefas de hoje"
           description={overview.todayProgress ? `${overview.todayProgress.done} de ${overview.todayProgress.total} tarefas concluídas hoje` : undefined}
         />
-        <MyDayTasks tasks={overview.dueTasks} userId={userId} />
+        <MyDayTasks tasks={overview.dueTasks} userId={userId} teamMembers={teamMembers} />
       </section>
 
       <section className="flex flex-col gap-4">
@@ -70,7 +71,12 @@ export default async function MeuDiaPage() {
             {overview.upcomingTasks.map((task) => (
               <li key={task.id} className="flex items-center justify-between gap-3 px-5 py-3.5 text-sm">
                 <span>{task.title}</span>
-                {task.due_date && <span className="text-xs text-muted-foreground">{upcomingDateFormatter.format(new Date(`${task.due_date}T00:00:00`))}</span>}
+                {task.due_date && (
+                  <span className="text-xs text-muted-foreground">
+                    {upcomingDateFormatter.format(new Date(`${task.due_date}T00:00:00`))}
+                    {task.due_time && ` · ${task.due_time.slice(0, 5)}`}
+                  </span>
+                )}
               </li>
             ))}
           </ul>
