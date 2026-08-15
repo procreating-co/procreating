@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { Handshake, PackageCheck, Target, TrendingUp, UserPlus, Wallet } from "lucide-react";
 import { computeComercialMetrics, compareStrategies } from "@/lib/comercial/metrics";
-import { listOpenLeads, listPipelineStages, listProspectingLists, listStrategies } from "@/lib/comercial/queries";
+import { listOpenLeads, listOpenLeadsForPipeline, listOpenLeadsPaginated, listPipelineStages, listProspectingLists, listStrategies, type LeadFilters } from "@/lib/comercial/queries";
 import { listUsers } from "@/lib/admin/users/queries";
 import { computeSimulationDefaults } from "@/lib/simulation/defaults";
 import { StatTile } from "@/components/dashboard/stat-tile";
@@ -12,6 +12,7 @@ import { PageTabs } from "@/components/dashboard/page-tabs";
 import { SectionHeader } from "@/components/dashboard/section-header";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { LeadsTable } from "@/components/comercial/leads-table";
+import { LeadsPagination } from "@/components/comercial/leads-pagination";
 import { PipelineBoard } from "@/components/comercial/pipeline-board";
 import { StrategiesList } from "@/components/comercial/strategies-list";
 import { CrmFilters } from "@/components/comercial/crm-filters";
@@ -52,45 +53,57 @@ const TABS = [
 export default async function ComercialPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; view?: string; owner?: string; strategy?: string; list?: string }>;
+  searchParams: Promise<{ tab?: string; view?: string; owner?: string; strategy?: string; list?: string; page?: string }>;
 }) {
-  const { tab: tabParam, view: viewParam, owner: ownerParam, strategy: strategyParam, list: listParam } = await searchParams;
+  const { tab: tabParam, view: viewParam, owner: ownerParam, strategy: strategyParam, list: listParam, page: pageParam } = await searchParams;
   const tab = tabParam ?? "overview";
   const view: "pipeline" | "lista" = viewParam === "lista" ? "lista" : "pipeline";
   const ownerId = ownerParam ?? "todos";
   const strategyId = strategyParam ?? "todos";
   const listId = listParam ?? "todos";
+  const page = Math.max(1, Number(pageParam) || 1);
 
   let content: ReactNode;
   let wide = false;
 
   if (tab === "crm") {
-    const [allLeads, stages, strategies, users, lists] = await Promise.all([listOpenLeads(), listPipelineStages(), listStrategies(), listUsers(), listProspectingLists()]);
-    // Owner/Estratégia/Lista filtram UMA vez aqui — Pipeline e Lista recebem a mesma lista já
-    // cortada, sem duplicar a lógica de filtro em cada view. Persistem sozinhos ao trocar
-    // Pipeline↔Lista (e ao voltar depois) porque são `?param=` na URL, não estado em memória.
-    const leads = allLeads.filter(
-      (lead) =>
-        (ownerId === "todos" || lead.owner_id === ownerId) &&
-        (strategyId === "todos" || lead.strategy_id === strategyId) &&
-        (listId === "todos" || lead.list_id === listId)
-    );
+    // Filtro DIRETO na query (não `.filter()` em memória) — obrigatório pra paginação/`truncated`
+    // funcionarem certo, ver comentário em `listOpenLeadsPaginated` (lib/comercial/queries.ts).
+    const filters: LeadFilters = {
+      ownerId: ownerId !== "todos" ? ownerId : undefined,
+      strategyId: strategyId !== "todos" ? strategyId : undefined,
+      listId: listId !== "todos" ? listId : undefined,
+    };
+    const [stages, strategies, users, lists] = await Promise.all([listPipelineStages(), listStrategies(), listUsers(), listProspectingLists()]);
     wide = view === "pipeline";
-    content = (
-      <div className="flex flex-col gap-4">
-        <SectionHeader
-          title="CRM"
-          description={view === "pipeline" ? 'Arraste um card pra mudar de estágio. Soltar em "Fechado" abre o onboarding do cliente.' : "Todos os leads em aberto — clique numa linha pra ver/editar o detalhe."}
-          action={
-            <div className="flex flex-wrap items-center gap-2">
-              <CrmFilters owners={users} strategies={strategies} lists={lists} ownerId={ownerId} strategyId={strategyId} listId={listId} />
-              <ViewToggle view={view} ownerId={ownerId} strategyId={strategyId} listId={listId} />
-            </div>
-          }
-        />
-        {view === "pipeline" ? <PipelineBoard leads={leads} stages={stages} users={users} /> : <LeadsTable leads={leads} stages={stages} strategies={strategies} users={users} />}
+    const filterBar = (
+      <div className="flex flex-wrap items-center gap-2">
+        <CrmFilters owners={users} strategies={strategies} lists={lists} ownerId={ownerId} strategyId={strategyId} listId={listId} />
+        <ViewToggle view={view} ownerId={ownerId} strategyId={strategyId} listId={listId} />
       </div>
     );
+
+    if (view === "pipeline") {
+      const { leads, truncated } = await listOpenLeadsForPipeline(filters);
+      content = (
+        <div className="flex flex-col gap-4">
+          <SectionHeader title="CRM" description='Arraste um card pra mudar de estágio. Soltar em "Fechado" abre o onboarding do cliente.' action={filterBar} />
+          {truncated && (
+            <p className="text-xs text-muted-foreground">Mostrando os 500 leads mais recentes deste filtro — use a Lista (paginada) pra ver todos.</p>
+          )}
+          <PipelineBoard leads={leads} stages={stages} users={users} />
+        </div>
+      );
+    } else {
+      const { leads, totalCount, pageSize } = await listOpenLeadsPaginated(filters, page);
+      content = (
+        <div className="flex flex-col gap-4">
+          <SectionHeader title="CRM" description="Todos os leads em aberto — clique numa linha pra ver/editar o detalhe." action={filterBar} />
+          <LeadsTable leads={leads} stages={stages} strategies={strategies} users={users} />
+          <LeadsPagination page={page} pageSize={pageSize} totalCount={totalCount} ownerId={ownerId} strategyId={strategyId} listId={listId} />
+        </div>
+      );
+    }
   } else if (tab === "prospeccao") {
     const [lists, strategies, openLeads] = await Promise.all([listProspectingLists(), listStrategies(), listOpenLeads()]);
     const queue = await computeExecutionQueue(openLeads);

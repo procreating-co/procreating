@@ -86,6 +86,58 @@ export async function listOpenLeads(): Promise<LeadWithRelations[]> {
   return joinLeads(leads ?? [], stages, strategies, lists);
 }
 
+export type LeadFilters = { ownerId?: string; strategyId?: string; listId?: string };
+
+/** Teto de segurança pro Kanban — ele precisa ver leads de TODOS os estágios de uma vez pra
+ *  agrupar em colunas (não dá pra paginar uma lista "achatada" e continuar agrupando certo), mas
+ *  sem limite nenhum uma base de dezenas de milhares de leads (a meta do motor de listas)
+ *  derrubaria a página. Acima disso, é hora de trabalhar pela Lista (paginada de verdade) em vez
+ *  do Kanban — `truncated` avisa a UI disso. */
+const PIPELINE_LEADS_CAP = 500;
+
+export async function listOpenLeadsForPipeline(filters: LeadFilters): Promise<{ leads: LeadWithRelations[]; truncated: boolean }> {
+  const supabase = await createClient();
+  // Filtros DIRETO na query (não `.filter()` em memória) — mesmo motivo de `listOpenLeadsPaginated`
+  // abaixo: com `.limit()`/`.range()` no banco, filtrar depois de buscar cortaria a página errada.
+  let query = supabase.from("leads").select("*", { count: "exact" }).is("client_id", null);
+  if (filters.ownerId) query = query.eq("owner_id", filters.ownerId);
+  if (filters.strategyId) query = query.eq("strategy_id", filters.strategyId);
+  if (filters.listId) query = query.eq("list_id", filters.listId);
+
+  const [{ data: leads, count }, stages, strategies, lists] = await Promise.all([
+    query.order("created_at", { ascending: false }).limit(PIPELINE_LEADS_CAP),
+    listPipelineStages(),
+    listStrategies(),
+    listProspectingLists(),
+  ]);
+  return { leads: joinLeads(leads ?? [], stages, strategies, lists), truncated: (count ?? 0) > PIPELINE_LEADS_CAP };
+}
+
+export const LEADS_PAGE_SIZE = 50;
+
+export type LeadsPage = { leads: LeadWithRelations[]; totalCount: number; page: number; pageSize: number };
+
+/** Paginação de verdade (LIMIT/OFFSET no banco, não no array já carregado) — a visão Lista do
+ *  CRM é onde o volume do motor de listas efetivamente aparece pro usuário (a auditoria apontou
+ *  isto como risco real antes de ter dado em escala: "nenhuma query de listagem tem paginação"). */
+export async function listOpenLeadsPaginated(filters: LeadFilters, page = 1): Promise<LeadsPage> {
+  const supabase = await createClient();
+  let query = supabase.from("leads").select("*", { count: "exact" }).is("client_id", null);
+  if (filters.ownerId) query = query.eq("owner_id", filters.ownerId);
+  if (filters.strategyId) query = query.eq("strategy_id", filters.strategyId);
+  if (filters.listId) query = query.eq("list_id", filters.listId);
+
+  const from = (page - 1) * LEADS_PAGE_SIZE;
+  const to = from + LEADS_PAGE_SIZE - 1;
+  const [{ data: leads, count }, stages, strategies, lists] = await Promise.all([
+    query.order("created_at", { ascending: false }).range(from, to),
+    listPipelineStages(),
+    listStrategies(),
+    listProspectingLists(),
+  ]);
+  return { leads: joinLeads(leads ?? [], stages, strategies, lists), totalCount: count ?? 0, page, pageSize: LEADS_PAGE_SIZE };
+}
+
 export async function listLeadsByStrategy(strategyId: string): Promise<LeadWithRelations[]> {
   const supabase = await createClient();
   const [{ data: leads }, stages, strategies, lists] = await Promise.all([
