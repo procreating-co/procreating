@@ -71,6 +71,17 @@ export function dayOfMonthOf(dateOnlyISO: string): number {
   return Number(dateOnlyISO.slice(8, 10));
 }
 
+/** Formata uma data-calendário (`YYYY-MM-DD`, sem hora) pra exibição — achado em produção via
+ *  hydration mismatch real (React #418): `new Intl.DateTimeFormat(...).format(new Date(dateOnly))`
+ *  sem `timeZone` explícito usa o fuso LOCAL do runtime — servidor (Vercel, UTC) e navegador
+ *  (Brasil, UTC-3) formatam a MESMA data-calendário como dois dias diferentes perto da meia-noite,
+ *  e React vê o servidor dizer "14/08" e o cliente dizer "13/08" no mesmo elemento. `timeZone:
+ *  "UTC"` aqui não é sobre fuso de verdade — é travar os dois lados (SSR e hidratação) no mesmo
+ *  resultado determinístico pra um valor que já é só uma data, sem hora, pra começo de conversa. */
+export function formatDateOnly(dateOnlyISO: string, options: Intl.DateTimeFormatOptions = { dateStyle: "short" }): string {
+  return new Intl.DateTimeFormat("pt-BR", { ...options, timeZone: "UTC" }).format(new Date(`${dateOnlyISO}T00:00:00Z`));
+}
+
 /** Desloca uma data-calendário em N dias (aceita negativo). Aritmética de dias em si não sofre
  *  do viés de fuso (não depende de "que horas são agora") — só o ponto de PARTIDA precisa estar
  *  ancorado em `todayISO()` quando representa "hoje". */

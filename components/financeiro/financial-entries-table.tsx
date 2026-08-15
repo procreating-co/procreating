@@ -4,6 +4,7 @@ import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { StatusDot, type StatusTone } from "@/components/dashboard/status-dot";
+import { formatDateOnly } from "@/lib/date";
 import type { FinancialEntryStatus } from "@/lib/supabase/types/database";
 import { cn } from "@/lib/utils";
 
@@ -17,7 +18,6 @@ export type FinancialEntryRow = {
 };
 
 const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
-const dateFormatter = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" });
 
 const STATUS_TONE: Record<FinancialEntryStatus, StatusTone> = {
   pendente: "pending",
@@ -69,7 +69,7 @@ export function FinancialEntriesTable({
                 {row.label}
                 {row.category && <span className="ml-2 text-xs text-muted-foreground">{row.category}</span>}
               </TableCell>
-              <TableCell className={cn("text-muted-foreground", row.status === "atrasado" && "text-red-300")}>{dateFormatter.format(new Date(row.dueDate))}</TableCell>
+              <TableCell className={cn("text-muted-foreground", row.status === "atrasado" && "text-red-300")}>{formatDateOnly(row.dueDate)}</TableCell>
               <TableCell className="text-muted-foreground">{currencyFormatter.format(row.amount)}</TableCell>
               <TableCell>
                 <div className="flex items-center gap-2">
