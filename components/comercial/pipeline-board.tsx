@@ -55,7 +55,7 @@ function LeadCard({ lead, owner, dragging, onOpen, onRequestDelete }: { lead: Le
         e.dataTransfer.effectAllowed = "move";
       }}
       className={cn(
-        "group relative flex w-full flex-col gap-2 rounded-lg border border-border/60 bg-card/60 p-3 transition-all hover:border-border hover:bg-card active:cursor-grabbing",
+        "group relative flex w-full flex-col gap-2 rounded-lg border border-border/60 bg-kanban-card p-3 transition-all hover:border-border hover:bg-kanban-card-hover active:cursor-grabbing",
         dragging && "opacity-30",
       )}
     >
@@ -143,7 +143,7 @@ export function PipelineBoard({ leads, stages, users }: { leads: LeadWithRelatio
        *  trackpad/wheel, só a barra visual nativa some (era "uma barra enorme e desagradável"
        *  com 8+ estágios). `snap-x`/`snap-mandatory` + `snap-start` por coluna deixam a rolagem
        *  presa em cada coluna, em vez de parar em qualquer ponto intermediário. */}
-      <div className="scrollbar-hide -mx-6 flex snap-x snap-mandatory gap-3 overflow-x-auto px-6 pb-2 lg:-mx-10 lg:px-10">
+      <div className="scrollbar-hide -mx-6 flex snap-x snap-mandatory gap-3 overflow-x-auto bg-kanban-board px-6 py-3 lg:-mx-10 lg:px-10">
         {stages.map((stage) => {
           const columnLeads = byStage.get(stage.id) ?? [];
           const colors = stageColorClasses(stage.color);
@@ -163,8 +163,8 @@ export function PipelineBoard({ leads, stages, users }: { leads: LeadWithRelatio
                 handleDrop(stage);
               }}
               className={cn(
-                "flex w-[240px] shrink-0 snap-start flex-col gap-3 rounded-xl border border-border/60 bg-card/10 p-3 transition-colors",
-                isDragOver && "border-foreground/40 bg-card/30",
+                "flex w-[240px] shrink-0 snap-start flex-col gap-3 rounded-xl border border-border/60 bg-kanban-column p-3 transition-colors",
+                isDragOver && "border-foreground/40 bg-kanban-card-hover",
               )}
             >
               <div className="flex items-center justify-between px-1">

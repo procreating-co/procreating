@@ -22,11 +22,12 @@ function SidebarContent({ expanded, user, onNavigate }: { expanded: boolean; use
 
   return (
     <>
-      {/* Logo = link pro Workspace (`/meu-dia`, aba inicial padrão agora) — Workspace perdeu o
-       *  ícone próprio na lista de grupos abaixo justamente porque o logo passou a ser o atalho
-       *  pra ele. `px-2.5` (não `px-4`) — mesmo eixo esquerdo dos ícones de grupo e do avatar no
-       *  rodapé, ver comentário lá embaixo; o símbolo em si ficou maior (`size-7`) pra ter peso
-       *  visual condizente com essa função de "logo clicável", não só mais um ícone de linha. */}
+      {/* Logo = também um atalho pro Workspace (`/meu-dia`) — redundante com o ícone de Meu
+       *  Workspace logo abaixo (pedido explícito: ícone de casa próprio, acima do Dashboard),
+       *  mas mantido: é convenção comum (logo sempre leva pro "home") e não atrapalha.
+       *  `px-2.5` (não `px-4`) — mesmo eixo esquerdo dos ícones de grupo e do avatar no rodapé,
+       *  ver comentário lá embaixo; o símbolo em si ficou maior (`size-7`) pra ter peso visual
+       *  condizente com essa função de "logo clicável", não só mais um ícone de linha. */}
       <Link href="/meu-dia" onClick={onNavigate} className="flex h-16 shrink-0 items-center gap-2.5 px-2.5">
         <ProcreatingMark className="size-7 shrink-0 text-foreground" />
         <span className={cn("overflow-hidden whitespace-nowrap font-display text-lg tracking-tight transition-opacity duration-150", expanded ? "opacity-100" : "w-0 opacity-0")}>
@@ -35,7 +36,7 @@ function SidebarContent({ expanded, user, onNavigate }: { expanded: boolean; use
       </Link>
 
       <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-2.5 py-2">
-        {NAV_GROUPS.filter((group) => group.key !== "workspace").map((group) => {
+        {NAV_GROUPS.map((group) => {
           const Icon = group.icon;
           const active = group.matchPrefixes.some((prefix) => (prefix === "/" ? pathname === "/" : pathname === prefix || pathname.startsWith(`${prefix}/`)));
           return (
@@ -46,7 +47,7 @@ function SidebarContent({ expanded, user, onNavigate }: { expanded: boolean; use
               title={expanded ? undefined : group.label}
               className={cn(
                 "group relative flex items-center gap-3 rounded-md px-2.5 py-2 text-sm transition-colors",
-                active ? "bg-brand-subtle text-brand" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+                active ? "bg-sidebar-accent text-brand" : "text-sidebar-muted-foreground hover:bg-sidebar-hover hover:text-sidebar-foreground"
               )}
             >
               <Icon className="size-4.5 shrink-0" />
@@ -61,11 +62,11 @@ function SidebarContent({ expanded, user, onNavigate }: { expanded: boolean; use
          *  garantido, sem matemática de padding pra acertar visualmente (era o motivo do avatar
          *  não alinhar com os ícones: 3 divs aninhados com padding próprio, cada um). */}
         <AccountMenu user={{ name: user.name, email: user.email, avatarUrl: user.avatarUrl }}>
-          <button type="button" className="flex w-full items-center gap-3 rounded-md px-2.5 py-2 text-left text-sm transition-colors hover:bg-foreground/5">
+          <button type="button" className="flex w-full items-center gap-3 rounded-md px-2.5 py-2 text-left text-sm text-sidebar-foreground transition-colors hover:bg-sidebar-hover">
             <AccountAvatar user={user} className="size-7 text-[10px]" />
             <div className={cn("min-w-0 flex-1 overflow-hidden transition-opacity duration-150", expanded ? "opacity-100" : "w-0 opacity-0")}>
               <p className="truncate text-sm">{user.name}</p>
-              <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+              <p className="truncate text-xs text-sidebar-muted-foreground">{user.email}</p>
             </div>
           </button>
         </AccountMenu>
@@ -76,7 +77,7 @@ function SidebarContent({ expanded, user, onNavigate }: { expanded: boolean; use
           href="/configuracoes"
           onClick={onNavigate}
           title={expanded ? undefined : "Configurações"}
-          className="mt-1 flex items-center gap-3 rounded-md px-2.5 py-2 text-sm text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground"
+          className="mt-1 flex items-center gap-3 rounded-md px-2.5 py-2 text-sm text-sidebar-muted-foreground transition-colors hover:bg-sidebar-hover hover:text-sidebar-foreground"
         >
           <Settings className="size-4 shrink-0" />
           <span className={cn("overflow-hidden whitespace-nowrap transition-opacity duration-150", expanded ? "opacity-100" : "w-0 opacity-0")}>Configurações</span>

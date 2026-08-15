@@ -10,11 +10,16 @@ export type StatusTone = "active" | "pending" | "neutral" | "danger";
  * parecido com "ação primária" (ver nota em app/globals.css sobre a distância calculada entre
  * as duas).
  */
+/* Pill com fundo suave por status (Warm Ivory: --success-subtle etc.) em vez de opacidade sobre
+ * a cor cheia — mais legível e combina com o resto da paleta ("papel premium", nunca
+ * translúcido). Fora do `.os-shell` (dark/admin), os tokens `-subtle` caem no fallback = mesma
+ * cor cheia (ver `@theme inline`), então isto continua funcionando lá, só sem o preenchimento
+ * diferenciado. */
 const TONE_STYLES: Record<StatusTone, { pill: string; dot: string }> = {
-  active: { pill: "border-success/25 text-success", dot: "bg-success" },
-  pending: { pill: "border-warning/25 text-warning", dot: "bg-warning" },
-  neutral: { pill: "border-border/60 text-muted-foreground", dot: "bg-muted-foreground/50" },
-  danger: { pill: "border-danger/25 text-danger", dot: "bg-danger" },
+  active: { pill: "border-success/25 bg-success-subtle text-success", dot: "bg-success" },
+  pending: { pill: "border-warning/25 bg-warning-subtle text-warning", dot: "bg-warning" },
+  neutral: { pill: "border-border/60 bg-muted text-muted-foreground", dot: "bg-muted-foreground/50" },
+  danger: { pill: "border-danger/25 bg-danger-subtle text-danger", dot: "bg-danger" },
 };
 
 /** Pill com ponto colorido pra estado de item de lista (ex.: status de projeto). */

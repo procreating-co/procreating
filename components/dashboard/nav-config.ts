@@ -1,4 +1,4 @@
-import { Layers, LayoutDashboard, Sun, TrendingUp, Wallet, type LucideIcon } from "lucide-react";
+import { Home, Layers, LayoutDashboard, TrendingUp, Wallet, type LucideIcon } from "lucide-react";
 
 /**
  * Navegação do shell interno (Procreating OS) — reescrita completa nesta fase (sidebar
@@ -65,7 +65,7 @@ export type NavGroupDef = {
  * `SETTINGS_TABS` é tratado como caso à parte em `dashboard-header.tsx`.
  */
 export const NAV_GROUPS: NavGroupDef[] = [
-  { key: "workspace", label: "Workspace", icon: Sun, href: "/meu-dia", matchPrefixes: ["/meu-dia"] },
+  { key: "workspace", label: "Meu Workspace", icon: Home, href: "/meu-dia", matchPrefixes: ["/meu-dia"] },
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: "/", matchPrefixes: ["/"] },
   { key: "operations", label: "Operação", icon: Layers, href: "/operacao", matchPrefixes: ["/operacao", "/clientes"], tabs: OPERATIONS_TABS },
   { key: "growth", label: "Comercial", icon: TrendingUp, href: "/comercial", matchPrefixes: ["/comercial"] },
