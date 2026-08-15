@@ -4,7 +4,7 @@ import Link from "next/link";
 import { AlertTriangle, ArrowDownCircle, ArrowRight, ArrowUpCircle, CalendarClock, Clock, ShieldAlert, TrendingUp, Wallet } from "lucide-react";
 import { computeFinanceiroMetrics, listCosts, listExpenses, listRevenue } from "@/lib/financeiro/queries";
 import { computeDistribution } from "@/lib/financeiro/rules";
-import { updateExpenseStatusAction, updateRevenueStatusAction } from "@/lib/financeiro/actions";
+import { updateRevenueStatusAction } from "@/lib/financeiro/actions";
 import { requireFinancialAccess } from "@/lib/auth/permissions";
 import { StatTile } from "@/components/dashboard/stat-tile";
 import { RevenueChart } from "@/components/financeiro/revenue-chart";
@@ -13,6 +13,7 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { PageTabs } from "@/components/dashboard/page-tabs";
 import { PeriodSelect } from "@/components/dashboard/period-select";
 import { FinancialEntriesTable } from "@/components/financeiro/financial-entries-table";
+import { ExpensesTable } from "@/components/financeiro/expenses-table";
 import { DespesasToolbar } from "@/components/financeiro/despesas-toolbar";
 import { CostsList } from "@/components/financeiro/costs-list";
 import { EmptyState } from "@/components/dashboard/empty-state";
@@ -88,7 +89,7 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: P
             </div>
           }
         />
-        <FinancialEntriesTable rows={rows} onStatusChange={updateExpenseStatusAction} emptyLabel={statusFilter === "todas" ? "Nenhuma despesa cadastrada ainda." : "Nada pendente ou atrasado — tudo em dia."} />
+        <ExpensesTable rows={rows} emptyLabel={statusFilter === "todas" ? "Nenhuma despesa cadastrada ainda." : "Nada pendente ou atrasado — tudo em dia."} />
       </section>
     );
   } else if (tab === "costs") {

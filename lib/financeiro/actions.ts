@@ -35,6 +35,40 @@ export async function createExpenseAction(input: ExpenseInput): Promise<ActionRe
   return { ok: true };
 }
 
+/** "ERP totalmente funcional" — antes só dava pra criar despesa e trocar status; corrigir um
+ *  valor/categoria digitado errado, ou desistir de uma despesa lançada por engano, exigia ir
+ *  direto no banco. */
+export async function updateExpenseAction(id: string, input: ExpenseInput): Promise<ActionResult> {
+  const access = await requireFinancialAccess();
+  if (!access.ok) return access;
+
+  if (!input.category.trim()) return { ok: false, error: "Informe a categoria." };
+  if (!input.description.trim()) return { ok: false, error: "Informe a descrição." };
+  if (!input.dueDate) return { ok: false, error: "Informe o vencimento." };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("expenses")
+    .update({ category: input.category, description: input.description, amount: input.amount, due_date: input.dueDate })
+    .eq("id", id);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/financeiro");
+  return { ok: true };
+}
+
+export async function deleteExpenseAction(id: string): Promise<ActionResult> {
+  const access = await requireFinancialAccess();
+  if (!access.ok) return access;
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("expenses").delete().eq("id", id);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/financeiro");
+  return { ok: true };
+}
+
 /** Automação §72 regra 3 — janela de "vencendo em N dias", configurável (era uma constante fixa
  *  em código). Atualiza a linha mais recente de `financial_rules` (mesma tabela de config de 1
  *  linha que `operational_percentage` já usa) — nunca cria uma segunda linha. */
@@ -102,6 +136,24 @@ export async function createCostAction(input: CostInput): Promise<ActionResult> 
     recurrence: input.recurrence,
     created_by: access.userId,
   });
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/financeiro");
+  return { ok: true };
+}
+
+export async function updateCostAction(id: string, input: CostInput): Promise<ActionResult> {
+  const access = await requireFinancialAccess();
+  if (!access.ok) return access;
+
+  if (!input.name.trim()) return { ok: false, error: "Informe o nome do custo." };
+  if (!input.category.trim()) return { ok: false, error: "Informe a categoria." };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("costs")
+    .update({ name: input.name, amount: input.amount, category: input.category, recurrence: input.recurrence, updated_at: new Date().toISOString() })
+    .eq("id", id);
   if (error) return { ok: false, error: error.message };
 
   revalidatePath("/financeiro");

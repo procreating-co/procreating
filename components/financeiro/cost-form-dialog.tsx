@@ -6,14 +6,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { createCostAction } from "@/lib/financeiro/actions";
+import { createCostAction, updateCostAction } from "@/lib/financeiro/actions";
 import type { CostInput } from "@/lib/financeiro/types";
+import type { Cost } from "@/lib/supabase/types/database";
 
 const EMPTY_INPUT: CostInput = { name: "", amount: 0, category: "", recurrence: "fixo" };
 
-export function CostFormDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+/** `cost` presente → edição (mesmo padrão de `ContactFormDialog`/`ContractFormDialog`: um único
+ *  dialog cobre criar e editar, parent monta com `key={cost.id}` pra resetar o estado ao trocar
+ *  de custo). */
+export function CostFormDialog({ open, onOpenChange, cost }: { open: boolean; onOpenChange: (open: boolean) => void; cost?: Cost }) {
   const router = useRouter();
-  const [input, setInput] = useState<CostInput>(EMPTY_INPUT);
+  const [input, setInput] = useState<CostInput>(cost ? { name: cost.name, amount: Number(cost.amount), category: cost.category, recurrence: cost.recurrence } : EMPTY_INPUT);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -21,7 +25,7 @@ export function CostFormDialog({ open, onOpenChange }: { open: boolean; onOpenCh
     e.preventDefault();
     setError(null);
     startTransition(async () => {
-      const result = await createCostAction(input);
+      const result = cost ? await updateCostAction(cost.id, input) : await createCostAction(input);
       if (!result.ok) {
         setError(result.error);
         return;
@@ -37,7 +41,7 @@ export function CostFormDialog({ open, onOpenChange }: { open: boolean; onOpenCh
       <DialogContent className="max-w-md">
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <DialogHeader>
-            <DialogTitle>Novo custo</DialogTitle>
+            <DialogTitle>{cost ? "Editar custo" : "Novo custo"}</DialogTitle>
             <DialogDescription>Estrutura de custo da empresa — não gera lançamento em Despesas automaticamente ainda.</DialogDescription>
           </DialogHeader>
 
@@ -81,7 +85,7 @@ export function CostFormDialog({ open, onOpenChange }: { open: boolean; onOpenCh
               Cancelar
             </Button>
             <Button type="submit" disabled={isPending}>
-              {isPending ? "Salvando..." : "Criar custo"}
+              {isPending ? "Salvando..." : cost ? "Salvar" : "Criar custo"}
             </Button>
           </DialogFooter>
         </form>

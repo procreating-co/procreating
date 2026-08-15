@@ -6,15 +6,25 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { createExpenseAction } from "@/lib/financeiro/actions";
+import { createExpenseAction, updateExpenseAction } from "@/lib/financeiro/actions";
 import { todayISO } from "@/lib/date";
 import type { ExpenseInput } from "@/lib/financeiro/types";
 
 const EMPTY_INPUT: ExpenseInput = { category: "", description: "", amount: 0, dueDate: todayISO() };
 
-export function ExpenseFormDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+/** `expense` presente (id + campos) → edição, mesmo padrão de `CostFormDialog`/`ContactFormDialog`:
+ *  um único dialog cobre criar e editar, parent monta com `key={expense.id}` pra resetar o estado. */
+export function ExpenseFormDialog({
+  open,
+  onOpenChange,
+  expense,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  expense?: ExpenseInput & { id: string };
+}) {
   const router = useRouter();
-  const [input, setInput] = useState<ExpenseInput>(EMPTY_INPUT);
+  const [input, setInput] = useState<ExpenseInput>(expense ?? EMPTY_INPUT);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -22,7 +32,7 @@ export function ExpenseFormDialog({ open, onOpenChange }: { open: boolean; onOpe
     e.preventDefault();
     setError(null);
     startTransition(async () => {
-      const result = await createExpenseAction(input);
+      const result = expense ? await updateExpenseAction(expense.id, input) : await createExpenseAction(input);
       if (!result.ok) {
         setError(result.error);
         return;
@@ -38,7 +48,7 @@ export function ExpenseFormDialog({ open, onOpenChange }: { open: boolean; onOpe
       <DialogContent className="max-w-md">
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <DialogHeader>
-            <DialogTitle>Nova despesa</DialogTitle>
+            <DialogTitle>{expense ? "Editar despesa" : "Nova despesa"}</DialogTitle>
             <DialogDescription>Cadastro manual — sem integração bancária ainda.</DialogDescription>
           </DialogHeader>
 
@@ -81,7 +91,7 @@ export function ExpenseFormDialog({ open, onOpenChange }: { open: boolean; onOpe
               Cancelar
             </Button>
             <Button type="submit" disabled={isPending}>
-              {isPending ? "Salvando..." : "Criar despesa"}
+              {isPending ? "Salvando..." : expense ? "Salvar" : "Criar despesa"}
             </Button>
           </DialogFooter>
         </form>

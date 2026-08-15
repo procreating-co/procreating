@@ -1,9 +1,11 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Pencil, Trash2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { StatusDot, type StatusTone } from "@/components/dashboard/status-dot";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { formatDateOnly } from "@/lib/date";
 import type { FinancialEntryStatus } from "@/lib/supabase/types/database";
 import { cn } from "@/lib/utils";
@@ -35,20 +37,41 @@ const STATUS_LABEL: Record<FinancialEntryStatus, string> = {
 
 const STATUS_OPTIONS: FinancialEntryStatus[] = ["pendente", "pago", "atrasado", "cancelado"];
 
+export type FinancialEntryRowActions = {
+  onEdit: (row: FinancialEntryRow) => void;
+  onDelete: (id: string) => Promise<{ ok: boolean; error?: string }>;
+};
+
+/** `actions` é opcional — Receitas continuam só com o toggle de status (parcelas vêm de contrato,
+ *  editar/excluir ali é editar o contrato, não a linha). Despesas são cadastro manual, então
+ *  ganham editar/excluir (via `ExpensesTable`, que passa `actions`). */
 export function FinancialEntriesTable({
   rows,
   onStatusChange,
   emptyLabel,
+  actions,
 }: {
   rows: FinancialEntryRow[];
   onStatusChange: (id: string, status: FinancialEntryStatus) => Promise<{ ok: boolean; error?: string }>;
   emptyLabel: string;
+  actions?: FinancialEntryRowActions;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [deletingRow, setDeletingRow] = useState<FinancialEntryRow | null>(null);
+  const [isDeleting, startDeleteTransition] = useTransition();
 
   if (rows.length === 0) {
     return <div className="rounded-xl border border-border/60 bg-card/20 px-6 py-16 text-center text-muted-foreground">{emptyLabel}</div>;
+  }
+
+  function handleDelete() {
+    if (!deletingRow || !actions) return;
+    startDeleteTransition(async () => {
+      await actions.onDelete(deletingRow.id);
+      setDeletingRow(null);
+      router.refresh();
+    });
   }
 
   return (
@@ -60,6 +83,7 @@ export function FinancialEntriesTable({
             <TableHead>Vencimento</TableHead>
             <TableHead>Valor</TableHead>
             <TableHead>Status</TableHead>
+            {actions && <TableHead />}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -95,10 +119,43 @@ export function FinancialEntriesTable({
                   </select>
                 </div>
               </TableCell>
+              {actions && (
+                <TableCell>
+                  <div className="flex items-center justify-end gap-3">
+                    <button
+                      type="button"
+                      onClick={() => actions.onEdit(row)}
+                      className="text-muted-foreground transition-colors hover:text-foreground"
+                      aria-label={`Editar ${row.label}`}
+                    >
+                      <Pencil className="size-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDeletingRow(row)}
+                      className="text-muted-foreground transition-colors hover:text-danger"
+                      aria-label={`Excluir ${row.label}`}
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
+                  </div>
+                </TableCell>
+              )}
             </TableRow>
           ))}
         </TableBody>
       </Table>
+
+      {actions && (
+        <ConfirmDialog
+          open={deletingRow !== null}
+          onOpenChange={(open) => !open && setDeletingRow(null)}
+          title="Excluir despesa?"
+          description={deletingRow ? `"${deletingRow.label}" some pra sempre — não dá pra desfazer.` : undefined}
+          isPending={isDeleting}
+          onConfirm={handleDelete}
+        />
+      )}
     </div>
   );
 }

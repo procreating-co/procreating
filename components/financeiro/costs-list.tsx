@@ -2,11 +2,12 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2, Wallet } from "lucide-react";
+import { Pencil, Plus, Trash2, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CostFormDialog } from "@/components/financeiro/cost-form-dialog";
 import { EmptyState } from "@/components/dashboard/empty-state";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { deleteCostAction } from "@/lib/financeiro/actions";
 import type { Cost } from "@/lib/supabase/types/database";
 
@@ -16,7 +17,18 @@ const RECURRENCE_LABEL: Record<Cost["recurrence"], string> = { fixo: "Fixo", var
 export function CostsList({ costs }: { costs: Cost[] }) {
   const router = useRouter();
   const [creating, setCreating] = useState(false);
+  const [editingCost, setEditingCost] = useState<Cost | null>(null);
+  const [deletingCost, setDeletingCost] = useState<Cost | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  function handleDelete() {
+    if (!deletingCost) return;
+    startTransition(async () => {
+      await deleteCostAction(deletingCost.id);
+      setDeletingCost(null);
+      router.refresh();
+    });
+  }
 
   if (costs.length === 0) {
     return (
@@ -63,18 +75,25 @@ export function CostsList({ costs }: { costs: Cost[] }) {
                 <TableCell className="text-muted-foreground">{RECURRENCE_LABEL[cost.recurrence]}</TableCell>
                 <TableCell className="text-right tabular-nums text-muted-foreground">{currencyFormatter.format(Number(cost.amount))}</TableCell>
                 <TableCell>
-                  <button
-                    type="button"
-                    disabled={isPending}
-                    onClick={() => startTransition(async () => {
-                      await deleteCostAction(cost.id);
-                      router.refresh();
-                    })}
-                    className="text-muted-foreground transition-colors hover:text-danger"
-                    aria-label={`Excluir ${cost.name}`}
-                  >
-                    <Trash2 className="size-4" />
-                  </button>
+                  <div className="flex items-center justify-end gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setEditingCost(cost)}
+                      className="text-muted-foreground transition-colors hover:text-foreground"
+                      aria-label={`Editar ${cost.name}`}
+                    >
+                      <Pencil className="size-4" />
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isPending}
+                      onClick={() => setDeletingCost(cost)}
+                      className="text-muted-foreground transition-colors hover:text-danger"
+                      aria-label={`Excluir ${cost.name}`}
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
@@ -83,6 +102,17 @@ export function CostsList({ costs }: { costs: Cost[] }) {
       </div>
 
       <CostFormDialog open={creating} onOpenChange={setCreating} />
+      {editingCost && (
+        <CostFormDialog key={editingCost.id} cost={editingCost} open onOpenChange={(open) => !open && setEditingCost(null)} />
+      )}
+      <ConfirmDialog
+        open={deletingCost !== null}
+        onOpenChange={(open) => !open && setDeletingCost(null)}
+        title="Excluir custo?"
+        description={deletingCost ? `"${deletingCost.name}" some pra sempre — não dá pra desfazer.` : undefined}
+        isPending={isPending}
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }
