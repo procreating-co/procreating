@@ -2,10 +2,12 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { moveLeadStageAction } from "@/lib/comercial/actions";
+import { X } from "lucide-react";
+import { deleteLeadAction, moveLeadStageAction } from "@/lib/comercial/actions";
 import { stageColorClasses } from "@/lib/comercial/stage-colors";
 import { LeadDetailDrawer } from "@/components/comercial/lead-detail-drawer";
 import { OnboardingModal } from "@/components/onboarding/onboarding-modal";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { todayISO } from "@/lib/date";
 import type { LeadWithRelations, PipelineStage } from "@/lib/comercial/types";
 import type { User } from "@/lib/supabase/types/database";
@@ -38,30 +40,45 @@ function OwnerChip({ owner }: { owner: User | undefined }) {
 
 /** Card compacto — só Empresa / Valor / Responsável / Próxima ação (o resto — contato, estratégia
  *  — mora no drawer de detalhe ou já está implícito no filtro ativo). Antes tinha 4 linhas
- *  (empresa/contato/valor+estratégia), difícil escanear uma coluna inteira de relance. */
-function LeadCard({ lead, owner, dragging, onOpen }: { lead: LeadWithRelations; owner: User | undefined; dragging: boolean; onOpen: () => void }) {
+ *  (empresa/contato/valor+estratégia), difícil escanear uma coluna inteira de relance.
+ *
+ *  Era um `<button>` só — virou `<div draggable>` com um `<button>` de conteúdo (abre o drawer)
+ *  e um `<button>` de × separado (exclui) porque HTML não permite botão dentro de botão; o ×
+ *  chama `stopPropagation` pra não também abrir o drawer de leve. */
+function LeadCard({ lead, owner, dragging, onOpen, onRequestDelete }: { lead: LeadWithRelations; owner: User | undefined; dragging: boolean; onOpen: () => void; onRequestDelete: () => void }) {
   const nextAction = nextActionLabel(lead.next_contact_at);
   return (
-    <button
-      type="button"
+    <div
       draggable
       onDragStart={(e) => {
         e.dataTransfer.setData("text/plain", lead.id);
         e.dataTransfer.effectAllowed = "move";
       }}
-      onClick={onOpen}
       className={cn(
-        "flex w-full flex-col gap-2 rounded-lg border border-border/60 bg-card/60 p-3 text-left transition-all hover:border-border hover:bg-card active:cursor-grabbing",
+        "group relative flex w-full flex-col gap-2 rounded-lg border border-border/60 bg-card/60 p-3 transition-all hover:border-border hover:bg-card active:cursor-grabbing",
         dragging && "opacity-30",
       )}
     >
-      <p className="truncate text-sm font-medium">{lead.company_name}</p>
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-xs text-muted-foreground">{lead.potential_value != null ? currencyFormatter.format(lead.potential_value) : "—"}</span>
-        <OwnerChip owner={owner} />
-      </div>
-      {nextAction && <span className={cn("text-[11px]", nextAction.overdue ? "text-danger" : "text-muted-foreground")}>{nextAction.label}</span>}
-    </button>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onRequestDelete();
+        }}
+        aria-label={`Excluir ${lead.company_name}`}
+        className="absolute right-1.5 top-1.5 flex size-5 items-center justify-center rounded text-muted-foreground/50 opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
+      >
+        <X className="size-3.5" />
+      </button>
+      <button type="button" onClick={onOpen} className="flex flex-col gap-2 pr-4 text-left">
+        <p className="truncate text-sm font-medium">{lead.company_name}</p>
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs text-muted-foreground">{lead.potential_value != null ? currencyFormatter.format(lead.potential_value) : "—"}</span>
+          <OwnerChip owner={owner} />
+        </div>
+        {nextAction && <span className={cn("text-[11px]", nextAction.overdue ? "text-danger" : "text-muted-foreground")}>{nextAction.label}</span>}
+      </button>
+    </div>
   );
 }
 
@@ -71,7 +88,9 @@ export function PipelineBoard({ leads, stages, users }: { leads: LeadWithRelatio
   const [dragOverStageId, setDragOverStageId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [onboardingLeadId, setOnboardingLeadId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [isDeleting, startDeleteTransition] = useTransition();
 
   const userById = useMemo(() => new Map(users.map((user) => [user.id, user])), [users]);
 
@@ -84,6 +103,16 @@ export function PipelineBoard({ leads, stages, users }: { leads: LeadWithRelatio
 
   const selected = leads.find((lead) => lead.id === selectedId) ?? null;
   const onboardingLead = leads.find((lead) => lead.id === onboardingLeadId) ?? null;
+  const deletingLead = leads.find((lead) => lead.id === deletingId) ?? null;
+
+  function handleDelete() {
+    if (!deletingId) return;
+    startDeleteTransition(async () => {
+      await deleteLeadAction(deletingId);
+      setDeletingId(null);
+      router.refresh();
+    });
+  }
 
   function handleDrop(stage: PipelineStage) {
     const leadId = draggingId;
@@ -152,7 +181,13 @@ export function PipelineBoard({ leads, stages, users }: { leads: LeadWithRelatio
                 ) : (
                   columnLeads.map((lead) => (
                     <div key={lead.id} onDragStart={() => setDraggingId(lead.id)} onDragEnd={() => setDraggingId(null)}>
-                      <LeadCard lead={lead} owner={lead.owner_id ? userById.get(lead.owner_id) : undefined} dragging={draggingId === lead.id} onOpen={() => setSelectedId(lead.id)} />
+                      <LeadCard
+                        lead={lead}
+                        owner={lead.owner_id ? userById.get(lead.owner_id) : undefined}
+                        dragging={draggingId === lead.id}
+                        onOpen={() => setSelectedId(lead.id)}
+                        onRequestDelete={() => setDeletingId(lead.id)}
+                      />
                     </div>
                   ))
                 )}
@@ -177,6 +212,15 @@ export function PipelineBoard({ leads, stages, users }: { leads: LeadWithRelatio
           }}
         />
       )}
+
+      <ConfirmDialog
+        open={deletingId !== null}
+        onOpenChange={(open) => !open && setDeletingId(null)}
+        title="Excluir lead?"
+        description={deletingLead ? `"${deletingLead.company_name}" some do Pipeline — não dá pra desfazer.` : undefined}
+        isPending={isDeleting}
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }

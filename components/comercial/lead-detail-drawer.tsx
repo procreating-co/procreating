@@ -22,6 +22,9 @@ function toPatch(lead: LeadWithRelations): LeadPatch {
     ownerId: lead.owner_id,
     nextContactAt: lead.next_contact_at,
     notes: lead.notes ?? "",
+    cnpjCpf: lead.cnpj_cpf ?? "",
+    city: lead.city ?? "",
+    state: lead.state ?? "",
   };
 }
 
@@ -146,6 +149,22 @@ export function LeadDetailDrawer({ lead, users, onOpenChange }: { lead: LeadWith
                 value={patch.nextContactAt ? patch.nextContactAt.slice(0, 16) : ""}
                 onChange={(e) => setPatch((p) => ({ ...p, nextContactAt: e.target.value ? new Date(e.target.value).toISOString() : null }))}
               />
+            </div>
+            {/* CNPJ/CPF + Cidade/Estado — usados pelo onboarding quando o negócio fecha (evita
+             *  perguntar de novo o que já foi preenchido aqui). */}
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="lead-cnpj">CNPJ/CPF</Label>
+              <Input id="lead-cnpj" value={patch.cnpjCpf ?? ""} onChange={(e) => setPatch((p) => ({ ...p, cnpjCpf: e.target.value }))} />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="lead-city">Cidade</Label>
+                <Input id="lead-city" value={patch.city ?? ""} onChange={(e) => setPatch((p) => ({ ...p, city: e.target.value }))} />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="lead-state">UF</Label>
+                <Input id="lead-state" maxLength={2} value={patch.state ?? ""} onChange={(e) => setPatch((p) => ({ ...p, state: e.target.value.toUpperCase() }))} />
+              </div>
             </div>
             <div className="flex flex-col gap-2 sm:col-span-2">
               <Label htmlFor="lead-notes">Observações</Label>

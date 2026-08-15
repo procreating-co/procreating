@@ -24,6 +24,22 @@ export type UserRole = "owner" | "admin" | "commercial" | "marketing" | "operati
 
 export type UserTheme = "light" | "dark";
 
+// ---------------------------------------------------------------------------
+// TeamInvite — substitui o array hardcoded `PARTNER_ALLOWLIST` (migration
+// `20260815000000_team_invites.sql`). `role` aqui nunca é `"client"` (convite é sempre pra
+// alguém do TIME logar no ERP, não um cliente futuro) — mas o tipo da coluna é `UserRole` inteiro
+// pra bater com `users.role` sem um union separado.
+// ---------------------------------------------------------------------------
+export type TeamInviteRow = {
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  invited_by: string;
+  created_at: string;
+  used_at: string | null;
+};
+
 export type User = {
   /** Mesmo `id` do `auth.users` correspondente. */
   id: string;
@@ -37,7 +53,18 @@ export type User = {
    *  monograma do nome como fallback (sidebar, menu de conta). */
   avatar_url: string | null;
   created_at: string;
+  // --- DATA FOUNDATION (migration `20260815010000_lead_and_team_fields.sql`) ---
+  phone: string | null;
+  member_type: TeamMemberType;
+  status: TeamMemberStatus;
+  department: string | null;
+  /** Capacidade semanal em horas — usado por Capacity/Workspace quando essas telas existirem;
+   *  hoje só armazenado, ainda sem consumidor (documentado como limitação, não fingido pronto). */
+  weekly_capacity_hours: number | null;
 };
+
+export type TeamMemberType = "socio" | "funcionario" | "freelancer" | "prestador";
+export type TeamMemberStatus = "ativo" | "inativo";
 
 // ---------------------------------------------------------------------------
 // Client — a empresa/pessoa que contrata a Procreating (ex.: "Pascoal Bombas",
@@ -311,6 +338,17 @@ export type Lead = {
   client_id: string | null;
   created_at: string;
   updated_at: string;
+  // --- DATA FOUNDATION (migration `20260815010000_lead_and_team_fields.sql`) ---
+  cnpj_cpf: string | null;
+  city: string | null;
+  state: string | null;
+  website: string | null;
+  instagram: string | null;
+  linkedin: string | null;
+  campaign: string | null;
+  tags: string[];
+  lead_score: number | null;
+  contact_attempts: number;
 };
 
 // ---------------------------------------------------------------------------
@@ -658,6 +696,7 @@ export type Database = {
       revenue_goals: TableDef<RevenueGoal>;
       production_projects: TableDef<ProductionProject>;
       production_items: TableDef<ProductionItem>;
+      team_invites: TableDef<TeamInviteRow>;
     };
     Views: {
       /** `WHERE status IN ('published', 'archived')` — evita repetir esse filtro em toda
@@ -672,6 +711,18 @@ export type Database = {
       close_lead_and_create_client: {
         Args: { p_lead_id: string; p_payload: Record<string, unknown> };
         Returns: string;
+      };
+      /** Convite de equipe (`team_invites`, migration `20260815000000_team_invites.sql`) —
+       *  `SECURITY DEFINER`, devolve no máximo a linha do e-mail pedido (nunca a tabela
+       *  inteira), por isso é chamável por `anon` (checagem no próprio fluxo de cadastro, antes
+       *  de existir sessão). */
+      get_team_invite: {
+        Args: { p_email: string };
+        Returns: { name: string; role: string; used_at: string | null }[];
+      };
+      mark_team_invite_used: {
+        Args: { p_email: string };
+        Returns: undefined;
       };
     };
   };

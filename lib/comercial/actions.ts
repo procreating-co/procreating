@@ -116,6 +116,8 @@ export async function createWonLeadForSaleAction(companyName: string, potentialV
     .single();
   if (error || !data) return { ok: false, error: error?.message ?? "Falha ao criar." };
 
+  await supabase.from("events").insert({ entity_type: "lead", entity_id: data.id, actor_id: userId, type: "lead_created", metadata: { source: "Venda direta" } });
+
   revalidatePath("/comercial");
   return { ok: true, lead: { ...data, stage: wonStage, strategy: null, list: null } };
 }
@@ -130,20 +132,26 @@ export async function createLeadAction(input: LeadInput): Promise<ActionResult> 
   if (!userId) return { ok: false, error: "Sessão expirada — faça login de novo." };
 
   const supabase = await createClient();
-  const { error } = await supabase.from("leads").insert({
-    company_name: input.companyName,
-    contact_name: input.contactName || null,
-    role_title: input.roleTitle || null,
-    whatsapp: input.whatsapp || null,
-    email: input.email || null,
-    source: input.source || null,
-    strategy_id: input.strategyId,
-    potential_value: input.potentialValue,
-    notes: input.notes || null,
-    owner_id: userId,
-    stage_id: initialStage.id,
-  });
+  const { data: lead, error } = await supabase
+    .from("leads")
+    .insert({
+      company_name: input.companyName,
+      contact_name: input.contactName || null,
+      role_title: input.roleTitle || null,
+      whatsapp: input.whatsapp || null,
+      email: input.email || null,
+      source: input.source || null,
+      strategy_id: input.strategyId,
+      potential_value: input.potentialValue,
+      notes: input.notes || null,
+      owner_id: userId,
+      stage_id: initialStage.id,
+    })
+    .select("id")
+    .single();
   if (error) return { ok: false, error: error.message };
+
+  await supabase.from("events").insert({ entity_type: "lead", entity_id: lead.id, actor_id: userId, type: "lead_created", metadata: { source: input.source || null } });
 
   revalidatePath("/comercial");
   return { ok: true };
@@ -162,7 +170,10 @@ export async function updateLeadAction(id: string, patch: LeadPatch): Promise<Ac
       owner_id: patch.ownerId,
       next_contact_at: patch.nextContactAt,
       notes: patch.notes,
-      updated_at: new Date().toISOString(),
+      cnpj_cpf: patch.cnpjCpf,
+      city: patch.city,
+      state: patch.state,
+      updated_at: nowISO(),
     })
     .eq("id", id);
   if (error) return { ok: false, error: error.message };
@@ -225,7 +236,13 @@ export async function logLeadActivityAction(leadId: string, message: string): Pr
   });
   if (error) return { ok: false, error: error.message };
 
-  await supabase.from("leads").update({ last_contact_at: new Date().toISOString() }).eq("id", leadId);
+  // `contact_attempts` incrementa sozinho aqui — nunca é um campo pra digitar na mão, é uma
+  // contagem do que já aconteceu (mesmo espírito de "dado derivado, não recadastrado").
+  const { data: current } = await supabase.from("leads").select("contact_attempts").eq("id", leadId).maybeSingle();
+  await supabase
+    .from("leads")
+    .update({ last_contact_at: nowISO(), contact_attempts: (current?.contact_attempts ?? 0) + 1 })
+    .eq("id", leadId);
 
   revalidatePath("/comercial");
   return { ok: true };
@@ -307,22 +324,34 @@ export async function importListAction(input: ImportListInput): Promise<ActionRe
     .single();
   if (listError || !list) return { ok: false, error: listError?.message ?? "Falha ao criar a lista." };
 
-  const { error: leadsError } = await supabase.from("leads").insert(
-    input.rows.map((row) => ({
-      company_name: row.companyName,
-      contact_name: row.contactName || null,
-      role_title: row.roleTitle || null,
-      whatsapp: row.whatsapp || null,
-      email: row.email || null,
-      potential_value: row.potentialValue,
-      source: input.listName,
-      strategy_id: input.strategyId,
-      list_id: list.id,
-      owner_id: userId,
-      stage_id: initialStage.id,
-    }))
-  );
+  const { data: insertedLeads, error: leadsError } = await supabase
+    .from("leads")
+    .insert(
+      input.rows.map((row) => ({
+        company_name: row.companyName,
+        contact_name: row.contactName || null,
+        role_title: row.roleTitle || null,
+        whatsapp: row.whatsapp || null,
+        email: row.email || null,
+        potential_value: row.potentialValue,
+        cnpj_cpf: row.cnpjCpf || null,
+        city: row.city || null,
+        state: row.state || null,
+        source: input.listName,
+        strategy_id: input.strategyId,
+        list_id: list.id,
+        owner_id: userId,
+        stage_id: initialStage.id,
+      }))
+    )
+    .select("id");
   if (leadsError) return { ok: false, error: leadsError.message };
+
+  if (insertedLeads && insertedLeads.length > 0) {
+    await supabase.from("events").insert(
+      insertedLeads.map((lead) => ({ entity_type: "lead" as const, entity_id: lead.id, actor_id: userId, type: "lead_created", metadata: { source: input.listName, list_id: list.id } }))
+    );
+  }
 
   revalidatePath("/comercial");
   return { ok: true, listId: list.id };
@@ -402,6 +431,19 @@ export async function markLeadContactedAction(leadId: string): Promise<ActionRes
 
   const { error: updateError } = await supabase.from("leads").update({ last_contact_at: timestamp, next_contact_at: nextContactAt }).eq("id", leadId);
   if (updateError) return { ok: false, error: updateError.message };
+
+  revalidatePath("/comercial");
+  return { ok: true };
+}
+
+/** Exclusão de lead — só o próprio lead + a trilha de eventos dele (nunca um cliente: um lead
+ *  convertido tem `client_id` preenchido e não deveria ser excluído por aqui, a UI não oferece
+ *  esse botão pra leads já fechados). */
+export async function deleteLeadAction(leadId: string): Promise<ActionResult> {
+  const supabase = await createClient();
+  await supabase.from("events").delete().eq("entity_type", "lead").eq("entity_id", leadId);
+  const { error } = await supabase.from("leads").delete().eq("id", leadId).is("client_id", null);
+  if (error) return { ok: false, error: error.message };
 
   revalidatePath("/comercial");
   return { ok: true };

@@ -35,6 +35,9 @@ export type LeadPatch = Partial<{
   ownerId: string | null;
   nextContactAt: string | null;
   notes: string;
+  cnpjCpf: string;
+  city: string;
+  state: string;
 }>;
 
 export type StrategyInput = {

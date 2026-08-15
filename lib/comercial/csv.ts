@@ -8,7 +8,7 @@
  * (alias de cabeçalho, normalização), zero import cruzado entre ERP e entrega de cliente.
  */
 
-export type LeadCsvField = "companyName" | "contactName" | "roleTitle" | "whatsapp" | "email" | "potentialValue";
+export type LeadCsvField = "companyName" | "contactName" | "roleTitle" | "whatsapp" | "email" | "potentialValue" | "cnpjCpf" | "city" | "state";
 
 const HEADER_ALIASES: Record<LeadCsvField, string[]> = {
   companyName: ["empresa", "nome da empresa", "company", "razao social", "razão social", "nome"],
@@ -17,6 +17,9 @@ const HEADER_ALIASES: Record<LeadCsvField, string[]> = {
   whatsapp: ["whatsapp", "telefone", "celular", "fone", "phone", "contato whatsapp"],
   email: ["email", "e-mail", "mail"],
   potentialValue: ["valor", "valor potencial", "ticket", "value", "potential value"],
+  cnpjCpf: ["cnpj", "cpf", "cnpj/cpf", "documento"],
+  city: ["cidade", "city", "municipio", "município"],
+  state: ["estado", "uf", "state"],
 };
 
 function normalizeHeader(raw: string): string {
@@ -86,6 +89,9 @@ export type ParsedLeadRow = {
   whatsapp: string;
   email: string;
   potentialValue: number | null;
+  cnpjCpf: string;
+  city: string;
+  state: string;
 };
 
 export function rowsToLeads(rows: string[][], mapping: Partial<Record<LeadCsvField, number>>): ParsedLeadRow[] {
@@ -103,6 +109,9 @@ export function rowsToLeads(rows: string[][], mapping: Partial<Record<LeadCsvFie
         whatsapp: get("whatsapp"),
         email: get("email"),
         potentialValue: rawValue ? Number(rawValue) || null : null,
+        cnpjCpf: get("cnpjCpf"),
+        city: get("city"),
+        state: get("state"),
       };
     })
     .filter((lead) => lead.companyName.length > 0); // linha sem nome de empresa não vira lead — descartada silenciosamente, não é um "erro" de importação

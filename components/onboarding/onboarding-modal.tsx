@@ -30,7 +30,7 @@ export function OnboardingModal({
   onSuccess: (clientId: string) => void;
 }) {
   const [stepIndex, setStepIndex] = useState(0);
-  const [data, setData] = useState<OnboardingWizardData>(() => createInitialOnboardingData(lead.company_name));
+  const [data, setData] = useState<OnboardingWizardData>(() => createInitialOnboardingData(lead));
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -66,7 +66,7 @@ export function OnboardingModal({
   function handleClose(nextOpen: boolean) {
     if (!nextOpen) {
       setStepIndex(0);
-      setData(createInitialOnboardingData(lead.company_name));
+      setData(createInitialOnboardingData(lead));
       setError(null);
     }
     onOpenChange(nextOpen);

@@ -6,6 +6,7 @@
  */
 
 import { todayISO } from "@/lib/date";
+import type { LeadWithRelations } from "@/lib/comercial/types";
 
 export type OnboardingContact = {
   name: string;
@@ -60,16 +61,30 @@ export type OnboardingWizardData = {
   commercialNotes: string;
 };
 
-export function createInitialOnboardingData(clientNameFallback: string): OnboardingWizardData {
+/** CPF tem 11 dígitos, CNPJ tem 14 — só dígitos decide em qual campo o `cnpj_cpf` do lead cai,
+ *  sem perguntar de novo qual é qual. Formato inesperado (nem 11 nem 14) cai em `cnpj` (mais
+ *  comum nos leads B2B da Procreating) em vez de descartar o dado. */
+function splitDocument(value: string | null): { cnpj: string; cpf: string } {
+  const digits = (value ?? "").replace(/\D/g, "");
+  if (digits.length === 11) return { cnpj: "", cpf: value ?? "" };
+  return { cnpj: value ?? "", cpf: "" };
+}
+
+/** `lead` já tem tudo que o onboarding pediria de novo — nome, contato, cargo, e-mail, WhatsApp,
+ *  CNPJ/CPF, cidade/estado. Pré-preenche pra "não pedir novamente nome, CNPJ, telefone, e-mail
+ *  etc." (o próprio pedido do usuário) em vez de abrir o wizard vazio. */
+export function createInitialOnboardingData(lead: LeadWithRelations): OnboardingWizardData {
+  const { cnpj, cpf } = splitDocument(lead.cnpj_cpf);
+  const address = [lead.city, lead.state].filter(Boolean).join(" / ");
   return {
-    clientName: clientNameFallback,
+    clientName: lead.company_name,
     legalName: "",
     tradeName: "",
-    cnpj: "",
-    cpf: "",
-    address: "",
+    cnpj,
+    cpf,
+    address,
     billingInfo: "",
-    contacts: [{ name: "", roleTitle: "", email: "", whatsapp: "", isPrimary: true }],
+    contacts: [{ name: lead.contact_name ?? "", roleTitle: lead.role_title ?? "", email: lead.email ?? "", whatsapp: lead.whatsapp ?? "", isPrimary: true }],
     contractType: "recorrente",
     startDate: todayISO(),
     endDate: "",

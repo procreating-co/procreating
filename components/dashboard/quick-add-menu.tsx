@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, CheckSquare2, Handshake, Plus, Receipt } from "lucide-react";
+import { Building2, CheckSquare2, Handshake, Plus, Receipt, UserPlus } from "lucide-react";
 import { Command, CommandDialog, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,11 +13,22 @@ import { ExpenseFormDialog } from "@/components/financeiro/expense-form-dialog";
 import { OnboardingModal } from "@/components/onboarding/onboarding-modal";
 import { createWonLeadForSaleAction, listStrategiesAction } from "@/lib/comercial/actions";
 import { createTaskAction } from "@/lib/tasks/actions";
+import { inviteTeamMemberAction } from "@/lib/admin/auth/actions";
 import { useAdminUser } from "@/lib/admin/auth/auth-context";
 import type { LeadWithRelations } from "@/lib/comercial/types";
-import type { Strategy } from "@/lib/supabase/types/database";
+import type { Strategy, UserRole } from "@/lib/supabase/types/database";
 
-type Step = "picker" | "lead" | "venda" | "despesa" | "tarefa";
+type Step = "picker" | "lead" | "venda" | "despesa" | "tarefa" | "equipe";
+
+const TEAM_ROLE_LABEL: Record<Exclude<UserRole, "client">, string> = {
+  owner: "Sócio",
+  admin: "Admin",
+  commercial: "Comercial",
+  marketing: "Marketing",
+  operations: "Operações",
+  finance: "Financeiro",
+  production: "Produção",
+};
 
 /**
  * Botão "+" do top nav — um ponto de entrada só pra criar qualquer coisa no ERP sem primeiro
@@ -54,6 +65,12 @@ export function QuickAddMenu() {
   const [taskTitle, setTaskTitle] = useState("");
   const [taskError, setTaskError] = useState<string | null>(null);
 
+  const [teamName, setTeamName] = useState("");
+  const [teamEmail, setTeamEmail] = useState("");
+  const [teamRole, setTeamRole] = useState<UserRole>("production");
+  const [teamError, setTeamError] = useState<string | null>(null);
+  const [teamInvited, setTeamInvited] = useState(false);
+
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -71,6 +88,11 @@ export function QuickAddMenu() {
     setSaleError(null);
     setTaskTitle("");
     setTaskError(null);
+    setTeamName("");
+    setTeamEmail("");
+    setTeamRole("production");
+    setTeamError(null);
+    setTeamInvited(false);
   }
 
   function handleSaleSubmit(e: FormEvent) {
@@ -102,6 +124,19 @@ export function QuickAddMenu() {
     });
   }
 
+  function handleTeamSubmit(e: FormEvent) {
+    e.preventDefault();
+    setTeamError(null);
+    startTransition(async () => {
+      const result = await inviteTeamMemberAction({ name: teamName, email: teamEmail, role: teamRole });
+      if (!result.ok) {
+        setTeamError(result.error);
+        return;
+      }
+      setTeamInvited(true);
+    });
+  }
+
   return (
     <>
       <button
@@ -121,7 +156,7 @@ export function QuickAddMenu() {
         open={open && step === "picker"}
         onOpenChange={(next) => !next && setOpen(false)}
         title="Adicionar"
-        description="Criar rapidamente um lead, venda, despesa ou tarefa"
+        description="Criar rapidamente um lead, venda, despesa, tarefa ou convidar alguém pro time"
       >
         <Command>
           <CommandList>
@@ -152,6 +187,13 @@ export function QuickAddMenu() {
                 <div className="flex flex-col">
                   <span>Nova tarefa</span>
                   <span className="text-xs text-muted-foreground">Entra no Meu Dia</span>
+                </div>
+              </CommandItem>
+              <CommandItem onSelect={() => setStep("equipe")}>
+                <UserPlus className="size-4 text-muted-foreground" />
+                <div className="flex flex-col">
+                  <span>Novo membro da equipe</span>
+                  <span className="text-xs text-muted-foreground">Convida pra criar conta no ERP</span>
                 </div>
               </CommandItem>
             </CommandGroup>
@@ -246,6 +288,73 @@ export function QuickAddMenu() {
                 </Button>
               </DialogFooter>
             </form>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {step === "equipe" && (
+        <Dialog open={open} onOpenChange={(next) => !next && closeAll()}>
+          <DialogContent className="max-w-sm">
+            {teamInvited ? (
+              <div className="flex flex-col gap-6">
+                <DialogHeader>
+                  <DialogTitle>Convite criado</DialogTitle>
+                  <DialogDescription>
+                    Peça pra {teamName.split(" ")[0]} criar a conta em <span className="font-mono text-foreground">/admin/signup</span> usando o e-mail {teamEmail} — o cargo já vem certo.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <Button type="button" onClick={closeAll}>
+                    Fechar
+                  </Button>
+                </DialogFooter>
+              </div>
+            ) : (
+              <form onSubmit={handleTeamSubmit} className="flex flex-col gap-6">
+                <DialogHeader>
+                  <DialogTitle>Novo membro da equipe</DialogTitle>
+                  <DialogDescription>A pessoa cria a própria senha depois, em /admin/signup — aqui só libera o e-mail.</DialogDescription>
+                </DialogHeader>
+                <div className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="team-name">Nome</Label>
+                    <Input id="team-name" value={teamName} onChange={(e) => setTeamName(e.target.value)} required autoFocus />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="team-email">E-mail</Label>
+                    <Input id="team-email" type="email" value={teamEmail} onChange={(e) => setTeamEmail(e.target.value)} required />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="team-role">Cargo</Label>
+                    <select
+                      id="team-role"
+                      value={teamRole}
+                      onChange={(e) => setTeamRole(e.target.value as UserRole)}
+                      className="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                    >
+                      {(Object.keys(TEAM_ROLE_LABEL) as Array<keyof typeof TEAM_ROLE_LABEL>).map((role) => (
+                        <option key={role} value={role}>
+                          {TEAM_ROLE_LABEL[role]}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                {teamError && (
+                  <p role="alert" className="text-sm text-destructive">
+                    {teamError}
+                  </p>
+                )}
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={closeAll}>
+                    Cancelar
+                  </Button>
+                  <Button type="submit" disabled={isPending}>
+                    {isPending ? "Convidando..." : "Convidar"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            )}
           </DialogContent>
         </Dialog>
       )}
