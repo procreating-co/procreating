@@ -205,33 +205,39 @@
 }
 
 .os-shell[data-theme="dark"] {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.96 0 0);
-  --card: oklch(0.19 0 0);
-  --card-foreground: oklch(0.96 0 0);
-  --card-raised: oklch(0.24 0 0);
-  --popover: oklch(0.19 0 0);
-  --popover-foreground: oklch(0.96 0 0);
-  --primary: oklch(0.96 0 0);
-  --primary-foreground: oklch(0.145 0 0);
-  --secondary: oklch(0.24 0 0);
-  --secondary-foreground: oklch(0.96 0 0);
-  --muted: oklch(0.24 0 0);
-  --muted-foreground: oklch(0.63 0 0);
-  --faint-foreground: oklch(0.45 0 0);
-  --accent: oklch(0.26 0 0);
-  --accent-foreground: oklch(0.96 0 0);
+  /* Contraste reduzido, "mais confortável e premium" (pedido explícito) — branco puro (#FFFFFF/
+     oklch 0.96-1) nunca mais aparece aqui, nem como texto nem como superfície clara (botão
+     primário, item ativo). 3 âncoras dadas: fundo #0B0B0D, texto/superfície clara #E7E5E4 (no
+     lugar do branco), texto secundário #A1A1AA. O resto (superfícies intermediárias, bordas) é
+     uma rampa neutra derivada entre essas duas pontas — mesmo raciocínio de derivação já usado
+     no tema light v2 (documentado token a token lá). */
+  --background: #0b0b0d;
+  --foreground: #e7e5e4;
+  --card: #17171a;
+  --card-foreground: #e7e5e4;
+  --card-raised: #1f1f23; /* elevada — popover, hover de linha */
+  --popover: #1f1f23;
+  --popover-foreground: #e7e5e4;
+  --primary: #e7e5e4;
+  --primary-foreground: #0b0b0d;
+  --secondary: #1c1c20;
+  --secondary-foreground: #e7e5e4;
+  --muted: #1c1c20;
+  --muted-foreground: #a1a1aa;
+  --faint-foreground: #6b6b70; /* um degrau abaixo de --muted-foreground */
+  --accent: #222226;
+  --accent-foreground: #e7e5e4;
   --destructive: oklch(0.66 0.2 25);
-  --destructive-foreground: oklch(0.96 0 0);
-  --border: oklch(0.28 0 0);
-  --input: oklch(0.26 0 0);
-  --ring: oklch(0.7 0 0);
+  --destructive-foreground: #e7e5e4;
+  --border: #2a2a2f;
+  --input: #2a2a2f;
+  --ring: #a1a1aa;
 
-  --brand: oklch(0.96 0 0);
-  --brand-strong: oklch(1 0 0);
-  --brand-foreground: oklch(0.145 0 0);
-  --brand-subtle: oklch(0.26 0 0);
-  --brand-subtle-border: oklch(0.4 0 0 / 40%);
+  --brand: #e7e5e4;
+  --brand-strong: #f2f0ee; /* mais emphasis = mais claro no dark (mesmo padrão de sempre), nunca branco puro */
+  --brand-foreground: #0b0b0d;
+  --brand-subtle: #232327;
+  --brand-subtle-border: #e7e5e466; /* 40% alpha, mesmo padrão do light */
 
   --success: oklch(0.72 0.15 155);
   --warning: oklch(0.74 0.17 60);
@@ -246,20 +252,20 @@
   --danger-subtle: oklch(0.68 0.19 25 / 16%);
   --info-subtle: oklch(0.72 0.09 250 / 16%);
 
-  --chart-1: oklch(0.96 0 0);
-  --chart-2: oklch(0.78 0 0);
-  --chart-3: oklch(0.6 0 0);
-  --chart-4: oklch(0.42 0 0);
-  --chart-5: oklch(0.28 0 0);
+  --chart-1: #e7e5e4;
+  --chart-2: #a1a1aa;
+  --chart-3: #6b6b70;
+  --chart-4: #3f3f46;
+  --chart-5: #2a2a2f;
 
-  --sidebar: oklch(0.12 0 0);
-  --sidebar-foreground: oklch(0.96 0 0);
-  --sidebar-primary: oklch(0.96 0 0);
-  --sidebar-primary-foreground: oklch(0.145 0 0);
-  --sidebar-accent: oklch(0.24 0 0);
-  --sidebar-accent-foreground: oklch(0.96 0 0);
-  --sidebar-border: oklch(0.28 0 0);
-  --sidebar-ring: oklch(0.7 0 0);
+  --sidebar: #0f0f12;
+  --sidebar-foreground: #e7e5e4;
+  --sidebar-primary: #e7e5e4;
+  --sidebar-primary-foreground: #0b0b0d;
+  --sidebar-accent: #232327;
+  --sidebar-accent-foreground: #e7e5e4;
+  --sidebar-border: #2a2a2f;
+  --sidebar-ring: #a1a1aa;
 }
 
 @theme inline {
