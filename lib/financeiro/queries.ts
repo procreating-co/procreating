@@ -4,10 +4,11 @@ import { addDaysISO, currentMonthKey, lastMonthKeys, monthKeyOf, todayISO } from
 import type { Cost, Expense, Revenue } from "@/lib/supabase/types/database";
 import type { FinanceiroMetrics, MonthlyEvolutionPoint, MonthlyRevenueByClient, PipelineOpportunity, UpcomingReceivablesSummary } from "@/lib/financeiro/types";
 
-/** Janela da automação §72 regra 3 ("vencendo em N dias") — fixa por enquanto (sem UI de
- *  configuração ainda; ver `docs/execution-status.md` pro porquê de não ter sido feita nesta
- *  sessão). 5 dias úteis de antecedência é o padrão adotado. */
-export const UPCOMING_RECEIVABLES_WINDOW_DAYS = 5;
+/** Fallback só pro caso (não deveria acontecer em produção) de `financial_rules` estar vazia —
+ *  mesmo valor default da coluna (`receivables_alert_days`, migration `20260818000000`). A
+ *  janela em si agora é configurável em Configurações → Regras financeiras, não mais uma
+ *  constante fixa aqui. */
+const FALLBACK_RECEIVABLES_ALERT_DAYS = 5;
 
 export async function listRevenue(): Promise<Revenue[]> {
   const supabase = await createClient();
@@ -35,7 +36,7 @@ export async function listCosts(): Promise<Cost[]> {
  *  valor escolhido no seletor de período (`PeriodSelect`). */
 export async function computeFinanceiroMetrics(evolutionMonths = 6): Promise<FinanceiroMetrics> {
   const supabase = await createClient();
-  const [revenueRaw, expenses, costs, { data: activeRecurringContracts }, { data: negociacaoStage }, { data: clients }] = await Promise.all([
+  const [revenueRaw, expenses, costs, { data: activeRecurringContracts }, { data: negociacaoStage }, { data: clients }, { data: financialRule }] = await Promise.all([
     listRevenue(),
     listExpenses(),
     listCosts(),
@@ -48,6 +49,8 @@ export async function computeFinanceiroMetrics(evolutionMonths = 6): Promise<Fin
     supabase.from("pipeline_stages").select("id").eq("key", "negociacao").maybeSingle(),
     // Só pra resolver `client_id` → nome no breakdown por cliente do gráfico de evolução (hover).
     supabase.from("clients").select("id, name"),
+    // `receivables_alert_days` — automação §72 regra 3, configurável em Regras financeiras.
+    supabase.from("financial_rules").select("receivables_alert_days").order("created_at", { ascending: false }).limit(1).maybeSingle(),
   ]);
   const clientNameById = new Map((clients ?? []).map((client) => [client.id, client.name]));
 
@@ -112,11 +115,12 @@ export async function computeFinanceiroMetrics(evolutionMonths = 6): Promise<Fin
   // Automação §72 regra 3 — só `pendente` (nunca `atrasado`, que já é `receivablesOverdue` acima
   // — vencer daqui a N dias e já estar atrasado são dois avisos diferentes, nunca a mesma linha).
   const today = todayISO();
-  const windowEnd = addDaysISO(today, UPCOMING_RECEIVABLES_WINDOW_DAYS);
+  const receivablesAlertDays = financialRule?.receivables_alert_days ?? FALLBACK_RECEIVABLES_ALERT_DAYS;
+  const windowEnd = addDaysISO(today, receivablesAlertDays);
   const upcomingEntries = revenue.filter((row) => row.status === "pendente" && row.due_date >= today && row.due_date <= windowEnd);
   const upcomingReceivables: UpcomingReceivablesSummary = {
     total: upcomingEntries.reduce((sum, row) => sum + Number(row.amount), 0),
-    windowDays: UPCOMING_RECEIVABLES_WINDOW_DAYS,
+    windowDays: receivablesAlertDays,
     entries: upcomingEntries.map((row) => ({ id: row.id, description: row.description, amount: Number(row.amount), dueDate: row.due_date })),
   };
 

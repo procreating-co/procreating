@@ -31,6 +31,25 @@ export async function createExpenseAction(input: ExpenseInput): Promise<ActionRe
   return { ok: true };
 }
 
+/** Automação §72 regra 3 — janela de "vencendo em N dias", configurável (era uma constante fixa
+ *  em código). Atualiza a linha mais recente de `financial_rules` (mesma tabela de config de 1
+ *  linha que `operational_percentage` já usa) — nunca cria uma segunda linha. */
+export async function updateReceivablesAlertDaysAction(days: number): Promise<ActionResult> {
+  if (!Number.isFinite(days) || days <= 0) return { ok: false, error: "Informe um número de dias maior que zero." };
+
+  const supabase = await createClient();
+  const { data: rule } = await supabase.from("financial_rules").select("id").order("created_at", { ascending: false }).limit(1).maybeSingle();
+  if (!rule) return { ok: false, error: "Nenhuma regra financeira cadastrada ainda." };
+
+  const { error } = await supabase.from("financial_rules").update({ receivables_alert_days: Math.round(days), updated_at: new Date().toISOString() }).eq("id", rule.id);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/configuracoes/regras-financeiras");
+  revalidatePath("/financeiro");
+  revalidatePath("/");
+  return { ok: true };
+}
+
 export async function updateRevenueStatusAction(id: string, status: FinancialEntryStatus): Promise<ActionResult> {
   const supabase = await createClient();
   const { error } = await supabase

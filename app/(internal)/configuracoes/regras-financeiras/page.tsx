@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
-import { Wallet } from "lucide-react";
+import { CalendarClock, Wallet } from "lucide-react";
 import { computeDistribution, getFinancialRule } from "@/lib/financeiro/rules";
+import { ReceivablesAlertDaysField } from "@/components/configuracoes/receivables-alert-days-field";
 
 export const metadata: Metadata = {
   title: "Regras financeiras — Procreating",
@@ -10,13 +11,16 @@ export const metadata: Metadata = {
 const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
 /**
- * Só leitura nesta fase — o prompt liberou não construir UI de edição ainda se isso atrasasse o
- * essencial (Simulador/Financeiro). A regra existe e é lida de verdade (`lib/financeiro/rules.ts`,
- * `public.financial_rules`/`partner_shares`); editar aqui é próxima fase.
+ * Percentual operacional e divisão entre sócios continuam só leitura (não fazia parte do escopo
+ * desta rodada) — a regra existe e é lida de verdade (`lib/financeiro/rules.ts`, `public.
+ * financial_rules`/`partner_shares`); editar esses dois é uma próxima fase. `receivables_alert_
+ * days` (automação §72 regra 3) é o primeiro campo editável desta página — mesma tabela de
+ * config de 1 linha, sem criar um sistema de settings genérico só pra isto.
  */
 export default async function RegrasFinanceirasPage() {
   const rule = await getFinancialRule();
   const operationalPercentage = rule?.operational_percentage ?? 20;
+  const receivablesAlertDays = rule?.receivables_alert_days ?? 5;
   // Simulação com R$ 100 pra mostrar a proporção sem depender de faturamento real do mês.
   const preview = await computeDistribution(100);
 
@@ -58,6 +62,17 @@ export default async function RegrasFinanceirasPage() {
           )}
         </section>
       </div>
+
+      <section className="flex flex-col gap-4 rounded-xl border border-border/60 bg-card/40 p-6">
+        <div className="flex items-center gap-2">
+          <div className="flex size-9 items-center justify-center rounded-lg bg-foreground/10 text-foreground">
+            <CalendarClock className="size-4.5" />
+          </div>
+          <h2 className="text-sm font-medium">Alerta de conta a receber</h2>
+        </div>
+        <p className="text-sm text-muted-foreground">Com quantos dias de antecedência uma cobrança pendente aparece como "vencendo em breve" no Financeiro e no Dashboard.</p>
+        <ReceivablesAlertDaysField initialDays={receivablesAlertDays} />
+      </section>
 
       <section className="flex flex-col gap-3 rounded-xl border border-border/60 bg-card/40 p-6">
         <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Exemplo — R$ 100,00 de faturamento</h2>

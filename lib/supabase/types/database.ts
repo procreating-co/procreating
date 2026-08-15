@@ -605,6 +605,9 @@ export type Cost = {
 export type FinancialRule = {
   id: string;
   operational_percentage: number;
+  /** Automação §72 regra 3 — janela de "conta a receber vencendo em N dias" (era uma constante
+   *  fixa em código, `20260818000000_receivables_alert_days.sql`). */
+  receivables_alert_days: number;
   created_at: string;
   updated_at: string;
 };
