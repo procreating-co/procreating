@@ -266,6 +266,28 @@
   --sidebar-accent-foreground: #e7e5e4;
   --sidebar-border: #2a2a2f;
   --sidebar-ring: #a1a1aa;
+  --sidebar-hover: #1a1a1e; /* distinto do item ativo (--sidebar-accent, mais claro) */
+  --sidebar-muted-foreground: #a1a1aa;
+
+  /* BUG CORRIGIDO: estes tokens (+ os 4 de kanban abaixo) só existiam no bloco light — como
+     `.os-shell[data-theme="dark"]` NUNCA os redefinia, o valor de `--kanban-card` etc. herdava
+     do `.os-shell` (light, creme/branco) mesmo dentro do dark, porque CSS custom property
+     resolve por PROPRIEDADE, não por bloco — o fallback `var(--x, var(--y))` do `@theme inline`
+     só entra em ação quando `--x` está indefinida em TODA a cascata, e aqui ela não estava (só
+     não tinha valor redefinido no dark). Efeito visível: cards do Pipeline com fundo branco/
+     creme sólido em tema escuro, hover da sidebar branco. Corrigido explicitando os 2 grupos
+     aqui, com os mesmos tons já usados no resto do dark (card/card-raised/secondary/border). */
+  --input-background: #17171a;
+  --input-background-hover: #1c1c20;
+  --input-background-focus: #1f1f23;
+  --input-placeholder: #6b6b70;
+
+  --kanban-board: #0f0f12;
+  --kanban-column: #151518;
+  --kanban-card: #1c1c20;
+  --kanban-card-hover: #26262b;
+
+  --ai: #e7e5e4; /* ainda sem uso em UI — mantido em sincronia com --brand por precaução */
 }
 
 @theme inline {
