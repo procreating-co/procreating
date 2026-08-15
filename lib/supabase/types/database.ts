@@ -396,11 +396,21 @@ export type SequenceStep = {
 export type ContractType = "pontual" | "recorrente";
 export type ContractStatus = "ativo" | "encerrado" | "cancelado";
 
+/** Estado financeiro do contrato — decidido explicitamente na criação/correção, não reinferido
+ *  de `type`+`status` a cada leitura (era assim que MRR/"Top 5 clientes" ficavam errados: um
+ *  `recorrente`+`ativo` podia ser recorrência em curso de verdade ou uma fase antiga que nunca
+ *  foi marcada `encerrado` na renegociação — dois significados, um dado só). Nunca 'pipeline':
+ *  por regra de negócio uma negociação nunca vira `contracts` até ser fechada, então uma linha
+ *  desta tabela, por definição, já deixou de ser pipeline — "Pipeline" como categoria existe só
+ *  em `leads` (`lib/financeiro/queries.ts`, `pipelinePotentialMrr`), nunca aqui. */
+export type ContractCategory = "recorrente_ativo" | "pontual_concluido" | "pontual_em_andamento" | "recorrente_churn";
+
 export type Contract = {
   id: string;
   client_id: string;
   type: ContractType;
   status: ContractStatus;
+  category: ContractCategory;
   start_date: string;
   end_date: string | null;
   monthly_value: number | null;

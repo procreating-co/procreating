@@ -18,6 +18,12 @@ export type MonthlyEvolutionPoint = {
   expenses: number;
 };
 
+export type PipelineOpportunity = {
+  label: string;
+  /** Valor mensal potencial se a negociação fechar — nunca contado em `mrr`. */
+  potentialMonthlyValue: number;
+};
+
 export type FinanceiroMetrics = {
   mrr: number;
   revenueThisMonth: number;
@@ -33,4 +39,9 @@ export type FinanceiroMetrics = {
   payablesPending: number;
   payablesOverdue: number;
   monthlyEvolution: MonthlyEvolutionPoint[];
+  /** Soma de `leads.potential_value` em estágio "negociação" — MRR ADICIONAL se essas
+   *  negociações fecharem. Nunca somado a `mrr`; mostrado numa seção própria, sempre rotulado
+   *  como potencial, não realizado (regra explícita: negociação nunca vira receita). */
+  pipelinePotentialMrr: number;
+  pipelineOpportunities: PipelineOpportunity[];
 };

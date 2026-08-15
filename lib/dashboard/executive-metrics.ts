@@ -191,7 +191,11 @@ export async function computeExecutiveDashboard(cashFlowMonths = 6): Promise<Exe
     supabase.from("leads").select("*").is("client_id", null),
     supabase.from("leads").select("company_name, potential_value, updated_at").not("client_id", "is", null),
     supabase.from("clients").select("*"),
-    supabase.from("contracts").select("*").eq("status", "ativo"),
+    // "Ativo agora" = `category` explícita (`recorrente_ativo`/`pontual_em_andamento`), não mais
+    // `status='ativo'` cru — esse filtro sozinho misturava recorrência de verdade com contrato
+    // pontual há muito entregue mas nunca fechado no banco, e não distinguia tipo nenhum (ver
+    // `contracts.category`, `lib/supabase/types/database.ts`).
+    supabase.from("contracts").select("*").in("category", ["recorrente_ativo", "pontual_em_andamento"]),
     supabase.from("costs").select("amount"),
     supabase.from("users").select("id, name, role"),
     sumRealizedRevenue(toISODate(monthStart), toISODate(nextMonthStart)),

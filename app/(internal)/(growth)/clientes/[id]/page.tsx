@@ -5,6 +5,8 @@ import { ArrowLeft } from "lucide-react";
 import { getClientFull } from "@/lib/clientes/queries";
 import { ClientStatusSelect } from "@/components/clientes/client-status-select";
 import { OnboardingTasksList } from "@/components/clientes/onboarding-tasks-list";
+import { StatusDot } from "@/components/dashboard/status-dot";
+import { CONTRACT_CATEGORY_LABEL, CONTRACT_CATEGORY_TONE } from "@/lib/financeiro/contract-category";
 
 type Params = { id: string };
 
@@ -92,6 +94,7 @@ export default async function ClienteDetailPage({ params }: { params: Promise<Pa
                 <div key={contract.id} className="flex flex-col gap-2 border-t border-border/60 pt-3 text-sm first:border-t-0 first:pt-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-medium capitalize">{contract.type}</span>
+                    <StatusDot tone={CONTRACT_CATEGORY_TONE[contract.category]} label={CONTRACT_CATEGORY_LABEL[contract.category]} />
                     <span className="text-muted-foreground">
                       {dateFormatter.format(new Date(contract.start_date))}
                       {contract.end_date ? ` até ${dateFormatter.format(new Date(contract.end_date))}` : ""}

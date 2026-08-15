@@ -164,6 +164,31 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: P
             <RevenueChart data={metrics.monthlyEvolution} />
           </div>
         </section>
+
+        <section className="flex flex-col gap-4">
+          <SectionHeader
+            title="Pipeline — em negociação"
+            description="Oportunidades ainda não fechadas. Nunca somado ao MRR nem a 'a receber' acima — só vira receita quando o negócio for de fato ganho."
+          />
+          {metrics.pipelineOpportunities.length === 0 ? (
+            <div className="rounded-xl border border-border/60 bg-card/20 px-6 py-10 text-center text-muted-foreground">Nenhuma negociação em aberto no momento.</div>
+          ) : (
+            <div className="flex flex-col gap-3 rounded-xl border border-dashed border-brand/40 bg-brand/5 p-5">
+              <div className="flex items-baseline justify-between gap-4">
+                <p className="text-sm text-muted-foreground">MRR potencial adicional se fechar</p>
+                <p className="text-2xl font-semibold tabular-nums text-brand">{currencyFormatter.format(metrics.pipelinePotentialMrr)}</p>
+              </div>
+              <div className="flex flex-col divide-y divide-border/60">
+                {metrics.pipelineOpportunities.map((opportunity) => (
+                  <div key={opportunity.label} className="flex items-center justify-between gap-4 py-2 text-sm">
+                    <span>{opportunity.label}</span>
+                    <span className="tabular-nums text-muted-foreground">{currencyFormatter.format(opportunity.potentialMonthlyValue)}/mês</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
       </>
     );
   }

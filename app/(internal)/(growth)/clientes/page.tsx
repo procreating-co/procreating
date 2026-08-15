@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { listClients } from "@/lib/clientes/queries";
+import { listClientsWithCategories } from "@/lib/clientes/queries";
 import { ClientsTable } from "@/components/clientes/clients-table";
 
 export const metadata: Metadata = {
@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 };
 
 export default async function ClientesPage() {
-  const clients = await listClients();
+  const clients = await listClientsWithCategories();
 
   return (
     <main className="mx-auto flex max-w-[1400px] flex-col gap-8 px-6 pt-8 pb-16 lg:px-10">
