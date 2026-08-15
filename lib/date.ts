@@ -31,6 +31,15 @@ export function todayParts(): DateParts {
   return { year, month, day };
 }
 
+/** Dia de calendário (em Brasília) de um INSTANTE (timestamptz — `created_at`, `paid_at` de
+ *  evento, etc.), como "YYYY-MM-DD". Existe porque `isoInstant.slice(0,10)` dá o dia em UTC, não
+ *  em Brasília — a mesma armadilha que este arquivo inteiro existe pra evitar, só que aplicada a
+ *  um instante gravado pelo banco (`now()`) em vez de "agora" no processo. Nunca fatiar um
+ *  timestamptz na mão pra virar dia-de-calendário — sempre por aqui. */
+export function calendarDateOf(isoInstant: string): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: TIMEZONE, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(isoInstant));
+}
+
 /** "Agora" como instante completo (timestamptz) — `new Date().toISOString()` já é correto pra
  *  isso (o instante em si não tem fuso "errado", só a LEITURA de volta como dia-de-calendário
  *  tem). Existe aqui só pra todo `updated_at`/`created_at` do projeto vir do mesmo lugar. */

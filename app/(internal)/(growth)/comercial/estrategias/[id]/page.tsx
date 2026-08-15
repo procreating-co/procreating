@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getStrategy } from "@/lib/comercial/queries";
 import { computeStrategyFunnel } from "@/lib/comercial/funnel";
+import { listSequenceSteps } from "@/lib/comercial/sequences";
 import { StrategyDetailHeader } from "@/components/comercial/strategy-detail-header";
 import { FunnelChart } from "@/components/comercial/funnel-chart";
+import { SequenceEditor } from "@/components/comercial/sequence-editor";
 import { StatTile } from "@/components/dashboard/stat-tile";
 import { Target, TrendingUp, Users, Wallet } from "lucide-react";
 
@@ -19,7 +21,7 @@ const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", cu
 
 export default async function EstrategiaDetailPage({ params }: { params: Promise<Params> }) {
   const { id } = await params;
-  const [strategy, funnel] = await Promise.all([getStrategy(id), computeStrategyFunnel(id)]);
+  const [strategy, funnel, sequenceSteps] = await Promise.all([getStrategy(id), computeStrategyFunnel(id), listSequenceSteps(id)]);
   if (!strategy) notFound();
 
   const fields: { label: string; value: string | null }[] = [
@@ -84,6 +86,14 @@ export default async function EstrategiaDetailPage({ params }: { params: Promise
           </div>
         </section>
       )}
+
+      <section className="flex flex-col gap-4">
+        <div className="flex flex-col gap-1">
+          <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Cadência</h2>
+          <p className="text-sm text-muted-foreground">Sequência de contato pra leads dessa estratégia — alimenta a fila de execução em Prospecção.</p>
+        </div>
+        <SequenceEditor strategyId={strategy.id} steps={sequenceSteps} />
+      </section>
     </main>
   );
 }

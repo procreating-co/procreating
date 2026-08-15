@@ -127,3 +127,13 @@ export function normalizeCompanyName(value: string): string {
     .replace(/[̀-ͯ]/g, "")
     .replace(/\s+/g, " ");
 }
+
+/** Link `wa.me` com a mensagem já preenchida — abre o WhatsApp Web/app com o script pronto pra
+ *  revisar e enviar; nunca dispara nada sozinho (decisão desta sessão: MVP manual, sem provedor
+ *  de envio automático). Prefixa `55` (Brasil) quando o número não já tiver DDI — a base de leads
+ *  hoje é toda nacional; sem isso o wa.me trataria o DDD como início de DDI errado. */
+export function waMeLink(whatsapp: string, message: string): string {
+  const digits = normalizePhone(whatsapp);
+  const withCountryCode = digits.length <= 11 ? `55${digits}` : digits;
+  return `https://wa.me/${withCountryCode}?text=${encodeURIComponent(message)}`;
+}

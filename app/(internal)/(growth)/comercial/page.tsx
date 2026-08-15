@@ -16,6 +16,8 @@ import { PipelineBoard } from "@/components/comercial/pipeline-board";
 import { StrategiesList } from "@/components/comercial/strategies-list";
 import { CrmFilters } from "@/components/comercial/crm-filters";
 import { ProspeccaoView } from "@/components/comercial/prospeccao-view";
+import { ExecutionQueue } from "@/components/comercial/execution-queue";
+import { computeExecutionQueue } from "@/lib/comercial/sequences";
 import { GestureNav, type GestureTab } from "@/components/comercial/gesture-nav";
 import { TabTransition } from "@/components/comercial/tab-transition";
 import { SimulatorForm } from "@/components/marketing/simulator-form";
@@ -90,11 +92,21 @@ export default async function ComercialPage({
       </div>
     );
   } else if (tab === "prospeccao") {
-    const [lists, strategies] = await Promise.all([listProspectingLists(), listStrategies()]);
+    const [lists, strategies, openLeads] = await Promise.all([listProspectingLists(), listStrategies(), listOpenLeads()]);
+    const queue = await computeExecutionQueue(openLeads);
     content = (
-      <div className="flex flex-col gap-4">
-        <SectionHeader title="Prospecção" description="Motor de listas — importe um CSV, o sistema deduplica e organiza em listas conectadas às estratégias." />
-        <ProspeccaoView lists={lists} strategies={strategies} />
+      <div className="flex flex-col gap-8">
+        <div className="flex flex-col gap-4">
+          <SectionHeader
+            title="Fila de execução"
+            description={queue.length > 0 ? `${queue.length} lead${queue.length === 1 ? "" : "s"} com ação pendente hoje.` : "Quem abordar hoje, com o script já pronto — configure a cadência na estratégia."}
+          />
+          <ExecutionQueue items={queue} />
+        </div>
+        <div className="flex flex-col gap-4">
+          <SectionHeader title="Listas" description="Motor de listas — importe um CSV, o sistema deduplica e organiza em listas conectadas às estratégias." />
+          <ProspeccaoView lists={lists} strategies={strategies} />
+        </div>
       </div>
     );
   } else if (tab === "estrategias") {

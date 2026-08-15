@@ -5,8 +5,10 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserId } from "@/lib/supabase/current-user";
 import { getInitialStage, getLeadEvents, getWonStage, listPipelineStages, listStrategies } from "@/lib/comercial/queries";
 import { normalizeCompanyName, normalizeEmail, normalizePhone, type ParsedLeadRow } from "@/lib/comercial/csv";
+import { computeSuggestedAction, listSequenceSteps, loadSequenceProgress } from "@/lib/comercial/sequences";
+import { nowISO } from "@/lib/date";
 import type { DedupCheckResult, ImportListInput, LeadInput, LeadPatch, LeadWithRelations, StrategyInput } from "@/lib/comercial/types";
-import type { Event, Strategy } from "@/lib/supabase/types/database";
+import type { Event, SequenceChannel, Strategy } from "@/lib/supabase/types/database";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -324,4 +326,83 @@ export async function importListAction(input: ImportListInput): Promise<ActionRe
 
   revalidatePath("/comercial");
   return { ok: true, listId: list.id };
+}
+
+export async function createSequenceStepAction(input: { strategyId: string; dayOffset: number; channel: SequenceChannel; script: string }): Promise<ActionResult> {
+  if (!input.script.trim()) return { ok: false, error: "Escreva o script da mensagem." };
+
+  const userId = await getCurrentUserId();
+  if (!userId) return { ok: false, error: "Sessão expirada — faça login de novo." };
+
+  const supabase = await createClient();
+  const { data: existing } = await supabase.from("sequence_steps").select("sort_order").eq("strategy_id", input.strategyId).order("sort_order", { ascending: false }).limit(1);
+  const nextSort = (existing?.[0]?.sort_order ?? -1) + 1;
+
+  const { error } = await supabase.from("sequence_steps").insert({
+    strategy_id: input.strategyId,
+    day_offset: input.dayOffset,
+    channel: input.channel,
+    script: input.script,
+    sort_order: nextSort,
+    created_by: userId,
+  });
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath(`/comercial/estrategias/${input.strategyId}`);
+  revalidatePath("/comercial");
+  return { ok: true };
+}
+
+export async function deleteSequenceStepAction(id: string, strategyId: string): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("sequence_steps").delete().eq("id", id);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath(`/comercial/estrategias/${strategyId}`);
+  revalidatePath("/comercial");
+  return { ok: true };
+}
+
+/**
+ * "Marcar como contatado" da fila de execução — grava o evento que avança o progresso da
+ * cadência (`sequence_step_completed`, lido de volta por `computeSuggestedAction`) e recalcula
+ * `leads.next_contact_at` com a data do PRÓXIMO passo, mantendo em sincronia o mesmo campo que o
+ * card do Kanban já lê pro badge "Atrasado"/"Hoje" — sem duplicar essa lógica em dois lugares.
+ * Sequência esgotada (sem próximo passo) → `next_contact_at` fica `null`, decisão manual dali
+ * pra frente, nunca inventa uma data.
+ */
+export async function markLeadContactedAction(leadId: string): Promise<ActionResult> {
+  const userId = await getCurrentUserId();
+  if (!userId) return { ok: false, error: "Sessão expirada — faça login de novo." };
+
+  const supabase = await createClient();
+  const { data: lead } = await supabase.from("leads").select("*").eq("id", leadId).maybeSingle();
+  if (!lead) return { ok: false, error: "Lead não encontrado." };
+
+  const timestamp = nowISO();
+  const { error: eventError } = await supabase.from("events").insert({
+    entity_type: "lead",
+    entity_id: leadId,
+    actor_id: userId,
+    type: "sequence_step_completed",
+    metadata: {},
+  });
+  if (eventError) return { ok: false, error: eventError.message };
+
+  let nextContactAt: string | null = null;
+  if (lead.strategy_id) {
+    const [steps, progress] = await Promise.all([listSequenceSteps(lead.strategy_id), loadSequenceProgress([leadId])]);
+    const current = progress.get(leadId) ?? { completedCount: 0, firstContactISO: null };
+    // O evento acabado de gravar ainda não está nesse `progress` (foi lido antes do insert acima
+    // confirmar) — soma manualmente pra já sugerir o passo seguinte, não repetir o mesmo.
+    const updated = { completedCount: current.completedCount + 1, firstContactISO: current.firstContactISO ?? timestamp };
+    const suggestion = computeSuggestedAction({ created_at: lead.created_at }, steps, updated);
+    nextContactAt = suggestion ? `${suggestion.dueDateISO}T00:00:00.000Z` : null;
+  }
+
+  const { error: updateError } = await supabase.from("leads").update({ last_contact_at: timestamp, next_contact_at: nextContactAt }).eq("id", leadId);
+  if (updateError) return { ok: false, error: updateError.message };
+
+  revalidatePath("/comercial");
+  return { ok: true };
 }

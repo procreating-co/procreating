@@ -334,6 +334,25 @@ export type ProspectingList = {
 };
 
 // ---------------------------------------------------------------------------
+// SequenceStep — cadência de prospecção (migration `20260814290000_sequence_steps.sql`).
+// Configuração POR ESTRATÉGIA, não por lead — o progresso de cada lead é derivado em runtime de
+// `leads.last_contact_at`/`next_contact_at` (ver `lib/comercial/sequences.ts`), nunca armazenado
+// numa tabela de "enrollment" própria (mesmo espírito de `lib/comercial/funnel.ts`).
+// ---------------------------------------------------------------------------
+export type SequenceChannel = "whatsapp" | "email" | "ligacao";
+
+export type SequenceStep = {
+  id: string;
+  strategy_id: string;
+  day_offset: number;
+  channel: SequenceChannel;
+  script: string;
+  sort_order: number;
+  created_by: string;
+  created_at: string;
+};
+
+// ---------------------------------------------------------------------------
 // Contract / ContractScopeItem — Etapas 2 e 3 do modal de onboarding.
 // ---------------------------------------------------------------------------
 export type ContractType = "pontual" | "recorrente";
@@ -600,6 +619,7 @@ export type Database = {
       strategies: TableDef<Strategy>;
       leads: TableDef<Lead>;
       prospecting_lists: TableDef<ProspectingList>;
+      sequence_steps: TableDef<SequenceStep>;
       contracts: TableDef<Contract>;
       contract_scope_items: TableDef<ContractScopeItem>;
       client_onboarding: TableDef<ClientOnboarding>;
