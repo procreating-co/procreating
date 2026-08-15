@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { LeadFormDialog } from "@/components/comercial/lead-form-dialog";
 import { LeadDetailDrawer } from "@/components/comercial/lead-detail-drawer";
+import { BulkActionsToolbar } from "@/components/comercial/bulk-actions-toolbar";
 import { stageColorClasses } from "@/lib/comercial/stage-colors";
 import type { LeadWithRelations, PipelineStage } from "@/lib/comercial/types";
 import type { Strategy, User } from "@/lib/supabase/types/database";
@@ -29,6 +30,7 @@ export function LeadsTable({
   const [stageFilter, setStageFilter] = useState<string | "todos">("todos");
   const [creating, setCreating] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const visible = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -40,6 +42,28 @@ export function LeadsTable({
   }, [leads, query, stageFilter]);
 
   const selected = leads.find((lead) => lead.id === selectedId) ?? null;
+  const selectedLeads = useMemo(() => visible.filter((lead) => selectedIds.has(lead.id)), [visible, selectedIds]);
+  const allVisibleSelected = visible.length > 0 && visible.every((lead) => selectedIds.has(lead.id));
+
+  function toggleOne(id: string, checked: boolean) {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }
+
+  function toggleAllVisible(checked: boolean) {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      for (const lead of visible) {
+        if (checked) next.add(lead.id);
+        else next.delete(lead.id);
+      }
+      return next;
+    });
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -67,6 +91,10 @@ export function LeadsTable({
         </Button>
       </div>
 
+      {selectedLeads.length > 0 && (
+        <BulkActionsToolbar selectedLeads={selectedLeads} stages={stages} strategies={strategies} users={users} onDone={() => setSelectedIds(new Set())} />
+      )}
+
       {visible.length === 0 ? (
         <div className="rounded-xl border border-border/60 bg-card/20 px-6 py-16 text-center text-muted-foreground">
           {leads.length === 0 ? "Nenhum lead cadastrado ainda." : "Nenhum lead encontrado."}
@@ -76,6 +104,15 @@ export function LeadsTable({
           <Table>
             <TableHeader>
               <TableRow className="border-border/60 hover:bg-transparent">
+                <TableHead className="w-9">
+                  <input
+                    type="checkbox"
+                    checked={allVisibleSelected}
+                    onChange={(e) => toggleAllVisible(e.target.checked)}
+                    aria-label="Selecionar todos"
+                    className="size-3.5 rounded border-input"
+                  />
+                </TableHead>
                 <TableHead>Empresa</TableHead>
                 <TableHead>Contato</TableHead>
                 <TableHead>Estágio</TableHead>
@@ -90,6 +127,15 @@ export function LeadsTable({
                 const owner = users.find((user) => user.id === lead.owner_id);
                 return (
                   <TableRow key={lead.id} className="cursor-pointer border-border/60" onClick={() => setSelectedId(lead.id)}>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(lead.id)}
+                        onChange={(e) => toggleOne(lead.id, e.target.checked)}
+                        aria-label={`Selecionar ${lead.company_name}`}
+                        className="size-3.5 rounded border-input"
+                      />
+                    </TableCell>
                     <TableCell className="font-medium">{lead.company_name}</TableCell>
                     <TableCell className="text-muted-foreground">{lead.contact_name || "—"}</TableCell>
                     <TableCell>

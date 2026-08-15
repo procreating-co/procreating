@@ -465,3 +465,96 @@ export async function deleteLeadAction(leadId: string): Promise<ActionResult> {
   revalidatePath("/comercial");
   return { ok: true };
 }
+
+// ---------------------------------------------------------------------------
+// Batch actions (master prompt §71) — "selecionar vários... toolbar contextual". Do vocabulário
+// do prompt (Assign/Tag/Strategy/Sequence/Move/Export/Archive), 4 mapeiam pra uma mudança real
+// no schema: Assign (owner_id), Tag (leads.tags), Strategy (strategy_id), Move (stage_id).
+// "Sequence" não é uma ação à parte aqui — cadência já é 100% derivada de `strategy_id` (ver
+// `lib/comercial/sequences.ts`), atribuir estratégia já é "entrar na sequência". "Export" não
+// precisa de Server Action (monta o CSV no client, com o que já está carregado na tabela).
+// "Archive" não existe como conceito no schema — arquivar de verdade é mover pro estágio
+// "Perdido", já coberto por Move; inventar um `archived: boolean` novo sem um caso de uso real
+// seria abstração solta. Cada ação age em N leads de uma vez (pedido explícito de ser bulk,
+// diferente da regra de "1 registro por vez" da automação §72 — lá era automação silenciosa,
+// aqui é ação humana deliberada, com toolbar visível e confirmação implícita no clique).
+// ---------------------------------------------------------------------------
+
+export async function bulkAssignOwnerAction(leadIds: string[], ownerId: string | null): Promise<ActionResult> {
+  if (leadIds.length === 0) return { ok: false, error: "Nenhum lead selecionado." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("leads").update({ owner_id: ownerId, updated_at: new Date().toISOString() }).in("id", leadIds);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/comercial");
+  return { ok: true };
+}
+
+export async function bulkAssignStrategyAction(leadIds: string[], strategyId: string | null): Promise<ActionResult> {
+  if (leadIds.length === 0) return { ok: false, error: "Nenhum lead selecionado." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("leads").update({ strategy_id: strategyId, updated_at: new Date().toISOString() }).in("id", leadIds);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/comercial");
+  return { ok: true };
+}
+
+/** Append, não substitui — cada lead pode já ter outras tags. Sem função de array-append no
+ *  supabase-js pra `update()` em massa, então é 1 leitura + 1 escrita por lead (aceitável na
+ *  escala real de hoje — dezenas de leads, não milhares; ver nota de performance do prompt §69,
+ *  que fala de listas de PROSPECÇÃO/importação, não desta seleção manual). */
+export async function bulkAddTagAction(leadIds: string[], tag: string): Promise<ActionResult> {
+  const trimmed = tag.trim();
+  if (!trimmed) return { ok: false, error: "Informe a tag." };
+  if (leadIds.length === 0) return { ok: false, error: "Nenhum lead selecionado." };
+
+  const supabase = await createClient();
+  const { data: current, error: readError } = await supabase.from("leads").select("id, tags").in("id", leadIds);
+  if (readError) return { ok: false, error: readError.message };
+
+  await Promise.all(
+    (current ?? [])
+      .filter((lead) => !(lead.tags ?? []).includes(trimmed))
+      .map((lead) => supabase.from("leads").update({ tags: [...(lead.tags ?? []), trimmed], updated_at: new Date().toISOString() }).eq("id", lead.id)),
+  );
+
+  revalidatePath("/comercial");
+  return { ok: true };
+}
+
+/** Nunca aceita o estágio `is_won` como destino — mesma regra de `moveLeadStageAction` (fechar
+ *  negócio precisa do modal de onboarding, não dá pra "mover em massa pra Fechado"). Registra um
+ *  evento `stage_changed` por lead (1 insert com várias linhas) — é o que `lib/comercial/
+ *  funnel.ts` usa pra reconstruir o funil histórico; pular isto sub-contaria a conversão real. */
+export async function bulkMoveStageAction(leadIds: string[], toStageId: string): Promise<ActionResult> {
+  if (leadIds.length === 0) return { ok: false, error: "Nenhum lead selecionado." };
+
+  const stages = await listPipelineStages();
+  const toStage = stages.find((stage) => stage.id === toStageId);
+  if (!toStage) return { ok: false, error: "Estágio não encontrado." };
+  if (toStage.is_won) return { ok: false, error: "Fechar negócio precisa do modal de onboarding — não dá pra mover em massa pra este estágio." };
+
+  const supabase = await createClient();
+  const { data: currentLeads, error: readError } = await supabase.from("leads").select("id, stage_id").in("id", leadIds);
+  if (readError) return { ok: false, error: readError.message };
+
+  const userId = await getCurrentUserId();
+  const stageById = new Map(stages.map((stage) => [stage.id, stage]));
+
+  const { error } = await supabase.from("leads").update({ stage_id: toStageId, updated_at: new Date().toISOString() }).in("id", leadIds);
+  if (error) return { ok: false, error: error.message };
+
+  await supabase.from("events").insert(
+    (currentLeads ?? []).map((lead) => ({
+      entity_type: "lead",
+      entity_id: lead.id,
+      actor_id: userId,
+      type: "stage_changed",
+      metadata: { from: stageById.get(lead.stage_id)?.key ?? null, to: toStage.key, bulk: true },
+    })),
+  );
+
+  revalidatePath("/comercial");
+  return { ok: true };
+}
