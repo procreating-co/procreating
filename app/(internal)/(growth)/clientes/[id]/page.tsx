@@ -6,6 +6,7 @@ import { getClientFull } from "@/lib/clientes/queries";
 import { ClientStatusSelect } from "@/components/clientes/client-status-select";
 import { ClientInfoDialog } from "@/components/clientes/client-info-dialog";
 import { ContractsSection } from "@/components/clientes/contracts-section";
+import { ContactsSection } from "@/components/clientes/contacts-section";
 import { OnboardingTasksList } from "@/components/clientes/onboarding-tasks-list";
 
 type Params = { id: string };
@@ -134,25 +135,7 @@ export default async function ClienteDetailPage({ params }: { params: Promise<Pa
         </div>
 
         <div className="flex flex-col gap-6">
-          <section className="flex flex-col gap-3 rounded-xl border border-border/60 bg-card/40 p-5">
-            <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Contatos</h2>
-            {contacts.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nenhum contato cadastrado.</p>
-            ) : (
-              <ul className="flex flex-col gap-3 text-sm">
-                {contacts.map((contact) => (
-                  <li key={contact.id} className="flex flex-col gap-0.5">
-                    <span className="font-medium">
-                      {contact.name} {contact.is_primary && <span className="text-xs text-muted-foreground">(principal)</span>}
-                    </span>
-                    {contact.role_title && <span className="text-xs text-muted-foreground">{contact.role_title}</span>}
-                    {contact.whatsapp && <span className="text-xs text-muted-foreground">{contact.whatsapp}</span>}
-                    {contact.email && <span className="text-xs text-muted-foreground">{contact.email}</span>}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+          <ContactsSection clientId={client.id} contacts={contacts} />
 
           <section className="flex flex-col gap-3 rounded-xl border border-border/60 bg-card/40 p-5">
             <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Tarefas de onboarding</h2>
