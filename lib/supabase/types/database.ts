@@ -660,6 +660,47 @@ export type Download = {
 };
 
 // ---------------------------------------------------------------------------
+// Quote Builder — catálogo de serviço + orçamento (migration `20260816030000_quote_builder.sql`).
+// Um orçamento nasce preso a um `lead` (proposta antes de fechar) OU a um `client` (upsell),
+// nunca os dois — mesmo par de conceitos de `ContractCategory`: negociação vs. relação já
+// fechada. Itens gravam `unit_price` no momento (não uma referência viva ao catálogo) — preço de
+// catálogo muda depois, orçamento já enviado não pode mudar junto.
+// ---------------------------------------------------------------------------
+export type QuoteStatus = "rascunho" | "enviado" | "aceito" | "recusado";
+
+export type ServiceCatalogItem = {
+  id: string;
+  name: string;
+  description: string | null;
+  default_price: number | null;
+  unit: string | null;
+  created_by: string;
+  created_at: string;
+};
+
+export type Quote = {
+  id: string;
+  lead_id: string | null;
+  client_id: string | null;
+  title: string;
+  status: QuoteStatus;
+  notes: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type QuoteItem = {
+  id: string;
+  quote_id: string;
+  service_name: string;
+  description: string | null;
+  quantity: number;
+  unit_price: number;
+  created_at: string;
+};
+
+// ---------------------------------------------------------------------------
 // Aproximação do formato gerado por `supabase gen types typescript`. `Insert`/`Update` aqui
 // são só `Partial<Row>` — o gerado de verdade tem nullability exata por coluna. Trocar por esse
 // quando o schema existir num projeto real.
@@ -707,6 +748,9 @@ export type Database = {
       production_projects: TableDef<ProductionProject>;
       production_items: TableDef<ProductionItem>;
       team_invites: TableDef<TeamInviteRow>;
+      service_catalog: TableDef<ServiceCatalogItem>;
+      quotes: TableDef<Quote>;
+      quote_items: TableDef<QuoteItem>;
     };
     Views: {
       /** `WHERE status IN ('published', 'archived')` — evita repetir esse filtro em toda

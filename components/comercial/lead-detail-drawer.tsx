@@ -2,15 +2,25 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
+import { StatusDot, type StatusTone } from "@/components/dashboard/status-dot";
+import { QuoteBuilderDialog } from "@/components/comercial/quote-builder-dialog";
 import { getLeadEventsAction, logLeadActivityAction, updateLeadAction } from "@/lib/comercial/actions";
+import { getQuotesForLeadAction } from "@/lib/comercial/quote-actions";
 import { stageColorClasses } from "@/lib/comercial/stage-colors";
-import type { Event, User } from "@/lib/supabase/types/database";
+import type { Event, QuoteStatus, User } from "@/lib/supabase/types/database";
+import type { QuoteWithItems } from "@/lib/comercial/quotes";
 import type { LeadPatch, LeadWithRelations } from "@/lib/comercial/types";
 import { cn } from "@/lib/utils";
+
+const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+
+const QUOTE_STATUS_LABEL: Record<QuoteStatus, string> = { rascunho: "Rascunho", enviado: "Enviado", aceito: "Aceito", recusado: "Recusado" };
+const QUOTE_STATUS_TONE: Record<QuoteStatus, StatusTone> = { rascunho: "neutral", enviado: "pending", aceito: "active", recusado: "danger" };
 
 function toPatch(lead: LeadWithRelations): LeadPatch {
   return {
@@ -43,6 +53,8 @@ export function LeadDetailDrawer({ lead, users, onOpenChange }: { lead: LeadWith
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
+  const [quotes, setQuotes] = useState<QuoteWithItems[]>([]);
+  const [quoteBuilderOpen, setQuoteBuilderOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -51,8 +63,14 @@ export function LeadDetailDrawer({ lead, users, onOpenChange }: { lead: LeadWith
     setError(null);
     setNote("");
     setEvents([]);
+    setQuotes([]);
     getLeadEventsAction(lead.id).then(setEvents);
+    getQuotesForLeadAction(lead.id).then(setQuotes);
   }, [lead]);
+
+  function refreshQuotes() {
+    if (lead) getQuotesForLeadAction(lead.id).then(setQuotes);
+  }
 
   if (!lead) return null;
   const stage = stageColorClasses(lead.stage.color);
@@ -85,7 +103,8 @@ export function LeadDetailDrawer({ lead, users, onOpenChange }: { lead: LeadWith
   }
 
   return (
-    <Sheet open={lead !== null} onOpenChange={onOpenChange}>
+    <>
+      <Sheet open={lead !== null} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full gap-0 overflow-y-auto bg-popover p-6 text-popover-foreground sm:max-w-md">
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-1.5">
@@ -189,6 +208,33 @@ export function LeadDetailDrawer({ lead, users, onOpenChange }: { lead: LeadWith
           </Button>
 
           <div className="flex flex-col gap-3 border-t border-border/60 pt-4">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Orçamentos</p>
+              <Button type="button" variant="outline" size="sm" className="h-7 gap-1 px-2 text-xs" onClick={() => setQuoteBuilderOpen(true)}>
+                <Plus className="size-3" />
+                Novo
+              </Button>
+            </div>
+            {quotes.length === 0 ? (
+              <p className="text-xs text-muted-foreground">Nenhum orçamento criado ainda.</p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {quotes.map((quote) => (
+                  <div key={quote.id} className="flex items-center justify-between gap-2 rounded-lg border border-border/60 px-3 py-2 text-xs">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="font-medium">{quote.title}</span>
+                      <span className="text-muted-foreground">
+                        {quote.items.length} ite{quote.items.length === 1 ? "m" : "ns"} · {currencyFormatter.format(quote.total)}
+                      </span>
+                    </div>
+                    <StatusDot tone={QUOTE_STATUS_TONE[quote.status]} label={QUOTE_STATUS_LABEL[quote.status]} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-3 border-t border-border/60 pt-4">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Histórico</p>
             <div className="flex gap-2">
               <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Registrar contato/observação..." />
@@ -211,7 +257,17 @@ export function LeadDetailDrawer({ lead, users, onOpenChange }: { lead: LeadWith
           </div>
         </div>
       </SheetContent>
-    </Sheet>
+      </Sheet>
+
+      <QuoteBuilderDialog
+        leadId={lead.id}
+        open={quoteBuilderOpen}
+        onOpenChange={(open) => {
+          setQuoteBuilderOpen(open);
+          if (!open) refreshQuotes();
+        }}
+      />
+    </>
   );
 }
 
