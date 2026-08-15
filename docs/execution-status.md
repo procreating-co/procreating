@@ -106,6 +106,28 @@ Export→CSV client-side. "Sequence" não virou ação própria (cadência já �
   `bulkAddTagAction` (append, 1 leitura + 1 escrita por lead), `bulkMoveStageAction` (nunca
   aceita `is_won` como destino, loga `stage_changed` por lead pro funil continuar correto).
 
+## Analytics + filtros de período no Comercial (§65-66) — FEITO
+
+Backlog (itens 3/4 do Passo 1 seguem bloqueados). "Contact→Reply, Reply→Meeting, Meeting→
+Proposal, Proposal→Won" (§65) e filtros de período consistentes — Today/7 dias/30 dias/Este mês/
+Mês passado/Trimestre/Ano (§66) — nenhum dos dois existia na Visão Geral do Comercial.
+
+- `lib/comercial/period.ts` (novo) — 7 presets, timezone-safe. "Custom" (intervalo livre) fica
+  de fora — precisaria de um date-range picker novo, escopo maior; documentado, não escondido.
+- `lib/comercial/funnel.ts` ganha `computeOverallFunnel(period)` — mesmo funil que já existia
+  por estratégia, agora global e por período. Reaproveita o `FunnelChart` (Recharts) que já
+  existia em `components/comercial/funnel-chart.tsx`.
+- `lib/comercial/metrics.ts` — `computeComercialMetrics` aceita período (default "este mês").
+  Bug real corrigido: a versão anterior calculava "início do mês" com `new Date()` cru — mesmo
+  viés de fuso que `lib/date.ts` existe pra evitar. Corrigido pra todo mundo, incluindo o Home
+  dashboard (chama sem argumento, herda o default correto).
+
+**Erro de processo, sem consequência**: ao montar o funil, sobrescrevi `funnel-chart.tsx` sem
+ler o arquivo primeiro — ele já era um componente funcional (usado também pela página de
+Estratégia) com a mesma interface. Revertido com `git checkout HEAD --` antes de qualquer
+commit, nada chegou a ir pro ar errado. Registrando aqui como lembrete: **sempre ler um arquivo
+antes de recriá-lo**, mesmo quando parece óbvio que "não deve existir ainda".
+
 ## Bug real do tema dark — tokens novos herdando do light — CORRIGIDO
 
 Achado pelo usuário: cards do Pipeline com fundo branco/creme sólido em tema escuro, hover da
