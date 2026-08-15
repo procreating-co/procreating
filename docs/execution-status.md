@@ -3,13 +3,14 @@
 Documento de retomada. Se você é uma sessão nova retomando isto, comece por aqui antes de reler
 o histórico inteiro — este arquivo é a fonte da verdade, não a memória de conversa de ninguém.
 
-**Atualização mais recente**: Passo 1 itens 1 e 2 concluídos e implantados (janela configurável
-+ RBAC mínimo). Item 3 (orquestrador de IA) e item 4 (Growth swipe) continuam **bloqueados** —
-perguntei ao usuário como seguir; a resposta foi "trabalhar em outra coisa do backlog enquanto
-isso". Duas coisas feitas nessa toada, ambas implantadas: batch actions na Lista de leads
-(§71) e ajuste de contraste do tema dark (branco puro removido). Bloqueios em si não mudaram:
-`ANTHROPIC_API_KEY` continua sem valor real em qualquer lugar (`.env.local`/Vercel), e a decisão
-de escopo do RBAC na Home/Planejamento continua em aberto.
+**Atualização mais recente**: pedido novo do usuário — "análise geral pra implementar meios de
+edição e melhora de UX, ERP totalmente funcional" — auditoria de gaps de CRUD (grep por telas
+que só criam e nunca editam/excluem) e fechamento de 3 deles: contatos do cliente, tarefas do
+Workspace, despesas/custos em Financeiro. Ver seção própria abaixo. Passo 1 itens 3 (orquestrador
+de IA) e 4 (Growth swipe) continuam **bloqueados** — resposta anterior do usuário foi "trabalhar
+em outra coisa do backlog enquanto isso", e foi isso que esta rodada fez. Bloqueios em si não
+mudaram: `ANTHROPIC_API_KEY` continua sem valor real em qualquer lugar (`.env.local`/Vercel), e a
+decisão de escopo do RBAC na Home/Planejamento continua em aberto.
 
 Escopo: só o Procreating OS (ERP interno — `app/(internal)/**`, `/admin`, `/clientes` etc.). O
 site público/portfolio de clientes (`/clients/[client]/**`, `/p/[client]/**`) é escopo de uma
@@ -121,6 +122,40 @@ Mês passado/Trimestre/Ano (§66) — nenhum dos dois existia na Visão Geral do
   Bug real corrigido: a versão anterior calculava "início do mês" com `new Date()` cru — mesmo
   viés de fuso que `lib/date.ts` existe pra evitar. Corrigido pra todo mundo, incluindo o Home
   dashboard (chama sem argumento, herda o default correto).
+
+## "ERP totalmente funcional" — auditoria de edição/exclusão — FEITO (3 de 6 gaps fechados)
+
+Pedido aberto do usuário, não um item do master prompt: "faça uma análise geral pra implementar
+meios de edição e de melhora na experiência de usuário, tornando o ERP totalmente funcional".
+Varredura por grep (`createXAction` sem `updateXAction`/`deleteXAction` correspondente) achou 6
+telas só-criação. Fechadas nesta rodada, 3 commits separados, cada um com typecheck+build limpo:
+
+- **Contatos do cliente** (`client_contacts`) — só existiam via onboarding, sem editar/excluir
+  depois. `lib/clientes/contact-actions.ts` (novo) + `ContactFormDialog` (criar/editar no mesmo
+  componente, prop `contact?` opcional) + `ContactsSection` (hover revela editar/excluir,
+  `ConfirmDialog` na exclusão). `clearOtherPrimaries` mantém um único contato principal.
+- **Tarefas do Workspace** — só criar (parser de linguagem natural) e marcar feita; renomear/
+  mudar prazo/responsável ou desistir exigia excluir-e-recriar (excluir nem existia).
+  `updateTaskAction`/`deleteTaskAction` (`lib/tasks/actions.ts`) + `TaskEditDialog` (campos
+  explícitos, deliberadamente SEM reaproveitar `parseQuickTask` — editar é "mudar exatamente
+  isto", não re-escrever a frase torcendo pro parser entender igual).
+- **Despesas e Custos (Financeiro)** — Despesas só tinha criar; Custos tinha excluir mas sem
+  confirmação. `updateExpenseAction`/`deleteExpenseAction`/`updateCostAction`
+  (`lib/financeiro/actions.ts`, atrás de `requireFinancialAccess()` como o resto do arquivo) +
+  `ExpenseFormDialog`/`CostFormDialog` ganham prop opcional (`expense?`/`cost?`) + `ConfirmDialog`
+  nas duas exclusões. `FinancialEntriesTable` ganhou `actions?` opcional (só Despesas usam —
+  Receitas continuam só com toggle de status, já que parcela vem de contrato: editar ali é editar
+  o contrato, não a linha).
+
+**3 gaps identificados e NÃO fechados nesta rodada** (backlog, não esquecidos):
+- `/configuracoes/usuarios` — hoje é um `ComingSoon` puro; agora que RBAC existe (papel importa de
+  verdade), vale uma tela de gestão de `users`/`team_invites`, não só o cadastro via allowlist em
+  `/admin/signup`.
+- Listas de prospecção — hoje só criação via import de CSV, sem renomear/excluir lista depois.
+- Produção/projetos em `/operacao` — **não investigado nesta rodada de propósito**: é escopo ativo
+  de outra sessão que compartilha este repositório (arquivos dela apareciam modificados no
+  `git status` no início desta sessão) — mexer ali sem coordenação é risco de conflito real, não
+  hipotético.
 
 **Erro de processo, sem consequência**: ao montar o funil, sobrescrevi `funnel-chart.tsx` sem
 ler o arquivo primeiro — ele já era um componente funcional (usado também pela página de
