@@ -1,8 +1,13 @@
 # Procreating OS — estado de execução (master prompt §1-87)
 
-Documento de retomada — escrito porque a sessão que fez este trabalho está perto do limite de
-uso semanal (94% no momento da escrita) e a próxima janela só abre em ~2 dias. Se você é uma
-sessão nova retomando isto, comece por aqui antes de reler o histórico inteiro.
+Documento de retomada. Se você é uma sessão nova retomando isto, comece por aqui antes de reler
+o histórico inteiro — este arquivo é a fonte da verdade, não a memória de conversa de ninguém.
+
+**Atualização mais recente**: Passo 1 itens 1 e 2 concluídos e implantados (janela configurável
++ RBAC mínimo). Item 3 (orquestrador de IA) **não iniciado** — parado no ponto exato exigido
+pela própria instrução da rodada: não existe `ANTHROPIC_API_KEY` real configurada em nenhum
+lugar (confirmado: `.env.local` não tem a variável; `vercel env ls` só lista as duas chaves do
+Supabase). Nenhuma linha do orquestrador foi escrita, nenhuma resposta de IA foi simulada.
 
 Escopo: só o Procreating OS (ERP interno — `app/(internal)/**`, `/admin`, `/clientes` etc.). O
 site público/portfolio de clientes (`/clients/[client]/**`, `/p/[client]/**`) é escopo de uma
@@ -30,9 +35,12 @@ o roadmap DELA, não deste ERP).
   `30000` fixo), calcula "receita recorrente a conquistar" (meta − MRR), não a meta cheia.
 - **Command K completo** (§60) — cobre toda a lista do prompt (Create task/opportunity/proposal,
   Import list, Start sequence, Search client/lead, Go to Growth/Commercial/Planning/Finance).
-- **Automação §72 — regras 1, 2 e 3** (ver seção própria abaixo, é o trabalho desta rodada).
+- **Automação §72 — regras 1, 2 e 3**, incluindo janela de alerta configurável (ver seção
+  própria abaixo).
+- **RBAC mínimo** (`can_view_financials`) — ver seção própria abaixo.
 - **`.env.example`** — `ANTHROPIC_API_KEY` documentada (sem valor), decisão de modelo já
-  registrada (Claude API), integração NÃO escrita (ver seção IA abaixo).
+  registrada (Claude API), integração NÃO escrita (ver seção IA abaixo — parada por falta de
+  chave real, não por falta de tempo).
 
 ## Automação (§72) — o que foi implementado nesta rodada
 
@@ -65,15 +73,13 @@ só indicador visual passivo), aí sim vai precisar de um job de verdade — nã
 **Regra 3 — Conta a receber vencendo em N dias → alerta interno. FEITO**, mesma lógica de
 recomputação ao vivo (não rotina armazenada), mesmo motivo da regra 2.
 - `lib/financeiro/queries.ts` — `computeFinanceiroMetrics()` ganhou `upcomingReceivables`
-  (`status='pendente'` com `due_date` dentro de `UPCOMING_RECEIVABLES_WINDOW_DAYS` = **5 dias,
-  fixo**).
-- **Pendência real, não escondida**: a janela de N dias deveria ser configurável (pedido
-  explícito) — hoje é uma constante (`UPCOMING_RECEIVABLES_WINDOW_DAYS` em
-  `lib/financeiro/queries.ts`). Não construí UI de configuração pra isso nesta rodada (não cabia
-  no tempo restante sem risco) — **próximo passo exato**: adicionar um campo em
-  `configuracoes/regras-financeiras` (mesmo padrão de `financial_rules`/`operational_percentage`
-  já existente) e trocar a constante por uma leitura desse valor.
-- Aparece em dois lugares: StatTile "Vence nos próximos 5 dias" em `/financeiro`, e um item na
+  (`status='pendente'` com `due_date` dentro da janela configurável).
+- **Janela configurável — feito na retomada seguinte** (era pendência desta regra): coluna
+  `financial_rules.receivables_alert_days` (default 5, mesmo padrão de `operational_percentage`
+  — tabela de config de 1 linha já existente, migration `20260818000000`). Campo editável em
+  Configurações → Regras financeiras (`ReceivablesAlertDaysField`); `updateReceivablesAlertDaysAction`
+  atualiza a linha. Constante `UPCOMING_RECEIVABLES_WINDOW_DAYS` removida.
+- Aparece em dois lugares: StatTile "Vence nos próximos N dias" em `/financeiro`, e um item na
   lista "Atenção" do Dashboard (`lib/dashboard/executive-metrics.ts`, `kind: "upcoming_revenue"`,
   clicável, mostra a lista real por trás do número).
 
@@ -85,17 +91,51 @@ principal do Comercial se ficar pela metade. Não comecei nenhuma linha disso. P
 sessão dedicada, com folga de uso pra terminar inteiro numa sentada — não é um incremento de
 fim de sessão.
 
-## IA contextual (§73-74) — preparado, não implementado
+## RBAC mínimo (Passo 1 item 2) — FEITO
+
+`lib/auth/permissions.ts` — `canViewFinancials(role)` (pura: `owner`/`admin`/`finance`) +
+`requireFinancialAccess()` (resolve a sessão real via `getSession()`, `lib/admin/auth` — nunca
+confia em `role` vindo do chamador). Aplicado em:
+- Toda action de `lib/financeiro/actions.ts` (checa antes de ler/escrever `revenue`/`expenses`/
+  `costs`/`financial_rules`).
+- `/financeiro` e `/configuracoes/regras-financeiras` (página inteira — sem acesso, mostra "Sem
+  acesso" em vez do conteúdo).
+
+**Escopo real, não escondido — o que NÃO foi gateado nesta rodada**:
+- **Home (`/`)** — mostra MRR, cash flow, meta do mês como parte do dashboard executivo
+  agregado. Não gateei a página inteira porque é a home de TODO usuário independente do papel
+  (gatear isso é uma decisão de produto — "o que um papel sem acesso financeiro deve ver na
+  home?" — que não é óbvia e não cabia decidir sozinho aqui).
+- **Planejamento (`/comercial?tab=planejamento`)** — o Growth Engine mostra MRR/meta real
+  (`lib/simulation/defaults.ts` chama `computeFinanceiroMetrics()`). Mesmo motivo, não gateado.
+- **`lib/clientes/contract-actions.ts`** (criar/editar contrato — valor, período) — fora do
+  escopo explícito da instrução (`lib/financeiro/queries.ts`/`actions.ts` especificamente).
+
+Se o próximo passo for endurecer isso, a pergunta a responder antes é exatamente essa: um papel
+sem `can_view_financials` (`commercial`/`marketing`/`operations`/`production`) deveria ver a
+Home com números ocultos/genéricos, ou ser redirecionado pra outra tela padrão? Isso é decisão
+de produto, não técnica — não escolhi sozinho.
+
+Único usuário real hoje é Santiago (`role: owner`) — não afetado por nenhuma dessas regras
+(confirmado no banco antes de aplicar).
+
+## IA contextual (§73-74) — RBAC pronto, orquestrador NÃO iniciado
 
 Modelo decidido: **Anthropic (Claude API)**. `ANTHROPIC_API_KEY` documentada em `.env.example`
-(sem valor) — confirmado com `grep -rn ANTHROPIC --include="*.ts" --include="*.tsx" .`: zero
-resultados, nenhum arquivo de código lê essa variável ainda. O orquestrador de IA em si **não
-foi escrito nesta sessão, de propósito** — depende de RBAC real existir primeiro: hoje
-`users.role` é decorativo (sem
-enforcement nenhum no código), e dar uma camada de IA acesso a dado sensível (financeiro,
-contratos, dados de cliente) sem controle de permissão real seria construir em cima de uma base
-que ainda falta. **Próximo passo exato, nesta ordem**: (1) RBAC real primeiro, (2) só depois o
-orquestrador de IA.
+(sem valor). **Parado aqui por instrução explícita da própria rodada**: "se ainda não houver
+chave real configurada, pare aqui, avise que precisa da chave, e não simule/mocke resposta de
+IA". Verificado nos dois lugares possíveis:
+- `.env.local` (local) — sem a variável.
+- `vercel env ls` (produção) — só `NEXT_PUBLIC_SUPABASE_ANON_KEY`/`NEXT_PUBLIC_SUPABASE_URL`,
+  nenhuma chave da Anthropic.
+
+Nenhuma linha do orquestrador foi escrita. **Próximo passo exato**: (1) quem retomar precisa
+primeiro obter uma `ANTHROPIC_API_KEY` real e configurá-la (`.env.local` pra dev, `vercel env
+add ANTHROPIC_API_KEY production` pra prod); (2) só depois disso confirmado, implementar o MVP
+somente-leitura (5-8 ferramentas consultando `lib/comercial/queries.ts`/`lib/financeiro/
+queries.ts` — resumo do pipeline, leads sem follow-up, resumo financeiro do mês, contas
+atrasadas — cada ferramenta financeira checando `can_view_financials` ANTES de ficar disponível
+pro modelo, não o modelo decidindo não contar; nenhuma ferramenta de escrita ainda).
 
 ## Verificação final desta rodada
 
@@ -111,8 +151,15 @@ que não aparecem em nenhum commit desta lista).
 
 ## Próximo passo exato pra quem retomar
 
-Por ordem de valor/risco, do mais seguro pro mais arriscado:
-1. Janela configurável da automação de contas a receber (pendência real desta rodada, pequena).
-2. RBAC real (`users.role` com enforcement) — pré-requisito da IA, item concreto e bem definido.
-3. Orquestrador de IA (Claude API) — só depois do RBAC.
-4. Growth como carrossel com swipe — só numa sessão dedicada inteira a isso.
+Ordem original (janela configurável → RBAC → IA → Growth swipe) cumprida até onde deu:
+1. ~~Janela configurável~~ — **feito**.
+2. ~~RBAC mínimo~~ — **feito**.
+3. **Orquestrador de IA — bloqueado, precisa de ação humana primeiro**: obter uma
+   `ANTHROPIC_API_KEY` real e configurá-la (`.env.local` + `vercel env add ANTHROPIC_API_KEY
+   production`). Só depois disso, implementar o MVP somente-leitura (5-8 ferramentas, ver seção
+   IA acima).
+4. Growth como carrossel com swipe — só numa sessão dedicada inteira a isso, só depois do item 3.
+
+Gap conhecido, não urgente, registrado pra não esquecer: Home e Planejamento mostram dado
+financeiro sem passar pelo RBAC novo (ver seção RBAC acima) — decisão de produto pendente, não
+técnica.
