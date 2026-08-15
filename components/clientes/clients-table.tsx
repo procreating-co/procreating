@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Search } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { StatusDot, type StatusTone } from "@/components/dashboard/status-dot";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -29,18 +29,54 @@ const STATUS_LABEL: Record<ClientStatus, string> = {
   churn: "Churn",
 };
 
+/** Prioridade de status pro sort padrão — "ver antes os ativos" (pedido explícito). Ativo primeiro,
+ *  depois quem ainda precisa de atenção, depois quem tá em formação, churn por último (é o que
+ *  menos importa olhar de cara todo dia). Não é ordem alfabética nem a ordem do enum do banco —
+ *  é uma prioridade de negócio, só usada pra o sort "Status". */
+const STATUS_PRIORITY: Record<ClientStatus, number> = { ativo: 0, atencao: 1, risco: 2, onboarding: 3, lead: 4, churn: 5 };
+
+type SortColumn = "name" | "status" | "segment";
+type SortDirection = "asc" | "desc";
+
+function SortableHead({ label, column, sort, onSort }: { label: string; column: SortColumn; sort: { column: SortColumn; direction: SortDirection }; onSort: (column: SortColumn) => void }) {
+  const active = sort.column === column;
+  return (
+    <TableHead>
+      <button type="button" onClick={() => onSort(column)} className="flex items-center gap-1 text-left transition-colors hover:text-foreground">
+        {label}
+        {active ? sort.direction === "asc" ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" /> : <ArrowUpDown className="size-3 text-muted-foreground/40" />}
+      </button>
+    </TableHead>
+  );
+}
+
 export function ClientsTable({ clients }: { clients: ClientWithCategories[] }) {
   const [query, setQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<ContractCategory | "all">("all");
+  // Padrão: Status ascendente = ordem de prioridade de negócio (ativo primeiro) — não alfabética.
+  const [sort, setSort] = useState<{ column: SortColumn; direction: SortDirection }>({ column: "status", direction: "asc" });
+
+  function handleSort(column: SortColumn) {
+    setSort((current) => (current.column === column ? { column, direction: current.direction === "asc" ? "desc" : "asc" } : { column, direction: "asc" }));
+  }
 
   const visible = useMemo(() => {
     const normalized = query.trim().toLowerCase();
-    return clients.filter(({ client, categories }) => {
+    const filtered = clients.filter(({ client, categories }) => {
       const matchesQuery = !normalized || client.name.toLowerCase().includes(normalized) || client.slug.toLowerCase().includes(normalized);
       const matchesCategory = categoryFilter === "all" || categories.includes(categoryFilter);
       return matchesQuery && matchesCategory;
     });
-  }, [clients, query, categoryFilter]);
+
+    const sorted = [...filtered].sort((a, b) => {
+      let comparison = 0;
+      if (sort.column === "name") comparison = a.client.name.localeCompare(b.client.name, "pt-BR");
+      else if (sort.column === "status") comparison = STATUS_PRIORITY[a.client.status] - STATUS_PRIORITY[b.client.status];
+      else comparison = (a.client.segment ?? "").localeCompare(b.client.segment ?? "", "pt-BR");
+      return sort.direction === "asc" ? comparison : -comparison;
+    });
+    return sorted;
+  }, [clients, query, categoryFilter, sort]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -83,10 +119,10 @@ export function ClientsTable({ clients }: { clients: ClientWithCategories[] }) {
           <Table>
             <TableHeader>
               <TableRow className="border-border/60 hover:bg-transparent">
-                <TableHead>Cliente</TableHead>
-                <TableHead>Status</TableHead>
+                <SortableHead label="Cliente" column="name" sort={sort} onSort={handleSort} />
+                <SortableHead label="Status" column="status" sort={sort} onSort={handleSort} />
                 <TableHead>Categoria (contratos)</TableHead>
-                <TableHead>Segmento</TableHead>
+                <SortableHead label="Segmento" column="segment" sort={sort} onSort={handleSort} />
               </TableRow>
             </TableHeader>
             <TableBody>

@@ -2,7 +2,7 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { currentMonthKey, lastMonthKeys, monthKeyOf } from "@/lib/date";
 import type { Cost, Expense, Revenue } from "@/lib/supabase/types/database";
-import type { FinanceiroMetrics, MonthlyEvolutionPoint, PipelineOpportunity } from "@/lib/financeiro/types";
+import type { FinanceiroMetrics, MonthlyEvolutionPoint, MonthlyRevenueByClient, PipelineOpportunity } from "@/lib/financeiro/types";
 
 export async function listRevenue(): Promise<Revenue[]> {
   const supabase = await createClient();
@@ -30,7 +30,7 @@ export async function listCosts(): Promise<Cost[]> {
  *  valor escolhido no seletor de período (`PeriodSelect`). */
 export async function computeFinanceiroMetrics(evolutionMonths = 6): Promise<FinanceiroMetrics> {
   const supabase = await createClient();
-  const [revenueRaw, expenses, costs, { data: activeRecurringContracts }, { data: negociacaoStage }] = await Promise.all([
+  const [revenueRaw, expenses, costs, { data: activeRecurringContracts }, { data: negociacaoStage }, { data: clients }] = await Promise.all([
     listRevenue(),
     listExpenses(),
     listCosts(),
@@ -41,7 +41,10 @@ export async function computeFinanceiroMetrics(evolutionMonths = 6): Promise<Fin
     // Junção manual em TS, não embed do PostgREST (mesmo motivo de `lib/clientes/queries.ts`):
     // `Database` é uma aproximação manual, embed aninhado arrisca inferência `never`.
     supabase.from("pipeline_stages").select("id").eq("key", "negociacao").maybeSingle(),
+    // Só pra resolver `client_id` → nome no breakdown por cliente do gráfico de evolução (hover).
+    supabase.from("clients").select("id, name"),
   ]);
+  const clientNameById = new Map((clients ?? []).map((client) => [client.id, client.name]));
 
   // Pipeline (negociação em aberto) — nunca soma no MRR nem em "a receber", é um número à parte
   // ("MRR potencial se fechar"). Só o estágio 'negociacao': é o que o funil chama de negócio já
@@ -70,11 +73,30 @@ export async function computeFinanceiroMetrics(evolutionMonths = 6): Promise<Fin
   const payablesOverdue = expenses.filter((row) => row.status === "atrasado").reduce((sum, row) => sum + Number(row.amount), 0);
 
   const months = lastMonthKeys(evolutionMonths);
-  const monthlyEvolution: MonthlyEvolutionPoint[] = months.map((month) => ({
-    month,
-    revenue: revenue.filter((row) => monthKeyOf(row.due_date) === month).reduce((sum, row) => sum + Number(row.amount), 0),
-    expenses: expenses.filter((row) => monthKeyOf(row.due_date) === month).reduce((sum, row) => sum + Number(row.amount), 0),
-  }));
+  const monthlyEvolution: MonthlyEvolutionPoint[] = months.map((month) => {
+    const monthRevenue = revenue.filter((row) => monthKeyOf(row.due_date) === month);
+
+    // Breakdown por cliente do hover do gráfico — "de qual cliente está vindo" (pedido explícito).
+    // Chave por `client_id` (não pelo nome) — é o que vira o link "quanto eu já faturei com ele"
+    // pra `/clientes/[id]` (mesma página que já soma o histórico completo do cliente). Mesmo
+    // cliente com mais de uma cobrança no mês (ex.: parcelas) soma numa entrada só; ordenado do
+    // maior pro menor pra ler de relance quem puxou o mês.
+    const amountByClient = new Map<string, { clientId: string | null; clientName: string; amount: number }>();
+    for (const row of monthRevenue) {
+      const key = row.client_id ?? "__sem_cliente__";
+      const name = (row.client_id && clientNameById.get(row.client_id)) || "Sem cliente vinculado";
+      const current = amountByClient.get(key);
+      amountByClient.set(key, { clientId: row.client_id, clientName: name, amount: (current?.amount ?? 0) + Number(row.amount) });
+    }
+    const revenueByClient: MonthlyRevenueByClient[] = Array.from(amountByClient.values()).sort((a, b) => b.amount - a.amount);
+
+    return {
+      month,
+      revenue: monthRevenue.reduce((sum, row) => sum + Number(row.amount), 0),
+      expenses: expenses.filter((row) => monthKeyOf(row.due_date) === month).reduce((sum, row) => sum + Number(row.amount), 0),
+      revenueByClient,
+    };
+  });
 
   const pipelineOpportunities: PipelineOpportunity[] = (negociacaoLeads ?? []).map((lead) => ({
     label: lead.company_name,

@@ -12,10 +12,15 @@ export type CostInput = {
   recurrence: "fixo" | "variavel";
 };
 
+export type MonthlyRevenueByClient = { clientId: string | null; clientName: string; amount: number };
+
 export type MonthlyEvolutionPoint = {
   month: string; // "MM/YYYY"
   revenue: number;
   expenses: number;
+  /** De qual cliente veio a receita do mês — o tooltip do gráfico (`RevenueChart`) mostra isso
+   *  em vez de só o total, ordenado do maior pro menor. */
+  revenueByClient: MonthlyRevenueByClient[];
 };
 
 export type PipelineOpportunity = {

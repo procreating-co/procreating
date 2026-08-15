@@ -6,6 +6,7 @@ import { listPipelineStages } from "@/lib/comercial/queries";
 import { computeFinanceiroMetrics } from "@/lib/financeiro/queries";
 import { dayOfMonthOf, todayUTCAnchor } from "@/lib/date";
 import type { Client, Contract, Lead } from "@/lib/supabase/types/database";
+import type { MonthlyEvolutionPoint } from "@/lib/financeiro/types";
 
 // ---------------------------------------------------------------------------
 // Query central do Dashboard executivo — junta o que já existe (lib/comercial, lib/financeiro,
@@ -65,7 +66,7 @@ export type ExecutiveMetrics = {
     expenses: number;
     netProfit: number;
     cashFlow: number;
-    monthlyEvolution: { month: string; revenue: number; expenses: number }[];
+    monthlyEvolution: MonthlyEvolutionPoint[];
   };
   salesPipeline: {
     stages: { label: string; value: number; count: number }[];
