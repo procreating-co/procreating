@@ -348,11 +348,11 @@ export async function computeExecutiveDashboard(cashFlowMonths = 6): Promise<Exe
   if (revenueDeltaPct != null) {
     pulse.push(`Receita ${revenueDeltaPct >= 0 ? "aumentou" : "caiu"} ${Math.abs(revenueDeltaPct).toFixed(0)}% este mês em relação ao mês passado.`);
   }
-  if (comercial.newLeadsThisMonth > 0) {
+  if (comercial.newLeadsInPeriod > 0) {
     pulse.push(
-      comercial.newLeadsThisMonth === 1
+      comercial.newLeadsInPeriod === 1
         ? `1 novo lead entrou no pipeline este mês.`
-        : `${comercial.newLeadsThisMonth} novos leads entraram no pipeline este mês.`,
+        : `${comercial.newLeadsInPeriod} novos leads entraram no pipeline este mês.`,
     );
   }
   if (goal) {

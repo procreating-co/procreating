@@ -3,6 +3,8 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { Handshake, PackageCheck, Target, TrendingUp, UserPlus, Wallet } from "lucide-react";
 import { computeComercialMetrics, compareStrategies } from "@/lib/comercial/metrics";
+import { computeOverallFunnel } from "@/lib/comercial/funnel";
+import { resolvePeriod, isPeriodPreset, type PeriodPreset } from "@/lib/comercial/period";
 import { listOpenLeads, listOpenLeadsForPipeline, listOpenLeadsPaginated, listPipelineStages, listProspectingLists, listStrategies, type LeadFilters } from "@/lib/comercial/queries";
 import { listUsers } from "@/lib/admin/users/queries";
 import { computeSimulationDefaults } from "@/lib/simulation/defaults";
@@ -22,6 +24,8 @@ import { computeExecutionQueue } from "@/lib/comercial/sequences";
 import { GestureNav, type GestureTab } from "@/components/comercial/gesture-nav";
 import { TabTransition } from "@/components/comercial/tab-transition";
 import { SimulatorForm } from "@/components/marketing/simulator-form";
+import { AnalyticsPeriodSelect } from "@/components/comercial/analytics-period-select";
+import { FunnelChart } from "@/components/comercial/funnel-chart";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
@@ -53,9 +57,9 @@ const TABS = [
 export default async function ComercialPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; view?: string; owner?: string; strategy?: string; list?: string; page?: string }>;
+  searchParams: Promise<{ tab?: string; view?: string; owner?: string; strategy?: string; list?: string; page?: string; period?: string }>;
 }) {
-  const { tab: tabParam, view: viewParam, owner: ownerParam, strategy: strategyParam, list: listParam, page: pageParam } = await searchParams;
+  const { tab: tabParam, view: viewParam, owner: ownerParam, strategy: strategyParam, list: listParam, page: pageParam, period: periodParam } = await searchParams;
   const tab = tabParam ?? "overview";
   const view: "pipeline" | "lista" = viewParam === "lista" ? "lista" : "pipeline";
   const ownerId = ownerParam ?? "todos";
@@ -139,14 +143,15 @@ export default async function ComercialPage({
       </div>
     );
   } else {
-    const [metrics, comparison] = await Promise.all([computeComercialMetrics(), compareStrategies()]);
+    const period = resolvePeriod(isPeriodPreset(periodParam) ? periodParam : "month");
+    const [metrics, comparison, funnel] = await Promise.all([computeComercialMetrics(period), compareStrategies(), computeOverallFunnel(period)]);
     content = (
       <>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <StatTile demo={false} label="Leads abertos" value={String(metrics.openLeads)} icon={<UserPlus className="size-4.5" />} tone="info" />
-          <StatTile demo={false} label="Novos este mês" value={String(metrics.newLeadsThisMonth)} icon={<Target className="size-4.5" />} tone="brand" />
+          <StatTile demo={false} label={`Novos (${period.label.toLowerCase()})`} value={String(metrics.newLeadsInPeriod)} icon={<Target className="size-4.5" />} tone="brand" />
           <StatTile demo={false} label="Em negociação" value={String(metrics.inNegotiation)} icon={<Handshake className="size-4.5" />} tone="warning" />
-          <StatTile demo={false} label="Fechados este mês" value={String(metrics.closedThisMonth)} icon={<PackageCheck className="size-4.5" />} tone="success" />
+          <StatTile demo={false} label={`Fechados (${period.label.toLowerCase()})`} value={String(metrics.closedInPeriod)} icon={<PackageCheck className="size-4.5" />} tone="success" />
           <StatTile demo={false} label="Pipeline em aberto" value={currencyFormatter.format(metrics.pipelineValue)} icon={<Wallet className="size-4.5" />} tone="info" />
           <StatTile
             demo={false}
@@ -156,6 +161,15 @@ export default async function ComercialPage({
             tone="success"
           />
         </div>
+
+        <section className="flex flex-col gap-4">
+          <SectionHeader
+            title="Funil de conversão"
+            description={`${funnel.totalLeads} lead${funnel.totalLeads === 1 ? "" : "s"} criado${funnel.totalLeads === 1 ? "" : "s"} no período — taxa de conversão real por estágio.`}
+            action={<AnalyticsPeriodSelect current={isPeriodPreset(periodParam) ? periodParam : "month"} />}
+          />
+          <FunnelChart steps={funnel.steps} />
+        </section>
 
         <section className="flex flex-col gap-4">
           <SectionHeader title="Comparação entre estratégias" />
