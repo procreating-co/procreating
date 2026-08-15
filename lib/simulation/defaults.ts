@@ -1,5 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import { computeFinanceiroMetrics } from "@/lib/financeiro/queries";
+import { getCurrentMonthGoal } from "@/lib/dashboard/goals";
 import type { SimulationDefaults } from "@/lib/simulation/types";
 
 /** Chute conservador documentado — só usado quando não há histórico real suficiente (poucos
@@ -23,10 +25,12 @@ const MIN_SAMPLE_SIZE = 5;
 export async function computeSimulationDefaults(): Promise<SimulationDefaults> {
   const supabase = await createClient();
 
-  const [{ data: contracts }, { data: leads }, { data: stages }] = await Promise.all([
+  const [{ data: contracts }, { data: leads }, { data: stages }, financeiro, goal] = await Promise.all([
     supabase.from("contracts").select("*"),
     supabase.from("leads").select("*"),
     supabase.from("pipeline_stages").select("*"),
+    computeFinanceiroMetrics(),
+    getCurrentMonthGoal(),
   ]);
 
   // Ticket médio — valor mensal (recorrente) ou total (pontual) de cada contrato já fechado.
@@ -76,5 +80,7 @@ export async function computeSimulationDefaults(): Promise<SimulationDefaults> {
     leadToProposalRate: leadToProposalRate ?? FALLBACK_LEAD_TO_PROPOSAL_RATE,
     proposalToSaleRate: proposalToSaleRate ?? FALLBACK_PROPOSAL_TO_SALE_RATE,
     fromRealData,
+    currentMrr: financeiro.mrr,
+    currentMonthGoal: goal ? Number(goal.amount) : null,
   };
 }

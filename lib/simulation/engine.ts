@@ -11,10 +11,13 @@ function ceil(value: number): number {
  * sem duplicar a conta.
  */
 export function runSimulation(input: SimulationInput): SimulationResult {
-  const clientsNeeded = input.averageTicket > 0 ? ceil(input.revenueGoal / input.averageTicket) : 0;
+  // Target revenue → Required recurring revenue → Clients (master prompt §31) — a meta já
+  // inclui o MRR que já está entrando; o que falta CONQUISTAR é a diferença, não a meta cheia.
+  const requiredRecurringRevenue = Math.max(0, input.revenueGoal - input.currentMrr);
+  const clientsNeeded = input.averageTicket > 0 ? ceil(requiredRecurringRevenue / input.averageTicket) : 0;
   const proposalsNeeded = input.proposalToSaleRate > 0 ? ceil(clientsNeeded / input.proposalToSaleRate) : 0;
   const leadsNeeded = input.leadToProposalRate > 0 ? ceil(proposalsNeeded / input.leadToProposalRate) : 0;
-  return { clientsNeeded, proposalsNeeded, leadsNeeded };
+  return { requiredRecurringRevenue, clientsNeeded, proposalsNeeded, leadsNeeded };
 }
 
 /**

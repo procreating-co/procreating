@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserId } from "@/lib/supabase/current-user";
-import { monthKeyFor } from "@/lib/dashboard/goals";
+import { todayParts } from "@/lib/date";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -16,7 +16,8 @@ export async function setCurrentMonthGoalAction(amount: number): Promise<ActionR
   if (!userId) return { ok: false, error: "Sessão expirada — faça login de novo." };
 
   const supabase = await createClient();
-  const month = monthKeyFor(new Date());
+  const { year, month: monthNum } = todayParts();
+  const month = `${year}-${String(monthNum).padStart(2, "0")}-01`;
   const { error } = await supabase.from("revenue_goals").upsert({ month, amount, created_by: userId }, { onConflict: "month" });
   if (error) return { ok: false, error: error.message };
 

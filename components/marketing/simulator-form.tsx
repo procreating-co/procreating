@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { AlertCircle, Handshake, Target, Users } from "lucide-react";
+import { AlertCircle, Handshake, Target, TrendingUp, Users } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { buildScenarios } from "@/lib/simulation/engine";
@@ -18,9 +18,17 @@ const SCENARIO_HINT: Record<Scenario["label"], string> = {
   agressivo: "conversão 30% melhor que a informada",
 };
 
+/**
+ * Master prompt §31/§32 — "Target revenue → Required recurring revenue → Clients → Deals →
+ * Proposals → Meetings → Prospects → Lists", buscando dado que "o sistema já possui" em vez de
+ * perguntar de novo. Meta e MRR agora vêm do Financeiro/Configurações reais (`defaults`), não
+ * mais um `30000` fixo — e o cálculo de clientes necessários usa a LACUNA (meta − MRR já
+ * confirmado), não a meta cheia, senão receita recorrente já fechada seria contada duas vezes.
+ */
 export function SimulatorForm({ defaults }: { defaults: SimulationDefaults }) {
   const [input, setInput] = useState<SimulationInput>({
-    revenueGoal: 30000,
+    revenueGoal: defaults.currentMonthGoal ?? 0,
+    currentMrr: defaults.currentMrr,
     averageTicket: defaults.averageTicket,
     leadToProposalRate: defaults.leadToProposalRate,
     proposalToSaleRate: defaults.proposalToSaleRate,
@@ -31,7 +39,7 @@ export function SimulatorForm({ defaults }: { defaults: SimulationDefaults }) {
 
   return (
     <div className="flex flex-col gap-8">
-      <div className="grid grid-cols-1 gap-4 rounded-xl border border-border/60 bg-card/40 p-5 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 rounded-xl border border-border/60 bg-card/40 p-5 sm:grid-cols-2 lg:grid-cols-5">
         <div className="flex flex-col gap-2">
           <Label htmlFor="sim-goal">Meta de faturamento (R$)</Label>
           <Input
@@ -41,6 +49,18 @@ export function SimulatorForm({ defaults }: { defaults: SimulationDefaults }) {
             value={input.revenueGoal || ""}
             onChange={(e) => setInput((p) => ({ ...p, revenueGoal: Number(e.target.value) || 0 }))}
           />
+          {defaults.currentMonthGoal != null && <p className="text-[11px] text-muted-foreground">Pré-preenchido com a meta do mês (Configurações → Geral).</p>}
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="sim-mrr">MRR atual (R$)</Label>
+          <Input
+            id="sim-mrr"
+            type="number"
+            inputMode="decimal"
+            value={input.currentMrr || ""}
+            onChange={(e) => setInput((p) => ({ ...p, currentMrr: Number(e.target.value) || 0 }))}
+          />
+          <p className="text-[11px] text-muted-foreground">Receita recorrente já confirmada — não conta como "a conquistar" abaixo.</p>
         </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor="sim-ticket">Ticket médio (R$)</Label>
@@ -74,8 +94,21 @@ export function SimulatorForm({ defaults }: { defaults: SimulationDefaults }) {
         </div>
       </div>
 
+      {defaults.currentMonthGoal == null && (
+        <div className="flex items-start gap-3 rounded-xl border border-warning/30 bg-warning-subtle px-4 py-3 text-sm text-warning">
+          <AlertCircle className="mt-0.5 size-4 shrink-0" />
+          <p>
+            Nenhuma meta configurada pro mês corrente ainda — o campo acima começou em R$0.{" "}
+            <a href="/configuracoes/geral" className="underline underline-offset-2">
+              Defina uma em Configurações → Geral
+            </a>{" "}
+            pra este simulador (e o Dashboard) partirem do número real.
+          </p>
+        </div>
+      )}
+
       {!defaults.fromRealData && (
-        <div className="flex items-start gap-3 rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
+        <div className="flex items-start gap-3 rounded-xl border border-warning/30 bg-warning-subtle px-4 py-3 text-sm text-warning">
           <AlertCircle className="mt-0.5 size-4 shrink-0" />
           <p>
             Ticket médio e taxas de conversão pré-preenchidos são um chute conservador documentado — ainda não há histórico
@@ -99,6 +132,7 @@ export function SimulatorForm({ defaults }: { defaults: SimulationDefaults }) {
             </div>
 
             <div className="flex flex-col gap-4">
+              <ScenarioMetric icon={TrendingUp} label="Receita recorrente a conquistar" value={currencyFormatter.format(scenario.result.requiredRecurringRevenue)} />
               <ScenarioMetric icon={Users} label="Clientes necessários" value={String(scenario.result.clientsNeeded)} />
               <ScenarioMetric icon={Handshake} label="Propostas necessárias" value={String(scenario.result.proposalsNeeded)} />
               <ScenarioMetric icon={Target} label="Leads necessários" value={String(scenario.result.leadsNeeded)} />
@@ -108,7 +142,8 @@ export function SimulatorForm({ defaults }: { defaults: SimulationDefaults }) {
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Cenário base: meta de {currencyFormatter.format(input.revenueGoal)} com ticket médio de {currencyFormatter.format(input.averageTicket)},
+        Cenário base: meta de {currencyFormatter.format(input.revenueGoal)} − MRR atual de {currencyFormatter.format(input.currentMrr)} ={" "}
+        {currencyFormatter.format(base.result.requiredRecurringRevenue)} a conquistar, com ticket médio de {currencyFormatter.format(input.averageTicket)},
         conversão lead→proposta de {percentFormatter.format(input.leadToProposalRate)} e proposta→venda de {percentFormatter.format(input.proposalToSaleRate)} —
         precisa de {base.result.leadsNeeded} leads.
       </p>
