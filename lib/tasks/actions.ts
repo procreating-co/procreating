@@ -41,3 +41,38 @@ export async function updateTaskStatusAction(taskId: string, status: TaskStatus)
   revalidatePath("/clientes/onboarding");
   return { ok: true };
 }
+
+/** "ERP totalmente funcional" — antes só dava pra criar e marcar feita; renomear, mudar data/
+ *  hora/responsável ou desistir de uma tarefa exigia excluir e recriar (nem excluir existia). */
+export async function updateTaskAction(taskId: string, input: TaskInput): Promise<ActionResult> {
+  if (!input.title.trim()) return { ok: false, error: "Informe o título da tarefa." };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("tasks")
+    .update({
+      title: input.title,
+      assignee_id: input.assigneeId,
+      due_date: input.dueDate,
+      due_time: input.dueTime ?? null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", taskId);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/workspace");
+  revalidatePath("/");
+  revalidatePath("/clientes/onboarding");
+  return { ok: true };
+}
+
+export async function deleteTaskAction(taskId: string): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("tasks").delete().eq("id", taskId);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/workspace");
+  revalidatePath("/");
+  revalidatePath("/clientes/onboarding");
+  return { ok: true };
+}

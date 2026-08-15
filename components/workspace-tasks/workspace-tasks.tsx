@@ -2,10 +2,11 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarCheck, Plus } from "lucide-react";
+import { CalendarCheck, Pencil, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/dashboard/empty-state";
+import { TaskEditDialog } from "@/components/workspace-tasks/task-edit-dialog";
 import { createTaskAction, updateTaskStatusAction } from "@/lib/tasks/actions";
 import { describeQuickTaskPreview, parseQuickTask } from "@/lib/tasks/quick-parse";
 import type { Task, User } from "@/lib/supabase/types/database";
@@ -24,6 +25,7 @@ export function WorkspaceTasks({ tasks, userId, teamMembers }: { tasks: Task[]; 
   const [text, setText] = useState("");
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   const preview = useMemo(() => describeQuickTaskPreview(text, teamMembers), [text, teamMembers]);
 
@@ -92,22 +94,38 @@ export function WorkspaceTasks({ tasks, userId, teamMembers }: { tasks: Task[]; 
         />
       ) : (
         <div className="flex flex-col gap-6">
-          <TaskGroup title="Pendentes" tasks={pending} onToggle={toggle} disabled={isPending} />
-          {done.length > 0 && <TaskGroup title="Concluídas" tasks={done} onToggle={toggle} disabled={isPending} />}
+          <TaskGroup title="Pendentes" tasks={pending} onToggle={toggle} onEdit={setEditingTask} disabled={isPending} />
+          {done.length > 0 && <TaskGroup title="Concluídas" tasks={done} onToggle={toggle} onEdit={setEditingTask} disabled={isPending} />}
         </div>
+      )}
+
+      {editingTask && (
+        <TaskEditDialog key={editingTask.id} task={editingTask} teamMembers={teamMembers} open onOpenChange={(open) => !open && setEditingTask(null)} />
       )}
     </div>
   );
 }
 
-function TaskGroup({ title, tasks, onToggle, disabled }: { title: string; tasks: Task[]; onToggle: (task: Task) => void; disabled: boolean }) {
+function TaskGroup({
+  title,
+  tasks,
+  onToggle,
+  onEdit,
+  disabled,
+}: {
+  title: string;
+  tasks: Task[];
+  onToggle: (task: Task) => void;
+  onEdit: (task: Task) => void;
+  disabled: boolean;
+}) {
   if (tasks.length === 0) return <p className="text-sm text-muted-foreground">Nenhuma tarefa pendente — dia livre.</p>;
   return (
     <div className="flex flex-col gap-3">
       <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{title}</h2>
       <ul className="flex flex-col divide-y divide-border/60 rounded-xl border border-border/60 bg-card/40">
         {tasks.map((task) => (
-          <li key={task.id} className="flex items-center gap-3 px-4 py-3">
+          <li key={task.id} className="group flex items-center gap-3 px-4 py-3">
             <input
               type="checkbox"
               checked={task.status === "done"}
@@ -122,6 +140,14 @@ function TaskGroup({ title, tasks, onToggle, disabled }: { title: string; tasks:
                 {task.due_time && ` · ${task.due_time.slice(0, 5)}`}
               </span>
             )}
+            <button
+              type="button"
+              onClick={() => onEdit(task)}
+              aria-label={`Editar ${task.title}`}
+              className="rounded p-1 text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
+            >
+              <Pencil className="size-3.5" />
+            </button>
           </li>
         ))}
       </ul>
