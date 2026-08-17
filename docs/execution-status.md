@@ -3,7 +3,15 @@
 Documento de retomada. Se você é uma sessão nova retomando isto, comece por aqui antes de reler
 o histórico inteiro — este arquivo é a fonte da verdade, não a memória de conversa de ninguém.
 
-**Atualização mais recente**: rodada de auditoria/hardening **completa**, os 5 itens (retomada
+**Atualização mais recente**: o MCP do Supabase reconectou nesta sessão — voltei no item 3 da
+auditoria (RLS Client Hub) pra rodar o linter de segurança de verdade (`get_advisors`), que antes
+só tinha sido investigado por grep. Confirmou o achado anterior (zero uso do ERP nas 8 tabelas) e
+trouxe 3 achados novos, revisados com julgamento, não "consertados automaticamente": 2 são
+`SECURITY DEFINER` do próprio ERP mas deliberados (documentados no código já antes desta sessão),
+1 é uma view do Client Hub (não tocada), e 1 é configuração de conta Supabase (recomendação, não
+ação minha). Ver seção própria abaixo.
+
+**Antes disso**: rodada de auditoria/hardening **completa**, os 5 itens (retomada
 depois de ter sido pausada no item 1 pra dar lugar ao mapeamento do master prompt, que também
 terminou). Achados reais em quase todo item — não foi só "rodei e não achei nada":
 
@@ -107,18 +115,42 @@ era o branco puro reaparecendo pela porta dos fundos em qualquer tela de exclus�
 `text-destructive-foreground`, confirmado via CSS compilada (3 valores distintos: light `.os-shell`,
 dark `.os-shell`, `:root` fora do shell).
 
-## RLS Client Hub — item 3 da auditoria — FEITO (só investigação)
+## RLS Client Hub — item 3 da auditoria — FEITO (investigação por código + linter real)
 
 As 8 tabelas da auditoria original (`templates`, `projects`, `project_versions`, `deployments`,
-`project_capabilities`, `assets`, `analytics`, `downloads`) — RLS habilitado, zero policy,
-inutilizáveis por design (fail-closed). Confirmado via grep: **nenhuma tem `.from()` em `lib/`,
-`app/(internal)/` ou componentes do ERP**. As poucas menções relacionadas (`project_capabilities`)
-vivem em `lib/platform/`, `components/admin/projects/`, `lib/clients/` — Client Hub, não ERP,
-nomes parecidos mas escopo diferente (mesmo cuidado do achado do `ProspeccaoHub`, seção acima).
+`project_capabilities`, `assets`, `analytics`, `downloads`). Confirmado via grep: **nenhuma tem
+`.from()` em `lib/`, `app/(internal)/` ou componentes do ERP**. As poucas menções relacionadas
+(`project_capabilities`) vivem em `lib/platform/`, `components/admin/projects/`, `lib/clients/` —
+Client Hub, não ERP, nomes parecidos mas escopo diferente (mesmo cuidado do achado do
+`ProspeccaoHub`, seção acima).
 
-Sem MCP do Supabase disponível nesta sessão pra rodar `get_advisors` (o linter de segurança de
-verdade) e gerar um relatório fresco — fica pendente de uma sessão com esse acesso. Nenhuma
-policy criada (decisão de arquitetura da outra sessão, como já combinado).
+**Atualização — o MCP do Supabase reconectou nesta sessão**, rodei `get_advisors` (o linter de
+segurança de verdade) de propósito. Relatório atual (não mais só a auditoria original, que pode
+ter ficado desatualizada): só `analytics` e `downloads` ainda aparecem como "RLS enabled, no
+policy" — as outras 6 da lista original já não aparecem mais no lint (a outra sessão deve ter
+endereçado, ou o estado mudou desde a auditoria original; não investiguei o porquê, não é meu
+escopo). Confirmado de novo, com dado fresco: zero uso do ERP em qualquer uma das 8.
+
+**3 achados novos do linter, revisados com julgamento (não "consertar tudo que apareceu")**:
+- `public.published_projects` — view `SECURITY DEFINER` (nível ERROR do linter). Confirmado via
+  grep: definida em `20260729000000_initial_schema.sql` (schema original, pré-ERP), só referenciada
+  em `lib/supabase/types/database.ts` (arquivo de tipos gerado, lista tudo independente de quem
+  usa) — nenhum código do ERP a usa. Client Hub, não tocado.
+- `get_team_invite`/`mark_team_invite_used` — WARN por serem `SECURITY DEFINER` chamáveis por
+  `anon`/`authenticated`. **São do ERP, mas deliberados**: o próprio comentário de
+  `lib/admin/auth/partners.ts` já documenta o motivo — `get_team_invite` roda ANTES de existir
+  sessão (fluxo de signup) e devolve no máximo a linha de UM e-mail, nunca a tabela inteira; não é
+  um SELECT aberto. Não alterado — revogar `EXECUTE` quebraria o cadastro de novo membro de equipe.
+- `close_lead_and_create_client` — mesmo padrão, WARN por `SECURITY DEFINER` executável por
+  `authenticated`. É a RPC central de "fechar negócio → criar cliente/contrato/receita numa
+  transação só" — precisa de `SECURITY DEFINER` justamente pra fazer isso atômico além do que a
+  RLS do usuário chamador permitiria sozinho. Não alterado — é o desenho, não um bug.
+
+**1 achado de conta, não de código, fora do que eu decido sozinho**: `auth_leaked_password_protection`
+desabilitado (Supabase Auth não checa senha vazada contra HaveIBeenPwned). É configuração de
+projeto/conta Supabase — compartilhada entre ERP e Client Hub, não algo que eu ligo via migration.
+Recomendo habilitar (painel do Supabase → Authentication → Policies) — baixo risco, não deveria
+afetar sessões já logadas, mas é decisão sua, não minha.
 
 ## Acessibilidade — item 4 da auditoria — FEITO
 
