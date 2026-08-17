@@ -3,19 +3,20 @@
 Documento de retomada. Se você é uma sessão nova retomando isto, comece por aqui antes de reler
 o histórico inteiro — este arquivo é a fonte da verdade, não a memória de conversa de ninguém.
 
-**Atualização mais recente**: rodada com ordem explícita de 3 itens, todos concluídos e
-implantados: (1) RBAC estendido — Home e Planejamento agora mascaram número financeiro pra papel
-sem `can_view_financials`, decisão de produto que antes ficava em aberto (ver seção RBAC); (2) os
-2 últimos gaps de CRUD do backlog fechados — gestão de usuários real em
-`/configuracoes/usuarios` (antes `ComingSoon`) e renomear/excluir lista de prospecção; (3) Growth
-swipe (§1-2/§45-47) — achado importante ao investigar antes de codar (pedido explícito do
-usuário): o swipe entre sub-abas do Comercial **já existia** (`GestureNav`+`TabTransition`,
-implementado numa rodada anterior sem essa seção do doc ser atualizada — a nota "ADIADO" estava
-desatualizada). Confirmado com o usuário que isso já satisfaz o pedido; único gap real (suporte a
-touchscreen) fechado nesta rodada. Ver seção própria abaixo.
+**Atualização mais recente**: `ANTHROPIC_API_KEY` configurada (`.env.local` + `vercel env add
+ANTHROPIC_API_KEY production`) — confirmado nos dois lugares sem nunca imprimir o valor. Rodada
+de 4 itens, todos concluídos e implantados:
+1. Bug reportado "tarefa some sem escrever a data" — investigado, NÃO reproduzido no código: o
+   fix anterior (`5c23d92`) está corretamente aplicado e deployado nos 3 pontos de criação. Pedi
+   confirmação explícita do usuário em produção (ver seção própria).
+2. Preview de texto removido do campo de tarefa no Workspace (mantido em ⌘K/QuickAdd).
+3. Visão de semana nova no Workspace (7 colunas, hoje + 6 dias), substituindo "Próximos prazos".
+4. Orquestrador de IA (§73-74) — MVP somente-leitura implementado (6 ferramentas). **Bloqueio
+   novo, diferente do anterior**: a chave está configurada e a API responde corretamente até a
+   checagem de billing, mas a conta Anthropic está sem crédito ("credit balance too low") — a
+   integração está pronta, só falta crédito na conta pra testar uma resposta real.
 
-Só falta um item bloqueado: orquestrador de IA (§73-74), travado em `ANTHROPIC_API_KEY` real —
-ainda sem valor em `.env.local`/Vercel. Usuário sinalizou que vai criar a chave em paralelo.
+Ver seções próprias de cada item abaixo.
 
 Escopo: só o Procreating OS (ERP interno — `app/(internal)/**`, `/admin`, `/clientes` etc.). O
 site público/portfolio de clientes (`/clients/[client]/**`, `/p/[client]/**`) é escopo de uma
@@ -311,19 +312,93 @@ traduzido pra mensagem legível. Card de lista em `ProspeccaoView` era um `<Link
 `<div onClick>` com `router.push` (HTML não permite `<button>` dentro de `<a>`, mesmo motivo já
 resolvido em `LeadCard`/`pipeline-board.tsx`), ícones de editar/excluir revelados no hover.
 
+## Bug "tarefa some sem escrever a data" — investigado, fix confirmado correto no código
+
+Instrução desta rodada: não assumir que era a mesma causa de antes, investigar primeiro. Auditei
+os 3 pontos de criação de tarefa (`WorkspaceTasks`, `CommandPalette`, `QuickAddMenu`) e a cadeia
+completa até `createTaskAction`:
+- `parseQuickTask` (`lib/tasks/quick-parse.ts`) — o fix `5c23d92` está lá: sem palavra de data
+  reconhecida, `dueDate` vira `todayISO()`, nunca fica `null`.
+- Os 3 call sites passam `assigneeId: parsed.assigneeId ?? userId` (nunca fica sem responsável) e
+  `dueDate: parsed.dueDate` direto pra `createTaskAction`, sem transformação no meio.
+- `createTaskAction` insere `due_date: input.dueDate` sem override.
+- `5c23d92` é ancestral do HEAD atual e de todo deploy feito desde então (confirmado via
+  `git merge-base --is-ancestor`) — o fix está no ar.
+- Só existe uma definição de `parseQuickTask` no repositório (sem cópia divergente em paralelo).
+
+Nenhuma causa de regressão encontrada — o código está correto. **Não reescrevi nada aqui** por
+não ter achado nada quebrado; reescrever sem uma causa real seria só cosmético. Meu ambiente não
+tem Chromium (Playwright não instala aqui, limitação já documentada), então não consegui clicar
+de verdade em produção — **pedido explícito ao usuário: testar em `procreating.vercel.app` uma
+tarefa sem nenhuma palavra de data (ex.: "revisar contrato") nos 3 lugares e confirmar que aparece
+em "Tarefas de hoje" na hora**. Se ainda estiver quebrado depois dessa auditoria de código não
+achar nada, o próximo passo é logar a chamada de rede real (Network tab) pra ver o payload que
+está saindo do browser — pode ser cache de build antigo no navegador do usuário, não código.
+
+## Preview de texto removido do campo de tarefa (Workspace) — FEITO
+
+Só em `components/workspace-tasks/workspace-tasks.tsx` — `describeQuickTaskPreview` continua
+em uso normal no `quick-add-menu.tsx` e no Command Palette (campo dentro de modal sem lista
+visível por trás, preview ainda serve de confirmação antes de enviar). No Workspace a tarefa já
+aparece na lista logo abaixo assim que criada — preview era redundante ali.
+
+## Visão de semana no Workspace — FEITO
+
+Não existia calendário nenhum (ausência, não bug). 7 colunas (hoje + 6 dias seguintes), sem grade
+de hora — distribuição por dia, Sunsama-style, não uma agenda cheia (volume real de tarefas é
+baixo, grid de horário seria complexidade sem necessidade real agora). `listWeekTasks` (nova,
+`lib/tasks/queries.ts`) traz hoje..hoje+6 numa passada só, qualquer status; `WeekView`
+(`components/workspace-tasks/week-view.tsx`) agrupa por `due_date` e desenha, toggle de concluída
+reaproveitando `updateTaskStatusAction`. Substituiu "Próximos prazos" (mesmo dado no fundo, duas
+UIs pra mesma coisa seria redundante) — `WorkspaceOverview.upcomingTasks` virou `.weekTasks`.
+`listUpcomingTasks` ficou sem chamador ativo, mantida (função genericamente útil, não uma
+duplicata morta de lógica).
+
+## Orquestrador de IA (§73-74) — MVP somente-leitura implementado, BLOQUEADO em billing (não em código)
+
+`ANTHROPIC_API_KEY` configurada nos dois lugares. 6 ferramentas somente-leitura, nenhuma escrita:
+- Sem RBAC (pipeline/tarefas já não são gateados em nenhum outro lugar do produto):
+  `get_pipeline_summary`, `get_stale_leads`, `get_my_tasks_due`.
+- Atrás de `canViewFinancials` — filtradas da lista de ferramentas ANTES da chamada à API quando
+  o papel não tem acesso, não é o modelo "decidindo" esconder: `get_financial_summary`,
+  `get_overdue_accounts`, `get_upcoming_receivables`.
+
+Todas chamam as MESMAS queries determinísticas que o resto do produto usa
+(`computeComercialMetrics`, `computeFinanceiroMetrics`, `listTodayAndOverdueTasks` etc.) — o
+modelo só formata/explica, nunca calcula um número sozinho (reforçado no system prompt).
+
+`lib/ai/client.ts` — cliente mínimo via `fetch` cru, **sem SDK nova** (decisão deliberada: evita
+tocar `package.json`/`package-lock.json`, compartilhado com a outra sessão que trabalha neste
+repositório — a API é só HTTP+JSON). `lib/ai/orchestrator.ts` — `askAssistantAction`, Server
+Action: 1 pergunta → loop de tool use (máx. 4 rodadas) → resposta em texto, sem histórico
+persistido entre perguntas (decisão explícita desta rodada). UI:
+`components/dashboard/ai-assistant.tsx` — botão Sparkles discreto no header (mesmo padrão visual
+do ícone de busca, `Dialog` simples, não o mesmo componente do Command Palette), mostra chips de
+quais ferramentas foram consultadas por transparência.
+
+**Testado fora do runtime do Next** (script isolado, chamada crua à API com a chave real): auth
+aceita, formato do request aceito, a API processou até a checagem de billing — e voltou
+`"Your credit balance is too low to access the Anthropic API."` Ou seja: **o código está correto
+e pronto**, o bloqueio agora é a CONTA Anthropic sem crédito, não a chave nem a integração. Não
+tem como validar uma resposta real (nem testar o loop de tool use de ponta a ponta) até isso ser
+resolvido — é um segundo item que só o usuário destrava (`console.anthropic.com` → Plans &
+Billing → adicionar crédito), separado da configuração da chave que já foi feita.
+
 ## Próximo passo exato pra quem retomar
 
-Só resta um item bloqueado — **orquestrador de IA (§73-74)**: precisa de uma `ANTHROPIC_API_KEY`
-real configurada (`.env.local` pra dev + `vercel env add ANTHROPIC_API_KEY production`) antes de
-qualquer linha de código. Usuário sinalizou que vai criar a chave em paralelo a esta rodada — se
-ao retomar ela já existir em algum dos dois lugares, o próximo passo é implementar o MVP
-somente-leitura (5-8 ferramentas, ver seção IA acima); se ainda não existir, continua bloqueado,
-avise e não simule/mocke resposta de IA.
+1. **Usuário precisa testar o item 1** (bug de tarefa sem data) em produção e confirmar — ver
+   seção acima. Sem essa confirmação, não considerar esse item fechado só porque o código parece
+   correto.
+2. **Usuário precisa adicionar crédito na conta Anthropic** (`console.anthropic.com` → Plans &
+   Billing) pra validar o orquestrador de IA de ponta a ponta — código pronto, só falta isso.
+   Depois de resolvido, um teste real (uma pergunta simples tipo "quantos leads sem follow-up?")
+   confirma o loop de tool use funcionando; se algo quebrar ali, é o primeiro lugar a olhar.
 
-Depois disso, sem item grande conhecido pendente — os 3 blocos do master prompt que definiam o
-core do produto (Comercial, Financeiro, Workspace/Onboarding) estão funcionalmente maduros sobre
-dado real, RBAC cobre os dois domínios sensíveis que existem hoje (financeiro, gestão de
-usuários), e os 6 gaps de CRUD identificados na auditoria "ERP totalmente funcional" estão todos
-fechados. Único gap conhecido restante: Operação/produção (`app/(internal)/operacao/**`,
-`lib/operacao/**`) nunca foi auditada por esta linha de trabalho — de propósito, é escopo ativo
-de outra sessão que compartilha o repositório.
+Fora esses dois itens de confirmação/desbloqueio que dependem do usuário, sem item grande
+conhecido pendente — os 3 blocos do master prompt que definiam o core do produto (Comercial,
+Financeiro, Workspace/Onboarding) estão funcionalmente maduros sobre dado real, RBAC cobre os
+domínios sensíveis que existem hoje (financeiro, gestão de usuários), os 6 gaps de CRUD da
+auditoria "ERP totalmente funcional" estão todos fechados, e a primeira fatia de IA está
+implementada. Único gap conhecido restante: Operação/produção (`app/(internal)/operacao/**`,
+`lib/operacao/**`) nunca foi auditada por esta linha de trabalho — de propósito, é escopo ativo de
+outra sessão que compartilha o repositório.
