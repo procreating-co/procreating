@@ -207,7 +207,7 @@ export function PipelineBoard({ leads, stages, users }: { leads: LeadWithRelatio
 
       {isPending && <p className="text-xs text-muted-foreground">Movendo...</p>}
 
-      <LeadDetailDrawer lead={selected} users={users} onOpenChange={(open) => !open && setSelectedId(null)} />
+      <LeadDetailDrawer lead={selected} users={users} stages={stages} onOpenChange={(open) => !open && setSelectedId(null)} />
 
       {onboardingLead && (
         <OnboardingModal

@@ -153,7 +153,7 @@ export function LeadsTable({
       )}
 
       <LeadFormDialog open={creating} onOpenChange={setCreating} strategies={strategies} />
-      <LeadDetailDrawer lead={selected} users={users} onOpenChange={(open) => !open && setSelectedId(null)} />
+      <LeadDetailDrawer lead={selected} users={users} stages={stages} onOpenChange={(open) => !open && setSelectedId(null)} />
     </div>
   );
 }

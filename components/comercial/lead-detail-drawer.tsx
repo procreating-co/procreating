@@ -9,10 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { StatusDot, type StatusTone } from "@/components/dashboard/status-dot";
 import { QuoteBuilderDialog } from "@/components/comercial/quote-builder-dialog";
-import { getLeadEventsAction, logLeadActivityAction, updateLeadAction } from "@/lib/comercial/actions";
+import { getLeadEventsAction, logLeadActivityAction, moveLeadStageAction, updateLeadAction } from "@/lib/comercial/actions";
 import { getQuotesForLeadAction } from "@/lib/comercial/quote-actions";
 import { stageColorClasses } from "@/lib/comercial/stage-colors";
-import type { Event, QuoteStatus, User } from "@/lib/supabase/types/database";
+import type { Event, PipelineStage, QuoteStatus, User } from "@/lib/supabase/types/database";
 import type { QuoteWithItems } from "@/lib/comercial/quotes";
 import type { LeadPatch, LeadWithRelations } from "@/lib/comercial/types";
 import { cn } from "@/lib/utils";
@@ -47,7 +47,17 @@ const dateTimeFormatter = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short",
  * o foco no que estava aberto sem tirar a tela inteira do usuário, mesmo padrão de Linear/Apple
  * ("abrir drawer, não navegar pra uma página nova").
  */
-export function LeadDetailDrawer({ lead, users, onOpenChange }: { lead: LeadWithRelations | null; users: User[]; onOpenChange: (open: boolean) => void }) {
+export function LeadDetailDrawer({
+  lead,
+  users,
+  stages,
+  onOpenChange,
+}: {
+  lead: LeadWithRelations | null;
+  users: User[];
+  stages: PipelineStage[];
+  onOpenChange: (open: boolean) => void;
+}) {
   const router = useRouter();
   const [patch, setPatch] = useState<LeadPatch>({});
   const [note, setNote] = useState("");
@@ -100,6 +110,42 @@ export function LeadDetailDrawer({ lead, users, onOpenChange }: { lead: LeadWith
       }
       setNote("");
       setIsPositiveResponse(false);
+      getLeadEventsAction(lead.id).then(setEvents);
+      router.refresh();
+    });
+  }
+
+  // Response Handling (§19) — 4 ações rápidas depois de uma resposta. "Continuar" só registra
+  // nota, nenhuma mudança de estágio (é o "sem novidade" — a Automação §72 regra 1 já cobre
+  // "isto foi uma resposta positiva, mover sozinho" via checkbox acima, não duplicado aqui).
+  // "Agendar reunião"/"Desqualificar" reaproveitam moveLeadStageAction, a MESMA action do
+  // drag-and-drop do Kanban — nenhuma lógica de troca de estágio nova. Fora daqui de propósito:
+  // "Mover pro pipeline" (o 4º botão do prompt original) não tem estado distinto pra mover PRA
+  // neste schema — todo lead já nasce dentro do pipeline (estágio "lead" em diante), não existe
+  // um "fora do pipeline" aqui pra sair de.
+  function handleQuickAction(kind: "continue" | "meeting" | "disqualify") {
+    if (!lead) return;
+    setError(null);
+    startTransition(async () => {
+      if (kind === "continue") {
+        const result = await logLeadActivityAction(lead.id, "Sem novidade — segue no mesmo estágio.", false);
+        if (!result.ok) {
+          setError(result.error);
+          return;
+        }
+      } else {
+        const targetKey = kind === "meeting" ? "reuniao_agendada" : "perdido";
+        const targetStage = stages.find((s) => s.key === targetKey);
+        if (!targetStage) {
+          setError(`Estágio "${targetKey}" não encontrado.`);
+          return;
+        }
+        const result = await moveLeadStageAction(lead.id, targetStage.id);
+        if (!result.ok) {
+          setError(result.error);
+          return;
+        }
+      }
       getLeadEventsAction(lead.id).then(setEvents);
       router.refresh();
     });
@@ -257,6 +303,24 @@ export function LeadDetailDrawer({ lead, users, onOpenChange }: { lead: LeadWith
               />
               Foi uma resposta do lead — mover pra &ldquo;Respondeu&rdquo; automaticamente
             </label>
+
+            {!lead.stage.is_won && !lead.stage.is_lost && (
+              <div className="flex flex-col gap-1.5">
+                <p className="text-[11px] text-muted-foreground">Próxima ação:</p>
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" variant="outline" size="sm" className="h-7 px-2 text-xs" disabled={isPending} onClick={() => handleQuickAction("continue")}>
+                    Continuar
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" className="h-7 px-2 text-xs" disabled={isPending} onClick={() => handleQuickAction("meeting")}>
+                    Agendar reunião
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" className="h-7 px-2 text-xs text-destructive hover:text-destructive" disabled={isPending} onClick={() => handleQuickAction("disqualify")}>
+                    Desqualificar
+                  </Button>
+                </div>
+              </div>
+            )}
+
             <div className="flex flex-col gap-2">
               {events.length === 0 ? (
                 <p className="text-xs text-muted-foreground">Nenhum evento registrado ainda.</p>
