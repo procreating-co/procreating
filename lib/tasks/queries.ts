@@ -53,8 +53,28 @@ export async function listTodayAndOverdueTasks(userId: string): Promise<Task[]> 
   return data ?? [];
 }
 
+/** Tarefas do usuário com prazo entre hoje e hoje+`days-1` (padrão 7 = hoje + 6 seguintes),
+ *  QUALQUER status (inclui concluídas — a visão de semana precisa mostrar riscado, não só sumir)
+ *  — base da visão de semana do Workspace. Uma passada só, agrupada por dia no componente
+ *  (`components/workspace-tasks/week-view.tsx`), mesmo espírito de `listTodayAndOverdueTasks`
+ *  (que também traz todo status pelo mesmo motivo). */
+export async function listWeekTasks(userId: string, days = 7): Promise<Task[]> {
+  const supabase = await createClient();
+  const fromISO = todayISO();
+  const toISO = addDaysISO(fromISO, days - 1);
+  const { data } = await supabase
+    .from("tasks")
+    .select("*")
+    .eq("assignee_id", userId)
+    .gte("due_date", fromISO)
+    .lte("due_date", toISO)
+    .order("due_date", { ascending: true });
+  return data ?? [];
+}
+
 /** Tarefas do usuário com prazo nos próximos `days` dias (padrão 7), ainda não concluídas —
- *  "Próximos prazos" do Workspace, uma lista cronológica simples, não um calendário. */
+ *  histórico: alimentava "Próximos prazos" no Workspace, hoje substituído pela visão de semana
+ *  (`listWeekTasks`) — mantida aqui por ser genericamente útil, sem chamador ativo no momento. */
 export async function listUpcomingTasks(userId: string, days = 7): Promise<Task[]> {
   const supabase = await createClient();
   const fromISO = addDaysISO(todayISO(), 1);

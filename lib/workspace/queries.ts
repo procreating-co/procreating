@@ -1,6 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import { listMyDueTasks, listTodayAndOverdueTasks, listUpcomingTasks } from "@/lib/tasks/queries";
+import { listMyDueTasks, listTodayAndOverdueTasks, listWeekTasks } from "@/lib/tasks/queries";
 import { listPipelineStages } from "@/lib/comercial/queries";
 import { addDaysISO, todayISO } from "@/lib/date";
 import type { Task } from "@/lib/supabase/types/database";
@@ -19,7 +19,7 @@ export type TodayProgress = { done: number; total: number };
 export type WorkspaceOverview = {
   attention: AttentionItem[];
   dueTasks: Task[];
-  upcomingTasks: Task[];
+  weekTasks: Task[];
   todayProgress: TodayProgress | null;
   otherUser: OtherUserOverview | null;
 };
@@ -31,10 +31,10 @@ export async function computeWorkspaceOverview(userId: string): Promise<Workspac
   const todayDate = todayISO();
   const staleThresholdISO = addDaysISO(todayDate, -STALE_LEAD_DAYS);
 
-  const [dueTasks, upcomingTasks, stages, { data: openLeads }, { data: overdueRevenue }, { data: dueTodayRevenue }, { data: overdueExpenses }, { data: dueTodayExpenses }, { data: otherUsers }] =
+  const [dueTasks, weekTasks, stages, { data: openLeads }, { data: overdueRevenue }, { data: dueTodayRevenue }, { data: overdueExpenses }, { data: dueTodayExpenses }, { data: otherUsers }] =
     await Promise.all([
       listTodayAndOverdueTasks(userId),
-      listUpcomingTasks(userId),
+      listWeekTasks(userId),
       listPipelineStages(),
       supabase.from("leads").select("id, last_contact_at, created_at, stage_id").is("client_id", null),
       supabase.from("revenue").select("id").eq("status", "atrasado"),
@@ -93,5 +93,5 @@ export async function computeWorkspaceOverview(userId: string): Promise<Workspac
     ? { id: otherUserRow.id, name: otherUserRow.name, tasks: (await listMyDueTasks(otherUserRow.id)).slice(0, 4) }
     : null;
 
-  return { attention, dueTasks, upcomingTasks, todayProgress, otherUser };
+  return { attention, dueTasks, weekTasks, todayProgress, otherUser };
 }

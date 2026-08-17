@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { AlertTriangle, ArrowRight, CalendarClock, UserRound } from "lucide-react";
+import { AlertTriangle, ArrowRight, UserRound } from "lucide-react";
 import { getCurrentUserId } from "@/lib/supabase/current-user";
 import { computeWorkspaceOverview } from "@/lib/workspace/queries";
 import { listTeamUsers } from "@/lib/operacao/queries";
 import { GreetingHeader } from "@/components/dashboard/greeting-header";
 import { WorkspaceTasks } from "@/components/workspace-tasks/workspace-tasks";
+import { WeekView } from "@/components/workspace-tasks/week-view";
 import { SectionHeader } from "@/components/dashboard/section-header";
 import { EmptyInline } from "@/components/dashboard/empty-inline";
 import { ADMIN_LOGIN_PATH } from "@/lib/admin/auth/constants";
@@ -15,8 +16,6 @@ export const metadata: Metadata = {
   title: "Workspace — Procreating",
   robots: { index: false, follow: false },
 };
-
-const upcomingDateFormatter = new Intl.DateTimeFormat("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit" });
 
 /**
  * Workspace (era `/meu-dia`, renomeado — mesma página) — página única (revertido de 5 abas com
@@ -63,24 +62,8 @@ export default async function WorkspacePage() {
       </section>
 
       <section className="flex flex-col gap-4">
-        <SectionHeader title="Próximos prazos" description="Tarefas com prazo nos próximos 7 dias." />
-        {overview.upcomingTasks.length === 0 ? (
-          <EmptyInline icon={CalendarClock} label="Nenhum prazo nos próximos 7 dias." />
-        ) : (
-          <ul className="flex flex-col divide-y divide-border/60 rounded-xl border border-border/60 bg-card">
-            {overview.upcomingTasks.map((task) => (
-              <li key={task.id} className="flex items-center justify-between gap-3 px-5 py-3.5 text-sm">
-                <span>{task.title}</span>
-                {task.due_date && (
-                  <span className="text-xs text-muted-foreground">
-                    {upcomingDateFormatter.format(new Date(`${task.due_date}T00:00:00`))}
-                    {task.due_time && ` · ${task.due_time.slice(0, 5)}`}
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
+        <SectionHeader title="Semana" description="Hoje e os próximos 6 dias — clique pra marcar concluída direto aqui." />
+        <WeekView tasks={overview.weekTasks} />
       </section>
 
       {overview.otherUser && (
