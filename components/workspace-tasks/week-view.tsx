@@ -1,21 +1,26 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { updateTaskStatusAction } from "@/lib/tasks/actions";
+import { updateTaskAction, updateTaskStatusAction } from "@/lib/tasks/actions";
 import { addDaysISO, formatDateOnly, todayISO } from "@/lib/date";
 import type { Task } from "@/lib/supabase/types/database";
 import { cn } from "@/lib/utils";
 
 /**
- * Visão de semana (item 3) — 7 colunas (hoje + 6 dias seguintes), distribuição por dia, NÃO uma
- * agenda com grade de hora (volume real de tarefas é baixo hoje — grid de horário seria
- * complexidade sem necessidade real). Substitui "Próximos prazos": mesmo dado no fundo (tarefas
- * dos próximos dias), duas UIs mostrando a mesma coisa de formas diferentes seria redundante.
+ * Visão de semana — 7 colunas (hoje + 6 dias seguintes), distribuição por dia, NÃO uma agenda com
+ * grade de hora (volume real de tarefas é baixo hoje — grid de horário seria complexidade sem
+ * necessidade real). Substitui "Próximos prazos": mesmo dado no fundo, duas UIs mostrando a mesma
+ * coisa de formas diferentes seria redundante.
  *
  * `tasks` já vem filtrado pro intervalo certo (`listWeekTasks`, `lib/tasks/queries.ts`) — este
  * componente só agrupa por `due_date` e desenha; toggle de concluída reaproveita
  * `updateTaskStatusAction`, a mesma Server Action que "Tarefas de hoje" já usa.
+ *
+ * Task + Calendar bidirecional (§51) — arrastar uma tarefa pra outro dia reagenda de verdade
+ * (`updateTaskAction`, já existe, sem action nova). Mesmo padrão de drag-and-drop do Pipeline
+ * (`pipeline-board.tsx`): estado React (`draggingTaskId`), não `dataTransfer.getData` no drop —
+ * é o que já funciona neste projeto, não reinventado aqui.
  *
  * `formatDateOnly` (não `new Date(dateOnly).format()` cru) — evita o mesmo mismatch de hidratação
  * já documentado em `lib/date.ts` (SSR em UTC vs. navegador em UTC-3 formatando dia diferente
@@ -24,6 +29,8 @@ import { cn } from "@/lib/utils";
 export function WeekView({ tasks }: { tasks: Task[] }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
+  const [dragOverDay, setDragOverDay] = useState<string | null>(null);
 
   const today = todayISO();
   const days = Array.from({ length: 7 }, (_, i) => addDaysISO(today, i));
@@ -40,12 +47,50 @@ export function WeekView({ tasks }: { tasks: Task[] }) {
     });
   }
 
+  function handleDrop(day: string) {
+    const taskId = draggingTaskId;
+    setDraggingTaskId(null);
+    setDragOverDay(null);
+    if (!taskId) return;
+
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task || task.due_date === day) return;
+
+    startTransition(async () => {
+      await updateTaskAction(task.id, {
+        title: task.title,
+        assigneeId: task.assignee_id,
+        dueDate: day,
+        dueTime: task.due_time,
+        contextType: task.context_type,
+        contextId: task.context_id,
+      });
+      router.refresh();
+    });
+  }
+
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
       {days.map((day, index) => {
         const dayTasks = tasksByDay.get(day) ?? [];
+        const isDragOver = dragOverDay === day;
         return (
-          <div key={day} className="flex min-h-28 flex-col gap-2 rounded-xl border border-border/60 bg-card/40 p-3">
+          <div
+            key={day}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragOverDay(day);
+            }}
+            onDragLeave={() => setDragOverDay((current) => (current === day ? null : current))}
+            onDrop={(e) => {
+              e.preventDefault();
+              handleDrop(day);
+            }}
+            className={cn(
+              "flex min-h-28 flex-col gap-2 rounded-xl border border-border/60 bg-card/40 p-3 transition-colors",
+              isDragOver && "border-foreground/40 bg-card/70",
+            )}
+          >
             <div className="flex items-baseline justify-between gap-2">
               <span className={cn("text-xs font-medium uppercase tracking-wide", index === 0 ? "text-brand" : "text-muted-foreground")}>
                 {index === 0 ? "Hoje" : formatDateOnly(day, { weekday: "short" })}
@@ -57,7 +102,13 @@ export function WeekView({ tasks }: { tasks: Task[] }) {
             ) : (
               <ul className="flex flex-col gap-1.5">
                 {dayTasks.map((task) => (
-                  <li key={task.id} className="flex items-start gap-1.5">
+                  <li
+                    key={task.id}
+                    draggable
+                    onDragStart={() => setDraggingTaskId(task.id)}
+                    onDragEnd={() => setDraggingTaskId(null)}
+                    className={cn("flex cursor-grab items-start gap-1.5 active:cursor-grabbing", draggingTaskId === task.id && "opacity-30")}
+                  >
                     <input
                       type="checkbox"
                       checked={task.status === "done"}
