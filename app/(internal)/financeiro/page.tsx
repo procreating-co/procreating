@@ -65,9 +65,12 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: P
     const rows = filtered.map((row) => ({ id: row.id, label: row.description, category: null, amount: Number(row.amount), dueDate: row.due_date, status: row.status }));
     content = (
       <section className="flex flex-col gap-4">
+        {/* Minimalismo — descrição só quando explica algo não-óbvio (parcelas são geradas
+         *  automaticamente, não lançadas na mão); o filtro Pendentes/Todas já fala por si no
+         *  toggle ao lado, não precisa de uma segunda frase repetindo o estado. */}
         <SectionHeader
           title="A Receber"
-          description={statusFilter === "todas" ? "Todas as parcelas — geradas automaticamente a partir dos contratos no fechamento do onboarding." : "Parcelas pendentes ou atrasadas."}
+          description={statusFilter === "todas" ? "Geradas automaticamente a partir dos contratos, no fechamento do onboarding." : undefined}
           action={<StatusToggle tab="receivables" status={statusFilter} />}
         />
         <FinancialEntriesTable rows={rows} onStatusChange={updateRevenueStatusAction} emptyLabel={statusFilter === "todas" ? "Nenhum lançamento de receita ainda." : "Nada pendente ou atrasado — tudo em dia."} />
@@ -81,7 +84,7 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: P
       <section className="flex flex-col gap-4">
         <SectionHeader
           title="A Pagar"
-          description={statusFilter === "todas" ? "Cadastro manual, por categoria — sem integração bancária ainda." : "Despesas pendentes ou atrasadas."}
+          description={statusFilter === "todas" ? "Cadastro manual — sem integração bancária ainda." : undefined}
           action={
             <div className="flex items-center gap-3">
               <StatusToggle tab="payables" status={statusFilter} />
@@ -97,7 +100,7 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: P
     const monthlyTotal = costs.reduce((sum, cost) => sum + Number(cost.amount), 0);
     content = (
       <section className="flex flex-col gap-4">
-        <SectionHeader title="Custos" description="Estrutura de custo fixo e variável da empresa — aluguel, ferramentas, pró-labore. Ainda não gera lançamento automático em Despesas." />
+        <SectionHeader title="Custos" description="Estrutura fixa/variável da empresa — ainda não gera lançamento automático em Despesas." />
         {costs.length > 0 && (
           <p className="-mt-2 text-sm">
             <span className="text-muted-foreground">Run-rate mensal: </span>
@@ -187,10 +190,7 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: P
         </section>
 
         <section className="flex flex-col gap-4">
-          <SectionHeader
-            title="Pipeline — em negociação"
-            description="Oportunidades ainda não fechadas. Nunca somado ao MRR nem a 'a receber' acima — só vira receita quando o negócio for de fato ganho."
-          />
+          <SectionHeader title="Pipeline — em negociação" description="Nunca somado ao MRR nem a 'a receber' — só vira receita se o negócio for ganho." />
           {metrics.pipelineOpportunities.length === 0 ? (
             <div className="rounded-xl border border-border/60 bg-card/20 px-6 py-10 text-center text-muted-foreground">Nenhuma negociação em aberto no momento.</div>
           ) : (

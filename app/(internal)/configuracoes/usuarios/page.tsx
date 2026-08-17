@@ -48,7 +48,7 @@ export default async function ConfiguracoesUsuariosPage() {
 
   return (
     <main className="mx-auto flex max-w-[1400px] flex-col gap-8 px-6 pt-8 pb-16 lg:px-10">
-      <PageHeader title="Usuários" description="Quem tem acesso ao Procreating OS e com qual papel. Convites novos continuam saindo pelo menu +." />
+      <PageHeader title="Usuários" description="Convites novos continuam saindo pelo menu +." />
 
       <section className="flex flex-col gap-3">
         <SectionHeader title="Equipe" description={`${users.length} conta${users.length === 1 ? "" : "s"} ativa${users.length === 1 ? "" : "s"}.`} />

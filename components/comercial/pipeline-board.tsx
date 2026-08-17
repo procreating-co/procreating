@@ -8,6 +8,7 @@ import { stageColorClasses } from "@/lib/comercial/stage-colors";
 import { LeadDetailDrawer } from "@/components/comercial/lead-detail-drawer";
 import { OnboardingModal } from "@/components/onboarding/onboarding-modal";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { todayISO } from "@/lib/date";
 import type { LeadWithRelations, PipelineStage } from "@/lib/comercial/types";
 import type { User } from "@/lib/supabase/types/database";
@@ -178,7 +179,21 @@ export function PipelineBoard({ leads, stages, users }: { leads: LeadWithRelatio
               <div className="flex items-center justify-between px-1">
                 <div className="flex items-center gap-2">
                   <span className={cn("size-2 rounded-full", colors.dot)} />
-                  <span className="font-mono text-xs uppercase tracking-wide text-muted-foreground">{stage.label}</span>
+                  {stage.is_won ? (
+                    // Minimalismo (auditoria de texto) — "soltar aqui abre o onboarding" era uma
+                    // frase permanente no topo da página inteira; virou tooltip só no estágio a
+                    // que ela se refere de fato, some quando não precisa dela.
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="font-mono text-xs uppercase tracking-wide text-muted-foreground underline decoration-dotted underline-offset-4">
+                          {stage.label}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>Soltar um card aqui abre o onboarding do cliente.</TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <span className="font-mono text-xs uppercase tracking-wide text-muted-foreground">{stage.label}</span>
+                  )}
                 </div>
                 <span className="font-mono text-xs text-muted-foreground/60">{columnLeads.length}</span>
               </div>

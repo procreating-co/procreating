@@ -62,13 +62,17 @@ export default async function WorkspacePage() {
       </section>
 
       <section className="flex flex-col gap-4">
-        <SectionHeader title="Semana" description="Hoje e os próximos 6 dias — clique pra marcar concluída direto aqui." />
+        {/* Minimalismo — "clique pra marcar concluída" era instrução de uso de um checkbox, um
+         *  elemento que já é auto-explicativo. */}
+        <SectionHeader title="Semana" description="Hoje e os próximos 6 dias." />
         <WeekView tasks={overview.weekTasks} />
       </section>
 
       {overview.otherUser && (
         <section className="flex flex-col gap-4">
-          <SectionHeader title={`Prioridades de ${overview.otherUser.name.split(" ")[0]}`} description="Transparência, não vigilância — só o que está vencendo hoje ou atrasado." />
+          {/* Minimalismo — mantido curto: é a única frase da tela que explica algo não-óbvio
+           *  (por que mostrar tarefa de outra pessoa aqui não é vigilância). */}
+          <SectionHeader title={`Prioridades de ${overview.otherUser.name.split(" ")[0]}`} description="Transparência, não vigilância." />
           {overview.otherUser.tasks.length === 0 ? (
             <EmptyInline icon={UserRound} label="Nada vencendo hoje ou atrasado." />
           ) : (

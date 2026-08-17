@@ -123,10 +123,10 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
         <CardWithDetail title="Pipeline" description="Leads abertos, por valor potencial." detail={<DetailList items={maskEntries(d.openLeads, canView)} emptyLabel="Nenhum lead aberto." />}>
           <MetricCard icon={<Handshake className="size-3.5" />} label="Pipeline" value={compactMoney(metrics.kpis.pipeline.value)} tone="info" />
         </CardWithDetail>
-        <CardWithDetail title="Clientes Ativos" description="Clientes com status ativo." detail={<DetailList items={d.activeClients} emptyLabel="Nenhum cliente ativo ainda." />}>
+        <CardWithDetail title="Clientes Ativos" detail={<DetailList items={d.activeClients} emptyLabel="Nenhum cliente ativo ainda." />}>
           <MetricCard icon={<Users className="size-3.5" />} label="Clientes Ativos" value={String(metrics.kpis.activeClients.value)} tone="success" />
         </CardWithDetail>
-        <CardWithDetail title="Equipe" description="Quem tem acesso ao Procreating OS." detail={<DetailList items={d.teamMembers} emptyLabel="Nenhum usuário cadastrado." />}>
+        <CardWithDetail title="Equipe" detail={<DetailList items={d.teamMembers} emptyLabel="Nenhum usuário cadastrado." />}>
           <MetricCard icon={<UsersRound className="size-3.5" />} label="Equipe" value={String(metrics.kpis.team.value)} tone="brand" />
         </CardWithDetail>
       </section>
@@ -292,7 +292,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
                 tone={metrics.salesPipeline.conversionRate != null ? "success" : "neutral"}
               />
             </CardWithDetail>
-            <CardWithDetail title="Ticket Médio" description="Ticket médio dos negócios fechados." detail={<DetailList items={maskEntries(d.wonDeals, canView)} emptyLabel="Nenhum negócio fechado com valor registrado ainda." />}>
+            <CardWithDetail title="Ticket Médio" detail={<DetailList items={maskEntries(d.wonDeals, canView)} emptyLabel="Nenhum negócio fechado com valor registrado ainda." />}>
               <FinancialBlock label="Ticket Médio" value={metrics.salesPipeline.averageDeal != null ? money(metrics.salesPipeline.averageDeal) : "Sem dados disponíveis"} />
             </CardWithDetail>
             <CardWithDetail
@@ -322,20 +322,20 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
       <section className="flex flex-col gap-4">
         <SectionHeader title="Saúde de Clientes" />
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <CardWithDetail title="Clientes Ativos" description="Clientes com status ativo." detail={<DetailList items={d.activeClients} emptyLabel="Nenhum cliente ativo ainda." />}>
+          <CardWithDetail title="Clientes Ativos" detail={<DetailList items={d.activeClients} emptyLabel="Nenhum cliente ativo ainda." />}>
             <FinancialBlock label="Clientes Ativos" value={String(metrics.customerHealth.activeClients)} tone="success" />
           </CardWithDetail>
           <CardWithDetail title="Concentração de Receita" description="Top 5 clientes por receita de contrato ativo." detail={<DetailList items={maskEntries(d.topClients, canView)} emptyLabel="Sem contrato ativo suficiente." />}>
             <FinancialBlock label="Concentração de Receita (Top 5)" value={metrics.customerHealth.concentrationTop5Pct != null ? percentFormatter(metrics.customerHealth.concentrationTop5Pct) : "Sem dados disponíveis"} />
           </CardWithDetail>
-          <CardWithDetail title="Churn (atual)" description="Clientes com status churn, no momento." detail={<DetailList items={d.churnedClients} emptyLabel="Nenhum cliente em churn." />}>
+          <CardWithDetail title="Churn (atual)" detail={<DetailList items={d.churnedClients} emptyLabel="Nenhum cliente em churn." />}>
             <FinancialBlock
               label="Churn (atual)"
               value={metrics.customerHealth.churnPct != null ? percentFormatter(metrics.customerHealth.churnPct) : "Sem dados disponíveis"}
               tone={metrics.customerHealth.churnPct == null ? "neutral" : metrics.customerHealth.churnPct > 0 ? "danger" : "success"}
             />
           </CardWithDetail>
-          <CardWithDetail title="Valor Médio por Cliente" description="Receita de contrato ativo, por cliente." detail={<DetailList items={maskEntries(d.topClients, canView)} emptyLabel="Sem contrato ativo suficiente." />}>
+          <CardWithDetail title="Valor Médio por Cliente" detail={<DetailList items={maskEntries(d.topClients, canView)} emptyLabel="Sem contrato ativo suficiente." />}>
             <FinancialBlock label="Valor Médio por Cliente" value={metrics.customerHealth.averageClientValue != null ? money(metrics.customerHealth.averageClientValue) : "Sem dados disponíveis"} />
           </CardWithDetail>
         </div>
@@ -346,7 +346,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
         <section className="flex flex-col gap-4">
           <SectionHeader title="Operação" />
           <div className="grid grid-cols-2 gap-4">
-            <CardWithDetail title="Equipe" description="Quem tem acesso ao Procreating OS." detail={<DetailList items={d.teamMembers} emptyLabel="Nenhum usuário cadastrado." />}>
+            <CardWithDetail title="Equipe" detail={<DetailList items={d.teamMembers} emptyLabel="Nenhum usuário cadastrado." />}>
               <FinancialBlock label="Equipe" value={String(metrics.operations.headcount)} />
             </CardWithDetail>
             <NotTrackedCard label="Capacidade" />
@@ -357,7 +357,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
         <section className="flex flex-col gap-4">
           <SectionHeader title="Equipe" />
           <div className="grid grid-cols-2 gap-4">
-            <CardWithDetail title="Headcount" description="Quem tem acesso ao Procreating OS." detail={<DetailList items={d.teamMembers} emptyLabel="Nenhum usuário cadastrado." />}>
+            <CardWithDetail title="Headcount" detail={<DetailList items={d.teamMembers} emptyLabel="Nenhum usuário cadastrado." />}>
               <FinancialBlock label="Headcount" value={String(metrics.team.headcount)} />
             </CardWithDetail>
             <NotTrackedCard label="Utilização" />
@@ -384,7 +384,10 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
       {/* Pulso do Negócio */}
       {metrics.pulse.length > 0 && (
         <section className="flex flex-col gap-3 rounded-xl border border-border/60 bg-card p-5">
-          <SectionHeader title="Pulso do Negócio" description="Gerado a partir dos números reais acima — preparado para virar análise por IA no futuro." />
+          {/* Minimalismo — a nota de roadmap ("preparado pra virar IA no futuro") era dev-facing,
+           *  não pertence a texto de produto; "gerado a partir dos números acima" é óbvio de
+           *  onde essas frases vêm, uma seção antes na mesma tela. */}
+          <SectionHeader title="Pulso do Negócio" />
           <ul className="flex flex-col gap-2">
             {metrics.pulse.map((sentence) => (
               <li key={sentence} className="text-sm text-foreground">

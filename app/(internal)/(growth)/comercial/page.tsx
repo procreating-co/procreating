@@ -175,18 +175,16 @@ export default async function ComercialPage({
     content = (
       <div className="flex flex-col gap-8">
         <div className="flex flex-col gap-4">
-          <SectionHeader
-            title="Fila de execução"
-            description={
-              queue.length > 0
-                ? `${queue.length} lead${queue.length === 1 ? "" : "s"} com ação pendente hoje.`
-                : "Quem abordar hoje, com o script já pronto — configure a cadência na estratégia."
-            }
-          />
+          {/* Minimalismo (auditoria de texto) — sem descrição fixa: quando tem fila, o número já
+           *  fala por si (abaixo); quando não tem, ExecutionQueue já mostra o próprio empty state,
+           *  não precisa de duas frases dizendo a mesma coisa. */}
+          <SectionHeader title="Fila de execução" description={queue.length > 0 ? `${queue.length} lead${queue.length === 1 ? "" : "s"} com ação pendente hoje.` : undefined} />
           <ExecutionQueue items={queue} />
         </div>
         <div className="flex flex-col gap-4">
-          <SectionHeader title="CRM" description='Arraste um card pra mudar de estágio. Soltar em "Fechado" abre o onboarding do cliente.' action={filterBar} />
+          {/* Minimalismo — "soltar em Fechado abre o onboarding" virou tooltip no próprio estágio
+           *  Fechado do board (pipeline-board.tsx), não texto permanente aqui. */}
+          <SectionHeader title="CRM" action={filterBar} />
           {pipelineOrList}
         </div>
       </div>
@@ -196,7 +194,7 @@ export default async function ComercialPage({
     const canView = session ? canViewFinancials(session.user.role) : false;
     content = (
       <div className="flex flex-col gap-4">
-        <SectionHeader title="Planejamento" description="Quanto de lead, proposta e cliente é preciso pra bater uma meta de faturamento — três cenários lado a lado, recalculados a cada mudança." />
+        <SectionHeader title="Planejamento" description="Cenários de meta de faturamento, recalculados ao digitar — sem botão de calcular." />
         <SimulatorForm defaults={defaults} canView={canView} />
       </div>
     );
