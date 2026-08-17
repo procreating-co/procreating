@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import type { OnboardingWizardData } from "@/lib/onboarding/types";
 
@@ -83,5 +84,18 @@ export async function closeLeadAction(leadId: string, data: OnboardingWizardData
   });
 
   if (error) return { ok: false, error: error.message };
-  return { ok: true, clientId: clientId as unknown as string };
+
+  // Bug real (achado via verificação direta no banco, não hipótese) — este era o único Server
+  // Action de escrita do app sem nenhum revalidatePath. Os dois pontos de chamada (onboarding-
+  // modal.tsx via pipeline-board.tsx e quick-add-menu.tsx) navegam pro cliente novo com
+  // `router.push` logo depois, sem `router.refresh()` — então o Router Cache do Next seguia
+  // servindo o payload antigo de Home/Financeiro/Comercial/Clientes até expirar sozinho, dando a
+  // impressão de que o valor do negócio fechado "sumiu".
+  const id = clientId as unknown as string;
+  revalidatePath("/");
+  revalidatePath("/financeiro");
+  revalidatePath("/comercial");
+  revalidatePath("/clientes");
+  revalidatePath(`/clientes/${id}`);
+  return { ok: true, clientId: id };
 }
