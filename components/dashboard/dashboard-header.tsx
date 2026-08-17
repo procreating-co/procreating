@@ -7,6 +7,7 @@ import { Menu } from "lucide-react";
 import { NAV_GROUPS, SETTINGS_TABS, type TopNavTab } from "@/components/dashboard/nav-config";
 import { CommandPalette } from "@/components/dashboard/command-palette";
 import { QuickAddMenu } from "@/components/dashboard/quick-add-menu";
+import { AiAssistant } from "@/components/dashboard/ai-assistant";
 import { ThemeToggle } from "@/components/dashboard/theme-toggle";
 import { cn } from "@/lib/utils";
 
@@ -104,11 +105,12 @@ export function DashboardHeader({ onOpenMobileNav }: { onOpenMobileNav: () => vo
           <div className="flex-1" />
         )}
 
-        {/* + (criar) → lupa (buscar) → sol/lua (tema), sempre nessa ordem — um grupo só de
-         *  ícones à direita, nada de texto/pill grande. */}
+        {/* + (criar) → lupa (buscar) → sparkles (IA) → sol/lua (tema), sempre nessa ordem — um
+         *  grupo só de ícones à direita, nada de texto/pill grande. */}
         <div className="flex items-center gap-1">
           <QuickAddMenu />
           <CommandPalette />
+          <AiAssistant />
           <ThemeToggle />
         </div>
       </div>
