@@ -158,10 +158,11 @@ um padrão mais sério que apareceu no meio do caminho (exclusões):
 - Batch actions (`bulk-actions-toolbar.tsx`) já estavam corretas — um `run()` compartilhado já
   checava `.ok`; não apareceram no grep inicial por chamarem a action dentro de uma closure.
 
-**Gap identificado, não corrigido** (fora do escopo específico desta auditoria — era sobre
-tratamento de erro, não sobre adicionar confirmação onde falta): `sequence-editor.tsx` permite
-excluir um passo de cadência sem nenhum "tem certeza?". Baixo risco (reversível recriando o
-passo), mas inconsistente com o resto do produto, que confirma toda exclusão.
+**Gap identificado nesta auditoria, fechado logo em seguida** (estava fora do escopo específico
+de "tratamento de erro", virou item próprio): `sequence-editor.tsx` excluía um passo de cadência
+sem nenhum "tem certeza?" — inconsistente com o resto do produto, que confirma toda exclusão.
+`ConfirmDialog` adicionado, mesmo padrão de `contacts-section.tsx`/`costs-list.tsx` (só fecha no
+sucesso, mostra erro e mantém aberto na falha).
 
 ## O que está feito (verificado com `npm run typecheck` + `npm run build` limpos)
 
