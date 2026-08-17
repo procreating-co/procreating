@@ -22,6 +22,15 @@ export function canViewFinancials(role: UserRole): boolean {
   return FINANCIAL_ROLES.has(role);
 }
 
+/** Segundo domínio de RBAC (gestão de usuários — `/configuracoes/usuarios`) — quem pode ver
+ *  papel de cada colega e revogar convite pendente. `owner`/`admin` apenas, mesmo espírito
+ *  restrito do financeiro (dado sensível de quem tem acesso ao quê). */
+const USER_MANAGEMENT_ROLES: ReadonlySet<UserRole> = new Set(["owner", "admin"]);
+
+export function canManageUsers(role: UserRole): boolean {
+  return USER_MANAGEMENT_ROLES.has(role);
+}
+
 export type PermissionResult = { ok: true; userId: string; role: UserRole } | { ok: false; error: string };
 
 /** O que toda Server Action/query de `lib/financeiro/**` chama antes de ler ou escrever —
@@ -32,6 +41,17 @@ export async function requireFinancialAccess(): Promise<PermissionResult> {
   if (!session) return { ok: false, error: "Sessão expirada — faça login de novo." };
   if (!canViewFinancials(session.user.role)) {
     return { ok: false, error: "Você não tem permissão para acessar dados financeiros." };
+  }
+  return { ok: true, userId: session.user.id, role: session.user.role };
+}
+
+/** Mesmo padrão de `requireFinancialAccess` — resolve sessão real, nunca confia em `role`
+ *  vindo do chamador. Usado por `/configuracoes/usuarios` e por `revokeInviteAction`. */
+export async function requireUserManagementAccess(): Promise<PermissionResult> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: "Sessão expirada — faça login de novo." };
+  if (!canManageUsers(session.user.role)) {
+    return { ok: false, error: "Você não tem permissão para gerenciar usuários." };
   }
   return { ok: true, userId: session.user.id, role: session.user.role };
 }
