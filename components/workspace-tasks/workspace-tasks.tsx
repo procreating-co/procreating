@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarCheck, Pencil, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/dashboard/empty-state";
 import { TaskEditDialog } from "@/components/workspace-tasks/task-edit-dialog";
 import { createTaskAction, updateTaskStatusAction } from "@/lib/tasks/actions";
-import { describeQuickTaskPreview, parseQuickTask } from "@/lib/tasks/quick-parse";
+import { parseQuickTask } from "@/lib/tasks/quick-parse";
 import type { Task, User } from "@/lib/supabase/types/database";
 import { cn } from "@/lib/utils";
 
@@ -17,8 +17,12 @@ const dateFormatter = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: 
 /**
  * Master prompt §49/§50 — uma linha só, o parser entende data/hora/responsável, sem abrir campos
  * separados. "Editar vídeo amanhã às 15h" ↵ → task pra amanhã, 15h, comigo. "@Eduardo editar
- * vídeo amanhã às 15h" ↵ → mesma coisa, responsável Eduardo. `parseQuickTask` roda a cada tecla
- * só pro preview (nada é salvo até enviar) e de novo no submit — mesma função, sem duplicar regra.
+ * vídeo amanhã às 15h" ↵ → mesma coisa, responsável Eduardo.
+ *
+ * Sem preview de texto abaixo do campo aqui (pedido explícito) — diferente de `quick-add-menu.tsx`
+ * e do Command Palette, onde o campo fica dentro de um modal sem lista visível por trás e o
+ * preview cumpre função de confirmação antes de enviar; aqui a tarefa criada já aparece na lista
+ * logo abaixo, o preview seria redundante.
  */
 export function WorkspaceTasks({ tasks, userId, teamMembers }: { tasks: Task[]; userId: string; teamMembers: User[] }) {
   const router = useRouter();
@@ -26,8 +30,6 @@ export function WorkspaceTasks({ tasks, userId, teamMembers }: { tasks: Task[]; 
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
-
-  const preview = useMemo(() => describeQuickTaskPreview(text, teamMembers), [text, teamMembers]);
 
   function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -81,7 +83,6 @@ export function WorkspaceTasks({ tasks, userId, teamMembers }: { tasks: Task[]; 
             Adicionar
           </Button>
         </div>
-        {text.trim() && <p className="text-xs text-muted-foreground">{preview}</p>}
       </form>
       {error && <p className="text-sm text-destructive">{error}</p>}
 
