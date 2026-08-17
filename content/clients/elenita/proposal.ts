@@ -4,13 +4,10 @@ import type { ProposalContent } from "@/lib/clients/proposal-types";
  * Proposta de Continuidade — Dra. Elenita Luzardo. Página comercial isolada
  * (`/clients/elenita/public/proposta`), pensada pra apresentação AO VIVO.
  *
- * PREÇOS — `budget.heroNumber` (R$4.870) é a base fixa, sempre presente, nunca desliga.
- * `upsell.items` são camadas OPCIONAIS que aparecem já marcadas na apresentação ao vivo (o
- * vendedor pode desmarcar durante a conversa), mas o preço de cada item NÃO é exibido em lugar
- * nenhum — `price` fica só no dado, sem uso visual hoje (ver proposal-upsell.tsx). O card
- * "Investimento total" mostra um valor FIXO de R$6.000, desconectado da seleção de itens — não
- * é `heroNumber` + soma. Pra mudar esse número: edite a constante `FIXED_TOTAL` em
- * proposal-upsell.tsx (decisão deliberada, ver comentário lá).
+ * PREÇOS — `budget.heroNumber` (R$4.000) é o preço único da proposta — a seção de upsell com
+ * total variável (R$6.000, camadas opcionais) foi removida a pedido do cliente; hoje só existe
+ * esse valor único, já com 4 vídeos editados/mês, tráfego pago e prospecção ativa inclusos
+ * (ver `budget.includedItems`).
  */
 export const elenitaProposal: ProposalContent = {
   slug: "elenita",
@@ -97,7 +94,7 @@ export const elenitaProposal: ProposalContent = {
     cards: [
       {
         number: "01",
-        title: "Patrocínio",
+        title: "Patrocínios",
         description: "Aproximação de empresas com interesse em associar sua marca ao projeto.",
         items: ["Identificação de oportunidades", "Estrutura de abordagem", "Apresentação da oportunidade", "Construção de relacionamento"],
       },
@@ -117,7 +114,7 @@ export const elenitaProposal: ProposalContent = {
   },
 
   budget: {
-    heroNumber: 4870,
+    heroNumber: 4000,
     heroLabel: "Base Estratégica",
     heroCaption: "A inteligência por trás do projeto.",
     pillars: [
@@ -136,19 +133,11 @@ export const elenitaProposal: ProposalContent = {
       "Captação audiovisual",
       "4 vídeos editados/mês",
       "Tráfego pago (atração de seguidores)",
+      "Prospecção ativa",
     ],
     additionalLabel: "Adicionais",
     additionalItems: ["Social media dedicada", "Designs"],
     flowSteps: ["Estratégia", "Planejamento", "Direção", "Execução"],
-  },
-
-  upsell: {
-    heading: "Potencialize a operação",
-    subtitle: "Selecione o que faz sentido para este momento.",
-    items: [
-      { id: "videos-extra", label: "8 vídeos editados/mês", description: "Dobra a entrega mensal de conteúdo editado.", price: 800 },
-      { id: "trafego-pago", label: "Tráfego pago (atração de seguidores e leads)", description: "Estratégia e gestão de campanhas — verba de mídia à parte.", price: 740 },
-    ],
   },
 
   closing: {

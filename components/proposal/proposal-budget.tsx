@@ -11,8 +11,8 @@ const PILLAR_ICONS = [Compass, FileText, LineChart, Video];
 /**
  * Orçamento — prioridade design > texto. Sem parágrafos, sem tabela de preços tradicional.
  * 4 blocos, nesta ordem: (A) número grande, (B) 4 cards mínimos, (C) Incluso vs Adicionais,
- * (D) cascata Estratégia → Planejamento → Direção → Execução. Estática de propósito — o
- * interativo (upsell com preço revelado ao selecionar) é a seção seguinte, proposal-upsell.tsx.
+ * (D) cascata Estratégia → Planejamento → Direção → Execução. Preço único da proposta — a seção
+ * de upsell com total variável que existia depois desta foi removida a pedido do cliente.
  */
 export function ProposalBudget({ content, accent }: { content: ProposalContent["budget"]; accent: string }) {
   return (

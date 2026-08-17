@@ -8,7 +8,6 @@ import { ProposalRoadmap } from "@/components/proposal/proposal-roadmap";
 import { ProposalTvProgram } from "@/components/proposal/proposal-tv-program";
 import { ProposalAcquisition } from "@/components/proposal/proposal-acquisition";
 import { ProposalBudget } from "@/components/proposal/proposal-budget";
-import { ProposalUpsell } from "@/components/proposal/proposal-upsell";
 import { ProposalClosing } from "@/components/proposal/proposal-closing";
 
 /**
@@ -18,8 +17,8 @@ import { ProposalClosing } from "@/components/proposal/proposal-closing";
  * conteúdo próprio em `content/clients/<slug>/proposal.ts`. Hoje só a Elenita tem uma proposta
  * cadastrada; qualquer outro slug cai em notFound(), sem afetar nenhuma rota existente.
  *
- * Pensada pra apresentação AO VIVO — por isso não tem CTA comercial em lugar nenhum; o upsell é
- * a própria ferramenta de apresentação, ajustado na hora.
+ * Pensada pra apresentação AO VIVO — por isso não tem CTA comercial em lugar nenhum. Preço único
+ * (ProposalBudget) — a seção de upsell com total variável foi removida a pedido do cliente.
  */
 export async function generateMetadata({ params }: { params: Promise<{ client: string }> }): Promise<Metadata> {
   const { client } = await params;
@@ -48,7 +47,6 @@ export default async function ProposalPage({ params }: { params: Promise<{ clien
       <ProposalTvProgram content={proposal.tvProgram} accent={accent} />
       <ProposalAcquisition content={proposal.acquisition} accent={accent} />
       <ProposalBudget content={proposal.budget} accent={accent} />
-      <ProposalUpsell content={proposal.upsell} basePrice={proposal.budget.heroNumber} accent={accent} />
       <ProposalClosing content={proposal.closing} brandName={proposal.brandName} />
     </main>
   );

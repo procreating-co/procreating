@@ -31,13 +31,6 @@ export type BudgetPillarCard = {
   items: string[];
 };
 
-export type UpsellItem = {
-  id: string;
-  label: string;
-  description: string;
-  price: number;
-};
-
 export type ProposalContent = {
   slug: string;
   brandName: string;
@@ -83,12 +76,6 @@ export type ProposalContent = {
     additionalLabel: string;
     additionalItems: string[];
     flowSteps: string[];
-  };
-
-  upsell: {
-    heading: string;
-    subtitle: string;
-    items: UpsellItem[];
   };
 
   closing: {
