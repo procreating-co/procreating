@@ -3,6 +3,15 @@
 Documento de retomada. Se você é uma sessão nova retomando isto, comece por aqui antes de reler
 o histórico inteiro — este arquivo é a fonte da verdade, não a memória de conversa de ninguém.
 
+**Rodada de auditoria/hardening — PAUSADA no item 1 (concluído), itens 2-5 NÃO iniciados.**
+Usuário pediu uma rodada autônoma de testes + hardening (não features novas) enquanto ficava fora;
+no meio do item 1 (concluído, commitado, ver seção "Testes unitários" abaixo — Vitest + testes de
+lógica pura + um bug real achado e corrigido em `quick-parse.ts`), o usuário voltou e pediu pra
+trocar de direção: mapear e executar o que falta do master prompt em vez de continuar a auditoria.
+Itens 2 (varredura dark mode), 3 (RLS Client Hub), 4 (acessibilidade teclado/foco), 5 (estados de
+erro/loading em Server Actions) do pedido de hardening **não foram tocados** — ficam pra uma
+sessão futura dedicada a isso, se for retomado.
+
 **Atualização mais recente**: `ANTHROPIC_API_KEY` configurada (`.env.local` + `vercel env add
 ANTHROPIC_API_KEY production`) — confirmado nos dois lugares sem nunca imprimir o valor. Rodada
 de 4 itens, todos concluídos e implantados:
@@ -22,6 +31,39 @@ Escopo: só o Procreating OS (ERP interno — `app/(internal)/**`, `/admin`, `/c
 site público/portfolio de clientes (`/clients/[client]/**`, `/p/[client]/**`) é escopo de uma
 sessão diferente que compartilha este repositório — não misturar (ver `docs/roadmap.md`, que é
 o roadmap DELA, não deste ERP).
+
+## Testes unitários (Vitest) — item 1 da auditoria/hardening — FEITO
+
+Projeto não tinha framework de teste nenhum. Instalado `vitest` (só isso, dev dependency —
+`vitest.config.mts` resolve o alias `@/*`, mesmo mapeamento do `tsconfig.json`, sem
+`vite-tsconfig-paths` nem outra dependência). `npm run test` novo em `package.json`.
+
+Cobertura (só lógica pura, sem browser — funções que já tiveram bug real de fuso/data no
+histórico deste projeto):
+- `lib/date.test.ts` — `addDaysISO` (vira mês, vira ano, bissexto, negativo), `monthKeyOf`/
+  `dayOfMonthOf` (sem viés de fuso), `lastMonthKeys`.
+- `lib/comercial/period.test.ts` — os 7 presets + casos de virada de mês/ano (`last_month` em
+  janeiro, `quarter` no primeiro/último mês do trimestre) via mock de `todayISO`/`todayParts`.
+- `lib/financeiro/calculations.ts` (novo) — margem/MRR/agrupamento de receita por cliente/contas
+  a receber na janela, EXTRAÍDOS de `computeFinanceiroMetrics` (`lib/financeiro/queries.ts`) pra
+  função pura testável sem mockar Supabase (refactor mecânico, mesmo cálculo — `queries.ts` só
+  passou a chamar as funções novas). `lib/financeiro/calculations.test.ts` cobre os 5 casos.
+- `lib/tasks/quick-parse.test.ts` — sem data (vira hoje), amanhã, dia da semana (inclusive quando
+  hoje já é esse dia), 3 formatos de hora, `@nome` por primeiro nome/nome completo, combinação.
+
+**Bug real achado pelos testes (não hipotético), corrigido em `lib/tasks/quick-parse.ts`**: `\b`
+do JS só reconhece `[A-Za-z0-9_]` como caractere de palavra, nunca letra acentuada. `\bamanh[ãa]\b`
+e `\bàs\b` NUNCA batiam na forma acentuada (a normal, a que as pessoas realmente digitam) quando
+cercada de espaço/fim de frase — ou seja, o PRÓPRIO EXEMPLO do master prompt ("Editar vídeo
+amanhã às 15h") virava "hoje" (não amanhã) e deixava "às" solto no título. Corrigido com
+lookaround Unicode-aware (`(?<![\p{L}\p{N}_])`/`(?![\p{L}\p{N}_])`, flag `u`) nos 2 pontos
+afetados — "hoje" e os nomes de dia da semana não tinham o problema (sem acento na borda do
+match), não foram tocados. `npm run test` — 66/66 passando.
+
+`lib/comercial/funnel.ts` (mencionado no pedido original) **não foi testado** — tem `server-only`
++ I/O direto no Supabase, não é lógica pura isolável sem mockar o client; testar isso exigiria uma
+camada de mock de banco, escopo maior que "testes de função pura". A parte de período que ele usa
+(`lib/comercial/period.ts`) está coberta.
 
 ## O que está feito (verificado com `npm run typecheck` + `npm run build` limpos)
 
