@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, useTransition } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,10 +33,26 @@ const dateFormatter = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: 
  */
 export function ProspeccaoView({ lists, strategies }: { lists: ProspectingList[]; strategies: Strategy[] }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [importing, setImporting] = useState(false);
   const [renamingList, setRenamingList] = useState<ProspectingList | null>(null);
   const [deletingList, setDeletingList] = useState<ProspectingList | null>(null);
   const strategyById = new Map(strategies.map((strategy) => [strategy.id, strategy]));
+
+  // Atalho "I" (`KeyboardShortcuts`, §61) — navega pra cá com `?import=1` e a URL é o canal (mesmo
+  // padrão de `?tab=`/`?period=` já usado em todo o produto), não um evento/estado global novo. Abre
+  // o drawer sozinho e some com o parâmetro (não deixar `?import=1` na URL depois de já ter aberto,
+  // senão um refresh reabriria o drawer sem o usuário pedir).
+  useEffect(() => {
+    if (searchParams.get("import") !== "1") return;
+    setImporting(true);
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("import");
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="flex flex-col gap-4">

@@ -1,7 +1,15 @@
 "use client";
 
-import { useCallback, useRef, type ReactNode, type TouchEvent, type WheelEvent } from "react";
+import { useCallback, useEffect, useRef, type ReactNode, type TouchEvent, type WheelEvent } from "react";
 import { useRouter } from "next/navigation";
+
+const FOCUSABLE_TAGS = new Set(["INPUT", "TEXTAREA", "SELECT"]);
+
+function isTypingContext(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  if (FOCUSABLE_TAGS.has(target.tagName)) return true;
+  return target.isContentEditable;
+}
 
 export type GestureTab = { key: string; href: string };
 
@@ -94,6 +102,24 @@ export function GestureNav({ tabs, activeKey, children }: { tabs: GestureTab[]; 
     },
     [navigate]
   );
+
+  // Terceiro canal — teclado (§61: "Arrow Left → contexto anterior, Arrow Right → próximo"),
+  // mesmo `navigate()`/cooldown dos outros dois. Listener em `document` (não no `onKeyDown` da
+  // div) porque a seta precisa funcionar mesmo sem nada dentro do Comercial estar focado — só se
+  // guarda de disparar com um campo de texto focado (mesma checagem de `KeyboardShortcuts`).
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
+      if (isTypingContext(e.target)) return;
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      if (cooldown.current) return;
+
+      e.preventDefault();
+      navigate(e.key === "ArrowRight" ? 1 : -1);
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [navigate]);
 
   return (
     <div onWheel={handleWheel} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd} className="flex flex-col gap-8">

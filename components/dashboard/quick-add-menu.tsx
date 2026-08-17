@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Building2, CheckSquare2, Handshake, Plus, Receipt, UserPlus } from "lucide-react";
+import { QUICK_ADD_SHORTCUT_EVENT } from "@/components/dashboard/keyboard-shortcuts";
 import { Command, CommandDialog, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -84,6 +85,17 @@ export function QuickAddMenu() {
       listTeamUsersAction().then(setTeamMembers);
     }
   }, [step, strategies.length, teamMembers.length]);
+
+  // Atalhos de teclado (§61, `KeyboardShortcuts`) — "N"/"C" abrem este menu já no passo certo,
+  // sem duplicar o formulário/Server Action que o picker já delega.
+  useEffect(() => {
+    function onShortcut(event: Event) {
+      setStep((event as CustomEvent<Step>).detail);
+      setOpen(true);
+    }
+    window.addEventListener(QUICK_ADD_SHORTCUT_EVENT, onShortcut);
+    return () => window.removeEventListener(QUICK_ADD_SHORTCUT_EVENT, onShortcut);
+  }, []);
 
   function closeAll() {
     setOpen(false);
