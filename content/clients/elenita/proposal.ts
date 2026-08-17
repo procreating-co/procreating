@@ -102,7 +102,7 @@ export const elenitaProposal: ProposalContent = {
         number: "02",
         title: "Parcerias",
         description: "Conexões estratégicas com marcas que ampliam audiência e autoridade.",
-        items: ["Colaboração", "Relacionamento", "Audiência", "Autoridade", "Novas oportunidades"],
+        items: ["Colaboração", "Relacionamento", "Audiência", "Autoridade", "Novas oportunidades", "Parceria com a Unisat"],
       },
       {
         number: "03",
