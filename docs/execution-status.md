@@ -3,13 +3,11 @@
 Documento de retomada. Se você é uma sessão nova retomando isto, comece por aqui antes de reler
 o histórico inteiro — este arquivo é a fonte da verdade, não a memória de conversa de ninguém.
 
-**Atualização mais recente**: §2/§4/§20 (Comercial em 3 abas — Overview/Commercial/Planning)
-implementado, passos 1-4 de 5, aprovado e no ar. **Parado de propósito ANTES do passo 5**
-(conversão de `/comercial/estrategias/[id]` pra drawer) — é o item de maior risco, aguarda teste
-manual do usuário antes de fechar. Ver seção própria abaixo, inclusive uma correção importante:
-o "código morto" identificado numa rodada anterior (`components/prospeccao/views/*`) na verdade
-é código AO VIVO do Client Hub (escopo da outra sessão) — nada foi apagado, a exclusão pedida foi
-recusada depois de reinvestigar.
+**Atualização mais recente**: §2/§4/§20 **completo** — usuário testou os passos 1-4 manualmente em
+produção (filtros, os 2 drawers, os 3 aliases de URL, swipe) e liberou o passo 5 (conversão de
+`/comercial/estrategias/[id]` pra drawer), implementado e no ar. Também: uma passada real de
+minimalismo cortando `description=` redundante em `SectionHeader`/`PageHeader` (achado sistêmico,
+60 ocorrências só em `app/`) — ver as duas seções próprias abaixo.
 
 **Rodada de auditoria/hardening — PAUSADA no item 1 (concluído), itens 2-5 NÃO iniciados.**
 Usuário pediu uma rodada autônoma de testes + hardening (não features novas) enquanto ficava fora;
@@ -495,7 +493,7 @@ preenchido) — sem service role key/sessão pra rodar uma query de verificaçã
 a chave anon disponível), a checagem de qualidade de dado virou parte do PRÓPRIO CÁLCULO em
 runtime em vez de uma decisão minha tirada de uma foto de agora — mais robusto, sempre correto.
 
-## §2/§4/§20 — Comercial como 3 abas (Overview/Commercial/Planning) — FEITO passos 1-4, PARADO antes do passo 5
+## §2/§4/§20 — Comercial como 3 abas (Overview/Commercial/Planning) — FEITO, os 5 passos
 
 Desenho abaixo (registrado antes de codar) **aprovado pelo usuário sem mudanças**. Implementado
 na ordem de risco crescente que o próprio desenho mapeou, cada passo com typecheck+build limpos:
@@ -532,11 +530,18 @@ foi apagado.** Isso quase virou uma exclusão de código de produção da outra 
 verificação minha malfeita — registrado aqui como lembrete forte: `grep` só numa pasta (`app/`) não
 basta pra provar "código morto", precisa seguir a cadeia de import até a rota de verdade.
 
-**Ainda parado, por pedido explícito — passo 5, o de maior risco**: conversão de
-`/comercial/estrategias/[id]` (rota própria, pode estar salva/compartilhada por alguém) pra
-drawer via `?strategy=<id>`. Usuário quer testar manualmente o comportamento novo (abrir por link
-direto, abrir pelo drawer, `?strategy=<id>` isolado) antes de eu implementar esse último passo —
-**não implementar sem confirmação depois desse teste**.
+5. ~~Conversão de `/comercial/estrategias/[id]` pra drawer~~ — **feito**, liberado depois do
+   usuário testar manualmente os passos 1-4 em produção (filtros combinados, os 2 drawers, os 3
+   aliases, o swipe — tudo confirmado). `components/comercial/strategy-detail-drawer.tsx` (novo)
+   — mesmo conteúdo de sempre (StatTiles, funil, detalhes, cadência, editar), `Sheet` mais largo
+   (`sm:max-w-2xl`) por ser o painel mais denso dos três. Aberto por `?strategyDetail=<id>` —
+   **nome diferente de `?strategy=`** de propósito (esse já é o filtro de estratégia do CRM; usar
+   o mesmo nome pros dois faria o filtro abrir o drawer por engano — achado ao implementar, corrigido
+   antes de virar bug). Diferente de `?panel=`/`?import=1` (gatilhos de um tiro só, se auto-removem),
+   `?strategyDetail=` fica na URL enquanto o drawer está aberto — preserva o deep-link que a rota
+   própria tinha (F5 mantém o drawer aberto na mesma estratégia). A rota antiga virou só um
+   `redirect()`. `components/comercial/strategy-detail-header.tsx` removido — única referência era
+   a página que virou redirect, confirmado com grep (zero resultado) antes de apagar.
 
 Desenho original (contexto, já executado acima):
 
@@ -580,21 +585,46 @@ link possivelmente já compartilhado/salvo por alguém) pra drawer é a mudança
 efeito colateral não previsto — merece teste manual dedicado antes de ir pro ar, não só
 typecheck+build limpos.
 
+## Minimalismo — texto explicativo redundante em SectionHeader/PageHeader — FEITO (passada real)
+
+Achado sistêmico, não 3 frases soltas: `description=` aparece 60 vezes só em `app/`. Critério
+aplicado — mantém quando explica algo NÃO-óbvio (fórmula, comportamento não-visual, origem do
+dado, aviso de limitação); corta quando só repete o título de outro jeito. `CardWithDetail`/
+`ChartExpandDialog` (a descrição só aparece dentro do modal, sob demanda, nunca permanente) já
+estavam no padrão certo — tratamento mais leve ali, só os tautológicos foram cortados.
+
+~20 lugares mudados (não listados um a um aqui, só o padrão):
+- **Comercial** — "CRM": descrição fixa removida ("soltar em Fechado abre onboarding" virou
+  tooltip no próprio estágio Fechado do Kanban, `pipeline-board.tsx`, exatamente onde é
+  relevante). "Fila de execução": fallback fixo removido (`ExecutionQueue` já tem o próprio empty
+  state, eram duas frases pra mesma coisa) — contagem ao vivo mantida. "Planejamento": de 2
+  frases pra 1 curta.
+- **Home** — 9 descrições cortadas (todas tautológicas, `CardWithDetail`, modal-only mas ainda
+  redundantes): Clientes Ativos, Equipe, Headcount, Ticket Médio, Churn, Valor Médio por Cliente,
+  Pulso do Negócio (a nota que sobrava era dev-facing — "preparado pra virar IA no futuro" — não
+  pertencia a texto de produto).
+- **Workspace** — "Semana" cortada (instrução de uso de um checkbox, autoexplicativo);
+  "Prioridades de X" mantida mas encurtada pro essencial (única frase que explica algo não-óbvio:
+  por que ver tarefa de colega ali não é vigilância).
+- **Financeiro** — A Receber/A Pagar (descrição só quando "Todas" selecionado — o toggle
+  Pendentes/Todas já fala por si), Custos e Pipeline-em-negociação encurtados (mantido o aviso
+  importante de nunca somar ao MRR).
+- **Configurações/Usuários** — PageHeader encurtado, mantida só a parte não-óbvia (onde convidar).
+
+**Não editado, fora do meu escopo** (`app/(internal)/operacao/**`): mesmo padrão encontrado em
+Conteúdo/Projetos/Entregas/Equipe/Produção (PageHeader repetindo o título) — reportado aqui pra
+outra sessão decidir, não corrigido.
+
 ## Próximo passo exato pra quem retomar
 
-1. **Usuário precisa testar manualmente o passo 5 do §2/§4/§20** (conversão de
-   `/comercial/estrategias/[id]` pra drawer) — ver seção acima. **Não implementar sem essa
-   confirmação primeiro**: abrir por link direto, abrir pelo painel de Estratégias, `?strategy=
-   <id>` isolado. É o item de maior risco da lista inteira (rota que pode estar salva/
-   compartilhada por alguém), parado de propósito nesse ponto exato.
-2. **Usuário precisa testar o bug de tarefa sem data** (rodada anterior) em produção e confirmar
+1. **Usuário precisa testar o bug de tarefa sem data** (rodada anterior) em produção e confirmar
    — sem essa confirmação, não considerar esse item fechado só porque o código parece correto.
-3. **Usuário precisa adicionar crédito na conta Anthropic** (`console.anthropic.com` → Plans &
+2. **Usuário precisa adicionar crédito na conta Anthropic** (`console.anthropic.com` → Plans &
    Billing) pra validar o orquestrador de IA de ponta a ponta — código pronto, só falta isso.
    Depois de resolvido, um teste real (uma pergunta simples tipo "quantos leads sem follow-up?")
    confirma o loop de tool use funcionando; se algo quebrar ali, é o primeiro lugar a olhar.
 
-Fora esses três itens de confirmação/desbloqueio que dependem do usuário, sem item grande
+Fora esses dois itens de confirmação/desbloqueio que dependem do usuário, sem item grande
 conhecido pendente — os 3 blocos do master prompt que definiam o core do produto (Comercial,
 Financeiro, Workspace/Onboarding) estão funcionalmente maduros sobre dado real, RBAC cobre os
 domínios sensíveis que existem hoje (financeiro, gestão de usuários), os 6 gaps de CRUD da
