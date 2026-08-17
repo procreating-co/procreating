@@ -39,9 +39,15 @@ export function SequenceEditor({ strategyId, steps }: { strategyId: string; step
     });
   }
 
+  // Auditoria de estados de erro (hardening) — "dispara e esquece", sem confirmação nem feedback
+  // de erro. Confirmação antes de excluir é uma lacuna separada (não adicionada aqui, fora do
+  // escopo desta auditoria — registrado em docs/execution-status.md); o que corrige aqui é só o
+  // resultado da action deixar de ser ignorado.
   function handleDelete(id: string) {
+    setError(null);
     startTransition(async () => {
-      await deleteSequenceStepAction(id, strategyId);
+      const result = await deleteSequenceStepAction(id, strategyId);
+      if (!result.ok) setError(result.error);
       router.refresh();
     });
   }

@@ -45,9 +45,17 @@ export function TaskEditDialog({ task, teamMembers, open, onOpenChange }: { task
     });
   }
 
+  // Auditoria de estados de erro (hardening) — fechava tudo (confirm + o próprio dialog de
+  // edição) mesmo se a exclusão falhasse, dando a impressão de sucesso sem ter acontecido.
   function handleDelete() {
+    setError(null);
     startDeleteTransition(async () => {
-      await deleteTaskAction(task.id);
+      const result = await deleteTaskAction(task.id);
+      if (!result.ok) {
+        setError(result.error);
+        setConfirmingDelete(false);
+        return;
+      }
       setConfirmingDelete(false);
       onOpenChange(false);
       router.refresh();

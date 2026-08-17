@@ -58,9 +58,14 @@ export function WorkspaceTasks({ tasks, userId, teamMembers }: { tasks: Task[]; 
     });
   }
 
+  // Auditoria de estados de erro (hardening) — reaproveita o mesmo `error` do formulário de
+  // criação acima; antes um toggle que falhasse (rede, RLS) só voltava sozinho no refresh, sem
+  // explicar por quê.
   function toggle(task: Task) {
+    setError(null);
     startTransition(async () => {
-      await updateTaskStatusAction(task.id, task.status === "done" ? "pending" : "done");
+      const result = await updateTaskStatusAction(task.id, task.status === "done" ? "pending" : "done");
+      if (!result.ok) setError(result.error);
       router.refresh();
     });
   }

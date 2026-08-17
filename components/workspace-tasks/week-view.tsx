@@ -31,6 +31,7 @@ export function WeekView({ tasks }: { tasks: Task[] }) {
   const [isPending, startTransition] = useTransition();
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
   const [dragOverDay, setDragOverDay] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const today = todayISO();
   const days = Array.from({ length: 7 }, (_, i) => addDaysISO(today, i));
@@ -40,9 +41,15 @@ export function WeekView({ tasks }: { tasks: Task[] }) {
     if (task.due_date && tasksByDay.has(task.due_date)) tasksByDay.get(task.due_date)!.push(task);
   }
 
+  // Auditoria de estados de erro (hardening) — os dois toggles abaixo eram "dispara e esquece":
+  // se a Server Action falhasse (rede, RLS), o checkbox/card só voltava sozinho no refresh sem
+  // explicar por quê, parecendo um clique perdido. Mesmo padrão `role="alert"` já usado no resto
+  // do produto.
   function toggle(task: Task) {
+    setError(null);
     startTransition(async () => {
-      await updateTaskStatusAction(task.id, task.status === "done" ? "pending" : "done");
+      const result = await updateTaskStatusAction(task.id, task.status === "done" ? "pending" : "done");
+      if (!result.ok) setError(result.error);
       router.refresh();
     });
   }
@@ -56,8 +63,9 @@ export function WeekView({ tasks }: { tasks: Task[] }) {
     const task = tasks.find((t) => t.id === taskId);
     if (!task || task.due_date === day) return;
 
+    setError(null);
     startTransition(async () => {
-      await updateTaskAction(task.id, {
+      const result = await updateTaskAction(task.id, {
         title: task.title,
         assigneeId: task.assignee_id,
         dueDate: day,
@@ -65,66 +73,74 @@ export function WeekView({ tasks }: { tasks: Task[] }) {
         contextType: task.context_type,
         contextId: task.context_id,
       });
+      if (!result.ok) setError(result.error);
       router.refresh();
     });
   }
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
-      {days.map((day, index) => {
-        const dayTasks = tasksByDay.get(day) ?? [];
-        const isDragOver = dragOverDay === day;
-        return (
-          <div
-            key={day}
-            onDragOver={(e) => {
-              e.preventDefault();
-              setDragOverDay(day);
-            }}
-            onDragLeave={() => setDragOverDay((current) => (current === day ? null : current))}
-            onDrop={(e) => {
-              e.preventDefault();
-              handleDrop(day);
-            }}
-            className={cn(
-              "flex min-h-28 flex-col gap-2 rounded-xl border border-border/60 bg-card/40 p-3 transition-colors",
-              isDragOver && "border-foreground/40 bg-card/70",
-            )}
-          >
-            <div className="flex items-baseline justify-between gap-2">
-              <span className={cn("text-xs font-medium uppercase tracking-wide", index === 0 ? "text-brand" : "text-muted-foreground")}>
-                {index === 0 ? "Hoje" : formatDateOnly(day, { weekday: "short" })}
-              </span>
-              <span className="text-[11px] text-muted-foreground">{formatDateOnly(day, { day: "2-digit", month: "2-digit" })}</span>
+    <div className="flex flex-col gap-2">
+      {error && (
+        <p role="alert" className="text-sm text-destructive">
+          {error}
+        </p>
+      )}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
+        {days.map((day, index) => {
+          const dayTasks = tasksByDay.get(day) ?? [];
+          const isDragOver = dragOverDay === day;
+          return (
+            <div
+              key={day}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragOverDay(day);
+              }}
+              onDragLeave={() => setDragOverDay((current) => (current === day ? null : current))}
+              onDrop={(e) => {
+                e.preventDefault();
+                handleDrop(day);
+              }}
+              className={cn(
+                "flex min-h-28 flex-col gap-2 rounded-xl border border-border/60 bg-card/40 p-3 transition-colors",
+                isDragOver && "border-foreground/40 bg-card/70",
+              )}
+            >
+              <div className="flex items-baseline justify-between gap-2">
+                <span className={cn("text-xs font-medium uppercase tracking-wide", index === 0 ? "text-brand" : "text-muted-foreground")}>
+                  {index === 0 ? "Hoje" : formatDateOnly(day, { weekday: "short" })}
+                </span>
+                <span className="text-[11px] text-muted-foreground">{formatDateOnly(day, { day: "2-digit", month: "2-digit" })}</span>
+              </div>
+              {dayTasks.length === 0 ? (
+                <p className="text-xs text-muted-foreground/60">—</p>
+              ) : (
+                <ul className="flex flex-col gap-1.5">
+                  {dayTasks.map((task) => (
+                    <li
+                      key={task.id}
+                      draggable
+                      onDragStart={() => setDraggingTaskId(task.id)}
+                      onDragEnd={() => setDraggingTaskId(null)}
+                      className={cn("flex cursor-grab items-start gap-1.5 active:cursor-grabbing", draggingTaskId === task.id && "opacity-30")}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={task.status === "done"}
+                        disabled={isPending}
+                        onChange={() => toggle(task)}
+                        aria-label={`Marcar "${task.title}" como concluída`}
+                        className="mt-0.5 size-3.5 shrink-0 rounded border-input"
+                      />
+                      <span className={cn("text-xs leading-snug", task.status === "done" && "text-muted-foreground line-through")}>{task.title}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
-            {dayTasks.length === 0 ? (
-              <p className="text-xs text-muted-foreground/60">—</p>
-            ) : (
-              <ul className="flex flex-col gap-1.5">
-                {dayTasks.map((task) => (
-                  <li
-                    key={task.id}
-                    draggable
-                    onDragStart={() => setDraggingTaskId(task.id)}
-                    onDragEnd={() => setDraggingTaskId(null)}
-                    className={cn("flex cursor-grab items-start gap-1.5 active:cursor-grabbing", draggingTaskId === task.id && "opacity-30")}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={task.status === "done"}
-                      disabled={isPending}
-                      onChange={() => toggle(task)}
-                      aria-label={`Marcar "${task.title}" como concluída`}
-                      className="mt-0.5 size-3.5 shrink-0 rounded border-input"
-                    />
-                    <span className={cn("text-xs leading-snug", task.status === "done" && "text-muted-foreground line-through")}>{task.title}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }

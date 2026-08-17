@@ -20,11 +20,19 @@ export function CostsList({ costs }: { costs: Cost[] }) {
   const [editingCost, setEditingCost] = useState<Cost | null>(null);
   const [deletingCost, setDeletingCost] = useState<Cost | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
+  // Auditoria de estados de erro (hardening) — fechava o ConfirmDialog mesmo se a exclusão
+  // falhasse, dando a impressão de sucesso sem ter acontecido.
   function handleDelete() {
     if (!deletingCost) return;
+    setDeleteError(null);
     startTransition(async () => {
-      await deleteCostAction(deletingCost.id);
+      const result = await deleteCostAction(deletingCost.id);
+      if (!result.ok) {
+        setDeleteError(result.error);
+        return;
+      }
       setDeletingCost(null);
       router.refresh();
     });
@@ -107,9 +115,14 @@ export function CostsList({ costs }: { costs: Cost[] }) {
       )}
       <ConfirmDialog
         open={deletingCost !== null}
-        onOpenChange={(open) => !open && setDeletingCost(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteError(null);
+            setDeletingCost(null);
+          }
+        }}
         title="Excluir custo?"
-        description={deletingCost ? `"${deletingCost.name}" some pra sempre — não dá pra desfazer.` : undefined}
+        description={deleteError ?? (deletingCost ? `"${deletingCost.name}" some pra sempre — não dá pra desfazer.` : undefined)}
         isPending={isPending}
         onConfirm={handleDelete}
       />

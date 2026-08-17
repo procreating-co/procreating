@@ -100,6 +100,7 @@ export function PipelineBoard({ leads, stages, users }: { leads: LeadWithRelatio
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [isDeleting, startDeleteTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
 
   const userById = useMemo(() => new Map(users.map((user) => [user.id, user])), [users]);
 
@@ -114,10 +115,15 @@ export function PipelineBoard({ leads, stages, users }: { leads: LeadWithRelatio
   const onboardingLead = leads.find((lead) => lead.id === onboardingLeadId) ?? null;
   const deletingLead = leads.find((lead) => lead.id === deletingId) ?? null;
 
+  // Auditoria de estados de erro (hardening) — os dois abaixo eram "dispara e esquece": se a
+  // Server Action falhasse (rede, RLS), o card só voltava sozinho no refresh sem explicar por
+  // quê — pior ainda no drag-and-drop, onde o usuário acabou de arrastar fisicamente o card.
   function handleDelete() {
     if (!deletingId) return;
+    setError(null);
     startDeleteTransition(async () => {
-      await deleteLeadAction(deletingId);
+      const result = await deleteLeadAction(deletingId);
+      if (!result.ok) setError(result.error);
       setDeletingId(null);
       router.refresh();
     });
@@ -140,8 +146,10 @@ export function PipelineBoard({ leads, stages, users }: { leads: LeadWithRelatio
       return;
     }
 
+    setError(null);
     startTransition(async () => {
-      await moveLeadStageAction(leadId, stage.id);
+      const result = await moveLeadStageAction(leadId, stage.id);
+      if (!result.ok) setError(result.error);
       router.refresh();
     });
   }
@@ -221,6 +229,11 @@ export function PipelineBoard({ leads, stages, users }: { leads: LeadWithRelatio
       </div>
 
       {isPending && <p className="text-xs text-muted-foreground">Movendo...</p>}
+      {error && (
+        <p role="alert" className="text-sm text-destructive">
+          {error}
+        </p>
+      )}
 
       <LeadDetailDrawer lead={selected} users={users} stages={stages} onOpenChange={(open) => !open && setSelectedId(null)} />
 

@@ -17,11 +17,21 @@ export function ContactsSection({ clientId, contacts }: { clientId: string; cont
   const [editingContact, setEditingContact] = useState<ClientContact | null>(null);
   const [deletingContact, setDeletingContact] = useState<ClientContact | null>(null);
   const [isDeleting, startDeleteTransition] = useTransition();
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
+  // Auditoria de estados de erro (hardening) — fechava o ConfirmDialog e dava por feita a
+  // exclusão mesmo se a Server Action falhasse (rede, RLS); passava a impressão de sucesso sem
+  // ter acontecido. Mesmo padrão já usado em prospeccao-view.tsx (DeleteListConfirm): só fecha
+  // no sucesso, mostra o erro e mantém o dialog aberto na falha.
   function handleDelete() {
     if (!deletingContact) return;
+    setDeleteError(null);
     startDeleteTransition(async () => {
-      await deleteContactAction(deletingContact.id, clientId);
+      const result = await deleteContactAction(deletingContact.id, clientId);
+      if (!result.ok) {
+        setDeleteError(result.error);
+        return;
+      }
       setDeletingContact(null);
       router.refresh();
     });
@@ -70,9 +80,14 @@ export function ContactsSection({ clientId, contacts }: { clientId: string; cont
       )}
       <ConfirmDialog
         open={deletingContact !== null}
-        onOpenChange={(open) => !open && setDeletingContact(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteError(null);
+            setDeletingContact(null);
+          }
+        }}
         title="Excluir contato?"
-        description={deletingContact ? `"${deletingContact.name}" some da ficha do cliente — não dá pra desfazer.` : undefined}
+        description={deleteError ?? (deletingContact ? `"${deletingContact.name}" some da ficha do cliente — não dá pra desfazer.` : undefined)}
         isPending={isDeleting}
         onConfirm={handleDelete}
       />
