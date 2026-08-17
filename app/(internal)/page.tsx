@@ -1,5 +1,7 @@
-import { AlertTriangle, Banknote, Handshake, TrendingUp, Users, UsersRound, Wallet } from "lucide-react";
+import { AlertTriangle, Banknote, EyeOff, Handshake, TrendingUp, Users, UsersRound, Wallet } from "lucide-react";
 import { computeExecutiveDashboard } from "@/lib/dashboard/executive-metrics";
+import { getSession } from "@/lib/admin/auth";
+import { canViewFinancials } from "@/lib/auth/permissions";
 import { DashboardDateHeader } from "@/components/dashboard/dashboard-date-header";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { ChartCard } from "@/components/dashboard/chart-card";
@@ -35,10 +37,27 @@ const percentFormatter = (value: number) => `${value.toFixed(1)}%`;
  *
  * Rótulos em português (revertido de uma fase anterior em inglês — ver `nav-config.ts`).
  */
+/** RBAC — decisão de produto (não redireciona, mascara): papel sem `can_view_financials` continua
+ *  vendo a Home inteira (contexto/layout preservado), só os NÚMEROS financeiros viram "R$ ••••" —
+ *  cards, tabelas e o conteúdo dos modais de detalhe (`DetailList`). Gráficos que codificam valor
+ *  visualmente (altura de barra/linha) não têm como ser "mascarados" ponto a ponto sem virar
+ *  ilegível, então viram um placeholder no lugar do gráfico — mesma ideia, sem dado visual
+ *  reconstruível. Contagens/percentuais (clientes ativos, conversão, churn, headcount) não são
+ *  "dado financeiro" no sentido estrito já usado por `canViewFinancials` — continuam visíveis. */
+const MASKED_CURRENCY = "R$ ••••";
+
+function maskEntries(entries: DetailEntry[], canView: boolean): DetailEntry[] {
+  if (canView) return entries;
+  return entries.map((entry) => (entry.value ? { ...entry, value: MASKED_CURRENCY } : entry));
+}
+
 export default async function Home({ searchParams }: { searchParams: Promise<{ months?: string }> }) {
   const { months: monthsParam } = await searchParams;
   const cashFlowMonths = Number(monthsParam) || 6;
-  const metrics = await computeExecutiveDashboard(cashFlowMonths);
+  const [metrics, session] = await Promise.all([computeExecutiveDashboard(cashFlowMonths), getSession()]);
+  const canView = session ? canViewFinancials(session.user.role) : false;
+  const money = (value: number) => (canView ? currencyFormatter.format(value) : MASKED_CURRENCY);
+  const compactMoney = (value: number) => (canView ? compactCurrencyFormatter.format(value) : MASKED_CURRENCY);
   const d = metrics.details;
 
   return (
@@ -47,11 +66,11 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
 
       {/* Linha de KPIs */}
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
-        <CardWithDetail title="Receita" description="Receita realizada este mês (paga)." detail={<DetailList items={d.revenueEntries} emptyLabel="Nenhuma receita paga este mês ainda." />}>
+        <CardWithDetail title="Receita" description="Receita realizada este mês (paga)." detail={<DetailList items={maskEntries(d.revenueEntries, canView)} emptyLabel="Nenhuma receita paga este mês ainda." />}>
           <MetricCard
             icon={<TrendingUp className="size-3.5" />}
             label="Receita"
-            value={compactCurrencyFormatter.format(metrics.kpis.revenue.value)}
+            value={compactMoney(metrics.kpis.revenue.value)}
             sparkline={metrics.kpis.revenue.sparkline}
             delta={metrics.kpis.revenue.deltaPct != null ? { value: percentFormatter(Math.abs(metrics.kpis.revenue.deltaPct)), direction: metrics.kpis.revenue.deltaPct >= 0 ? "up" : "down" } : undefined}
             tone={metrics.kpis.revenue.deltaPct == null ? "info" : metrics.kpis.revenue.deltaPct >= 0 ? "success" : "danger"}
@@ -63,9 +82,9 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
           detail={
             <DetailList
               items={[
-                { label: "Receita", value: currencyFormatter.format(metrics.financialHealth.revenue) },
-                { label: "Despesas", value: `− ${currencyFormatter.format(metrics.financialHealth.expenses)}` },
-                { label: "Lucro Líquido", value: currencyFormatter.format(metrics.financialHealth.netProfit) },
+                { label: "Receita", value: money(metrics.financialHealth.revenue) },
+                { label: "Despesas", value: `− ${money(metrics.financialHealth.expenses)}` },
+                { label: "Lucro Líquido", value: money(metrics.financialHealth.netProfit) },
               ]}
               emptyLabel="Sem dado suficiente."
             />
@@ -74,7 +93,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
           <MetricCard
             icon={<Wallet className="size-3.5" />}
             label="Lucro Líquido"
-            value={compactCurrencyFormatter.format(metrics.kpis.netProfit.value)}
+            value={compactMoney(metrics.kpis.netProfit.value)}
             sparkline={metrics.kpis.netProfit.sparkline}
             tone={metrics.kpis.netProfit.value >= 0 ? "success" : "danger"}
           />
@@ -85,9 +104,9 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
           detail={
             <DetailList
               items={[
-                { label: "Entradas", value: currencyFormatter.format(metrics.financialHealth.revenue) },
-                { label: "Saídas", value: `− ${currencyFormatter.format(metrics.financialHealth.expenses)}` },
-                { label: "Fluxo de Caixa", value: `${metrics.financialHealth.cashFlow >= 0 ? "+" : ""}${currencyFormatter.format(metrics.financialHealth.cashFlow)}` },
+                { label: "Entradas", value: money(metrics.financialHealth.revenue) },
+                { label: "Saídas", value: `− ${money(metrics.financialHealth.expenses)}` },
+                { label: "Fluxo de Caixa", value: `${metrics.financialHealth.cashFlow >= 0 ? "+" : ""}${money(metrics.financialHealth.cashFlow)}` },
               ]}
               emptyLabel="Sem dado suficiente."
             />
@@ -96,13 +115,13 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
           <MetricCard
             icon={<Banknote className="size-3.5" />}
             label="Fluxo de Caixa"
-            value={compactCurrencyFormatter.format(metrics.kpis.cashFlow.value)}
+            value={compactMoney(metrics.kpis.cashFlow.value)}
             sparkline={metrics.kpis.cashFlow.sparkline}
             tone={metrics.kpis.cashFlow.value >= 0 ? "success" : "danger"}
           />
         </CardWithDetail>
-        <CardWithDetail title="Pipeline" description="Leads abertos, por valor potencial." detail={<DetailList items={d.openLeads} emptyLabel="Nenhum lead aberto." />}>
-          <MetricCard icon={<Handshake className="size-3.5" />} label="Pipeline" value={compactCurrencyFormatter.format(metrics.kpis.pipeline.value)} tone="info" />
+        <CardWithDetail title="Pipeline" description="Leads abertos, por valor potencial." detail={<DetailList items={maskEntries(d.openLeads, canView)} emptyLabel="Nenhum lead aberto." />}>
+          <MetricCard icon={<Handshake className="size-3.5" />} label="Pipeline" value={compactMoney(metrics.kpis.pipeline.value)} tone="info" />
         </CardWithDetail>
         <CardWithDetail title="Clientes Ativos" description="Clientes com status ativo." detail={<DetailList items={d.activeClients} emptyLabel="Nenhum cliente ativo ainda." />}>
           <MetricCard icon={<Users className="size-3.5" />} label="Clientes Ativos" value={String(metrics.kpis.activeClients.value)} tone="success" />
@@ -117,7 +136,9 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
         title="Receita vs. Meta"
         description="Realizado (área) vs. ritmo esperado (linha pontilhada) — dia a dia do mês corrente."
         expanded={
-          metrics.revenueVsTarget.goalAmount != null ? (
+          !canView ? (
+            <EmptyInline icon={EyeOff} label="Gráfico oculto — este número financeiro exige acesso." />
+          ) : metrics.revenueVsTarget.goalAmount != null ? (
             <RevenueVsTargetChart points={metrics.revenueVsTarget.points} height={420} />
           ) : (
             <EmptyInline icon={TrendingUp} label="Meta não definida — configure em Configurações → Geral." />
@@ -128,11 +149,13 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
           title="Receita vs. Meta"
           description={
             metrics.revenueVsTarget.goalAmount != null
-              ? `${currencyFormatter.format(metrics.kpis.revenue.value)} / ${currencyFormatter.format(metrics.revenueVsTarget.goalAmount)} — ${percentFormatter((metrics.kpis.revenue.value / metrics.revenueVsTarget.goalAmount) * 100)} da meta mensal`
+              ? `${money(metrics.kpis.revenue.value)} / ${money(metrics.revenueVsTarget.goalAmount)} — ${percentFormatter((metrics.kpis.revenue.value / metrics.revenueVsTarget.goalAmount) * 100)} da meta mensal`
               : undefined
           }
         >
-          {metrics.revenueVsTarget.goalAmount != null ? (
+          {!canView ? (
+            <EmptyInline icon={EyeOff} label="Gráfico oculto — este número financeiro exige acesso." />
+          ) : metrics.revenueVsTarget.goalAmount != null ? (
             <RevenueVsTargetChart points={metrics.revenueVsTarget.points} />
           ) : (
             <EmptyInline icon={TrendingUp} label="Meta não definida — configure em Configurações → Geral para ver este gráfico." />
@@ -144,11 +167,11 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
       <section className="flex flex-col gap-4">
         <SectionHeader title="Saúde Financeira" />
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <CardWithDetail title="Receita" description="Receita realizada este mês (paga)." detail={<DetailList items={d.revenueEntries} emptyLabel="Nenhuma receita paga este mês ainda." />}>
-            <FinancialBlock label="Receita" value={currencyFormatter.format(metrics.financialHealth.revenue)} />
+          <CardWithDetail title="Receita" description="Receita realizada este mês (paga)." detail={<DetailList items={maskEntries(d.revenueEntries, canView)} emptyLabel="Nenhuma receita paga este mês ainda." />}>
+            <FinancialBlock label="Receita" value={money(metrics.financialHealth.revenue)} />
           </CardWithDetail>
-          <CardWithDetail title="Despesas" description="Despesas pagas este mês." detail={<DetailList items={d.expenseEntries} emptyLabel="Nenhuma despesa paga este mês ainda." />}>
-            <FinancialBlock label="Despesas" value={currencyFormatter.format(metrics.financialHealth.expenses)} />
+          <CardWithDetail title="Despesas" description="Despesas pagas este mês." detail={<DetailList items={maskEntries(d.expenseEntries, canView)} emptyLabel="Nenhuma despesa paga este mês ainda." />}>
+            <FinancialBlock label="Despesas" value={money(metrics.financialHealth.expenses)} />
           </CardWithDetail>
           <CardWithDetail
             title="Lucro Líquido"
@@ -156,15 +179,15 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
             detail={
               <DetailList
                 items={[
-                  { label: "Receita", value: currencyFormatter.format(metrics.financialHealth.revenue) },
-                  { label: "Despesas", value: `− ${currencyFormatter.format(metrics.financialHealth.expenses)}` },
-                  { label: "Lucro Líquido", value: currencyFormatter.format(metrics.financialHealth.netProfit) },
+                  { label: "Receita", value: money(metrics.financialHealth.revenue) },
+                  { label: "Despesas", value: `− ${money(metrics.financialHealth.expenses)}` },
+                  { label: "Lucro Líquido", value: money(metrics.financialHealth.netProfit) },
                 ]}
                 emptyLabel="Sem dado suficiente."
               />
             }
           >
-            <FinancialBlock label="Lucro Líquido" value={currencyFormatter.format(metrics.financialHealth.netProfit)} tone={metrics.financialHealth.netProfit >= 0 ? "success" : "danger"} />
+            <FinancialBlock label="Lucro Líquido" value={money(metrics.financialHealth.netProfit)} tone={metrics.financialHealth.netProfit >= 0 ? "success" : "danger"} />
           </CardWithDetail>
           <CardWithDetail
             title="Fluxo de Caixa"
@@ -172,8 +195,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
             detail={
               <DetailList
                 items={[
-                  { label: "Entradas", value: currencyFormatter.format(metrics.financialHealth.revenue) },
-                  { label: "Saídas", value: `− ${currencyFormatter.format(metrics.financialHealth.expenses)}` },
+                  { label: "Entradas", value: money(metrics.financialHealth.revenue) },
+                  { label: "Saídas", value: `− ${money(metrics.financialHealth.expenses)}` },
                 ]}
                 emptyLabel="Sem dado suficiente."
               />
@@ -181,7 +204,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
           >
             <FinancialBlock
               label="Fluxo de Caixa"
-              value={`${metrics.financialHealth.cashFlow >= 0 ? "+" : ""}${currencyFormatter.format(metrics.financialHealth.cashFlow)}`}
+              value={`${metrics.financialHealth.cashFlow >= 0 ? "+" : ""}${money(metrics.financialHealth.cashFlow)}`}
               tone={metrics.financialHealth.cashFlow >= 0 ? "success" : "danger"}
             />
           </CardWithDetail>
@@ -190,13 +213,13 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
           title={`Fluxo de Caixa — Últimos ${cashFlowMonths} Meses`}
           expanded={
             <div className="flex flex-col gap-5">
-              <RevenueChart data={metrics.financialHealth.monthlyEvolution} height={360} />
+              {canView ? <RevenueChart data={metrics.financialHealth.monthlyEvolution} height={360} /> : <EmptyInline icon={EyeOff} label="Gráfico oculto — este número financeiro exige acesso." />}
               <DataTable
                 columns={[
                   { key: "month", header: "Mês", render: (row) => row.month },
-                  { key: "revenue", header: "Receita", align: "right", render: (row) => currencyFormatter.format(row.revenue) },
-                  { key: "expenses", header: "Despesas", align: "right", render: (row) => currencyFormatter.format(row.expenses) },
-                  { key: "net", header: "Líquido", align: "right", render: (row) => currencyFormatter.format(row.revenue - row.expenses) },
+                  { key: "revenue", header: "Receita", align: "right", render: (row) => money(row.revenue) },
+                  { key: "expenses", header: "Despesas", align: "right", render: (row) => money(row.expenses) },
+                  { key: "net", header: "Líquido", align: "right", render: (row) => money(row.revenue - row.expenses) },
                 ]}
                 rows={metrics.financialHealth.monthlyEvolution}
                 getRowKey={(row) => row.month}
@@ -207,7 +230,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
           }
         >
           <ChartCard title={`Fluxo de Caixa — Últimos ${cashFlowMonths} Meses`} action={<PeriodSelect />}>
-            <RevenueChart data={metrics.financialHealth.monthlyEvolution} />
+            {canView ? <RevenueChart data={metrics.financialHealth.monthlyEvolution} /> : <EmptyInline icon={EyeOff} label="Gráfico oculto — este número financeiro exige acesso." />}
           </ChartCard>
         </ChartExpandDialog>
       </section>
@@ -223,12 +246,12 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
             expanded={
               metrics.salesPipeline.stages.some((stage) => stage.count > 0) ? (
                 <div className="flex flex-col gap-5">
-                  <SalesPipelineChart stages={metrics.salesPipeline.stages} height={340} />
+                  {canView ? <SalesPipelineChart stages={metrics.salesPipeline.stages} height={340} /> : <EmptyInline icon={EyeOff} label="Gráfico oculto — este número financeiro exige acesso." />}
                   <DataTable
                     columns={[
                       { key: "stage", header: "Estágio", render: (row) => row.label },
                       { key: "count", header: "Leads", align: "right", render: (row) => String(row.count) },
-                      { key: "value", header: "Valor", align: "right", render: (row) => currencyFormatter.format(row.value) },
+                      { key: "value", header: "Valor", align: "right", render: (row) => money(row.value) },
                     ]}
                     rows={metrics.salesPipeline.stages}
                     getRowKey={(row) => row.label}
@@ -243,7 +266,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
           >
             <div className="rounded-xl border border-border/60 bg-card p-5">
               {metrics.salesPipeline.stages.some((stage) => stage.count > 0) ? (
-                <SalesPipelineChart stages={metrics.salesPipeline.stages} />
+                canView ? <SalesPipelineChart stages={metrics.salesPipeline.stages} /> : <EmptyInline icon={EyeOff} label="Gráfico oculto — este número financeiro exige acesso." />
               ) : (
                 <EmptyInline icon={Handshake} label="Nenhuma oportunidade ativa — crie um negócio pra começar a construir seu pipeline." />
               )}
@@ -269,15 +292,15 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
                 tone={metrics.salesPipeline.conversionRate != null ? "success" : "neutral"}
               />
             </CardWithDetail>
-            <CardWithDetail title="Ticket Médio" description="Ticket médio dos negócios fechados." detail={<DetailList items={d.wonDeals} emptyLabel="Nenhum negócio fechado com valor registrado ainda." />}>
-              <FinancialBlock label="Ticket Médio" value={metrics.salesPipeline.averageDeal != null ? currencyFormatter.format(metrics.salesPipeline.averageDeal) : "Sem dados disponíveis"} />
+            <CardWithDetail title="Ticket Médio" description="Ticket médio dos negócios fechados." detail={<DetailList items={maskEntries(d.wonDeals, canView)} emptyLabel="Nenhum negócio fechado com valor registrado ainda." />}>
+              <FinancialBlock label="Ticket Médio" value={metrics.salesPipeline.averageDeal != null ? money(metrics.salesPipeline.averageDeal) : "Sem dados disponíveis"} />
             </CardWithDetail>
             <CardWithDetail
               title="Pipeline Ponderado"
               description="Soma do pipeline aberto × probabilidade de cada estágio."
               detail={
                 metrics.salesPipeline.weightedPipeline != null ? (
-                  <DetailList items={d.openLeads} emptyLabel="Nenhum lead aberto." />
+                  <DetailList items={maskEntries(d.openLeads, canView)} emptyLabel="Nenhum lead aberto." />
                 ) : (
                   <p className="text-sm text-muted-foreground">
                     Ainda não existe probabilidade configurada pra todo estágio do pipeline — sem isso, o cálculo ponderado ficaria incompleto. Configure em Configurações → CRM quando essa tela existir.
@@ -287,7 +310,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
             >
               <FinancialBlock
                 label="Pipeline Ponderado"
-                value={metrics.salesPipeline.weightedPipeline != null ? currencyFormatter.format(metrics.salesPipeline.weightedPipeline) : "Dados insuficientes"}
+                value={metrics.salesPipeline.weightedPipeline != null ? money(metrics.salesPipeline.weightedPipeline) : "Dados insuficientes"}
                 tone={metrics.salesPipeline.weightedPipeline != null ? "info" : "neutral"}
               />
             </CardWithDetail>
@@ -302,7 +325,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
           <CardWithDetail title="Clientes Ativos" description="Clientes com status ativo." detail={<DetailList items={d.activeClients} emptyLabel="Nenhum cliente ativo ainda." />}>
             <FinancialBlock label="Clientes Ativos" value={String(metrics.customerHealth.activeClients)} tone="success" />
           </CardWithDetail>
-          <CardWithDetail title="Concentração de Receita" description="Top 5 clientes por receita de contrato ativo." detail={<DetailList items={d.topClients} emptyLabel="Sem contrato ativo suficiente." />}>
+          <CardWithDetail title="Concentração de Receita" description="Top 5 clientes por receita de contrato ativo." detail={<DetailList items={maskEntries(d.topClients, canView)} emptyLabel="Sem contrato ativo suficiente." />}>
             <FinancialBlock label="Concentração de Receita (Top 5)" value={metrics.customerHealth.concentrationTop5Pct != null ? percentFormatter(metrics.customerHealth.concentrationTop5Pct) : "Sem dados disponíveis"} />
           </CardWithDetail>
           <CardWithDetail title="Churn (atual)" description="Clientes com status churn, no momento." detail={<DetailList items={d.churnedClients} emptyLabel="Nenhum cliente em churn." />}>
@@ -312,8 +335,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
               tone={metrics.customerHealth.churnPct == null ? "neutral" : metrics.customerHealth.churnPct > 0 ? "danger" : "success"}
             />
           </CardWithDetail>
-          <CardWithDetail title="Valor Médio por Cliente" description="Receita de contrato ativo, por cliente." detail={<DetailList items={d.topClients} emptyLabel="Sem contrato ativo suficiente." />}>
-            <FinancialBlock label="Valor Médio por Cliente" value={metrics.customerHealth.averageClientValue != null ? currencyFormatter.format(metrics.customerHealth.averageClientValue) : "Sem dados disponíveis"} />
+          <CardWithDetail title="Valor Médio por Cliente" description="Receita de contrato ativo, por cliente." detail={<DetailList items={maskEntries(d.topClients, canView)} emptyLabel="Sem contrato ativo suficiente." />}>
+            <FinancialBlock label="Valor Médio por Cliente" value={metrics.customerHealth.averageClientValue != null ? money(metrics.customerHealth.averageClientValue) : "Sem dados disponíveis"} />
           </CardWithDetail>
         </div>
       </section>
@@ -352,7 +375,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
         ) : (
           <ul className="flex flex-col divide-y divide-border/60 rounded-xl border border-border/60 bg-card">
             {metrics.attention.map((item) => (
-              <AttentionRow key={item.label} item={item} overdueRevenue={d.overdueRevenue} overdueExpenses={d.overdueExpenses} upcomingRevenue={d.upcomingRevenue} />
+              <AttentionRow key={item.label} item={item} canView={canView} overdueRevenue={maskEntries(d.overdueRevenue, canView)} overdueExpenses={maskEntries(d.overdueExpenses, canView)} upcomingRevenue={maskEntries(d.upcomingRevenue, canView)} />
             ))}
           </ul>
         )}
@@ -422,20 +445,27 @@ function AttentionRow({
   overdueRevenue,
   overdueExpenses,
   upcomingRevenue,
+  canView,
 }: {
   item: { label: string; detail: string; tone: "danger" | "warning" | "success"; kind?: "overdue_revenue" | "overdue_expenses" | "upcoming_revenue" | "cash_flow" };
   overdueRevenue: DetailEntry[];
   overdueExpenses: DetailEntry[];
   upcomingRevenue: DetailEntry[];
+  canView: boolean;
 }) {
   const items =
     item.kind === "overdue_revenue" ? overdueRevenue : item.kind === "overdue_expenses" ? overdueExpenses : item.kind === "upcoming_revenue" ? upcomingRevenue : [];
+
+  // Todo item de "Atenção Necessária" hoje é financeiro (overdue_revenue/overdue_expenses/
+  // upcoming_revenue/cash_flow — ver lib/dashboard/executive-metrics.ts) — `item.detail` traz um
+  // valor em R$ embutido na frase (ex.: "R$ 3.200,00 em aberto"), mascarado por inteiro aqui.
+  const detail = canView ? item.detail : "Valor oculto para seu papel.";
 
   const content = (
     <div className="flex items-center justify-between gap-4 px-5 py-3.5">
       <div className="flex flex-col gap-0.5">
         <span className="text-sm font-medium">{item.label}</span>
-        <span className="text-xs text-muted-foreground">{item.detail}</span>
+        <span className="text-xs text-muted-foreground">{detail}</span>
       </div>
       <StatusBadge tone={item.tone} label={item.tone === "success" ? "OK" : item.tone === "danger" ? "Crítico" : "Atenção"} />
     </div>
@@ -445,7 +475,7 @@ function AttentionRow({
 
   return (
     <li>
-      <CardWithDetail title={item.label} description={item.detail} detail={<DetailList items={items} emptyLabel="Nenhum item." />} className="rounded-none hover:-translate-y-0 hover:bg-foreground/[0.03]">
+      <CardWithDetail title={item.label} description={detail} detail={<DetailList items={items} emptyLabel="Nenhum item." />} className="rounded-none hover:-translate-y-0 hover:bg-foreground/[0.03]">
         {content}
       </CardWithDetail>
     </li>
