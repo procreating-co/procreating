@@ -558,3 +558,31 @@ export async function bulkMoveStageAction(leadIds: string[], toStageId: string):
   revalidatePath("/comercial");
   return { ok: true };
 }
+
+/** "ERP totalmente funcional" — Listas de prospecção só tinham criação (via import de CSV);
+ *  corrigir um nome digitado errado exigia ir direto no banco. */
+export async function renameProspectingListAction(id: string, name: string): Promise<ActionResult> {
+  if (!name.trim()) return { ok: false, error: "Dê um nome pra lista." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("prospecting_lists").update({ name: name.trim(), updated_at: new Date().toISOString() }).eq("id", id);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/comercial");
+  return { ok: true };
+}
+
+/** `leads.list_id` referencia `prospecting_lists` sem `on delete cascade` (de propósito, migration
+ *  `20260814260000`) — o próprio Postgres bloqueia excluir uma lista com leads ainda vinculados
+ *  (`23503`), então não precisa reimplementar essa checagem aqui, só traduzir o erro. */
+export async function deleteProspectingListAction(id: string): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("prospecting_lists").delete().eq("id", id);
+  if (error) {
+    if (error.code === "23503") return { ok: false, error: "Esta lista tem leads vinculados — mova ou exclua os leads antes de excluir a lista." };
+    return { ok: false, error: error.message };
+  }
+
+  revalidatePath("/comercial");
+  return { ok: true };
+}
