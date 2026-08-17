@@ -3,20 +3,28 @@
 Documento de retomada. Se você é uma sessão nova retomando isto, comece por aqui antes de reler
 o histórico inteiro — este arquivo é a fonte da verdade, não a memória de conversa de ninguém.
 
-**Atualização mais recente**: §2/§4/§20 **completo** — usuário testou os passos 1-4 manualmente em
-produção (filtros, os 2 drawers, os 3 aliases de URL, swipe) e liberou o passo 5 (conversão de
-`/comercial/estrategias/[id]` pra drawer), implementado e no ar. Também: uma passada real de
-minimalismo cortando `description=` redundante em `SectionHeader`/`PageHeader` (achado sistêmico,
-60 ocorrências só em `app/`) — ver as duas seções próprias abaixo.
+**Atualização mais recente**: rodada de auditoria/hardening **completa**, os 5 itens (retomada
+depois de ter sido pausada no item 1 pra dar lugar ao mapeamento do master prompt, que também
+terminou). Achados reais em quase todo item — não foi só "rodei e não achei nada":
 
-**Rodada de auditoria/hardening — PAUSADA no item 1 (concluído), itens 2-5 NÃO iniciados.**
-Usuário pediu uma rodada autônoma de testes + hardening (não features novas) enquanto ficava fora;
-no meio do item 1 (concluído, commitado, ver seção "Testes unitários" abaixo — Vitest + testes de
-lógica pura + um bug real achado e corrigido em `quick-parse.ts`), o usuário voltou e pediu pra
-trocar de direção: mapear e executar o que falta do master prompt em vez de continuar a auditoria.
-Itens 2 (varredura dark mode), 3 (RLS Client Hub), 4 (acessibilidade teclado/foco), 5 (estados de
-erro/loading em Server Actions) do pedido de hardening **não foram tocados** — ficam pra uma
-sessão futura dedicada a isso, se for retomado.
+1. **Testes unitários** (Vitest) — feito antes da pausa. Achou e corrigiu um bug real em
+   `quick-parse.ts` (regex `\b` não reconhece letra acentuada — "amanhã"/"às" nunca batiam).
+2. **Varredura de dark mode** — zero token de superfície faltando (a correção de uma rodada
+   anterior fechou o gap por completo), mas achou `button.tsx` (variant destructive) com
+   `text-white` hardcoded em vez do token — branco puro reaparecendo em todo botão "Excluir" do
+   produto.
+3. **RLS Client Hub** — confirmado que o ERP não usa nenhuma das 8 tabelas sem policy. Só
+   investigação, sem código (decisão de arquitetura é da outra sessão).
+4. **Acessibilidade** — achou 1 `<div onClick>` real sem teclado/leitor de tela
+   (`prospeccao-view.tsx`, empty state), corrigido pra `<button>`. Confirmado que todo
+   Dialog/Sheet fecha com Escape (Radix, nenhum wrapper customizado quebrando isso).
+5. **Estados de erro em Server Actions** — achou vários toggles "dispara e esquece", e um padrão
+   mais sério: 5 handlers de EXCLUSÃO fechavam o `ConfirmDialog` mesmo se a Server Action
+   falhasse, dando impressão de sucesso sem ter acontecido. Corrigido pro padrão já estabelecido
+   (só fecha no sucesso, mostra erro e mantém aberto na falha).
+
+Ver as seções próprias de cada item mais abaixo. Antes disso: §2/§4/§20 completo (os 5 passos,
+usuário testou e liberou o último) e a passada de minimalismo em `description=`.
 
 **Mapeamento §1-87 contra este documento — FEITO, 4 dos 8 itens implementados.** Cruzei as 87
 seções do master prompt (recuperado do transcript desta sessão, via o mesmo script Python de uma
@@ -82,6 +90,78 @@ match), não foram tocados. `npm run test` — 66/66 passando.
 + I/O direto no Supabase, não é lógica pura isolável sem mockar o client; testar isso exigiria uma
 camada de mock de banco, escopo maior que "testes de função pura". A parte de período que ele usa
 (`lib/comercial/period.ts`) está coberta.
+
+## Varredura de dark mode — item 2 da auditoria — FEITO
+
+Sistemática, não visual (Playwright não instala Chromium neste ambiente): script comparando cada
+custom property de `.os-shell` (light) contra `.os-shell[data-theme="dark"]`. Resultado: **zero
+token de superfície/texto faltando** — a correção de uma rodada anterior (`--kanban-*`/
+`--sidebar-*`/`--input-*`) fechou o gap por completo, nada novo surgiu desde então. As 3 únicas
+diferenças (`font-family-*`) são legítimas (fonte não muda por tema). Também sem `bg-white`/
+`text-black`/hex hardcoded em nenhum componente do ERP.
+
+**Achado real, fora do CSS**: `components/ui/button.tsx`, variant `destructive`, usava
+`text-white` hardcoded em vez do token `--destructive-foreground` (que já existe e já é `#E7E5E4`
+no dark, não branco puro). Esse variant é o botão "Excluir" de todo `ConfirmDialog` do produto —
+era o branco puro reaparecendo pela porta dos fundos em qualquer tela de exclusão. Trocado pra
+`text-destructive-foreground`, confirmado via CSS compilada (3 valores distintos: light `.os-shell`,
+dark `.os-shell`, `:root` fora do shell).
+
+## RLS Client Hub — item 3 da auditoria — FEITO (só investigação)
+
+As 8 tabelas da auditoria original (`templates`, `projects`, `project_versions`, `deployments`,
+`project_capabilities`, `assets`, `analytics`, `downloads`) — RLS habilitado, zero policy,
+inutilizáveis por design (fail-closed). Confirmado via grep: **nenhuma tem `.from()` em `lib/`,
+`app/(internal)/` ou componentes do ERP**. As poucas menções relacionadas (`project_capabilities`)
+vivem em `lib/platform/`, `components/admin/projects/`, `lib/clients/` — Client Hub, não ERP,
+nomes parecidos mas escopo diferente (mesmo cuidado do achado do `ProspeccaoHub`, seção acima).
+
+Sem MCP do Supabase disponível nesta sessão pra rodar `get_advisors` (o linter de segurança de
+verdade) e gerar um relatório fresco — fica pendente de uma sessão com esse acesso. Nenhuma
+policy criada (decisão de arquitetura da outra sessão, como já combinado).
+
+## Acessibilidade — item 4 da auditoria — FEITO
+
+Varredura por parser (não regex ingênuo) achando `<div>`/`<li>`/`<span>` com `onClick` e sem
+`role=`. Quase tudo eram falsos positivos (`onClick` num `<Button>`/`<button>` real dentro de um
+`<div>` de layout). **1 achado real**: `prospeccao-view.tsx`, o empty state "Nenhuma lista
+importada ainda" (clicável, abre o import) era `<div onClick>` sem `role`/`tabIndex`/`onKeyDown`
+— inacessível por teclado/leitor de tela. Virou `<button>` de verdade (sem elemento interativo
+aninhado ali dentro, diferente dos cards de lista logo abaixo, que já usam `role="button"`
+corretamente porque têm editar/excluir por cima).
+
+Confirmado também: todo `Dialog`/`Sheet`/`CommandDialog` do ERP é Radix (`dialog.tsx`/
+`sheet.tsx`/`command.tsx`) — Escape fecha nativamente, os keydown listeners globais desta sessão
+(`KeyboardShortcuts`, `GestureNav`) não escutam Escape, sem conflito. Os únicos `role="dialog"`
+manuais do repositório (`video-lightbox.tsx`, `photo-lightbox.tsx`) são Client Hub, fora de escopo.
+
+## Estados de erro em Server Actions — item 5 da auditoria — FEITO
+
+Todo call site das Server Actions de escrita em `lib/comercial/actions.ts`,
+`lib/financeiro/actions.ts`, `lib/tasks/actions.ts`, `lib/clientes/*actions.ts` — confirmando
+`if (!result.ok) setError(...)` em todo lugar, não só formulários principais. A maioria já
+estava correta; achados reais, exatamente nos lugares que a instrução apontou (toggles/batch) mais
+um padrão mais sério que apareceu no meio do caminho (exclusões):
+
+- **Toggles sem captura nenhuma de resultado** (falha virava "volta sozinho no refresh" sem
+  explicar por quê): `updateTaskStatusAction` (visão de semana, lista de tarefas do Workspace,
+  tarefas de onboarding), `markLeadContactedAction` (fila de execução),
+  `moveLeadStageAction`/drag-and-drop do Kanban (o mais visível — falha depois de um gesto físico
+  de arrastar), `updateClientStatusAction`.
+- **Achado mais sério**: 5 handlers de EXCLUSÃO fechavam o `ConfirmDialog` (1 caso, o dialog
+  inteiro) INCONDICIONALMENTE, mesmo se a Server Action falhasse — impressão de sucesso sem ter
+  acontecido, pior que só esquecer o erro. `deleteLeadAction`, `deleteContactAction`,
+  `deleteCostAction`, `deleteTaskAction` — corrigidos pro padrão já estabelecido numa rodada
+  anterior (`DeleteListConfirm` em `prospeccao-view.tsx`): só fecha no sucesso, mostra o erro e
+  MANTÉM o dialog aberto na falha. `deleteSequenceStepAction` não tem `ConfirmDialog` nenhum
+  (falta de confirmação antes de excluir é uma lacuna SEPARADA, não corrigida — registrada abaixo).
+- Batch actions (`bulk-actions-toolbar.tsx`) já estavam corretas — um `run()` compartilhado já
+  checava `.ok`; não apareceram no grep inicial por chamarem a action dentro de uma closure.
+
+**Gap identificado, não corrigido** (fora do escopo específico desta auditoria — era sobre
+tratamento de erro, não sobre adicionar confirmação onde falta): `sequence-editor.tsx` permite
+excluir um passo de cadência sem nenhum "tem certeza?". Baixo risco (reversível recriando o
+passo), mas inconsistente com o resto do produto, que confirma toda exclusão.
 
 ## O que está feito (verificado com `npm run typecheck` + `npm run build` limpos)
 
