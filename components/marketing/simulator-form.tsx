@@ -24,11 +24,16 @@ const SCENARIO_HINT: Record<Scenario["label"], string> = {
  * perguntar de novo. Meta e MRR agora vêm do Financeiro/Configurações reais (`defaults`), não
  * mais um `30000` fixo — e o cálculo de clientes necessários usa a LACUNA (meta − MRR já
  * confirmado), não a meta cheia, senão receita recorrente já fechada seria contada duas vezes.
+ *
+ * RBAC — decisão de produto: `canView=false` (papel sem `can_view_financials`) não bloqueia a
+ * tela, só não pré-preenche Meta/MRR com o dado real (campos começam em branco). Sem seed real,
+ * não existe mais número sensível pra mascarar — o simulador continua funcionando por inteiro
+ * com o que a pessoa digitar, só sem partir do MRR/meta reais da empresa.
  */
-export function SimulatorForm({ defaults }: { defaults: SimulationDefaults }) {
+export function SimulatorForm({ defaults, canView }: { defaults: SimulationDefaults; canView: boolean }) {
   const [input, setInput] = useState<SimulationInput>({
-    revenueGoal: defaults.currentMonthGoal ?? 0,
-    currentMrr: defaults.currentMrr,
+    revenueGoal: canView ? defaults.currentMonthGoal ?? 0 : 0,
+    currentMrr: canView ? defaults.currentMrr : 0,
     averageTicket: defaults.averageTicket,
     leadToProposalRate: defaults.leadToProposalRate,
     proposalToSaleRate: defaults.proposalToSaleRate,
@@ -49,7 +54,7 @@ export function SimulatorForm({ defaults }: { defaults: SimulationDefaults }) {
             value={input.revenueGoal || ""}
             onChange={(e) => setInput((p) => ({ ...p, revenueGoal: Number(e.target.value) || 0 }))}
           />
-          {defaults.currentMonthGoal != null && <p className="text-[11px] text-muted-foreground">Pré-preenchido com a meta do mês (Configurações → Geral).</p>}
+          {canView && defaults.currentMonthGoal != null && <p className="text-[11px] text-muted-foreground">Pré-preenchido com a meta do mês (Configurações → Geral).</p>}
         </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor="sim-mrr">MRR atual (R$)</Label>
@@ -94,7 +99,14 @@ export function SimulatorForm({ defaults }: { defaults: SimulationDefaults }) {
         </div>
       </div>
 
-      {defaults.currentMonthGoal == null && (
+      {!canView && (
+        <div className="flex items-start gap-3 rounded-xl border border-border/60 bg-card/40 px-4 py-3 text-sm text-muted-foreground">
+          <AlertCircle className="mt-0.5 size-4 shrink-0" />
+          <p>Meta e MRR reais da empresa ficam ocultos para seu papel — os campos abaixo começam em branco, mas o simulador funciona normalmente com os valores que você digitar.</p>
+        </div>
+      )}
+
+      {canView && defaults.currentMonthGoal == null && (
         <div className="flex items-start gap-3 rounded-xl border border-warning/30 bg-warning-subtle px-4 py-3 text-sm text-warning">
           <AlertCircle className="mt-0.5 size-4 shrink-0" />
           <p>

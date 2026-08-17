@@ -8,6 +8,8 @@ import { resolvePeriod, isPeriodPreset, type PeriodPreset } from "@/lib/comercia
 import { listOpenLeads, listOpenLeadsForPipeline, listOpenLeadsPaginated, listPipelineStages, listProspectingLists, listStrategies, type LeadFilters } from "@/lib/comercial/queries";
 import { listUsers } from "@/lib/admin/users/queries";
 import { computeSimulationDefaults } from "@/lib/simulation/defaults";
+import { getSession } from "@/lib/admin/auth";
+import { canViewFinancials } from "@/lib/auth/permissions";
 import { StatTile } from "@/components/dashboard/stat-tile";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { PageTabs } from "@/components/dashboard/page-tabs";
@@ -135,11 +137,12 @@ export default async function ComercialPage({
       </div>
     );
   } else if (tab === "planejamento") {
-    const defaults = await computeSimulationDefaults();
+    const [defaults, session] = await Promise.all([computeSimulationDefaults(), getSession()]);
+    const canView = session ? canViewFinancials(session.user.role) : false;
     content = (
       <div className="flex flex-col gap-4">
         <SectionHeader title="Planejamento" description="Quanto de lead, proposta e cliente é preciso pra bater uma meta de faturamento — três cenários lado a lado, recalculados a cada mudança." />
-        <SimulatorForm defaults={defaults} />
+        <SimulatorForm defaults={defaults} canView={canView} />
       </div>
     );
   } else {
