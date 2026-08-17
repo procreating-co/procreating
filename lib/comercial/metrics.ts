@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { listPipelineStages, listStrategies } from "@/lib/comercial/queries";
 import { computeStrategyFunnel } from "@/lib/comercial/funnel";
 import { resolvePeriod, type PeriodRange } from "@/lib/comercial/period";
+import { listUsers } from "@/lib/admin/users/queries";
 import type { Strategy } from "@/lib/supabase/types/database";
 
 export type ComercialMetrics = {
@@ -76,4 +77,78 @@ export async function compareStrategies(): Promise<StrategyComparisonRow[]> {
     }),
   );
   return rows.sort((a, b) => b.totalRevenue - a.totalRevenue);
+}
+
+export type OwnerRevenueRow = { ownerId: string | null; ownerName: string; totalRevenue: number; wonLeads: number };
+export type SourceRevenueRow = { source: string; totalRevenue: number; wonLeads: number };
+export type RevenueBySource = { rows: SourceRevenueRow[]; fromRealData: boolean };
+
+/** Amostra mínima antes de considerar "by Source" confiável — mesmo raciocínio de
+ *  `MIN_SAMPLE_SIZE` em `lib/simulation/defaults.ts` (1 de 1 preenchido = "100%" distorceria). */
+const MIN_SOURCE_SAMPLE = 3;
+
+/**
+ * "Revenue by Owner"/"Revenue by Source" (§65) — uma passada só (não N queries por owner/source,
+ * §69 Performance), a partir de leads FECHADOS (`client_id` não nulo) + `revenue` do cliente que
+ * cada um virou (mesma definição de receita de `computeStrategyFunnel`/`compareStrategies` acima
+ * — soma de `revenue`, contratada, não só paga).
+ *
+ * `source` é preenchimento livre no cadastro do lead (nunca obrigatório) — construir um breakdown
+ * sobre um campo majoritariamente vazio mostraria uma fatia gigante de "sem origem" que não ajuda
+ * ninguém a decidir nada. `fromRealData` fica falso (e `rows` vem vazio) quando menos da metade
+ * dos negócios fechados tem a origem preenchida — o caller decide como comunicar isso, nunca
+ * escondido silenciosamente.
+ */
+export async function computeRevenueByOwnerAndSource(): Promise<{ byOwner: OwnerRevenueRow[]; bySource: RevenueBySource }> {
+  const supabase = await createClient();
+  const [{ data: wonLeadsRaw }, { data: revenueRows }, users] = await Promise.all([
+    supabase.from("leads").select("client_id, owner_id, source").not("client_id", "is", null),
+    supabase.from("revenue").select("client_id, amount"),
+    listUsers(),
+  ]);
+
+  const userNameById = new Map(users.map((user) => [user.id, user.name]));
+  const revenueByClient = new Map<string, number>();
+  for (const row of revenueRows ?? []) {
+    if (!row.client_id) continue;
+    revenueByClient.set(row.client_id, (revenueByClient.get(row.client_id) ?? 0) + Number(row.amount));
+  }
+
+  const wonLeads = wonLeadsRaw ?? [];
+  const ownerTotals = new Map<string, OwnerRevenueRow>();
+  const sourceTotals = new Map<string, SourceRevenueRow>();
+  let leadsWithSource = 0;
+
+  for (const lead of wonLeads) {
+    const revenue = lead.client_id ? (revenueByClient.get(lead.client_id) ?? 0) : 0;
+
+    const ownerKey = lead.owner_id ?? "__sem_responsavel__";
+    const ownerRow = ownerTotals.get(ownerKey) ?? {
+      ownerId: lead.owner_id,
+      ownerName: lead.owner_id ? (userNameById.get(lead.owner_id) ?? "Removido") : "Sem responsável",
+      totalRevenue: 0,
+      wonLeads: 0,
+    };
+    ownerRow.totalRevenue += revenue;
+    ownerRow.wonLeads += 1;
+    ownerTotals.set(ownerKey, ownerRow);
+
+    const source = lead.source?.trim();
+    if (source) {
+      leadsWithSource += 1;
+      const sourceRow = sourceTotals.get(source) ?? { source, totalRevenue: 0, wonLeads: 0 };
+      sourceRow.totalRevenue += revenue;
+      sourceRow.wonLeads += 1;
+      sourceTotals.set(source, sourceRow);
+    }
+  }
+
+  const byOwner = Array.from(ownerTotals.values()).sort((a, b) => b.totalRevenue - a.totalRevenue);
+  const fromRealData = wonLeads.length >= MIN_SOURCE_SAMPLE && leadsWithSource / wonLeads.length > 0.5;
+  const bySource: RevenueBySource = {
+    rows: fromRealData ? Array.from(sourceTotals.values()).sort((a, b) => b.totalRevenue - a.totalRevenue) : [],
+    fromRealData,
+  };
+
+  return { byOwner, bySource };
 }

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { Handshake, PackageCheck, Target, TrendingUp, UserPlus, Wallet } from "lucide-react";
-import { computeComercialMetrics, compareStrategies } from "@/lib/comercial/metrics";
+import { computeComercialMetrics, compareStrategies, computeRevenueByOwnerAndSource } from "@/lib/comercial/metrics";
 import { computeOverallFunnel } from "@/lib/comercial/funnel";
 import { resolvePeriod, isPeriodPreset, type PeriodPreset } from "@/lib/comercial/period";
 import { listOpenLeads, listOpenLeadsForPipeline, listOpenLeadsPaginated, listPipelineStages, listProspectingLists, listStrategies, type LeadFilters } from "@/lib/comercial/queries";
@@ -147,7 +147,12 @@ export default async function ComercialPage({
     );
   } else {
     const period = resolvePeriod(isPeriodPreset(periodParam) ? periodParam : "month");
-    const [metrics, comparison, funnel] = await Promise.all([computeComercialMetrics(period), compareStrategies(), computeOverallFunnel(period)]);
+    const [metrics, comparison, funnel, revenueBreakdown] = await Promise.all([
+      computeComercialMetrics(period),
+      compareStrategies(),
+      computeOverallFunnel(period),
+      computeRevenueByOwnerAndSource(),
+    ]);
     content = (
       <>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -209,6 +214,67 @@ export default async function ComercialPage({
             </div>
           )}
         </section>
+
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <section className="flex flex-col gap-4">
+            <SectionHeader title="Receita por responsável" />
+            {revenueBreakdown.byOwner.length === 0 ? (
+              <div className="rounded-xl border border-border/60 bg-card/20 px-6 py-16 text-center text-muted-foreground">Nenhum negócio fechado ainda.</div>
+            ) : (
+              <div className="overflow-hidden rounded-xl border border-border/60">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-border/60 hover:bg-transparent">
+                      <TableHead>Responsável</TableHead>
+                      <TableHead>Fechados</TableHead>
+                      <TableHead>Receita total</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {revenueBreakdown.byOwner.map((row) => (
+                      <TableRow key={row.ownerId ?? "sem-responsavel"} className="border-border/60">
+                        <TableCell className="font-medium">{row.ownerName}</TableCell>
+                        <TableCell className="text-muted-foreground">{row.wonLeads}</TableCell>
+                        <TableCell className="text-muted-foreground">{currencyFormatter.format(row.totalRevenue)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </section>
+
+          <section className="flex flex-col gap-4">
+            <SectionHeader title="Receita por origem" />
+            {!revenueBreakdown.bySource.fromRealData ? (
+              <div className="rounded-xl border border-border/60 bg-card/20 px-6 py-16 text-center text-muted-foreground">
+                Dados insuficientes — menos da metade dos negócios fechados tem a origem (&quot;source&quot;) preenchida no cadastro do lead. Preencha esse
+                campo ao criar/importar leads pra este quebra ficar confiável.
+              </div>
+            ) : (
+              <div className="overflow-hidden rounded-xl border border-border/60">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-border/60 hover:bg-transparent">
+                      <TableHead>Origem</TableHead>
+                      <TableHead>Fechados</TableHead>
+                      <TableHead>Receita total</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {revenueBreakdown.bySource.rows.map((row) => (
+                      <TableRow key={row.source} className="border-border/60">
+                        <TableCell className="font-medium">{row.source}</TableCell>
+                        <TableCell className="text-muted-foreground">{row.wonLeads}</TableCell>
+                        <TableCell className="text-muted-foreground">{currencyFormatter.format(row.totalRevenue)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </section>
+        </div>
       </>
     );
   }
