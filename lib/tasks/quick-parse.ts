@@ -94,6 +94,11 @@ export function parseQuickTask(rawText: string, teamMembers: QuickParseTeamMembe
       }
     }
   }
+  // Sem palavra de data nenhuma → hoje, por decisão explícita ("se eu não colocar uma data
+  // automaticamente é pra ser feita HOJE"). Sem isso a tarefa nascia com `due_date: null` e
+  // sumia — `listTodayAndOverdueTasks` só mostra `due_date <= hoje`, nulo nunca aparece ali,
+  // então parecia que a tarefa nem tinha sido salva.
+  if (dueDate === null) dueDate = today;
 
   const title = text.replace(/\s+/g, " ").trim();
   return { title, dueDate, dueTime, assigneeId, assigneeName };
