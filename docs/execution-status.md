@@ -3,14 +3,19 @@
 Documento de retomada. Se você é uma sessão nova retomando isto, comece por aqui antes de reler
 o histórico inteiro — este arquivo é a fonte da verdade, não a memória de conversa de ninguém.
 
-**Atualização mais recente**: pedido novo do usuário — "análise geral pra implementar meios de
-edição e melhora de UX, ERP totalmente funcional" — auditoria de gaps de CRUD (grep por telas
-que só criam e nunca editam/excluem) e fechamento de 3 deles: contatos do cliente, tarefas do
-Workspace, despesas/custos em Financeiro. Ver seção própria abaixo. Passo 1 itens 3 (orquestrador
-de IA) e 4 (Growth swipe) continuam **bloqueados** — resposta anterior do usuário foi "trabalhar
-em outra coisa do backlog enquanto isso", e foi isso que esta rodada fez. Bloqueios em si não
-mudaram: `ANTHROPIC_API_KEY` continua sem valor real em qualquer lugar (`.env.local`/Vercel), e a
-decisão de escopo do RBAC na Home/Planejamento continua em aberto.
+**Atualização mais recente**: rodada com ordem explícita de 3 itens, todos concluídos e
+implantados: (1) RBAC estendido — Home e Planejamento agora mascaram número financeiro pra papel
+sem `can_view_financials`, decisão de produto que antes ficava em aberto (ver seção RBAC); (2) os
+2 últimos gaps de CRUD do backlog fechados — gestão de usuários real em
+`/configuracoes/usuarios` (antes `ComingSoon`) e renomear/excluir lista de prospecção; (3) Growth
+swipe (§1-2/§45-47) — achado importante ao investigar antes de codar (pedido explícito do
+usuário): o swipe entre sub-abas do Comercial **já existia** (`GestureNav`+`TabTransition`,
+implementado numa rodada anterior sem essa seção do doc ser atualizada — a nota "ADIADO" estava
+desatualizada). Confirmado com o usuário que isso já satisfaz o pedido; único gap real (suporte a
+touchscreen) fechado nesta rodada. Ver seção própria abaixo.
+
+Só falta um item bloqueado: orquestrador de IA (§73-74), travado em `ANTHROPIC_API_KEY` real —
+ainda sem valor em `.env.local`/Vercel. Usuário sinalizou que vai criar a chave em paralelo.
 
 Escopo: só o Procreating OS (ERP interno — `app/(internal)/**`, `/admin`, `/clientes` etc.). O
 site público/portfolio de clientes (`/clients/[client]/**`, `/p/[client]/**`) é escopo de uma
@@ -190,13 +195,36 @@ chart) são uma rampa neutra derivada entre essas duas pontas — mesmo raciocí
 no tema light v2. Só o dark do shell interno mudou; `:root` (`/admin`/`/clients`) e o light do
 shell não foram tocados.
 
-## Growth como carrossel com swipe (§1-2, §45-47) — ADIADO, nada tocado
+## Growth como carrossel com swipe (§1-2, §45-47) — FEITO (a nota "ADIADO" abaixo estava errada)
 
-Decisão tomada (não minha, veio explícita): é reestruturação de arquitetura de navegação
-(sidebar+abas → swipe entre Overview/Commercial/Planning), risco real de quebrar a navegação
-principal do Comercial se ficar pela metade. Não comecei nenhuma linha disso. Precisa de uma
-sessão dedicada, com folga de uso pra terminar inteiro numa sentada — não é um incremento de
-fim de sessão.
+**Correção de registro**: a entrada anterior deste documento dizia "ADIADO, nada tocado". Isso
+era falso no momento em que a rodada atual começou — uma sessão anterior já tinha implementado
+`components/comercial/gesture-nav.tsx` + `components/comercial/tab-transition.tsx` (sem atualizar
+esta seção depois). Instrução desta rodada foi clara: antes de tocar em navegação, descrever o
+desenho em texto e só codar depois de confirmado — a investigação achou isso, descrevi pro
+usuário, ele confirmou que já satisfaz o pedido.
+
+**O que já existia** (swipe entre as 5 sub-abas do Comercial — Visão Geral/CRM/Prospecção/
+Estratégias/Planejamento — que bate com o "Overview/Commercial/Planning" do prompt original):
+`GestureNav` escuta `wheel` (trackpad/mouse nativo, sem lib), acumula `deltaX` até passar um
+threshold (ignora se o scroll é mais vertical que horizontal, ou se o alvo é o Kanban — que tem
+scroll horizontal próprio), navega UMA aba por gesto com cooldown de 550ms via `router.push` pra
+uma URL `?tab=` normal — deep-link/compartilhamento/back-forward já funcionavam de graça, nunca
+existiu estado de carrossel paralelo à URL. `TabTransition` dá o fade+slide sutil na troca
+(seção 28: "não exagerar").
+
+**Único gap real, fechado nesta rodada**: `GestureNav` só reagia a `wheel` — em touchscreen
+(celular/tablet) não existia swipe nenhum, só toque nas abas visíveis (`PageTabs`, que já
+funcionava em qualquer dispositivo/teclado como fallback e continua existindo). Adicionado
+`touchstart`/`touchend` no mesmo componente: mede o deslocamento total do toque (não acumula a
+cada `touchmove`, decide só quando o dedo solta — evita `preventDefault()` no meio do gesto, que
+brigaria com o scroll nativo), mesma regra de fundo (horizontal domina vertical → navega) e o
+mesmo `cooldown`/lookup de índice do wheel, agora fatorado num `navigate()` compartilhado.
+Convenção padrão de carrossel mobile: arrastar pra esquerda avança, pra direita volta.
+
+Fora de escopo, de propósito (não é o que o pedido descrevia, e trocar sidebar+ícones por um
+carrossel de ÁREAS de topo — Dashboard/Comercial/Financeiro/Operação como slides cheios — seria
+reestruturação de navegação principal de verdade, risco real): nada disso foi tocado.
 
 ## RBAC mínimo (Passo 1 item 2) — FEITO
 
@@ -208,23 +236,31 @@ confia em `role` vindo do chamador). Aplicado em:
 - `/financeiro` e `/configuracoes/regras-financeiras` (página inteira — sem acesso, mostra "Sem
   acesso" em vez do conteúdo).
 
-**Escopo real, não escondido — o que NÃO foi gateado nesta rodada**:
-- **Home (`/`)** — mostra MRR, cash flow, meta do mês como parte do dashboard executivo
-  agregado. Não gateei a página inteira porque é a home de TODO usuário independente do papel
-  (gatear isso é uma decisão de produto — "o que um papel sem acesso financeiro deve ver na
-  home?" — que não é óbvia e não cabia decidir sozinho aqui).
-- **Planejamento (`/comercial?tab=planejamento`)** — o Growth Engine mostra MRR/meta real
-  (`lib/simulation/defaults.ts` chama `computeFinanceiroMetrics()`). Mesmo motivo, não gateado.
-- **`lib/clientes/contract-actions.ts`** (criar/editar contrato — valor, período) — fora do
-  escopo explícito da instrução (`lib/financeiro/queries.ts`/`actions.ts` especificamente).
+**Decisão de produto que antes estava em aberto — resolvida e aplicada nesta rodada**: papel sem
+`can_view_financials` NÃO é redirecionado pra fora de Home/Planejamento — continua vendo a tela
+inteira (contexto preservado), só os números em R$ viram `"R$ ••••"`.
 
-Se o próximo passo for endurecer isso, a pergunta a responder antes é exatamente essa: um papel
-sem `can_view_financials` (`commercial`/`marketing`/`operations`/`production`) deveria ver a
-Home com números ocultos/genéricos, ou ser redirecionado pra outra tela padrão? Isso é decisão
-de produto, não técnica — não escolhi sozinho.
+- **Home (`/`)** — KPIs/`FinancialBlock` via helpers `money()`/`compactMoney()` locais; conteúdo
+  dos modais de detalhe (`DetailList`) que carrega valor, via `maskEntries()` (só troca o campo
+  `value`, nunca `label`/`meta`); "Atenção Necessária" troca a frase inteira quando teria R$
+  embutido. 3 gráficos (Receita vs. Meta, Fluxo de Caixa, Funil de Vendas) codificam valor
+  visualmente (altura de barra/linha) — não dá pra mascarar ponto a ponto sem ficar ilegível,
+  viram um `EmptyInline` no lugar; as tabelas de apoio desses gráficos continuam visíveis (texto
+  já mascarado). Contagens/percentuais (clientes ativos, conversão, churn, headcount) NÃO são
+  "dado financeiro" no sentido estrito de `canViewFinancials` — continuam visíveis pra qualquer
+  papel.
+- **Planejamento (`/comercial?tab=planejamento`)** — abordagem diferente da Home porque
+  `SimulatorForm` é formulário EDITÁVEL, não leitura: em vez de sobrepor "R$ ••••" num
+  `<input type="number">` (UX estranha, o campo teria que virar read-only), Meta/MRR
+  simplesmente não são pré-preenchidos com o dado real quando `canView=false` — o simulador
+  continua funcionando por inteiro com qualquer valor digitado, só sem partir do MRR/meta reais.
+- **`lib/clientes/contract-actions.ts`** (criar/editar contrato — valor, período) — segue fora do
+  escopo desta rodada (era fora da instrução original também).
 
 Único usuário real hoje é Santiago (`role: owner`) — não afetado por nenhuma dessas regras
-(confirmado no banco antes de aplicar).
+(confirmado no banco antes de aplicar). O mascaramento não foi visualmente confirmado com uma
+segunda conta de papel não-financeiro (não existe uma ainda) — a lógica foi conferida lendo o
+código gerado, não por screenshot logado como outro papel.
 
 ## IA contextual (§73-74) — RBAC pronto, orquestrador NÃO iniciado
 
@@ -256,17 +292,38 @@ cada commit — a outra sessão que compartilha este repositório trabalha em
 `app/(internal)/operacao/**` de conteúdo/entregas/equipe/produção e `lib/operacao/**`, arquivos
 que não aparecem em nenhum commit desta lista).
 
+## Gestão de usuários em Configurações — FEITO
+
+`/configuracoes/usuarios` era um `ComingSoon` puro. Escopo explícito, sem reabrir o fluxo de
+convite: listar `users` reais (nome/e-mail/papel), listar `team_invites` ainda pendentes
+(`used_at is null`) e revogar um convite — convidar continua só pelo menu **+**
+(`inviteTeamMemberAction`, reaproveitado). Segundo domínio de RBAC criado pra isto
+(`canManageUsers`/`requireUserManagementAccess`, `owner`/`admin`, mesmo padrão de
+`canViewFinancials`/`requireFinancialAccess`) — gestão de quem tem acesso é, em si, dado sensível.
+
+## Listas de prospecção — renomear/excluir — FEITO
+
+Último dos 3 gaps de CRUD do backlog anterior. `prospecting_lists` só tinha criação (import de
+CSV). `renameProspectingListAction`/`deleteProspectingListAction` em `lib/comercial/actions.ts` —
+a exclusão não reimplementa "tem leads vinculados": `leads.list_id` referencia a lista sem
+`on delete cascade` (migration `20260814260000`), o próprio Postgres bloqueia (`23503`), só
+traduzido pra mensagem legível. Card de lista em `ProspeccaoView` era um `<Link>` inteiro — virou
+`<div onClick>` com `router.push` (HTML não permite `<button>` dentro de `<a>`, mesmo motivo já
+resolvido em `LeadCard`/`pipeline-board.tsx`), ícones de editar/excluir revelados no hover.
+
 ## Próximo passo exato pra quem retomar
 
-Ordem original (janela configurável → RBAC → IA → Growth swipe) cumprida até onde deu:
-1. ~~Janela configurável~~ — **feito**.
-2. ~~RBAC mínimo~~ — **feito**.
-3. **Orquestrador de IA — bloqueado, precisa de ação humana primeiro**: obter uma
-   `ANTHROPIC_API_KEY` real e configurá-la (`.env.local` + `vercel env add ANTHROPIC_API_KEY
-   production`). Só depois disso, implementar o MVP somente-leitura (5-8 ferramentas, ver seção
-   IA acima).
-4. Growth como carrossel com swipe — só numa sessão dedicada inteira a isso, só depois do item 3.
+Só resta um item bloqueado — **orquestrador de IA (§73-74)**: precisa de uma `ANTHROPIC_API_KEY`
+real configurada (`.env.local` pra dev + `vercel env add ANTHROPIC_API_KEY production`) antes de
+qualquer linha de código. Usuário sinalizou que vai criar a chave em paralelo a esta rodada — se
+ao retomar ela já existir em algum dos dois lugares, o próximo passo é implementar o MVP
+somente-leitura (5-8 ferramentas, ver seção IA acima); se ainda não existir, continua bloqueado,
+avise e não simule/mocke resposta de IA.
 
-Gap conhecido, não urgente, registrado pra não esquecer: Home e Planejamento mostram dado
-financeiro sem passar pelo RBAC novo (ver seção RBAC acima) — decisão de produto pendente, não
-técnica.
+Depois disso, sem item grande conhecido pendente — os 3 blocos do master prompt que definiam o
+core do produto (Comercial, Financeiro, Workspace/Onboarding) estão funcionalmente maduros sobre
+dado real, RBAC cobre os dois domínios sensíveis que existem hoje (financeiro, gestão de
+usuários), e os 6 gaps de CRUD identificados na auditoria "ERP totalmente funcional" estão todos
+fechados. Único gap conhecido restante: Operação/produção (`app/(internal)/operacao/**`,
+`lib/operacao/**`) nunca foi auditada por esta linha de trabalho — de propósito, é escopo ativo
+de outra sessão que compartilha o repositório.
