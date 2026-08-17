@@ -12,6 +12,18 @@ Itens 2 (varredura dark mode), 3 (RLS Client Hub), 4 (acessibilidade teclado/foc
 erro/loading em Server Actions) do pedido de hardening **não foram tocados** — ficam pra uma
 sessão futura dedicada a isso, se for retomado.
 
+**Mapeamento §1-87 contra este documento — FEITO, 4 dos 8 itens implementados.** Cruzei as 87
+seções do master prompt (recuperado do transcript desta sessão, via o mesmo script Python de uma
+rodada anterior — não pedi de novo) contra este arquivo, item por item. Achados e execução:
+implementados nesta rodada, em ordem: §61 (atalhos de teclado), §19 (Response Handling — 3 dos 4
+botões), §51 (drag-to-reschedule na visão de semana), §65 (Receita por Responsável/Origem). Ver
+seções próprias abaixo. Confirmado com o usuário e deixado de fora deste ciclo: §43 (Operation
+Setup automático — cruza com a outra sessão), §80-83 (testes de aceitação — QA manual, melhor com
+o usuário olhando), §74 (AI scoring — depende do orquestrador validado, bloqueado em billing).
+§2/§4/§20 (Comercial como 3 abas, não 5) teve só o DESENHO escrito (seção própria abaixo), sem
+nenhuma linha de código — decisão consciente do usuário, por ser arquitetura de navegação
+principal, "não espremido no meio de uma sessão que já vai mexer em várias outras coisas".
+
 **Atualização mais recente**: `ANTHROPIC_API_KEY` configurada (`.env.local` + `vercel env add
 ANTHROPIC_API_KEY production`) — confirmado nos dois lugares sem nunca imprimir o valor. Rodada
 de 4 itens, todos concluídos e implantados:
@@ -426,17 +438,114 @@ tem como validar uma resposta real (nem testar o loop de tool use de ponta a pon
 resolvido — é um segundo item que só o usuário destrava (`console.anthropic.com` → Plans &
 Billing → adicionar crédito), separado da configuração da chave que já foi feita.
 
+## §61 — Atalhos de teclado de letra única — FEITO
+
+`N` (nova tarefa), `C` (novo lead/oportunidade), `I` (importar lista), `P` (ir pra Prospecção),
+setas esquerda/direita (troca de contexto dentro do Comercial). `⌘K` já existia.
+
+`components/dashboard/keyboard-shortcuts.tsx` (novo) — listener global no header, guarda contra
+modificador pressionado e qualquer campo de texto/textarea/select/contenteditable focado (a
+guarda mais importante, checada com cuidado, exatamente como pedido). `N`/`C` reaproveitam o
+`QuickAddMenu` via um evento DOM simples, sem duplicar formulário/Server Action. `I` navega pra
+`?tab=prospeccao&import=1` — a URL é o canal (mesmo padrão de `?tab=`/`?period=` já usado em todo
+o produto), `ProspeccaoView` lê o parâmetro ao montar e abre o drawer de importação sozinho.
+Setas — terceiro canal em `GestureNav`, ao lado de wheel/touch, mesmo `navigate()`/cooldown.
+
+## §19 — Response Handling: ações rápidas no drawer do lead — FEITO (3 de 4 botões)
+
+Ao lado do checkbox "foi resposta positiva" (Automação regra 1, não duplicado): **Continuar**
+(só registra nota, nenhuma mudança de estágio), **Agendar reunião** (move pro estágio
+`reuniao_agendada`), **Desqualificar** (move pro estágio `perdido`). Ambos reaproveitam
+`moveLeadStageAction`, a mesma action do drag-and-drop do Kanban.
+
+**"Mover pro pipeline" (4º botão do prompt original) NÃO implementado, de propósito**: neste
+schema todo lead já nasce dentro do pipeline (estágio "lead" em diante) — não existe um estado
+"fora do pipeline" pra sair dele. Se isso importar, precisa de uma decisão de produto sobre o que
+esse botão deveria fazer de fato (não inventei um mapeamento de estágio sem instrução clara).
+
+Achado ao investigar (não tocado, fora de escopo): `components/prospeccao/views/overview-view.tsx`
+e `gestao-view.tsx` também usam `LeadDetailDrawer`, mas não são referenciados por nenhuma rota —
+código morto de uma iteração anterior do design de Prospecção.
+
+## §51 — Task + Calendar bidirecional (parcial) — FEITO
+
+A visão de semana (rodada anterior) era leitura+concluir. Agora arrastar uma tarefa pra outra
+coluna reagenda de verdade (`updateTaskAction`, já existente, nenhuma action nova) — mesmo padrão
+de drag-and-drop do Pipeline (estado React `draggingTaskId`, não `dataTransfer.getData`).
+
+Não é a integração bidirecional completa que §51 descreve (não existe um "Calendar" separado de
+Task neste produto — a visão de semana É a única superfície de calendário) — mas o núcleo real do
+pedido (arrastar reagenda) está feito.
+
+## §65 — Receita por Responsável e por Origem — FEITO
+
+Só "Revenue by Strategy" existia (`compareStrategies`). `computeRevenueByOwnerAndSource`
+(`lib/comercial/metrics.ts`) — uma passada só, leads fechados + `revenue` do cliente que cada um
+virou (mesma definição de receita de `compareStrategies`). "Por Responsável" sempre mostrado;
+"Por Origem" só se `fromRealData` (mais da metade dos negócios fechados com `leads.source`
+preenchido) — sem service role key/sessão pra rodar uma query de verificação direta (RLS bloqueou
+a chave anon disponível), a checagem de qualidade de dado virou parte do PRÓPRIO CÁLCULO em
+runtime em vez de uma decisão minha tirada de uma foto de agora — mais robusto, sempre correto.
+
+## §2/§4/§20 — Comercial como 3 abas (Overview/Commercial/Planning), não 5 — SÓ DESENHO, sem código
+
+Confirmado com o usuário: é o item mais arriscado da lista (navegação principal do Comercial),
+não cabia espremido numa sessão que já mexeu em 4 outras coisas. Proposta concreta, pra aprovação
+antes de qualquer linha de código:
+
+**O que funde com o quê**: hoje `TABS` (`app/(internal)/(growth)/comercial/page.tsx`) tem 5 —
+Visão Geral, CRM, Prospecção, Estratégias, Planejamento. Visão Geral e Planejamento já SÃO
+"Overview"/"Planning", ficam como estão. CRM + Prospecção + Estratégias colapsam numa aba só,
+"Commercial" — o Pipeline/List toggle (já existente em CRM) vira a view PRIMÁRIA; Listas de
+prospecção e Estratégias deixam de ser abas próprias e viram FILTROS/painéis dentro dessa mesma
+tela:
+- `CrmFilters` (Owner/Estratégia, já existe) ganha um terceiro filtro por Lista — o `?list=` que
+  hoje só existe como link de saída da Prospecção vira um filtro de primeira classe, visível.
+- "Gerenciar listas" (import/renomear/excluir, hoje = a aba Prospecção inteira) vira um botão que
+  abre um `Sheet` lateral (mesmo padrão de `LeadDetailDrawer`) com a grade de cards que já existe
+  em `ProspeccaoView` — conteúdo idêntico, só o container muda de página-inteira pra drawer.
+- "Estratégias" (lista + métricas por estratégia, hoje uma aba) vira outro botão/`Sheet` — mesmo
+  raciocínio. O detalhe de UMA estratégia (`/comercial/estrategias/[id]`, hoje página própria com
+  funil completo) também vira drawer, aberto por `?strategy=<id>` em vez de navegação de rota.
+
+**Links/bookmarks existentes**: nenhum quebra.
+- `?tab=crm` → passa a resolver pro branch "Commercial" (mesmo conteúdo, só o rótulo da aba muda
+  visualmente) — sem redirect, só aceitar `"crm"` como alias de `"commercial"` na leitura do
+  parâmetro.
+- `?tab=prospeccao` → alias que resolve pro branch "Commercial" com o painel de Listas já aberto
+  (`?tab=commercial&panel=lists`, mesmo mecanismo de `?import=1` que a Prospecção já ganhou nesta
+  rodada).
+- `?tab=estrategias` → mesma ideia, painel de Estratégias já aberto.
+- `/comercial/estrategias/[id]` → redireciona pra `/comercial?tab=commercial&strategy=<id>`, que
+  abre o drawer da estratégia sozinho ao montar.
+
+**Growth swipe**: `GestureNav`/`gestureTabs` passam a ter 3 entradas em vez de 5 — mudança
+mecânica (o array encolhe), nenhuma lógica nova; o swipe passa a bater exatamente com "Overview →
+Commercial → Planning" do prompt original, sem trabalho extra.
+
+**Risco real, por que isso é uma sessão própria**: `PipelineBoard`/`LeadsTable`/
+`BulkActionsToolbar` não mudam por dentro, só onde são montados — baixo risco. O risco real está
+em 3 lugares: (1) extender `CrmFilters` pra incluir Lista sem quebrar Owner/Estratégia que já
+funcionam; (2) os dois `Sheet`s novos (Listas/Estratégias) reaproveitando conteúdo que hoje é
+página inteira — layout/scroll dentro de um drawer é diferente de página, precisa de ajuste
+visual real, não é copy-paste; (3) a conversão de `/comercial/estrategias/[id]` (rota própria,
+link possivelmente já compartilhado/salvo por alguém) pra drawer é a mudança com maior chance de
+efeito colateral não previsto — merece teste manual dedicado antes de ir pro ar, não só
+typecheck+build limpos.
+
 ## Próximo passo exato pra quem retomar
 
-1. **Usuário precisa testar o item 1** (bug de tarefa sem data) em produção e confirmar — ver
-   seção acima. Sem essa confirmação, não considerar esse item fechado só porque o código parece
-   correto.
-2. **Usuário precisa adicionar crédito na conta Anthropic** (`console.anthropic.com` → Plans &
+1. **Usuário precisa confirmar o desenho do §2/§4/§20** (seção acima) antes de qualquer código —
+   é o item que ficou só como texto nesta rodada, por decisão explícita do usuário.
+2. **Usuário precisa testar o item 1 de uma rodada anterior** (bug de tarefa sem data) em
+   produção e confirmar — sem essa confirmação, não considerar esse item fechado só porque o
+   código parece correto.
+3. **Usuário precisa adicionar crédito na conta Anthropic** (`console.anthropic.com` → Plans &
    Billing) pra validar o orquestrador de IA de ponta a ponta — código pronto, só falta isso.
    Depois de resolvido, um teste real (uma pergunta simples tipo "quantos leads sem follow-up?")
    confirma o loop de tool use funcionando; se algo quebrar ali, é o primeiro lugar a olhar.
 
-Fora esses dois itens de confirmação/desbloqueio que dependem do usuário, sem item grande
+Fora esses três itens de confirmação/desbloqueio que dependem do usuário, sem item grande
 conhecido pendente — os 3 blocos do master prompt que definiam o core do produto (Comercial,
 Financeiro, Workspace/Onboarding) estão funcionalmente maduros sobre dado real, RBAC cobre os
 domínios sensíveis que existem hoje (financeiro, gestão de usuários), os 6 gaps de CRUD da
