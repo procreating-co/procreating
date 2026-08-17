@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Mail, MessageCircle, Phone, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { createSequenceStepAction, deleteSequenceStepAction } from "@/lib/comercial/actions";
 import type { SequenceChannel, SequenceStep } from "@/lib/supabase/types/database";
 import { cn } from "@/lib/utils";
@@ -24,6 +25,7 @@ export function SequenceEditor({ strategyId, steps }: { strategyId: string; step
   const [channel, setChannel] = useState<SequenceChannel>("whatsapp");
   const [script, setScript] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [deletingStep, setDeletingStep] = useState<SequenceStep | null>(null);
   const [isPending, startTransition] = useTransition();
 
   function handleAdd() {
@@ -39,15 +41,20 @@ export function SequenceEditor({ strategyId, steps }: { strategyId: string; step
     });
   }
 
-  // Auditoria de estados de erro (hardening) — "dispara e esquece", sem confirmação nem feedback
-  // de erro. Confirmação antes de excluir é uma lacuna separada (não adicionada aqui, fora do
-  // escopo desta auditoria — registrado em docs/execution-status.md); o que corrige aqui é só o
-  // resultado da action deixar de ser ignorado.
-  function handleDelete(id: string) {
+  // Gap fechado (achado na auditoria de estados de erro, registrado ali como fora daquele
+  // escopo específico) — excluir um passo não tinha confirmação nenhuma, inconsistente com toda
+  // outra exclusão do produto. Mesmo padrão de ConfirmDialog já usado em contacts-section.tsx/
+  // costs-list.tsx: só fecha no sucesso, mostra o erro e mantém aberto na falha.
+  function handleDelete() {
+    if (!deletingStep) return;
     setError(null);
     startTransition(async () => {
-      const result = await deleteSequenceStepAction(id, strategyId);
-      if (!result.ok) setError(result.error);
+      const result = await deleteSequenceStepAction(deletingStep.id, strategyId);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setDeletingStep(null);
       router.refresh();
     });
   }
@@ -67,7 +74,7 @@ export function SequenceEditor({ strategyId, steps }: { strategyId: string; step
                 <p className="flex-1 text-sm">{step.script}</p>
                 <button
                   type="button"
-                  onClick={() => handleDelete(step.id)}
+                  onClick={() => setDeletingStep(step)}
                   disabled={isPending}
                   aria-label="Remover passo"
                   className="shrink-0 text-muted-foreground transition-colors hover:text-destructive"
@@ -108,6 +115,16 @@ export function SequenceEditor({ strategyId, steps }: { strategyId: string; step
           {error}
         </p>
       )}
+
+      <ConfirmDialog
+        open={deletingStep !== null}
+        onOpenChange={(open) => !open && setDeletingStep(null)}
+        title="Remover passo?"
+        description={deletingStep ? `"D${deletingStep.day_offset} · ${CHANNEL_LABEL[deletingStep.channel]}" some da cadência — não dá pra desfazer.` : undefined}
+        confirmLabel="Remover"
+        isPending={isPending}
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }
