@@ -65,13 +65,18 @@ export function ProspeccaoView({ lists, strategies }: { lists: ProspectingList[]
       </div>
 
       {lists.length === 0 ? (
-        <div
+        // Acessibilidade (auditoria de teclado/foco) — era <div onClick>, inacessível por
+        // teclado/leitor de tela (sem role/tabIndex/onKeyDown). Sem elemento interativo aninhado
+        // aqui dentro (diferente dos cards de lista abaixo, que têm editar/excluir por cima), um
+        // <button> de verdade resolve tudo de graça — foco, Enter/Espaço, sem duplicar handler.
+        <button
+          type="button"
           onClick={() => setImporting(true)}
-          className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border/60 px-6 py-16 text-center text-muted-foreground hover:border-border"
+          className="flex w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border/60 px-6 py-16 text-center text-muted-foreground hover:border-border"
         >
           <p className="text-sm">Nenhuma lista importada ainda.</p>
           <p className="text-xs">Solte um CSV pra começar a prospecção ativa.</p>
-        </div>
+        </button>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {lists.map((list) => {
