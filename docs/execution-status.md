@@ -3,6 +3,14 @@
 Documento de retomada. Se você é uma sessão nova retomando isto, comece por aqui antes de reler
 o histórico inteiro — este arquivo é a fonte da verdade, não a memória de conversa de ninguém.
 
+**Atualização mais recente**: §2/§4/§20 (Comercial em 3 abas — Overview/Commercial/Planning)
+implementado, passos 1-4 de 5, aprovado e no ar. **Parado de propósito ANTES do passo 5**
+(conversão de `/comercial/estrategias/[id]` pra drawer) — é o item de maior risco, aguarda teste
+manual do usuário antes de fechar. Ver seção própria abaixo, inclusive uma correção importante:
+o "código morto" identificado numa rodada anterior (`components/prospeccao/views/*`) na verdade
+é código AO VIVO do Client Hub (escopo da outra sessão) — nada foi apagado, a exclusão pedida foi
+recusada depois de reinvestigar.
+
 **Rodada de auditoria/hardening — PAUSADA no item 1 (concluído), itens 2-5 NÃO iniciados.**
 Usuário pediu uma rodada autônoma de testes + hardening (não features novas) enquanto ficava fora;
 no meio do item 1 (concluído, commitado, ver seção "Testes unitários" abaixo — Vitest + testes de
@@ -487,11 +495,50 @@ preenchido) — sem service role key/sessão pra rodar uma query de verificaçã
 a chave anon disponível), a checagem de qualidade de dado virou parte do PRÓPRIO CÁLCULO em
 runtime em vez de uma decisão minha tirada de uma foto de agora — mais robusto, sempre correto.
 
-## §2/§4/§20 — Comercial como 3 abas (Overview/Commercial/Planning), não 5 — SÓ DESENHO, sem código
+## §2/§4/§20 — Comercial como 3 abas (Overview/Commercial/Planning) — FEITO passos 1-4, PARADO antes do passo 5
 
-Confirmado com o usuário: é o item mais arriscado da lista (navegação principal do Comercial),
-não cabia espremido numa sessão que já mexeu em 4 outras coisas. Proposta concreta, pra aprovação
-antes de qualquer linha de código:
+Desenho abaixo (registrado antes de codar) **aprovado pelo usuário sem mudanças**. Implementado
+na ordem de risco crescente que o próprio desenho mapeou, cada passo com typecheck+build limpos:
+
+1. ~~Aliases de URL~~ — **feito**. `?tab=crm` tratado como alias direto de `"commercial"`.
+   `?tab=prospeccao`/`?tab=estrategias` fazem `redirect()` de verdade pra
+   `?tab=commercial&panel=lists`/`&panel=strategies` (precisa ser redirect de verdade, não só
+   tratar como alias silencioso — é o que garante que o parâmetro `panel` chega na URL que os
+   Sheets leem via `useSearchParams()` pra abrir sozinhos).
+2. ~~`CrmFilters` ganha filtro por Lista~~ — **já existia por completo**, correção ao desenho
+   original: ao reler o componente antes de mexer, o filtro de Lista (dropdown, `?list=`) já
+   estava implementado e funcionando (rodada anterior, ao mesmo tempo que renomear/excluir
+   lista). Nenhuma mudança necessária — só confirmado via typecheck+build que os 3 filtros
+   (Owner/Estratégia/Lista) continuam funcionando juntos sem regressão.
+3. ~~2 `Sheet`s novos (Listas/Estratégias)~~ — **feito**. `components/comercial/
+   lists-panel-sheet.tsx`/`strategies-panel-sheet.tsx` (novos) — `ProspeccaoView`/`StrategiesList`
+   não foram tocados por dentro, só o container mudou de página pra drawer (`sm:max-w-xl`, mais
+   largo que o padrão `sm:max-w-md` de `LeadDetailDrawer`, pra manter o grid de 2 colunas de
+   cards legível). Ajuste de layout real, não copy-paste, como o próprio desenho já esperava.
+4. ~~Growth swipe com 3 entradas~~ — **feito de graça**. `gestureTabs` deriva de `TABS`
+   automaticamente (`app/(internal)/(growth)/comercial/page.tsx`) — reduzir `TABS` de 5 pra 3 já
+   reduziu o swipe também, nenhuma mudança separada precisou ser escrita.
+
+**Correção a uma afirmação anterior, achada NO MEIO deste trabalho, antes de qualquer dano**: a
+rodada anterior identificou `components/prospeccao/views/overview-view.tsx` e `gestao-view.tsx`
+como "código morto" (grep não achou uso em `app/`) e o usuário pediu pra apagar como limpeza de
+graça. Ao investigar de novo (pedido explícito: "confirme com um grep final antes de apagar"), o
+grep anterior estava incompleto — essas duas views são usadas por `ProspeccaoHub`, que é usado por
+`ProspeccaoExperience`, que É a Central de Prospecção do **Client Hub** (`app/clients/[client]/
+public/prospeccao/page.tsx`, rota `/clients/[client]/public/prospeccao`, confirmada ao vivo e
+pré-renderizada no build) — escopo da outra sessão, nada a ver com o `ProspeccaoView` do ERP que
+os 2 `Sheet`s novos reaproveitam (nomes parecidos, componentes completamente diferentes). **NADA
+foi apagado.** Isso quase virou uma exclusão de código de produção da outra sessão baseada numa
+verificação minha malfeita — registrado aqui como lembrete forte: `grep` só numa pasta (`app/`) não
+basta pra provar "código morto", precisa seguir a cadeia de import até a rota de verdade.
+
+**Ainda parado, por pedido explícito — passo 5, o de maior risco**: conversão de
+`/comercial/estrategias/[id]` (rota própria, pode estar salva/compartilhada por alguém) pra
+drawer via `?strategy=<id>`. Usuário quer testar manualmente o comportamento novo (abrir por link
+direto, abrir pelo drawer, `?strategy=<id>` isolado) antes de eu implementar esse último passo —
+**não implementar sem confirmação depois desse teste**.
+
+Desenho original (contexto, já executado acima):
 
 **O que funde com o quê**: hoje `TABS` (`app/(internal)/(growth)/comercial/page.tsx`) tem 5 —
 Visão Geral, CRM, Prospecção, Estratégias, Planejamento. Visão Geral e Planejamento já SÃO
@@ -535,11 +582,13 @@ typecheck+build limpos.
 
 ## Próximo passo exato pra quem retomar
 
-1. **Usuário precisa confirmar o desenho do §2/§4/§20** (seção acima) antes de qualquer código —
-   é o item que ficou só como texto nesta rodada, por decisão explícita do usuário.
-2. **Usuário precisa testar o item 1 de uma rodada anterior** (bug de tarefa sem data) em
-   produção e confirmar — sem essa confirmação, não considerar esse item fechado só porque o
-   código parece correto.
+1. **Usuário precisa testar manualmente o passo 5 do §2/§4/§20** (conversão de
+   `/comercial/estrategias/[id]` pra drawer) — ver seção acima. **Não implementar sem essa
+   confirmação primeiro**: abrir por link direto, abrir pelo painel de Estratégias, `?strategy=
+   <id>` isolado. É o item de maior risco da lista inteira (rota que pode estar salva/
+   compartilhada por alguém), parado de propósito nesse ponto exato.
+2. **Usuário precisa testar o bug de tarefa sem data** (rodada anterior) em produção e confirmar
+   — sem essa confirmação, não considerar esse item fechado só porque o código parece correto.
 3. **Usuário precisa adicionar crédito na conta Anthropic** (`console.anthropic.com` → Plans &
    Billing) pra validar o orquestrador de IA de ponta a ponta — código pronto, só falta isso.
    Depois de resolvido, um teste real (uma pergunta simples tipo "quantos leads sem follow-up?")
