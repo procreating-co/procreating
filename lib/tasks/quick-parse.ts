@@ -65,7 +65,13 @@ export function parseQuickTask(rawText: string, teamMembers: QuickParseTeamMembe
   }
 
   // Hora — tenta "às Xh(MM)" primeiro (mais específico), depois "Xh(MM)"/"X:MM" soltos.
-  const explicitTimeMatch = text.match(/\bàs\s+(\d{1,2})(?:h|:)(\d{2})?\b/i);
+  // BUG REAL achado escrevendo o teste desta função (não era hipotético): `\b` do JS só
+  // reconhece `[A-Za-z0-9_]` como caractere de palavra — "à" não conta, então `\bàs\b` nunca
+  // batia quando precedido de espaço (o caso normal, "reunião às 15h"), porque nem o espaço nem
+  // o "à" contam como lado "de palavra" pro `\b` enxergar uma borda ali. `(?<![\p{L}\p{N}_])`/
+  // `(?![\p{L}\p{N}_])` (com a flag `u`) resolvem isso tratando qualquer letra Unicode (inclusive
+  // acentuada) como "de palavra" de verdade.
+  const explicitTimeMatch = text.match(/(?<![\p{L}\p{N}_])às\s+(\d{1,2})(?:h|:)(\d{2})?(?![\p{L}\p{N}_])/iu);
   const bareTimeMatch = text.match(/\b(\d{1,2})h(\d{2})?\b/i) ?? text.match(/\b(\d{1,2}):(\d{2})\b/);
   const timeMatch = explicitTimeMatch ?? bareTimeMatch;
   if (timeMatch) {
@@ -79,9 +85,14 @@ export function parseQuickTask(rawText: string, teamMembers: QuickParseTeamMembe
   if (/\bhoje\b/i.test(text)) {
     dueDate = today;
     text = text.replace(/\bhoje\b/i, "").trim();
-  } else if (/\bamanh[ãa]\b/i.test(text)) {
+  } else if (/(?<![\p{L}\p{N}_])amanh[ãa](?![\p{L}\p{N}_])/iu.test(text)) {
+    // Mesmo bug do `às` acima: "amanhã" termina em "ã", que o `\b` do JS não reconhece como
+    // caractere de palavra — a forma acentuada (a normal, a que as pessoas realmente digitam)
+    // nunca batia em frase nenhuma ("...amanhã " ou "...amanhã" no fim da frase), só a forma sem
+    // acento ("amanha") funcionava. Impacto real: o próprio exemplo do master prompt ("Editar
+    // vídeo amanhã às 15h") virava hoje, não amanhã, e ainda deixava "às" solto no título.
     dueDate = addDaysISO(today, 1);
-    text = text.replace(/\bamanh[ãa]\b/i, "").trim();
+    text = text.replace(/(?<![\p{L}\p{N}_])amanh[ãa](?![\p{L}\p{N}_])/iu, "").trim();
   } else {
     for (const weekday of WEEKDAYS) {
       const pattern = new RegExp(`\\b(?:pr[óo]xim[ao]\\s+)?(${weekday.names.join("|")})\\b`, "i");

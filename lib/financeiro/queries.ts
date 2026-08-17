@@ -1,8 +1,9 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import { addDaysISO, currentMonthKey, lastMonthKeys, monthKeyOf, todayISO } from "@/lib/date";
+import { currentMonthKey, lastMonthKeys, monthKeyOf, todayISO } from "@/lib/date";
+import { computeMargin, computeMrr, computeUpcomingReceivables, groupRevenueByClient, sumAmount, sumAmountForMonth } from "@/lib/financeiro/calculations";
 import type { Cost, Expense, Revenue } from "@/lib/supabase/types/database";
-import type { FinanceiroMetrics, MonthlyEvolutionPoint, MonthlyRevenueByClient, PipelineOpportunity, UpcomingReceivablesSummary } from "@/lib/financeiro/types";
+import type { FinanceiroMetrics, MonthlyEvolutionPoint, PipelineOpportunity } from "@/lib/financeiro/types";
 
 /** Fallback só pro caso (não deveria acontecer em produção) de `financial_rules` estar vazia —
  *  mesmo valor default da coluna (`receivables_alert_days`, migration `20260818000000`). A
@@ -62,7 +63,7 @@ export async function computeFinanceiroMetrics(evolutionMonths = 6): Promise<Fin
     ? await supabase.from("leads").select("company_name, potential_value").eq("stage_id", negociacaoStage.id)
     : { data: [] };
 
-  const mrr = (activeRecurringContracts ?? []).reduce((sum, contract) => sum + Number(contract.monthly_value ?? 0), 0);
+  const mrr = computeMrr(activeRecurringContracts ?? []);
 
   // `cancelado` = cobrança que existiu mas nunca vai ser recebida (write-off) — não é receita do
   // mês nem da evolução histórica, mas o registro em si fica (auditoria). Excluído de toda soma
@@ -70,15 +71,15 @@ export async function computeFinanceiroMetrics(evolutionMonths = 6): Promise<Fin
   const revenue = revenueRaw.filter((row) => row.status !== "cancelado");
 
   const thisMonthKey = currentMonthKey();
-  const revenueThisMonth = revenue.filter((row) => monthKeyOf(row.due_date) === thisMonthKey).reduce((sum, row) => sum + Number(row.amount), 0);
-  const expensesThisMonth = expenses.filter((row) => monthKeyOf(row.due_date) === thisMonthKey).reduce((sum, row) => sum + Number(row.amount), 0);
-  const monthlyCostsTotal = costs.reduce((sum, cost) => sum + Number(cost.amount), 0);
-  const margin = revenueThisMonth - expensesThisMonth - monthlyCostsTotal;
+  const revenueThisMonth = sumAmountForMonth(revenue, thisMonthKey);
+  const expensesThisMonth = sumAmountForMonth(expenses, thisMonthKey);
+  const monthlyCostsTotal = sumAmount(costs);
+  const margin = computeMargin(revenueThisMonth, expensesThisMonth, monthlyCostsTotal);
 
-  const receivablesPending = revenue.filter((row) => row.status === "pendente").reduce((sum, row) => sum + Number(row.amount), 0);
-  const receivablesOverdue = revenue.filter((row) => row.status === "atrasado").reduce((sum, row) => sum + Number(row.amount), 0);
-  const payablesPending = expenses.filter((row) => row.status === "pendente").reduce((sum, row) => sum + Number(row.amount), 0);
-  const payablesOverdue = expenses.filter((row) => row.status === "atrasado").reduce((sum, row) => sum + Number(row.amount), 0);
+  const receivablesPending = sumAmount(revenue.filter((row) => row.status === "pendente"));
+  const receivablesOverdue = sumAmount(revenue.filter((row) => row.status === "atrasado"));
+  const payablesPending = sumAmount(expenses.filter((row) => row.status === "pendente"));
+  const payablesOverdue = sumAmount(expenses.filter((row) => row.status === "atrasado"));
 
   const months = lastMonthKeys(evolutionMonths);
   const monthlyEvolution: MonthlyEvolutionPoint[] = months.map((month) => {
@@ -89,20 +90,11 @@ export async function computeFinanceiroMetrics(evolutionMonths = 6): Promise<Fin
     // pra `/clientes/[id]` (mesma página que já soma o histórico completo do cliente). Mesmo
     // cliente com mais de uma cobrança no mês (ex.: parcelas) soma numa entrada só; ordenado do
     // maior pro menor pra ler de relance quem puxou o mês.
-    const amountByClient = new Map<string, { clientId: string | null; clientName: string; amount: number }>();
-    for (const row of monthRevenue) {
-      const key = row.client_id ?? "__sem_cliente__";
-      const name = (row.client_id && clientNameById.get(row.client_id)) || "Sem cliente vinculado";
-      const current = amountByClient.get(key);
-      amountByClient.set(key, { clientId: row.client_id, clientName: name, amount: (current?.amount ?? 0) + Number(row.amount) });
-    }
-    const revenueByClient: MonthlyRevenueByClient[] = Array.from(amountByClient.values()).sort((a, b) => b.amount - a.amount);
-
     return {
       month,
-      revenue: monthRevenue.reduce((sum, row) => sum + Number(row.amount), 0),
-      expenses: expenses.filter((row) => monthKeyOf(row.due_date) === month).reduce((sum, row) => sum + Number(row.amount), 0),
-      revenueByClient,
+      revenue: sumAmount(monthRevenue),
+      expenses: sumAmountForMonth(expenses, month),
+      revenueByClient: groupRevenueByClient(monthRevenue, clientNameById),
     };
   });
 
@@ -116,13 +108,7 @@ export async function computeFinanceiroMetrics(evolutionMonths = 6): Promise<Fin
   // — vencer daqui a N dias e já estar atrasado são dois avisos diferentes, nunca a mesma linha).
   const today = todayISO();
   const receivablesAlertDays = financialRule?.receivables_alert_days ?? FALLBACK_RECEIVABLES_ALERT_DAYS;
-  const windowEnd = addDaysISO(today, receivablesAlertDays);
-  const upcomingEntries = revenue.filter((row) => row.status === "pendente" && row.due_date >= today && row.due_date <= windowEnd);
-  const upcomingReceivables: UpcomingReceivablesSummary = {
-    total: upcomingEntries.reduce((sum, row) => sum + Number(row.amount), 0),
-    windowDays: receivablesAlertDays,
-    entries: upcomingEntries.map((row) => ({ id: row.id, description: row.description, amount: Number(row.amount), dueDate: row.due_date })),
-  };
+  const upcomingReceivables = computeUpcomingReceivables(revenue, today, receivablesAlertDays);
 
   return {
     mrr,
