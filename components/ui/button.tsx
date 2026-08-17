@@ -14,8 +14,13 @@ const buttonVariants = cva(
         // marca própria. Ver app/globals.css (.os-shell). `--primary` continua existindo pra
         // outros usos (ring, contraste), só deixou de ser a cor de botão default.
         default: 'bg-brand text-brand-foreground hover:bg-brand-strong',
+        // `text-destructive-foreground` (não `text-white` hardcoded) — achado na auditoria de
+        // dark mode: `--destructive-foreground` já existe e já é #E7E5E4 no dark (não branco
+        // puro, mesma regra do resto do tema desde o ajuste de contraste), mas este botão
+        // ignorava o token. Como é o variant do "Excluir" em todo `ConfirmDialog` do produto, era
+        // o branco puro voltando pela porta dos fundos em toda tela com exclusão.
         destructive:
-          'bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60',
+          'bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60',
         outline:
           'border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50',
         secondary:
