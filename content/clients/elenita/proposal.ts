@@ -4,7 +4,7 @@ import type { ProposalContent } from "@/lib/clients/proposal-types";
  * Proposta de Continuidade — Dra. Elenita Luzardo. Página comercial isolada
  * (`/clients/elenita/public/proposta`), pensada pra apresentação AO VIVO.
  *
- * PREÇOS — `budget.heroNumber` (R$4.500) é a base fixa, sempre presente, nunca desliga.
+ * PREÇOS — `budget.heroNumber` (R$4.870) é a base fixa, sempre presente, nunca desliga.
  * `upsell.items` são camadas OPCIONAIS que aparecem já marcadas na apresentação ao vivo (o
  * vendedor pode desmarcar durante a conversa), mas o preço de cada item NÃO é exibido em lugar
  * nenhum — `price` fica só no dado, sem uso visual hoje (ver proposal-upsell.tsx). O card
@@ -117,7 +117,7 @@ export const elenitaProposal: ProposalContent = {
   },
 
   budget: {
-    heroNumber: 4500,
+    heroNumber: 4870,
     heroLabel: "Base Estratégica",
     heroCaption: "A inteligência por trás do projeto.",
     pillars: [
