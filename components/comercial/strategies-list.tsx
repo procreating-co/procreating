@@ -10,7 +10,11 @@ import { EmptyState } from "@/components/dashboard/empty-state";
 import { EmptyInline } from "@/components/dashboard/empty-inline";
 import type { Strategy } from "@/lib/comercial/types";
 
-export function StrategiesList({ strategies }: { strategies: Strategy[] }) {
+/** `onSelectStrategy` opcional — quando fornecido (dentro do `StrategiesPanelSheet`, §2/§4/§20),
+ *  clicar num card chama isto em vez de navegar por `<Link>` — o painel se fecha e abre o drawer
+ *  de detalhe no lugar certo, orquestrado por quem já é dono do `open` do painel. Sem o prop
+ *  (uso avulso, se algum dia existir), continua um `<Link>` normal pra rota antiga. */
+export function StrategiesList({ strategies, onSelectStrategy }: { strategies: Strategy[]; onSelectStrategy?: (strategyId: string) => void }) {
   const [query, setQuery] = useState("");
   const [creating, setCreating] = useState(false);
 
@@ -60,21 +64,29 @@ export function StrategiesList({ strategies }: { strategies: Strategy[] }) {
         <EmptyInline icon={Search} label="Nenhuma estratégia encontrada pra essa busca." />
       ) : (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          {visible.map((strategy) => (
-            <Link
-              key={strategy.id}
-              href={`/comercial/estrategias/${strategy.id}`}
-              className="flex flex-col gap-2 rounded-xl border border-border/60 bg-card/40 p-5 transition-colors hover:border-border hover:bg-card/70"
-            >
-              <h3 className="text-base font-medium">{strategy.name}</h3>
-              {strategy.target_audience && <p className="text-sm text-muted-foreground">{strategy.target_audience}</p>}
-              <div className="mt-2 flex flex-wrap gap-4 border-t border-border/60 pt-3 text-xs text-muted-foreground">
-                {strategy.prospecting_goal != null && <span>Meta prospecção: {strategy.prospecting_goal}</span>}
-                {strategy.meetings_goal != null && <span>Meta reuniões: {strategy.meetings_goal}</span>}
-                {strategy.closing_goal != null && <span>Meta fechamento: {strategy.closing_goal}</span>}
-              </div>
-            </Link>
-          ))}
+          {visible.map((strategy) => {
+            const cardContent = (
+              <>
+                <h3 className="text-base font-medium">{strategy.name}</h3>
+                {strategy.target_audience && <p className="text-sm text-muted-foreground">{strategy.target_audience}</p>}
+                <div className="mt-2 flex flex-wrap gap-4 border-t border-border/60 pt-3 text-xs text-muted-foreground">
+                  {strategy.prospecting_goal != null && <span>Meta prospecção: {strategy.prospecting_goal}</span>}
+                  {strategy.meetings_goal != null && <span>Meta reuniões: {strategy.meetings_goal}</span>}
+                  {strategy.closing_goal != null && <span>Meta fechamento: {strategy.closing_goal}</span>}
+                </div>
+              </>
+            );
+            const cardClassName = "flex flex-col gap-2 rounded-xl border border-border/60 bg-card/40 p-5 text-left transition-colors hover:border-border hover:bg-card/70";
+            return onSelectStrategy ? (
+              <button key={strategy.id} type="button" onClick={() => onSelectStrategy(strategy.id)} className={cardClassName}>
+                {cardContent}
+              </button>
+            ) : (
+              <Link key={strategy.id} href={`/comercial/estrategias/${strategy.id}`} className={cardClassName}>
+                {cardContent}
+              </Link>
+            );
+          })}
         </div>
       )}
 

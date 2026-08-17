@@ -13,10 +13,10 @@ import type { Strategy } from "@/lib/comercial/types";
  * mesmo raciocínio de `ListsPanelSheet` (conteúdo idêntico, `StrategiesList` não tocado por
  * dentro). Abre sozinho via `?panel=strategies` (alias de `?tab=estrategias`).
  *
- * O detalhe de UMA estratégia (clicar num card aqui) continua navegando pra
- * `/comercial/estrategias/[id]`, a página que já existe — a conversão DESSA rota pra drawer é o
- * próximo passo (maior risco da lista, parado de propósito pra teste manual antes de fechar), não
- * parte desta mudança.
+ * Clicar num card (passo 5, liberado após teste manual dos passos 1-4) fecha este painel e abre
+ * o drawer de detalhe (`StrategyDetailDrawer`, `?strategyDetail=<id>`) — `onSelectStrategy` fecha
+ * o próprio Sheet antes de navegar, orquestrado aqui porque é este componente que já é dono do
+ * `open`.
  */
 export function StrategiesPanelSheet({ strategies }: { strategies: Strategy[] }) {
   const router = useRouter();
@@ -48,7 +48,15 @@ export function StrategiesPanelSheet({ strategies }: { strategies: Strategy[] })
               <SheetTitle>Estratégias</SheetTitle>
               <SheetDescription>Campanhas comerciais — público-alvo, oferta, canal e metas de prospecção.</SheetDescription>
             </div>
-            <StrategiesList strategies={strategies} />
+            <StrategiesList
+              strategies={strategies}
+              onSelectStrategy={(strategyId) => {
+                setOpen(false);
+                const params = new URLSearchParams(searchParams.toString());
+                params.set("strategyDetail", strategyId);
+                router.push(`${pathname}?${params.toString()}`, { scroll: false });
+              }}
+            />
           </div>
         </SheetContent>
       </Sheet>

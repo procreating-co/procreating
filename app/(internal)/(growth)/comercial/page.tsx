@@ -4,9 +4,19 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Handshake, PackageCheck, Target, TrendingUp, UserPlus, Wallet } from "lucide-react";
 import { computeComercialMetrics, compareStrategies, computeRevenueByOwnerAndSource } from "@/lib/comercial/metrics";
-import { computeOverallFunnel } from "@/lib/comercial/funnel";
+import { computeOverallFunnel, computeStrategyFunnel } from "@/lib/comercial/funnel";
 import { resolvePeriod, isPeriodPreset, type PeriodPreset } from "@/lib/comercial/period";
-import { listOpenLeads, listOpenLeadsForPipeline, listOpenLeadsPaginated, listPipelineStages, listProspectingLists, listStrategies, type LeadFilters } from "@/lib/comercial/queries";
+import {
+  getStrategy,
+  listOpenLeads,
+  listOpenLeadsForPipeline,
+  listOpenLeadsPaginated,
+  listPipelineStages,
+  listProspectingLists,
+  listStrategies,
+  type LeadFilters,
+} from "@/lib/comercial/queries";
+import { listSequenceSteps } from "@/lib/comercial/sequences";
 import { listUsers } from "@/lib/admin/users/queries";
 import { computeSimulationDefaults } from "@/lib/simulation/defaults";
 import { getSession } from "@/lib/admin/auth";
@@ -22,6 +32,7 @@ import { PipelineBoard } from "@/components/comercial/pipeline-board";
 import { CrmFilters } from "@/components/comercial/crm-filters";
 import { ListsPanelSheet } from "@/components/comercial/lists-panel-sheet";
 import { StrategiesPanelSheet } from "@/components/comercial/strategies-panel-sheet";
+import { StrategyDetailDrawer, type StrategyDetailData } from "@/components/comercial/strategy-detail-drawer";
 import { ExecutionQueue } from "@/components/comercial/execution-queue";
 import { computeExecutionQueue } from "@/lib/comercial/sequences";
 import { GestureNav, type GestureTab } from "@/components/comercial/gesture-nav";
@@ -56,14 +67,35 @@ const TABS = [
  * Links antigos não quebram: `?tab=crm`/`?tab=prospeccao`/`?tab=estrategias` continuam
  * reconhecidos como alias de `commercial` (resolvidos logo abaixo) — os dois últimos também
  * abrem o painel certo sozinhos via `?panel=lists`/`?panel=strategies`, mesmo mecanismo de
- * `?import=1` que `ProspeccaoView` já usava.
+ * `?import=1` que `ProspeccaoView` já usava. `/comercial/estrategias/[id]` (rota própria de
+ * detalhe de UMA estratégia) virou `redirect()` pra `?strategyDetail=<id>` — o drawer
+ * (`StrategyDetailDrawer`) que substitui aquela página inteira.
  */
 export default async function ComercialPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; panel?: string; view?: string; owner?: string; strategy?: string; list?: string; page?: string; period?: string }>;
+  searchParams: Promise<{
+    tab?: string;
+    panel?: string;
+    view?: string;
+    owner?: string;
+    strategy?: string;
+    list?: string;
+    page?: string;
+    period?: string;
+    strategyDetail?: string;
+  }>;
 }) {
-  const { tab: tabParam, view: viewParam, owner: ownerParam, strategy: strategyParam, list: listParam, page: pageParam, period: periodParam } = await searchParams;
+  const {
+    tab: tabParam,
+    view: viewParam,
+    owner: ownerParam,
+    strategy: strategyParam,
+    list: listParam,
+    page: pageParam,
+    period: periodParam,
+    strategyDetail: strategyDetailParam,
+  } = await searchParams;
   const rawTab = tabParam ?? "overview";
 
   // `?tab=prospeccao`/`?tab=estrategias` eram páginas inteiras — viraram painel dentro de
@@ -302,6 +334,21 @@ export default async function ComercialPage({
     );
   }
 
+  // §2/§4/§20 passo 5 — `?strategyDetail=<id>` abre o drawer de detalhe por cima de qualquer aba
+  // (não só "commercial"), mesmo espírito de deep-link da rota própria que ele substitui
+  // (`/comercial/estrategias/[id]`, agora um redirect pra cá). `getStrategy` retornando `null`
+  // (id inválido/removido) só significa "sem drawer", não `notFound()` — a tela por trás continua
+  // válida.
+  let strategyDetailData: StrategyDetailData | null = null;
+  if (strategyDetailParam) {
+    const [strategy, funnel, sequenceSteps] = await Promise.all([
+      getStrategy(strategyDetailParam),
+      computeStrategyFunnel(strategyDetailParam),
+      listSequenceSteps(strategyDetailParam),
+    ]);
+    if (strategy) strategyDetailData = { strategy, funnel, sequenceSteps };
+  }
+
   // Mesma construção de href que `PageTabs` usa (primeira aba = URL limpa) — o gesto de swipe
   // precisa navegar exatamente pros mesmos lugares que clicar na aba levaria.
   const gestureTabs: GestureTab[] = TABS.map((t, index) => ({ key: t.key, href: index === 0 ? "/comercial" : `/comercial?tab=${t.key}` }));
@@ -315,6 +362,7 @@ export default async function ComercialPage({
       <GestureNav tabs={gestureTabs} activeKey={tab}>
         <TabTransition key={tab}>{content}</TabTransition>
       </GestureNav>
+      <StrategyDetailDrawer data={strategyDetailData} />
     </main>
   );
 }
