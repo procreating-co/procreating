@@ -4,12 +4,13 @@ import type { ProposalContent } from "@/lib/clients/proposal-types";
  * Proposta de Continuidade — Dra. Elenita Luzardo. Página comercial isolada
  * (`/clients/elenita/public/proposta`), pensada pra apresentação AO VIVO.
  *
- * PREÇOS — `budget.heroNumber` (R$4.500) é a base fixa, sempre presente, nunca desliga. Os itens
- * em `upsell.items` são camadas OPCIONAIS que a cliente adiciona por cima, cada um com seu
- * `price` somado só quando selecionado (preço fica oculto até selecionar — ver
- * proposal-upsell.tsx). Pra mudar um valor: edite só o `price` do item correspondente ou
- * `budget.heroNumber` — o total em proposal-upsell.tsx é sempre heroNumber + soma dos itens
- * selecionados.
+ * PREÇOS — `budget.heroNumber` (R$4.500) é a base fixa, sempre presente, nunca desliga.
+ * `upsell.items` são camadas OPCIONAIS que aparecem já marcadas na apresentação ao vivo (o
+ * vendedor pode desmarcar durante a conversa), mas o preço de cada item NÃO é exibido em lugar
+ * nenhum — `price` fica só no dado, sem uso visual hoje (ver proposal-upsell.tsx). O card
+ * "Investimento total" mostra um valor FIXO de R$6.000, desconectado da seleção de itens — não
+ * é `heroNumber` + soma. Pra mudar esse número: edite a constante `FIXED_TOTAL` em
+ * proposal-upsell.tsx (decisão deliberada, ver comentário lá).
  */
 export const elenitaProposal: ProposalContent = {
   slug: "elenita",
@@ -135,9 +136,18 @@ export const elenitaProposal: ProposalContent = {
       { title: "Produção", items: ["1 captação · 10 vídeos brutos", "4 vídeos editados/mês"] },
     ],
     includedLabel: "Incluso",
-    includedItems: ["Estratégia completa", "Posicionamento", "Planejamento", "Direção de conteúdo", "Acompanhamento estratégico", "Captação audiovisual", "4 vídeos editados/mês"],
+    includedItems: [
+      "Estratégia completa",
+      "Posicionamento",
+      "Planejamento",
+      "Direção de conteúdo",
+      "Acompanhamento estratégico",
+      "Captação audiovisual",
+      "4 vídeos editados/mês",
+      "Tráfego pago (atração de seguidores)",
+    ],
     additionalLabel: "Adicionais",
-    additionalItems: ["Social media dedicada", "Designs", "Postagens", "Estratégia B2B", "Tráfego pago", "Verba de mídia", "Produções adicionais"],
+    additionalItems: ["Social media dedicada", "Designs"],
     flowSteps: ["Estratégia", "Planejamento", "Direção", "Execução"],
   },
 
@@ -146,8 +156,8 @@ export const elenitaProposal: ProposalContent = {
     subtitle: "Selecione o que faz sentido para este momento.",
     items: [
       { id: "videos-extra", label: "8 vídeos editados/mês", description: "Dobra a entrega mensal de conteúdo editado.", price: 800 },
-      { id: "trafego-pago", label: "Tráfego pago", description: "Estratégia e gestão de campanhas — verba de mídia à parte.", price: 740 },
-      { id: "prospeccao-ativa", label: "Estratégia de prospecção ativa", description: "Estrutura comercial para novas oportunidades.", price: 1000 },
+      { id: "trafego-pago", label: "Tráfego pago (atração de seguidores e leads)", description: "Estratégia e gestão de campanhas — verba de mídia à parte.", price: 740 },
+      { id: "prospeccao-ativa", label: "Estratégia de prospecção ativa — 2 empresas", description: "Estrutura comercial para novas oportunidades.", price: 1000 },
     ],
   },
 
