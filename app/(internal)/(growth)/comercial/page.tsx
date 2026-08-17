@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Handshake, PackageCheck, Target, TrendingUp, UserPlus, Wallet } from "lucide-react";
 import { computeComercialMetrics, compareStrategies, computeRevenueByOwnerAndSource } from "@/lib/comercial/metrics";
 import { computeOverallFunnel } from "@/lib/comercial/funnel";
@@ -18,9 +19,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { LeadsTable } from "@/components/comercial/leads-table";
 import { LeadsPagination } from "@/components/comercial/leads-pagination";
 import { PipelineBoard } from "@/components/comercial/pipeline-board";
-import { StrategiesList } from "@/components/comercial/strategies-list";
 import { CrmFilters } from "@/components/comercial/crm-filters";
-import { ProspeccaoView } from "@/components/comercial/prospeccao-view";
+import { ListsPanelSheet } from "@/components/comercial/lists-panel-sheet";
+import { StrategiesPanelSheet } from "@/components/comercial/strategies-panel-sheet";
 import { ExecutionQueue } from "@/components/comercial/execution-queue";
 import { computeExecutionQueue } from "@/lib/comercial/sequences";
 import { GestureNav, type GestureTab } from "@/components/comercial/gesture-nav";
@@ -39,30 +40,46 @@ const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", cu
 
 const TABS = [
   { key: "overview", label: "Visão Geral" },
-  { key: "crm", label: "CRM" },
-  { key: "prospeccao", label: "Prospecção" },
-  { key: "estrategias", label: "Estratégias" },
+  { key: "commercial", label: "CRM" },
   { key: "planejamento", label: "Planejamento" },
 ];
 
 /**
- * Comercial (Growth) — máquina única (não um conjunto de páginas, seção 1 do prompt de evolução
- * profunda). CRM (tabela) e Pipeline (Kanban) são a MESMA busca (`listOpenLeads`+
- * `listPipelineStages`+`listUsers`), só o componente de render muda — um `ViewToggle` dentro da
- * aba "CRM". Prospecção (motor de listas — CSV → dedup → lista → leads) é uma aba nova que
- * alimenta o CRM (clicar numa lista filtra o CRM por `?list=`, não abre uma página própria de
- * detalhe). Planejamento (era "Simuladores") é onde o planejador de crescimento mora — mesmo
- * princípio de "aglutinar", nada disso é uma rota própria. Navegação por gesto (`GestureNav`)
- * troca essas 5 abas com swipe de trackpad, sem quebrar scroll vertical nem o scroll horizontal
- * do Kanban.
+ * Comercial (Growth) — máquina única (§1-4/§20 do master prompt: "Growth deve ser essencialmente
+ * Overview/Commercial/Planning, e só"). Era 5 abas (Visão Geral/CRM/Prospecção/Estratégias/
+ * Planejamento) — Prospecção e Estratégias eram páginas inteiras que só filtravam/alimentavam o
+ * mesmo CRM por trás; viraram painéis (`Sheet`, `ListsPanelSheet`/`StrategiesPanelSheet`) dentro
+ * da aba única "commercial" (rótulo "CRM", mantido — o que muda é a arquitetura de navegação, não
+ * o nome que o usuário já reconhece). CRM (tabela) e Pipeline (Kanban) continuam a MESMA busca,
+ * só o componente de render muda — um `ViewToggle` dentro da aba.
+ *
+ * Links antigos não quebram: `?tab=crm`/`?tab=prospeccao`/`?tab=estrategias` continuam
+ * reconhecidos como alias de `commercial` (resolvidos logo abaixo) — os dois últimos também
+ * abrem o painel certo sozinhos via `?panel=lists`/`?panel=strategies`, mesmo mecanismo de
+ * `?import=1` que `ProspeccaoView` já usava.
  */
 export default async function ComercialPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; view?: string; owner?: string; strategy?: string; list?: string; page?: string; period?: string }>;
+  searchParams: Promise<{ tab?: string; panel?: string; view?: string; owner?: string; strategy?: string; list?: string; page?: string; period?: string }>;
 }) {
   const { tab: tabParam, view: viewParam, owner: ownerParam, strategy: strategyParam, list: listParam, page: pageParam, period: periodParam } = await searchParams;
-  const tab = tabParam ?? "overview";
+  const rawTab = tabParam ?? "overview";
+
+  // `?tab=prospeccao`/`?tab=estrategias` eram páginas inteiras — viraram painel dentro de
+  // "commercial". Redirect de verdade (não só tratar como alias) pra injetar `?panel=` na URL
+  // canônica: é o que garante que o painel certo abra sozinho (o mesmo raciocínio de
+  // `?import=1`, que só funciona porque o parâmetro está de fato na URL que o client lê via
+  // `useSearchParams()` — tratar isso como "alias silencioso" sem reescrever a URL deixaria os
+  // dois Sheets sem saber que deveriam abrir).
+  if (rawTab === "prospeccao" || rawTab === "estrategias") {
+    const params = new URLSearchParams();
+    params.set("tab", "commercial");
+    params.set("panel", rawTab === "prospeccao" ? "lists" : "strategies");
+    redirect(`/comercial?${params.toString()}`);
+  }
+
+  const tab = rawTab === "crm" ? "commercial" : rawTab;
   const view: "pipeline" | "lista" = viewParam === "lista" ? "lista" : "pipeline";
   const ownerId = ownerParam ?? "todos";
   const strategyId = strategyParam ?? "todos";
@@ -72,7 +89,7 @@ export default async function ComercialPage({
   let content: ReactNode;
   let wide = false;
 
-  if (tab === "crm") {
+  if (tab === "commercial") {
     // Filtro DIRETO na query (não `.filter()` em memória) — obrigatório pra paginação/`truncated`
     // funcionarem certo, ver comentário em `listOpenLeadsPaginated` (lib/comercial/queries.ts).
     const filters: LeadFilters = {
@@ -80,60 +97,66 @@ export default async function ComercialPage({
       strategyId: strategyId !== "todos" ? strategyId : undefined,
       listId: listId !== "todos" ? listId : undefined,
     };
-    const [stages, strategies, users, lists] = await Promise.all([listPipelineStages(), listStrategies(), listUsers(), listProspectingLists()]);
+    const [stages, strategies, users, lists, openLeads] = await Promise.all([
+      listPipelineStages(),
+      listStrategies(),
+      listUsers(),
+      listProspectingLists(),
+      listOpenLeads(),
+    ]);
+    const queue = await computeExecutionQueue(openLeads);
     wide = view === "pipeline";
     const filterBar = (
       <div className="flex flex-wrap items-center gap-2">
         <CrmFilters owners={users} strategies={strategies} lists={lists} ownerId={ownerId} strategyId={strategyId} listId={listId} />
         <ViewToggle view={view} ownerId={ownerId} strategyId={strategyId} listId={listId} />
+        {/* §2/§4/§20 — Prospecção e Estratégias eram abas próprias, agora painéis (Sheet) que
+         *  abrem por cima desta mesma tela, sem sair do contexto do CRM. */}
+        <div className="ml-auto flex items-center gap-2">
+          <ListsPanelSheet lists={lists} strategies={strategies} />
+          <StrategiesPanelSheet strategies={strategies} />
+        </div>
       </div>
     );
 
+    let pipelineOrList: ReactNode;
     if (view === "pipeline") {
       const { leads, truncated } = await listOpenLeadsForPipeline(filters);
-      content = (
-        <div className="flex flex-col gap-4">
-          <SectionHeader title="CRM" description='Arraste um card pra mudar de estágio. Soltar em "Fechado" abre o onboarding do cliente.' action={filterBar} />
+      pipelineOrList = (
+        <>
           {truncated && (
             <p className="text-xs text-muted-foreground">Mostrando os 500 leads mais recentes deste filtro — use a Lista (paginada) pra ver todos.</p>
           )}
           <PipelineBoard leads={leads} stages={stages} users={users} />
-        </div>
+        </>
       );
     } else {
       const { leads, totalCount, pageSize } = await listOpenLeadsPaginated(filters, page);
-      content = (
-        <div className="flex flex-col gap-4">
-          <SectionHeader title="CRM" description="Todos os leads em aberto — clique numa linha pra ver/editar o detalhe." action={filterBar} />
+      pipelineOrList = (
+        <>
           <LeadsTable leads={leads} stages={stages} strategies={strategies} users={users} />
           <LeadsPagination page={page} pageSize={pageSize} totalCount={totalCount} ownerId={ownerId} strategyId={strategyId} listId={listId} />
-        </div>
+        </>
       );
     }
-  } else if (tab === "prospeccao") {
-    const [lists, strategies, openLeads] = await Promise.all([listProspectingLists(), listStrategies(), listOpenLeads()]);
-    const queue = await computeExecutionQueue(openLeads);
+
     content = (
       <div className="flex flex-col gap-8">
         <div className="flex flex-col gap-4">
           <SectionHeader
             title="Fila de execução"
-            description={queue.length > 0 ? `${queue.length} lead${queue.length === 1 ? "" : "s"} com ação pendente hoje.` : "Quem abordar hoje, com o script já pronto — configure a cadência na estratégia."}
+            description={
+              queue.length > 0
+                ? `${queue.length} lead${queue.length === 1 ? "" : "s"} com ação pendente hoje.`
+                : "Quem abordar hoje, com o script já pronto — configure a cadência na estratégia."
+            }
           />
           <ExecutionQueue items={queue} />
         </div>
         <div className="flex flex-col gap-4">
-          <SectionHeader title="Listas" description="Motor de listas — importe um CSV, o sistema deduplica e organiza em listas conectadas às estratégias." />
-          <ProspeccaoView lists={lists} strategies={strategies} />
+          <SectionHeader title="CRM" description='Arraste um card pra mudar de estágio. Soltar em "Fechado" abre o onboarding do cliente.' action={filterBar} />
+          {pipelineOrList}
         </div>
-      </div>
-    );
-  } else if (tab === "estrategias") {
-    const strategies = await listStrategies();
-    content = (
-      <div className="flex flex-col gap-4">
-        <SectionHeader title="Estratégias" description="Campanhas comerciais — público-alvo, oferta, canal e metas de prospecção." />
-        <StrategiesList strategies={strategies} />
       </div>
     );
   } else if (tab === "planejamento") {
@@ -297,8 +320,8 @@ export default async function ComercialPage({
 }
 
 function ViewToggle({ view, ownerId, strategyId, listId }: { view: "pipeline" | "lista"; ownerId: string; strategyId: string; listId: string }) {
-  // Preserva owner/estratégia/lista ao trocar de view — hardcoded `?tab=crm` sem os outros params
-  // faria o filtro sumir só de clicar em "Lista"/"Pipeline".
+  // Preserva owner/estratégia/lista ao trocar de view — hardcoded `?tab=commercial` sem os outros
+  // params faria o filtro sumir só de clicar em "Lista"/"Pipeline".
   const extra = new URLSearchParams();
   if (ownerId !== "todos") extra.set("owner", ownerId);
   if (strategyId !== "todos") extra.set("strategy", strategyId);
@@ -308,13 +331,13 @@ function ViewToggle({ view, ownerId, strategyId, listId }: { view: "pipeline" | 
   return (
     <div className="flex items-center gap-1 rounded-md border border-border/60 p-0.5 text-xs">
       <Link
-        href={`/comercial?tab=crm${extraQuery}`}
+        href={`/comercial?tab=commercial${extraQuery}`}
         className={cn("rounded px-2 py-1 transition-colors", view === "pipeline" ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:text-foreground")}
       >
         Pipeline
       </Link>
       <Link
-        href={`/comercial?tab=crm&view=lista${extraQuery}`}
+        href={`/comercial?tab=commercial&view=lista${extraQuery}`}
         className={cn("rounded px-2 py-1 transition-colors", view === "lista" ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:text-foreground")}
       >
         Lista

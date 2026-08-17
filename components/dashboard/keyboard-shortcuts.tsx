@@ -46,11 +46,11 @@ export function KeyboardShortcuts() {
           break;
         case "i":
           event.preventDefault();
-          router.push("/comercial?tab=prospeccao&import=1");
+          router.push("/comercial?tab=commercial&panel=lists&import=1");
           break;
         case "p":
           event.preventDefault();
-          router.push("/comercial?tab=prospeccao");
+          router.push("/comercial?tab=commercial&panel=lists");
           break;
         default:
           break;

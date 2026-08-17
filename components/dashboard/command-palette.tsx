@@ -20,9 +20,9 @@ type QuickNavItem = { label: string; href: string; icon: LucideIcon };
 const QUICK_NAV: QuickNavItem[] = [
   { label: "Workspace", href: "/workspace", icon: Sun },
   { label: "Comercial", href: "/comercial", icon: TrendingUp },
-  { label: "Pipeline", href: "/comercial?tab=crm", icon: Handshake },
-  { label: "Prospecção / Importar lista", href: "/comercial?tab=prospeccao", icon: ListChecks },
-  { label: "Nova proposta", href: "/comercial?tab=crm", icon: FileText },
+  { label: "Pipeline", href: "/comercial?tab=commercial", icon: Handshake },
+  { label: "Prospecção / Importar lista", href: "/comercial?tab=commercial&panel=lists&import=1", icon: ListChecks },
+  { label: "Nova proposta", href: "/comercial?tab=commercial", icon: FileText },
   { label: "Planejamento", href: "/comercial?tab=planejamento", icon: TrendingUp },
   { label: "Clientes", href: "/clientes", icon: Building2 },
   { label: "Financeiro", href: "/financeiro", icon: Wallet },
@@ -271,7 +271,7 @@ export function CommandPalette() {
           {results.leads.length > 0 && (
             <CommandGroup heading="Leads">
               {results.leads.map((lead) => (
-                <CommandItem key={lead.id} onSelect={() => navigate("/comercial?tab=crm")}>
+                <CommandItem key={lead.id} onSelect={() => navigate("/comercial?tab=commercial")}>
                   <Handshake className="size-4 text-muted-foreground" />
                   {lead.company_name}
                 </CommandItem>

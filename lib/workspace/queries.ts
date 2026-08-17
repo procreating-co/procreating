@@ -67,7 +67,7 @@ export async function computeWorkspaceOverview(userId: string): Promise<Workspac
   if (staleLeadsCount > 0) {
     attention.push({
       label: `${staleLeadsCount} lead${staleLeadsCount === 1 ? "" : "s"} sem contato há mais de ${STALE_LEAD_DAYS} dias`,
-      href: "/comercial?tab=crm",
+      href: "/comercial?tab=commercial",
     });
   }
   if (revenueDueCount > 0) {

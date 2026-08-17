@@ -22,7 +22,7 @@ const dateFormatter = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: 
 
 /**
  * Prospecção — o motor de listas mora aqui. Cada lista é um card (nome, origem, contagem,
- * estratégia, status) que leva pro CRM já filtrado por ela (`?tab=crm&list=id`) — não existe uma
+ * estratégia, status) que leva pro CRM já filtrado por ela (`?tab=commercial&list=id`) — não existe uma
  * página própria de "detalhe da lista", o CRM (Pipeline/Lista) já É essa visão, só filtrada
  * (princípio "AGLUTINE", seção 2 do prompt).
  *
@@ -81,9 +81,9 @@ export function ProspeccaoView({ lists, strategies }: { lists: ProspectingList[]
                 key={list.id}
                 role="button"
                 tabIndex={0}
-                onClick={() => router.push(`/comercial?tab=crm&list=${list.id}`)}
+                onClick={() => router.push(`/comercial?tab=commercial&list=${list.id}`)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") router.push(`/comercial?tab=crm&list=${list.id}`);
+                  if (e.key === "Enter") router.push(`/comercial?tab=commercial&list=${list.id}`);
                 }}
                 className="group relative flex cursor-pointer flex-col gap-3 rounded-xl border border-border/60 bg-card/20 p-4 transition-colors hover:border-border hover:bg-card/40"
               >

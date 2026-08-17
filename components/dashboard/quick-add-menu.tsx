@@ -238,7 +238,7 @@ export function QuickAddMenu() {
           strategies={strategies}
           onCreated={() => {
             closeAll();
-            router.push("/comercial?tab=crm");
+            router.push("/comercial?tab=commercial");
           }}
         />
       )}
