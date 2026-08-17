@@ -92,6 +92,11 @@ export function ProposalHeroAtmosphere({ accent }: { accent: string }) {
           <animate attributeName="opacity" values="0;0.9;0.9;0" keyTimes="0;0.08;0.92;1" dur="7s" begin="2.6s" repeatCount="indefinite" />
         </circle>
       </motion.svg>
+
+      {/* Degradê de transição pro próximo bloco — por cima de tudo (último elemento = pinta por
+          cima na mesma stacking context), resolve grid/glow/trajetória em preto sólido antes do
+          fim da seção, pra emendar sem corte com o bg-black liso da ProposalPillars logo abaixo. */}
+      <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-b from-transparent to-black" />
     </div>
   );
 }
