@@ -74,10 +74,7 @@ export const elenitaProposal: ProposalContent = {
       {
         number: "03",
         title: "Atração e Crescimento",
-        items: [
-          "Estratégias B2B — parcerias com outras marcas, profissionais e clínicas",
-          "Funil de atração de pacientes — prova social e conversão",
-        ],
+        items: ["Funil de atração de pacientes — prova social e conversão"],
       },
       {
         number: "04",
@@ -100,24 +97,18 @@ export const elenitaProposal: ProposalContent = {
     cards: [
       {
         number: "01",
-        title: "Prospecção ativa",
-        description: "Uma estratégia ativa de conexão com empresas com potencial de associação à marca.",
-        items: ["Mapeamento de empresas", "Definição de perfis estratégicos", "Identificação de oportunidades", "Listas qualificadas", "Abordagem estruturada"],
-      },
-      {
-        number: "02",
         title: "Patrocínio",
         description: "Aproximação de empresas com interesse em associar sua marca ao projeto.",
         items: ["Identificação de oportunidades", "Estrutura de abordagem", "Apresentação da oportunidade", "Construção de relacionamento"],
       },
       {
-        number: "03",
+        number: "02",
         title: "Parcerias",
         description: "Conexões estratégicas com marcas que ampliam audiência e autoridade.",
         items: ["Colaboração", "Relacionamento", "Audiência", "Autoridade", "Novas oportunidades"],
       },
       {
-        number: "04",
+        number: "03",
         title: "Crescimento",
         description: "Aquisição não termina no primeiro contato — é um ciclo contínuo.",
         items: ["Novas conexões", "Novas oportunidades", "Maior alcance", "Maior autoridade"],
@@ -157,7 +148,6 @@ export const elenitaProposal: ProposalContent = {
     items: [
       { id: "videos-extra", label: "8 vídeos editados/mês", description: "Dobra a entrega mensal de conteúdo editado.", price: 800 },
       { id: "trafego-pago", label: "Tráfego pago (atração de seguidores e leads)", description: "Estratégia e gestão de campanhas — verba de mídia à parte.", price: 740 },
-      { id: "prospeccao-ativa", label: "Estratégia de prospecção ativa — 2 empresas", description: "Estrutura comercial para novas oportunidades.", price: 1000 },
     ],
   },
 
