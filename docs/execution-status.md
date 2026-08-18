@@ -1,3 +1,40 @@
+## Rodada — tema novo (Focus Mode) + correções pontuais de Dashboard/Financeiro/Workspace
+
+Sequência de pedidos pontuais + 1 mudança grande (tema), todos deployados:
+
+1. **BUG real corrigido**: "Despesas este mês" no Financeiro ficava R$0 mesmo com custo fixo
+   cadastrado (Julia Social Media, R$800) — `Cost` com `recurrence='fixo'` nunca virava
+   lançamento em `expenses`, então nunca contava como despesa. Agora "Despesas este mês" =
+   lançamentos datados + run-rate dos custos fixos (variável fica de fora, é estimativa).
+   `margin`/Lucro Líquido recalibrado pra continuar com o MESMO total subtraído de antes (a soma
+   não muda, só a divisão entre os blocos que exibem cada parte).
+2. Blocos da linha de KPIs da Home em tamanhos diferentes (só Receita/Lucro Líquido tinham
+   sparkline) — removido dos 4, mesma forma simples em todos. "Salário"/"Salário (cada sócio)" →
+   "Pró-labore" na Home E no Financeiro (mesmo número nos dois lugares).
+3. Workspace: "Concluídas" mostra no máximo 3; placeholder do campo de nova tarefa simplificado
+   ("Nova tarefa..." em vez do par de exemplos completo).
+4. Home: header mostrava a % da meta duas vezes ("62,1% da meta mensal 62,1%") — o número da
+   direita virou "N dias restantes" (`GoalProgress.daysRemaining`, novo).
+5. Todo `Intl.NumberFormat` de moeda no escopo ERP ganhou `maximumFractionDigits: 0` (nunca mais
+   ",00" — pedido explícito, "18.640 está perfeito").
+6. **Tema novo — mudança grande**: paleta light/dark trocada pro neutro padrão shadcn (zero
+   matiz em quase todo token — antes era "Warm Ivory" + acento roxo Stripe), com um único acento
+   de verdade sobrevivendo: o roxo/azul de `--sidebar-primary` no dark. Terceiro tema criado,
+   "Focus Mode" (preto profundo + roxo vibrante como identidade do modo inteiro, ícone de nuvem
+   no toggle) — `ThemeProvider` estendido de binário pra ciclo de 3 (light→dark→focus→light),
+   migration `add_focus_theme` (`users.theme` era CHECK, não enum). Ver `app/globals.css`.
+
+**Fora de escopo, sinalizado ao usuário, não implementado**: pedido de mudar `/operacao` pra uma
+página só, mostrando clientes recorrentes — é escopo explícito da OUTRA sessão que compartilha
+este repositório (`app/(internal)/operacao/**`), não toquei.
+
+**Também sinalizado, aguardando decisão do usuário**: integração do calendário do Workspace com
+Apple Calendar (pessoal ou compartilhado com o Eduardo) — precisa escolher entre assinatura .ics
+somente-leitura (simples, sem credencial) ou CalDAV de verdade (bidirecional, exige senha de app
+do iCloud). Não implementado até essa decisão.
+
+typecheck + build + 66 testes (vitest) passando em cada commit desta rodada.
+
 # Procreating OS — estado de execução (master prompt §1-87)
 
 Documento de retomada. Se você é uma sessão nova retomando isto, comece por aqui antes de reler
