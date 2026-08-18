@@ -101,6 +101,14 @@ export function addDaysISO(dateOnlyISO: string, days: number): string {
   return date.toISOString().slice(0, 10);
 }
 
+/** Diferença em dias (sempre positiva) entre duas datas-calendário `YYYY-MM-DD` — mesma
+ *  aritmética de `addDaysISO` (não sofre do viés de fuso, é só contagem de dias). */
+export function diffDaysISO(a: string, b: string): number {
+  const [ay, am, ad] = a.split("-").map(Number);
+  const [by, bm, bd] = b.split("-").map(Number);
+  return Math.abs(Date.UTC(by, bm - 1, bd) - Date.UTC(ay, am - 1, ad)) / 86_400_000;
+}
+
 /** Últimos `count` meses (incluindo o atual), do mais antigo ao mais recente, como "MM/YYYY" —
  *  chave compatível com `monthKeyOf`, pra bater com o agrupamento de `revenue`/`expenses`. */
 export function lastMonthKeys(count: number): string[] {

@@ -1,6 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import { addDaysISO, currentMonthKey, daysInMonth, formatDateOnly, lastMonthKeys, monthKeyOf, todayISO, todayParts } from "@/lib/date";
+import { addDaysISO, currentMonthKey, daysInMonth, diffDaysISO, formatDateOnly, lastMonthKeys, monthKeyOf, todayISO, todayParts } from "@/lib/date";
 import { computeMargin, computeMrr, computeTopClientConcentration, computeUpcomingReceivables, groupRevenueByClient, sumAmount, sumAmountForMonth } from "@/lib/financeiro/calculations";
 import { getCurrentMonthGoal, sumRealizedRevenue, type GoalProgress } from "@/lib/dashboard/goals";
 import type { Cost, Expense, FinancialEntryStatus, Revenue } from "@/lib/supabase/types/database";
@@ -44,6 +44,54 @@ const CONTRACT_RENEWAL_ALERT_DAYS = 30;
  *  concentração de risco. Constante nomeada, fácil de ajustar depois. Exportada — `page.tsx`
  *  usa o mesmo valor pra montar o item da Faixa de atenção. */
 export const CONCENTRATION_RISK_THRESHOLD_PCT = 40;
+
+/** Bloco 4 item 5 (redesign) — janela pra considerar duas despesas com mesma descrição/valor
+ *  como possível lançamento duplicado (vencimentos até N dias de diferença — pago duas vezes de
+ *  propósito, tipo aluguel de dois imóveis, ainda cabe fora dessa janela). Heurística simples,
+ *  nunca bloqueia nada automaticamente — é aviso, a pessoa decide. */
+const DUPLICATE_EXPENSE_WINDOW_DAYS = 5;
+
+/** Mesma `description` (case-insensitive) + `amount`, `due_date` a até `DUPLICATE_EXPENSE_
+ *  WINDOW_DAYS` de diferença — possível lançamento em dobro. */
+function detectDuplicateExpenses(expenses: Expense[]): FinancialDetailEntry[] {
+  const groups = new Map<string, Expense[]>();
+  for (const row of expenses) {
+    const key = `${row.description.trim().toLowerCase()}|${row.amount}`;
+    const list = groups.get(key);
+    if (list) list.push(row);
+    else groups.set(key, [row]);
+  }
+  const duplicates: FinancialDetailEntry[] = [];
+  for (const rows of groups.values()) {
+    if (rows.length < 2) continue;
+    const sorted = [...rows].sort((a, b) => a.due_date.localeCompare(b.due_date));
+    for (let i = 1; i < sorted.length; i++) {
+      if (diffDaysISO(sorted[i - 1].due_date, sorted[i].due_date) <= DUPLICATE_EXPENSE_WINDOW_DAYS) {
+        duplicates.push({
+          label: sorted[i].description,
+          value: currency.format(Number(sorted[i].amount)),
+          meta: `Possível duplicata · ${formatDateOnly(sorted[i - 1].due_date)} e ${formatDateOnly(sorted[i].due_date)}`,
+        });
+      }
+    }
+  }
+  return duplicates;
+}
+
+/** Mesmo `name` + `amount` + `category` aparecendo mais de uma vez em Custos — `Cost` não tem
+ *  data individual (é estrutura, não lançamento), então a janela de dias não se aplica aqui;
+ *  duplicata é só "a mesma linha cadastrada duas vezes". */
+function detectDuplicateCosts(costs: Cost[]): FinancialDetailEntry[] {
+  const seen = new Map<string, number>();
+  const duplicates: FinancialDetailEntry[] = [];
+  for (const row of costs) {
+    const key = `${row.name.trim().toLowerCase()}|${row.amount}|${row.category}`;
+    const count = (seen.get(key) ?? 0) + 1;
+    seen.set(key, count);
+    if (count === 2) duplicates.push({ label: row.name, value: currency.format(Number(row.amount)), meta: `${row.category} · cadastrado mais de uma vez` });
+  }
+  return duplicates;
+}
 
 export async function listRevenue(): Promise<Revenue[]> {
   const supabase = await createClient();
@@ -274,6 +322,9 @@ export async function computeFinanceiroMetrics(evolutionMonths = 6): Promise<Fin
       meta: `${row.category} · ${row.status === "atrasado" ? "venceu" : "vence"} ${formatDateOnly(row.due_date)}`,
     }));
 
+  // Bloco 4 item 5 — possível despesa/custo duplicado (heurística de aviso, nunca bloqueia nada).
+  const duplicateExpenseEntries = [...detectDuplicateExpenses(expenses), ...detectDuplicateCosts(costs)];
+
   // Bloco 4 item 1 (redesign) — contrato recorrente vencendo sem renovação automática, dentro da
   // janela de alerta. Reaproveita `activeRecurringContracts` (já buscado acima), nenhuma query
   // nova. Janela: constante nomeada própria (`CONTRACT_RENEWAL_ALERT_DAYS`) — decisão desta
@@ -369,5 +420,6 @@ export async function computeFinanceiroMetrics(evolutionMonths = 6): Promise<Fin
     revenueWithoutContractEntries,
     mrrConcentrationTop5Pct,
     mrrConcentrationEntries: mrrConcentrationRanked.map((row) => ({ label: row.clientName, value: currency.format(row.amount), meta: `${row.percentage.toFixed(1)}% do MRR` })),
+    duplicateExpenseEntries,
   };
 }

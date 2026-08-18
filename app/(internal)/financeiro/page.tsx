@@ -340,6 +340,24 @@ export default async function FinanceiroPage({
             </div>
           </CardWithDetail>
         )}
+
+        {/* Bloco 4 item 5 — possível despesa/custo duplicado. Aviso, nunca bloqueia nada
+         *  automaticamente (a pessoa decide se é duplicata de verdade). */}
+        {metrics.duplicateExpenseEntries.length > 0 && (
+          <CardWithDetail
+            title="Possível despesa duplicada"
+            description="Mesma descrição e valor, lançados perto um do outro — vale conferir antes de pagar os dois."
+            detail={<DetailList items={metrics.duplicateExpenseEntries} emptyLabel="Nenhuma." />}
+          >
+            <div className="flex items-center justify-between gap-4 rounded-xl border border-dashed border-warning/40 bg-warning-subtle/40 p-5 text-left">
+              <span className="text-sm text-muted-foreground">
+                {metrics.duplicateExpenseEntries.length} possível{metrics.duplicateExpenseEntries.length === 1 ? "" : "eis"} despesa{metrics.duplicateExpenseEntries.length === 1 ? "" : "s"} duplicada
+                {metrics.duplicateExpenseEntries.length === 1 ? "" : "s"}
+              </span>
+              <ArrowRight className="size-4 shrink-0 text-muted-foreground" />
+            </div>
+          </CardWithDetail>
+        )}
       </section>
 
       {/* Faixa de atenção (Bloco 2 do redesign) — mesmo padrão visual/componente de "Atenção

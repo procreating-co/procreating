@@ -114,4 +114,6 @@ export type FinanceiroMetrics = {
    *  Faixa de atenção. */
   mrrConcentrationTop5Pct: number | null;
   mrrConcentrationEntries: FinancialDetailEntry[];
+  /** Bloco 4 item 5 — possível despesa/custo duplicado (heurística de aviso). */
+  duplicateExpenseEntries: FinancialDetailEntry[];
 };
