@@ -172,9 +172,22 @@ export async function computeFinanceiroMetrics(evolutionMonths = 6): Promise<Fin
 
   const thisMonthKey = currentMonthKey();
   const revenueThisMonth = sumAmountForMonth(revenue, thisMonthKey);
-  const expensesThisMonth = sumAmountForMonth(expenses, thisMonthKey);
   const monthlyCostsTotal = sumAmount(costs);
-  const margin = computeMargin(revenueThisMonth, expensesThisMonth, monthlyCostsTotal);
+
+  // BUG REAL corrigido (reportado: "Despesas consta 0 sendo que já tem despesa fixa conectada,
+  // Julia Social Media") — um `Cost` com `recurrence='fixo'` (estrutura, aba Custos) nunca virava
+  // lançamento em `expenses` (aba A Pagar) — "Despesas este mês" só somava `expenses`, então um
+  // custo fixo real (aluguel, freelancer fixo etc.) nunca aparecia como despesa nenhuma. Agora
+  // "Despesas este mês" = lançamentos datados do mês + run-rate dos custos FIXOS (variável fica
+  // de fora — é estimativa, não um valor certo do mês, mesma distinção já documentada em `Cost`).
+  // `margin` (Lucro Líquido) continua com o MESMO total subtraído de antes — antes era
+  // `expenses + (fixo+variável)`, agora é `(expenses+fixo) + variável`, a soma não muda, só a
+  // divisão entre os dois blocos que a exibem.
+  const expensesThisMonthDated = sumAmountForMonth(expenses, thisMonthKey);
+  const fixedCostsTotal = sumAmount(costs.filter((cost) => cost.recurrence === "fixo"));
+  const variableCostsTotal = monthlyCostsTotal - fixedCostsTotal;
+  const expensesThisMonth = expensesThisMonthDated + fixedCostsTotal;
+  const margin = computeMargin(revenueThisMonth, expensesThisMonth, variableCostsTotal);
 
   // Meta do mês (Bloco 4 item 2) — BUG REAL corrigido nesta rodada: usava `sumRealizedRevenue`
   // (cash, status='pago') enquanto o card "Receita do Mês" já mostrava `revenueThisMonth`
@@ -269,9 +282,17 @@ export async function computeFinanceiroMetrics(evolutionMonths = 6): Promise<Fin
     }));
 
   const expenseRowsThisMonth = expenses.filter((row) => monthKeyOf(row.due_date) === thisMonthKey);
-  const expensesThisMonthEntries: FinancialDetailEntry[] = [...expenseRowsThisMonth]
-    .sort((a, b) => Number(b.amount) - Number(a.amount))
-    .map((row) => ({ label: row.description, value: currency.format(Number(row.amount)), meta: `${row.category} · ${STATUS_LABEL[row.status]}` }));
+  const expensesThisMonthEntries: FinancialDetailEntry[] = [
+    ...[...expenseRowsThisMonth]
+      .sort((a, b) => Number(b.amount) - Number(a.amount))
+      .map((row) => ({ label: row.description, value: currency.format(Number(row.amount)), meta: `${row.category} · ${STATUS_LABEL[row.status]}` })),
+    // Custos fixos entram aqui também agora (ver correção acima) — sem `due_date`/status
+    // (não são lançamento, são estrutura), meta deixa isso claro.
+    ...costs
+      .filter((cost) => cost.recurrence === "fixo")
+      .sort((a, b) => Number(b.amount) - Number(a.amount))
+      .map((cost) => ({ label: cost.name, value: currency.format(Number(cost.amount)), meta: `${cost.category} · custo fixo` })),
+  ];
 
   const receivablesPendingEntries: FinancialDetailEntry[] = revenue
     .filter((row) => row.status === "pendente")
