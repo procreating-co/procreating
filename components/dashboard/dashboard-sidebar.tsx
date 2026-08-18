@@ -56,14 +56,34 @@ function SidebarContent({ expanded, user, onNavigate }: { expanded: boolean; use
               onClick={onNavigate}
               title={expanded ? undefined : group.label}
               className={cn(
-                "group relative flex items-center gap-3 rounded-md px-2.5 py-2 text-sm transition-colors",
+                "group relative flex items-center rounded-md px-2.5 py-2 text-sm transition-colors",
                 active ? "bg-sidebar-accent text-brand" : "text-sidebar-muted-foreground hover:bg-sidebar-hover hover:text-sidebar-foreground"
               )}
             >
+              {/* Slot fixo `size-7` centralizando o ícone (já corrigido numa rodada anterior).
+               *  Causa estrutural do novo desalinhamento reportado (fundo/borda do item ativo
+               *  deslocado do centro do ícone): o espaçamento ícone↔label vivia em `gap-3` no
+               *  container flex — um `gap` é reservado ENTRE filhos independente da largura de
+               *  cada um, então mesmo com o label colapsado (`w-0`) na sidebar recolhida, os 12px
+               *  do gap continuavam contando pro fundo/hover do item (aplicado no `<Link>`
+               *  inteiro). Com padding simétrico (`px-2.5` nos dois lados) mas um filho "fantasma"
+               *  de 12px só do lado direito do ícone, o retângulo do fundo ativo ficava mais largo
+               *  à direita do ícone que à esquerda — o ícone parecia puxado pra esquerda dentro do
+               *  próprio destaque. Fix: o espaçamento agora é `margin-left` NO PRÓPRIO label
+               *  (`ml-3` só quando expandido, `ml-0` junto com `w-0` quando recolhido) — colapsa
+               *  de verdade a zero, não só a largura. Recolhido, o fundo vira só
+               *  `padding + slot do ícone`, simétrico dos dois lados → ícone exatamente no centro. */}
               <span className="flex size-7 shrink-0 items-center justify-center">
                 <Icon className="size-4.5" />
               </span>
-              <span className={cn("overflow-hidden whitespace-nowrap transition-opacity duration-150", expanded ? "opacity-100" : "w-0 opacity-0")}>{group.label}</span>
+              <span
+                className={cn(
+                  "overflow-hidden whitespace-nowrap transition-all duration-150",
+                  expanded ? "ml-3 opacity-100" : "ml-0 w-0 opacity-0"
+                )}
+              >
+                {group.label}
+              </span>
             </Link>
           );
         })}
@@ -89,10 +109,18 @@ function SidebarContent({ expanded, user, onNavigate }: { expanded: boolean; use
           <ThemeToggle />
         </div>
 
+        {/* Mesmo fix de espaçamento do nav acima (`ml-3`/`ml-0` no filho colapsável em vez de
+         *  `gap-3` no pai) — mesma estrutura, mesmo bug de fundo/hover deslocado do centro do
+         *  ícone/avatar quando recolhido. */}
         <AccountMenu user={{ name: user.name, email: user.email, avatarUrl: user.avatarUrl }}>
-          <button type="button" className="flex w-full items-center gap-3 rounded-md px-2.5 py-2 text-left text-sm text-sidebar-foreground transition-colors hover:bg-sidebar-hover">
+          <button type="button" className="flex w-full items-center rounded-md px-2.5 py-2 text-left text-sm text-sidebar-foreground transition-colors hover:bg-sidebar-hover">
             <AccountAvatar user={user} className="size-7 shrink-0 text-[10px]" />
-            <div className={cn("min-w-0 flex-1 overflow-hidden transition-opacity duration-150", expanded ? "opacity-100" : "w-0 opacity-0")}>
+            <div
+              className={cn(
+                "min-w-0 flex-1 overflow-hidden transition-all duration-150",
+                expanded ? "ml-3 opacity-100" : "ml-0 w-0 opacity-0"
+              )}
+            >
               <p className="truncate text-sm">{user.name}</p>
               <p className="truncate text-xs text-sidebar-muted-foreground">{user.email}</p>
             </div>
@@ -103,12 +131,19 @@ function SidebarContent({ expanded, user, onNavigate }: { expanded: boolean; use
           href="/configuracoes"
           onClick={onNavigate}
           title={expanded ? undefined : "Configurações"}
-          className="mt-1 flex items-center gap-3 rounded-md px-2.5 py-2 text-sm text-sidebar-muted-foreground transition-colors hover:bg-sidebar-hover hover:text-sidebar-foreground"
+          className="mt-1 flex items-center rounded-md px-2.5 py-2 text-sm text-sidebar-muted-foreground transition-colors hover:bg-sidebar-hover hover:text-sidebar-foreground"
         >
           <span className="flex size-7 shrink-0 items-center justify-center">
             <Settings className="size-4" />
           </span>
-          <span className={cn("overflow-hidden whitespace-nowrap transition-opacity duration-150", expanded ? "opacity-100" : "w-0 opacity-0")}>Configurações</span>
+          <span
+            className={cn(
+              "overflow-hidden whitespace-nowrap transition-all duration-150",
+              expanded ? "ml-3 opacity-100" : "ml-0 w-0 opacity-0"
+            )}
+          >
+            Configurações
+          </span>
         </Link>
       </div>
     </>
