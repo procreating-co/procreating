@@ -3,7 +3,34 @@
 Documento de retomada. Se você é uma sessão nova retomando isto, comece por aqui antes de reler
 o histórico inteiro — este arquivo é a fonte da verdade, não a memória de conversa de ninguém.
 
-**Atualização mais recente**: pedido explícito — "no financeiro todos os blocos e o gráfico devem
+**Atualização mais recente**: pedido novo do usuário no meio do redesign do Financeiro (Bloco 1-4
+item 5 concluídos, ver seção própria abaixo) — pausei pra atender:
+
+1. **Papel `dev_tester`** — `role` em `users`/`team_invites` é `text` com CHECK, não enum real
+   (migration `add_dev_tester_role` só ajustou as duas constraints). Convite criado
+   (`devtester@procreating.com.br`, `team_invites`) — **não gerei senha**: o próprio código já
+   documentava a regra "só quem cadastra a própria senha deveria conhecê-la"; quem for testar
+   completa o cadastro em `/admin/signup` com esse e-mail.
+2. **Máscara financeira pro `dev_tester`** — `requireFinancialPageAccess` (novo, só LEITURA da
+   página `/financeiro`) separado de `requireFinancialAccess` (inalterado, continua o gate de
+   ESCRITA que toda Server Action usa — `dev_tester` nunca passa lá). Todo R$ na página vira
+   "R$ ••••", gráfico "Evolução" vira placeholder, controles de editar/excluir/adicionar somem
+   (o servidor já bloqueava, só não fazia sentido oferecer o botão). `/configuracoes/regras-
+   financeiras` não foi tocada (continua bloqueio total).
+3. **Texto do login** corrigido — "Primeiro acesso do Eduardo? Cadastre-se" tinha nome
+   hardcoded, virou "Primeiro acesso? Cadastre-se".
+4. **Bug reportado, investigado, não era bug** — Dashboard mostrando R$14.640 "sem contar a
+   Elenita": confirmado no banco que a parcela dela (R$4.000) segue `status=pendente`, nunca
+   paga — o card "Receita" da Home é cash-basis (só paga) por design, igual já documentado antes.
+5. **3 pedidos na Home**: removida notação compacta ("R$14,6 mil" → sempre "R$14.640"); "Clientes
+   Ativos" → "Clientes Recorrentes" (só cliente com contrato `type=recorrente`) e "Equipe" →
+   "Projetos" (só `type=pontual`) na linha de KPIs do topo — escopo limitado a essa linha
+   especificamente, as outras 2 seções que repetem esses nomes mais abaixo na página não foram
+   tocadas. Verificado contra o banco: 4 recorrentes, 1 projeto, bate com o esperado.
+
+Deployado (`8eb28fb`).
+
+**Antes desse desvio**: pedido explícito — "no financeiro todos os blocos e o gráfico devem
 ser clicáveis para ver mais informações das entradas". Mesmo padrão já usado no Dashboard
 (`CardWithDetail`/`ChartExpandDialog`/`DetailList`, `components/dashboard/`), aplicado à aba
 Visão Geral do Financeiro: os 7 blocos (MRR, Receita este mês, Despesas este mês, A receber
