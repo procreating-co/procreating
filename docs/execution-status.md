@@ -3,7 +3,19 @@
 Documento de retomada. Se você é uma sessão nova retomando isto, comece por aqui antes de reler
 o histórico inteiro — este arquivo é a fonte da verdade, não a memória de conversa de ninguém.
 
-**Atualização mais recente**: o MCP do Supabase reconectou nesta sessão — voltei no item 3 da
+**Atualização mais recente**: bug reportado pelo usuário — "fechei um cliente, o valor não
+apareceu no Dashboard/Financeiro". Verificação direta no banco (Supabase MCP, `execute_sql`)
+confirmou que o dado sempre esteve correto (cliente, contrato recorrente R$4.000/mês com
+`category=recorrente_ativo`, 5 linhas de receita projetada — tudo gravado certo pela RPC
+`close_lead_and_create_client`). Não era bug de dado. Causa real: `closeLeadAction`
+(`lib/onboarding/actions.ts`) era o único Server Action de escrita do app sem nenhum
+`revalidatePath` — os dois pontos que abrem o `OnboardingModal` (soltar em "Fechado" no Kanban,
+Quick Add) navegam pro cliente novo com `router.push` sem `router.refresh()`, então o Router
+Cache do Next seguia servindo o payload antigo de Home/Financeiro/Comercial/Clientes. Corrigido
+adicionando `revalidatePath` pra `/`, `/financeiro`, `/comercial`, `/clientes`,
+`/clientes/[id]` — mesma convenção usada em todo o resto do código. Deployado (`6632a1c`).
+
+**Antes disso**: o MCP do Supabase reconectou nesta sessão — voltei no item 3 da
 auditoria (RLS Client Hub) pra rodar o linter de segurança de verdade (`get_advisors`), que antes
 só tinha sido investigado por grep. Confirmou o achado anterior (zero uso do ERP nas 8 tabelas) e
 trouxe 3 achados novos, revisados com julgamento, não "consertados automaticamente": 2 são
