@@ -62,7 +62,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
 
   return (
     <main className="mx-auto flex max-w-[1400px] flex-col gap-10 px-6 pt-8 pb-16 lg:px-10">
-      <DashboardDateHeader goal={metrics.goal} />
+      <DashboardDateHeader goal={metrics.goal} canView={canView} />
 
       {/* Linha de KPIs — pedido explícito: "os blocos devem ser Receita, Receita Recorrente,
        *  Lucro Líquido, Salário". Pipeline/Fluxo de Caixa/Clientes Recorrentes/Projetos saíram
