@@ -92,4 +92,8 @@ export type FinanceiroMetrics = {
   projectedCashFlow30Entries: FinancialDetailEntry[];
   projectedCashFlow60Entries: FinancialDetailEntry[];
   projectedCashFlow90Entries: FinancialDetailEntry[];
+  /** Bloco 4 item 1 — contrato recorrente vencendo sem renovação automática, dentro da janela de
+   *  alerta (`CONTRACT_RENEWAL_ALERT_DAYS`, lib/financeiro/queries.ts). Alimenta a Faixa de
+   *  atenção. */
+  contractsExpiringEntries: FinancialDetailEntry[];
 };

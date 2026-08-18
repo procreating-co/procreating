@@ -33,6 +33,12 @@ function monthKeysThrough(fromMonthKey: string, toYear: number, toMonth: number)
  *  constante fixa aqui. */
 const FALLBACK_RECEIVABLES_ALERT_DAYS = 5;
 
+/** Bloco 4 item 1 (redesign) — janela de alerta pra "contrato recorrente vencendo sem renovação
+ *  automática". Constante nomeada (não configurável em Regras financeiras ainda — decisão desta
+ *  rodada, ver comentário no ponto de uso) pra ser fácil de ajustar depois sem precisar achar o
+ *  número no meio da função. */
+const CONTRACT_RENEWAL_ALERT_DAYS = 30;
+
 export async function listRevenue(): Promise<Revenue[]> {
   const supabase = await createClient();
   const { data } = await supabase.from("revenue").select("*").order("due_date");
@@ -216,6 +222,24 @@ export async function computeFinanceiroMetrics(evolutionMonths = 6): Promise<Fin
       meta: `${row.category} · ${row.status === "atrasado" ? "venceu" : "vence"} ${formatDateOnly(row.due_date)}`,
     }));
 
+  // Bloco 4 item 1 (redesign) — contrato recorrente vencendo sem renovação automática, dentro da
+  // janela de alerta. Reaproveita `activeRecurringContracts` (já buscado acima), nenhuma query
+  // nova. Janela: constante nomeada própria (`CONTRACT_RENEWAL_ALERT_DAYS`) — decisão desta
+  // rodada, não reaproveitei `financial_rules.receivables_alert_days` porque é um conceito
+  // diferente (aquele é sobre RECEBÍVEIS vencendo, este é sobre CONTRATO acabando); reaproveitar
+  // a mesma coluna pra dois significados diferentes confundiria mais do que ajudaria.
+  const contractRenewalCutoff = addDaysISO(today, CONTRACT_RENEWAL_ALERT_DAYS);
+  const contractsExpiringWithoutRenewal = (activeRecurringContracts ?? []).filter(
+    (contract) => !contract.auto_renew && contract.end_date != null && contract.end_date >= today && contract.end_date <= contractRenewalCutoff,
+  );
+  const contractsExpiringEntries: FinancialDetailEntry[] = [...contractsExpiringWithoutRenewal]
+    .sort((a, b) => (a.end_date ?? "").localeCompare(b.end_date ?? ""))
+    .map((contract) => ({
+      label: clientNameById.get(contract.client_id) ?? "Cliente removido",
+      value: `${currency.format(Number(contract.monthly_value ?? 0))}/mês`,
+      meta: `Vence ${formatDateOnly(contract.end_date!)} · sem renovação automática`,
+    }));
+
   // "A receber (até <ano>)" — projeção de todo cliente com contrato recorrente ativo, mês a mês,
   // até dezembro do ano corrente + 1 (não "2027" hardcoded — ver comentário mais abaixo). Bug
   // real corrigido aqui (reportado pelo usuário: "só aparece a Elenita"): a versão anterior só
@@ -288,5 +312,6 @@ export async function computeFinanceiroMetrics(evolutionMonths = 6): Promise<Fin
     projectedCashFlow30Entries: cashFlow30.entries,
     projectedCashFlow60Entries: cashFlow60.entries,
     projectedCashFlow90Entries: cashFlow90.entries,
+    contractsExpiringEntries,
   };
 }

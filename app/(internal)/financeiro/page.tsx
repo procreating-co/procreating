@@ -77,8 +77,7 @@ export default async function FinanceiroPage({
   const costsMonthlyTotal = costs.reduce((sum, cost) => sum + Number(cost.amount), 0);
 
   // Faixa de atenção (Bloco 2) — junta atrasados de A Receber e A Pagar, dado que
-  // `computeFinanceiroMetrics` já calcula (nenhuma query nova). Bloco 4 item 1 (contrato
-  // vencendo sem renovação) soma a este mesmo array quando implementado.
+  // `computeFinanceiroMetrics` já calcula (nenhuma query nova).
   const financialAttention: { label: string; amount: string; href: string }[] = [];
   if (metrics.receivablesOverdueEntries.length > 0) {
     const count = metrics.receivablesOverdueEntries.length;
@@ -94,6 +93,17 @@ export default async function FinanceiroPage({
       label: `${count} conta${count === 1 ? "" : "s"} a pagar atrasada${count === 1 ? "" : "s"}`,
       amount: currencyFormatter.format(metrics.payablesOverdue),
       href: "#a-pagar",
+    });
+  }
+  // Bloco 4 item 1 — contrato recorrente vencendo sem renovação automática, dentro de
+  // CONTRACT_RENEWAL_ALERT_DAYS. Sem seção própria nesta página pra linkar — manda pra Clientes,
+  // onde o contrato de fato é gerenciado.
+  if (metrics.contractsExpiringEntries.length > 0) {
+    const count = metrics.contractsExpiringEntries.length;
+    financialAttention.push({
+      label: `${count} contrato${count === 1 ? "" : "s"} recorrente${count === 1 ? "" : "s"} vencendo sem renovação automática`,
+      amount: "",
+      href: "/clientes",
     });
   }
 
@@ -289,7 +299,7 @@ export default async function FinanceiroPage({
       <section className="flex flex-col gap-4">
         <SectionHeader title="Atenção agora" />
         {financialAttention.length === 0 ? (
-          <EmptyInline icon={AlertTriangle} label="Nada atrasado no momento." />
+          <EmptyInline icon={AlertTriangle} label="Nada precisa de atenção agora." />
         ) : (
           <ul className="flex flex-col divide-y divide-border/60 rounded-xl border border-border/60 bg-card">
             {financialAttention.map((item) => (
@@ -297,7 +307,7 @@ export default async function FinanceiroPage({
                 <Link href={item.href} className="flex items-center justify-between gap-3 px-5 py-3.5 text-sm transition-colors hover:bg-foreground/[0.03]">
                   <span>{item.label}</span>
                   <span className="flex items-center gap-2 shrink-0">
-                    <span className="tabular-nums text-danger">{item.amount}</span>
+                    {item.amount && <span className="tabular-nums text-danger">{item.amount}</span>}
                     <ArrowRight className="size-4 text-muted-foreground" />
                   </span>
                 </Link>
