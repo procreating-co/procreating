@@ -17,6 +17,21 @@ alimentava o bloco, em `computeFinanceiroMetrics` (`lib/financeiro/queries.ts`).
 entradas por trás pra mostrar) — se o pedido for pra cobrir ela também, é extensão rápida do
 mesmo padrão. Deployado (`9db749f`).
 
+**Depois disso, mais 2 rodadas na mesma sessão**:
+
+1. Comercial ganhou o mesmo clique-pra-detalhe (`f2e9e7e`) — Comercial era a última tela com
+   `StatTile` sem `CardWithDetail`, extensão direta do pedido original pra deixar Dashboard/
+   Financeiro/Comercial consistentes. `computeComercialMetrics` (`lib/comercial/metrics.ts`)
+   ganhou os campos de entrada; a query de "Fechados" deixou de ser `head: true` (só contagem)
+   pra trazer as linhas reais.
+2. 3 pedidos pontuais no Financeiro (`4547801`): bloco novo "Caixa Operacional" (20%/regra
+   configurável da receita bruta, mesma conta da aba Distribuição, agora também na Visão Geral);
+   bloco novo "Salário dos Sócios" (distribuível ÷ 2, divisão FIXA por pedido explícito —
+   descrição do card avisa que isso pode divergir da divisão configurável por sócio da aba
+   Distribuição, de propósito, pra não confundir depois); "A receber (pendente)" renomeado pra
+   "A receber (até &lt;ano&gt;)" e re-escopado só a clientes com contrato recorrente ativo, corte
+   em "ano corrente + 1" (não "2027" hardcoded — fica certo sozinho ano que vem).
+
 Nessa mesma janela, o usuário reportou de novo "o valor da Elenita não entrou" — investiguei ao
 vivo no banco: MRR (R$14.900) e Receita este mês (R$18.640) no Financeiro JÁ incluem os R$4.000
 dela: são a soma de todo contrato/lançamento não-cancelado, pago ou não. O card "Receita" do
