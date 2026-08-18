@@ -69,13 +69,15 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
        *  desta linha especificamente (os cálculos continuam existindo e aparecem em outras
        *  seções da página, não foram apagados). */}
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {/* Pedido explícito — todo bloco no tamanho padrão: `MetricCard` cresce quando recebe
+         *  `sparkline` (só Receita/Lucro Líquido tinham); os 4 ficam com a mesma forma simples
+         *  agora (ícone + label + valor), nenhum cresce sozinho por ter um extra que os outros
+         *  não têm. */}
         <CardWithDetail title="Receita" description="Receita deste mês — mesmo número do Financeiro." detail={<DetailList items={maskEntries(d.revenueEntries, canView)} emptyLabel="Nenhuma receita com vencimento este mês ainda." />}>
           <MetricCard
             icon={<TrendingUp className="size-3.5" />}
             label="Receita"
             value={money(metrics.kpis.revenue.value)}
-            sparkline={metrics.kpis.revenue.sparkline}
-            delta={metrics.kpis.revenue.deltaPct != null ? { value: percentFormatter(Math.abs(metrics.kpis.revenue.deltaPct)), direction: metrics.kpis.revenue.deltaPct >= 0 ? "up" : "down" } : undefined}
             tone={metrics.kpis.revenue.deltaPct == null ? "info" : metrics.kpis.revenue.deltaPct >= 0 ? "success" : "danger"}
           />
         </CardWithDetail>
@@ -100,17 +102,11 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
             />
           }
         >
-          <MetricCard
-            icon={<Wallet className="size-3.5" />}
-            label="Lucro Líquido"
-            value={money(metrics.kpis.netProfit.value)}
-            sparkline={metrics.kpis.netProfit.sparkline}
-            tone={metrics.kpis.netProfit.value >= 0 ? "success" : "danger"}
-          />
+          <MetricCard icon={<Wallet className="size-3.5" />} label="Lucro Líquido" value={money(metrics.kpis.netProfit.value)} tone={metrics.kpis.netProfit.value >= 0 ? "success" : "danger"} />
         </CardWithDetail>
         <CardWithDetail
-          title="Salário"
-          description="Distribuível (receita − operacional) dividido por 2 — mesma conta do bloco Salário no Financeiro."
+          title="Pró-labore"
+          description="Distribuível (receita − operacional) dividido por 2 — mesma conta do bloco Pró-labore no Financeiro."
           detail={
             <DetailList
               items={[
@@ -121,7 +117,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
             />
           }
         >
-          <MetricCard icon={<Banknote className="size-3.5" />} label="Salário (cada sócio)" value={money(metrics.kpis.partnerSalary.value)} tone="success" />
+          <MetricCard icon={<Banknote className="size-3.5" />} label="Pró-labore (cada sócio)" value={money(metrics.kpis.partnerSalary.value)} tone="success" />
         </CardWithDetail>
       </section>
 

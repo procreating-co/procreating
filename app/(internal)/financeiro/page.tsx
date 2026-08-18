@@ -195,7 +195,7 @@ export default async function FinanceiroPage({
             </CardWithDetail>
           </div>
           <CardWithDetail
-            title="Salário"
+            title="Pró-labore"
             description="Distribuível (receita − operacional) dividido por 2 — divisão fixa, diferente da regra configurável (por sócio) da Distribuição."
             detail={
               <DetailList
@@ -207,7 +207,7 @@ export default async function FinanceiroPage({
               />
             }
           >
-            <StatTile demo={false} label="Salário (cada sócio)" value={money(partnerSalaryEach)} icon={<DollarSign className="size-4.5" />} tone="success" />
+            <StatTile demo={false} label="Pró-labore (cada sócio)" value={money(partnerSalaryEach)} icon={<DollarSign className="size-4.5" />} tone="success" />
           </CardWithDetail>
           <CardWithDetail
             title="Caixa Operacional"

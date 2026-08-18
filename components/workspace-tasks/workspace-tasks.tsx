@@ -71,18 +71,18 @@ export function WorkspaceTasks({ tasks, userId, teamMembers }: { tasks: Task[]; 
   }
 
   const pending = tasks.filter((t) => t.status !== "done");
-  const done = tasks.filter((t) => t.status === "done");
+  // Pedido explícito — "Concluídas" mostra no máximo 3, o resto some da lista (a tarefa continua
+  // existindo/contando em qualquer relatório, só não ocupa espaço aqui depois das 3 mais
+  // recentes).
+  const done = tasks.filter((t) => t.status === "done").slice(0, 3);
 
   return (
     <div className="flex flex-col gap-8">
       <form onSubmit={handleCreate} className="flex flex-col gap-2 rounded-xl border border-border/60 bg-card/40 p-5">
         <div className="flex items-center gap-3">
-          <Input
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder='"Editar vídeo amanhã às 15h" ou "@Eduardo ligar pro cliente sexta"'
-            className="flex-1"
-          />
+          {/* Pedido explícito — minimalista, sem o par de exemplos completo no placeholder
+           *  (poluía visualmente); o parser continua entendendo data/hora/responsável igual. */}
+          <Input value={text} onChange={(e) => setText(e.target.value)} placeholder="Nova tarefa..." className="flex-1" />
           <Button type="submit" disabled={isPending || !text.trim()} className="shrink-0 gap-2">
             <Plus className="size-4" />
             Adicionar
