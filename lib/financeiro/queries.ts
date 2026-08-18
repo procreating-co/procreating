@@ -237,6 +237,18 @@ export async function computeFinanceiroMetrics(evolutionMonths = 6): Promise<Fin
     .sort((a, b) => a.due_date.localeCompare(b.due_date))
     .map((row) => ({ label: row.description, value: currency.format(Number(row.amount)), meta: `${row.category} · venceu ${formatDateOnly(row.due_date)}` }));
 
+  // Bloco 4 item 3 (redesign) — receita sem contrato vinculado, anomalia de cadastro (lançamento
+  // manual sem passar pelo onboarding, ou contrato apagado depois). Não é urgente como atraso —
+  // card próprio, tom neutro, não entra na Faixa de atenção.
+  const revenueWithoutContractEntries: FinancialDetailEntry[] = revenue
+    .filter((row) => row.contract_id == null)
+    .sort((a, b) => b.due_date.localeCompare(a.due_date))
+    .map((row) => ({
+      label: (row.client_id && clientNameById.get(row.client_id)) || "Sem cliente vinculado",
+      value: currency.format(Number(row.amount)),
+      meta: `${row.description} · ${STATUS_LABEL[row.status]} · ${formatDateOnly(row.due_date)}`,
+    }));
+
   const payablesEntries: FinancialDetailEntry[] = expenses
     .filter((row) => row.status === "pendente" || row.status === "atrasado")
     .sort((a, b) => a.due_date.localeCompare(b.due_date))
@@ -338,5 +350,6 @@ export async function computeFinanceiroMetrics(evolutionMonths = 6): Promise<Fin
     projectedCashFlow90Entries: cashFlow90.entries,
     contractsExpiringEntries,
     goal,
+    revenueWithoutContractEntries,
   };
 }

@@ -106,4 +106,7 @@ export type FinanceiroMetrics = {
   /** Bloco 4 item 2 — mesma meta/progresso que já alimenta "Receita vs Meta" na Home
    *  (`lib/dashboard/goals.ts`), `null` se ninguém definiu meta pro mês. */
   goal: GoalProgress | null;
+  /** Bloco 4 item 3 — receita sem contrato vinculado (`contract_id is null`). Anomalia de
+   *  cadastro, não urgência — card próprio, tom neutro. */
+  revenueWithoutContractEntries: FinancialDetailEntry[];
 };

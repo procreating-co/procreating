@@ -311,6 +311,24 @@ export default async function FinanceiroPage({
             </div>
           </div>
         )}
+
+        {/* Bloco 4 item 3 — receita sem contrato vinculado, anomalia de cadastro (não urgência
+         *  como atraso, mas não pode sumir). Tom neutro de propósito — diferente do
+         *  dashed-brand acima (oportunidade) e do vermelho da Faixa de atenção (urgente). */}
+        {metrics.revenueWithoutContractEntries.length > 0 && (
+          <CardWithDetail
+            title="Receita sem contrato vinculado"
+            description="Lançamento manual sem passar pelo onboarding, ou contrato removido depois — vale conferir."
+            detail={<DetailList items={metrics.revenueWithoutContractEntries} emptyLabel="Nenhuma." />}
+          >
+            <div className="flex items-center justify-between gap-4 rounded-xl border border-dashed border-border bg-card/40 p-5 text-left">
+              <span className="text-sm text-muted-foreground">
+                {metrics.revenueWithoutContractEntries.length} lançamento{metrics.revenueWithoutContractEntries.length === 1 ? "" : "s"} de receita sem contrato vinculado
+              </span>
+              <ArrowRight className="size-4 shrink-0 text-muted-foreground" />
+            </div>
+          </CardWithDetail>
+        )}
       </section>
 
       {/* Faixa de atenção (Bloco 2 do redesign) — mesmo padrão visual/componente de "Atenção
