@@ -5,17 +5,21 @@ import type { ClientsOverview } from "@/lib/clientes/queries";
  * MESMO `ClientsOverview` já carregado pra página inteira (nunca uma segunda query em paralelo
  * pro mesmo tipo de número, mesmo raciocínio já aplicado no resto do produto: "Dashboard deve
  * ser o resultado do Financeiro"). Sem mock — os 4 valores existem de verdade no banco hoje.
+ *
+ * "Clientes recorrentes" saiu daqui (era igual a "Total de clientes" sempre, desde que
+ * `listClientsOverview` passou a filtrar só recorrentes — número duplicado lado a lado) — virou
+ * "Em atenção", genuinamente outro recorte (quem, dentro dos recorrentes, está sinalizado).
  */
 export function ClientsMetricsStrip({ overview }: { overview: ClientsOverview }) {
   const { rows, activeContractsCount } = overview;
   const activeClients = rows.filter((row) => row.client.status === "ativo").length;
-  const recurringClients = rows.filter((row) => row.categories.includes("recorrente_ativo")).length;
+  const needsAttention = rows.filter((row) => row.client.status === "atencao" || row.client.status === "risco").length;
 
   const items = [
     { label: "Clientes ativos", value: activeClients },
-    { label: "Clientes recorrentes", value: recurringClients },
+    { label: "Em atenção", value: needsAttention },
     { label: "Contratos pontuais em andamento", value: activeContractsCount },
-    { label: "Total de clientes", value: rows.length },
+    { label: "Total de clientes recorrentes", value: rows.length },
   ];
 
   return (

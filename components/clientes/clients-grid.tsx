@@ -7,13 +7,12 @@ import { ClientCard } from "@/components/clientes/client-card";
 import { cn } from "@/lib/utils";
 import type { ClientCardData } from "@/lib/clientes/queries";
 
-type StatusFilter = "all" | "ativo" | "recorrente" | "atencao";
+type StatusFilter = "all" | "ativo" | "atencao";
 type SortKey = "recent" | "oldest" | "most_projects" | "name";
 
 const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
   { value: "all", label: "Todos" },
   { value: "ativo", label: "Ativos" },
-  { value: "recorrente", label: "Recorrentes" },
   { value: "atencao", label: "Em atenção" },
 ];
 
@@ -32,12 +31,12 @@ const SORT_OPTIONS: { value: SortKey; label: string }[] = [
  * cabe folgado: é a lista de clientes da empresa, não um dataset que justifique paginação/busca
  * no banco por enquanto.
  *
- * `rows` já chega filtrada (só ativos/recorrentes — pedido explícito, `listClientsOverview` em
- * `lib/clientes/queries.ts`), então não existe mais chip "Churn" aqui — seria sempre vazio por
- * definição. "Em atenção" continua útil: um cliente recorrente pode estar nesse status sem sair
- * do recorte ativo/recorrente (é justamente quem precisa de olho). "Arquivados" do pedido
- * original não tem status próprio no domínio real — a ação "Arquivar" no drawer marca
- * `status='churn'`, que some daqui automaticamente (mesmo filtro da query).
+ * `rows` já chega filtrada (só RECORRENTES — pedido explícito, corrigido: a versão anterior
+ * também deixava passar clientes só-pontuais com `status='ativo'`, ex. Pascoal Bombas/Maria das
+ * Graças, que são projeto único, não devem aparecer aqui). Chip "Recorrentes" saiu do filtro —
+ * seria sempre igual a "Todos" agora, por definição; "Churn" já não existia por esse mesmo
+ * motivo. "Em atenção" continua útil: um recorrente pode estar nesse status sem sair do recorte
+ * (é justamente quem precisa de olho).
  */
 export function ClientsGrid({ rows }: { rows: ClientCardData[] }) {
   const [query, setQuery] = useState("");
@@ -52,9 +51,7 @@ export function ClientsGrid({ rows }: { rows: ClientCardData[] }) {
         row.client.name.toLowerCase().includes(normalized) ||
         row.client.slug.toLowerCase().includes(normalized) ||
         (row.client.segment ?? "").toLowerCase().includes(normalized);
-      const matchesStatus =
-        status === "all" ||
-        (status === "recorrente" ? row.categories.includes("recorrente_ativo") : row.client.status === status);
+      const matchesStatus = status === "all" || row.client.status === status;
       return matchesQuery && matchesStatus;
     });
 

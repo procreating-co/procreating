@@ -37,15 +37,18 @@ export async function listClientsWithCategories(): Promise<ClientWithCategories[
 export type ClientCardData = { client: Client; categories: ContractCategory[]; contractCount: number };
 export type ClientsOverview = { rows: ClientCardData[]; activeContractsCount: number };
 
-/** `/clientes` (Central de Clientes) — pedido explícito: só clientes ATIVOS ou RECORRENTES
- *  aparecem aqui (lead/onboarding/risco/churn ficam de fora — a página é sobre quem está de pé
- *  hoje, não o histórico completo da base). "Recorrente" = tem pelo menos um contrato
- *  `recorrente_ativo`, mesmo que `client.status` não seja `ativo` (ex.: um recorrente marcado
- *  `atencao` continua aparecendo — é exatamente o tipo de cliente que precisa de olho, esconder
- *  seria pior). Filtro aplicado AQUI, não no componente, pra `activeContractsCount` bater com o
- *  mesmo recorte de `rows` — nunca dois números diferentes pro mesmo conceito na mesma tela.
- *  `contractCount` pro card "N projetos"/"Cliente recorrente". Mesmas 2 queries de sempre,
- *  nenhuma nova — tudo calculado em cima do mesmo `contracts` já buscado, sem N+1. */
+/** `/clientes` (Central de Clientes) — pedido explícito, corrigido nesta rodada: só clientes
+ *  RECORRENTES aparecem aqui (tem pelo menos um contrato `recorrente_ativo`). Versão anterior
+ *  também deixava passar `client.status === "ativo"` sozinho, o que trazia junto clientes
+ *  pontuais-only (achado real: Pascoal Bombas, Maria das Graças — projeto único, `ativo`, sem
+ *  nenhum contrato recorrente) — "são projetos, não devem aparecer junto dos clientes". Um
+ *  cliente pontual continua existindo/editável em `/clientes/[id]` direto (nunca apagado), só
+ *  não entra nesta lista. Um recorrente marcado `atencao`/`risco` (não `ativo`) continua
+ *  aparecendo — é exatamente quem precisa de olho, esconder seria pior. Filtro aplicado AQUI, não
+ *  no componente, pra `activeContractsCount` bater com o mesmo recorte de `rows` — nunca dois
+ *  números diferentes pro mesmo conceito na mesma tela. `contractCount` pro card "N projetos".
+ *  Mesmas 2 queries de sempre, nenhuma nova — tudo calculado em cima do mesmo `contracts` já
+ *  buscado, sem N+1. */
 export async function listClientsOverview(): Promise<ClientsOverview> {
   const supabase = await createClient();
   const [{ data: clients }, { data: contracts }] = await Promise.all([
@@ -66,7 +69,7 @@ export async function listClientsOverview(): Promise<ClientsOverview> {
       const entry = byClient.get(client.id);
       return { client, categories: Array.from(entry?.categories ?? []), contractCount: entry?.count ?? 0 };
     })
-    .filter((row) => row.client.status === "ativo" || row.categories.includes("recorrente_ativo"));
+    .filter((row) => row.categories.includes("recorrente_ativo"));
 
   const visibleClientIds = new Set(rows.map((row) => row.client.id));
   let activeContractsCount = 0;

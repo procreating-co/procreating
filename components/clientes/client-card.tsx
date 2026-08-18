@@ -52,7 +52,6 @@ function initials(name: string): string {
  */
 export function ClientCard({ data }: { data: ClientCardData }) {
   const { client, categories, contractCount } = data;
-  const isRecurring = categories.includes("recorrente_ativo");
 
   return (
     <Link
@@ -71,10 +70,10 @@ export function ClientCard({ data }: { data: ClientCardData }) {
       </div>
 
       <div className="flex flex-col gap-1 text-sm">
-        <p className="text-muted-foreground">
-          {contractCount === 0 ? "Sem contrato ainda" : contractCount === 1 ? "1 projeto" : `${contractCount} projetos`}
-          {isRecurring && " · Cliente recorrente"}
-        </p>
+        {/* "Cliente recorrente" saiu daqui — todo card nesta lista já É recorrente por definição
+         *  (filtro em `listClientsOverview`), repetir isso em toda linha seria redundante com o
+         *  badge "Recorrente Ativo" logo abaixo. */}
+        <p className="text-muted-foreground">{contractCount === 0 ? "Sem contrato ainda" : contractCount === 1 ? "1 projeto" : `${contractCount} projetos`}</p>
         {categories.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
             {categories.map((category) => (
