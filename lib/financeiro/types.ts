@@ -109,4 +109,9 @@ export type FinanceiroMetrics = {
   /** Bloco 4 item 3 — receita sem contrato vinculado (`contract_id is null`). Anomalia de
    *  cadastro, não urgência — card próprio, tom neutro. */
   revenueWithoutContractEntries: FinancialDetailEntry[];
+  /** Bloco 4 item 4 — % do MRR nos 5 maiores clientes. `null` se não houver MRR nenhum ainda.
+   *  Acima de `CONCENTRATION_RISK_THRESHOLD_PCT` (lib/financeiro/queries.ts) vira alerta na
+   *  Faixa de atenção. */
+  mrrConcentrationTop5Pct: number | null;
+  mrrConcentrationEntries: FinancialDetailEntry[];
 };

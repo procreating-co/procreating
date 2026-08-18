@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AlertTriangle, ArrowDownCircle, ArrowRight, ArrowUpCircle, CalendarClock, Clock, DollarSign, LineChart, PiggyBank, Settings2, ShieldAlert, TrendingUp, Wallet } from "lucide-react";
-import { computeFinanceiroMetrics, listCosts, listExpenses, listRevenue } from "@/lib/financeiro/queries";
+import { CONCENTRATION_RISK_THRESHOLD_PCT, computeFinanceiroMetrics, listCosts, listExpenses, listRevenue } from "@/lib/financeiro/queries";
 import { computeDistribution } from "@/lib/financeiro/rules";
 import { updateRevenueStatusAction } from "@/lib/financeiro/actions";
 import { requireFinancialAccess } from "@/lib/auth/permissions";
@@ -106,6 +106,15 @@ export default async function FinanceiroPage({
       href: "/clientes",
     });
   }
+  // Bloco 4 item 4 — concentração de risco: acima do limiar, o MRR depende demais de poucos
+  // clientes pra ser só um número neutro no bloco.
+  if (metrics.mrrConcentrationTop5Pct != null && metrics.mrrConcentrationTop5Pct > CONCENTRATION_RISK_THRESHOLD_PCT) {
+    financialAttention.push({
+      label: `Concentração de risco: ${metrics.mrrConcentrationTop5Pct.toFixed(0)}% do MRR nos 5 maiores clientes`,
+      amount: "",
+      href: "#receita-recorrente-mensal",
+    });
+  }
 
   const receivablesOtherParams = new URLSearchParams();
   if (payablesStatusParam === "todas") receivablesOtherParams.set("payablesStatus", "todas");
@@ -152,13 +161,15 @@ export default async function FinanceiroPage({
           >
             <StatTile demo={false} label="Receita do Mês" value={currencyFormatter.format(metrics.revenueThisMonth)} icon={<ArrowUpCircle className="size-4.5" />} tone="success" />
           </CardWithDetail>
-          <CardWithDetail
-            title="Receita Recorrente Mensal"
-            description="Contratos recorrentes ativos, um por cliente."
-            detail={<DetailList items={metrics.mrrEntries} emptyLabel="Nenhum contrato recorrente ativo ainda." />}
-          >
-            <StatTile demo={false} label="Receita Recorrente Mensal" value={currencyFormatter.format(metrics.mrr)} icon={<TrendingUp className="size-4.5" />} tone="brand" />
-          </CardWithDetail>
+          <div id="receita-recorrente-mensal" className="scroll-mt-20">
+            <CardWithDetail
+              title="Receita Recorrente Mensal"
+              description="Contratos recorrentes ativos, um por cliente."
+              detail={<DetailList items={metrics.mrrEntries} emptyLabel="Nenhum contrato recorrente ativo ainda." />}
+            >
+              <StatTile demo={false} label="Receita Recorrente Mensal" value={currencyFormatter.format(metrics.mrr)} icon={<TrendingUp className="size-4.5" />} tone="brand" />
+            </CardWithDetail>
+          </div>
           <CardWithDetail
             title="Salário"
             description="Distribuível (receita − operacional) dividido por 2 — divisão fixa, diferente da regra configurável (por sócio) da Distribuição."

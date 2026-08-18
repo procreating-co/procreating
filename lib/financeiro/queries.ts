@@ -1,7 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { addDaysISO, currentMonthKey, daysInMonth, formatDateOnly, lastMonthKeys, monthKeyOf, todayISO, todayParts } from "@/lib/date";
-import { computeMargin, computeMrr, computeUpcomingReceivables, groupRevenueByClient, sumAmount, sumAmountForMonth } from "@/lib/financeiro/calculations";
+import { computeMargin, computeMrr, computeTopClientConcentration, computeUpcomingReceivables, groupRevenueByClient, sumAmount, sumAmountForMonth } from "@/lib/financeiro/calculations";
 import { getCurrentMonthGoal, sumRealizedRevenue, type GoalProgress } from "@/lib/dashboard/goals";
 import type { Cost, Expense, FinancialEntryStatus, Revenue } from "@/lib/supabase/types/database";
 import type { FinanceiroMetrics, FinancialDetailEntry, MonthlyEvolutionPoint, PipelineOpportunity } from "@/lib/financeiro/types";
@@ -39,6 +39,11 @@ const FALLBACK_RECEIVABLES_ALERT_DAYS = 5;
  *  rodada, ver comentário no ponto de uso) pra ser fácil de ajustar depois sem precisar achar o
  *  número no meio da função. */
 const CONTRACT_RENEWAL_ALERT_DAYS = 30;
+
+/** Bloco 4 item 4 (redesign) — % do MRR nos 5 maiores clientes acima do qual vira alerta de
+ *  concentração de risco. Constante nomeada, fácil de ajustar depois. Exportada — `page.tsx`
+ *  usa o mesmo valor pra montar o item da Faixa de atenção. */
+export const CONCENTRATION_RISK_THRESHOLD_PCT = 40;
 
 export async function listRevenue(): Promise<Revenue[]> {
   const supabase = await createClient();
@@ -116,6 +121,17 @@ export async function computeFinanceiroMetrics(evolutionMonths = 6): Promise<Fin
     : { data: [] };
 
   const mrr = computeMrr(activeRecurringContracts ?? []);
+
+  // Bloco 4 item 4 (redesign) — concentração de risco: quanto do MRR está nos 5 maiores
+  // clientes. Mesma função de `lib/dashboard/executive-metrics.ts` (Home), aqui alimentada só
+  // pelos contratos recorrentes ativos (mesmo escopo de MRR desta página — Home mistura pontual
+  // também, por ser uma visão geral de negócio, não só recorrência). Acima de
+  // CONCENTRATION_RISK_THRESHOLD_PCT vira alerta na Faixa de atenção, não só número neutro.
+  const mrrByClient = new Map<string, number>();
+  for (const contract of activeRecurringContracts ?? []) {
+    mrrByClient.set(contract.client_id, (mrrByClient.get(contract.client_id) ?? 0) + Number(contract.monthly_value ?? 0));
+  }
+  const { top5Percentage: mrrConcentrationTop5Pct, ranked: mrrConcentrationRanked } = computeTopClientConcentration(mrrByClient, clientNameById);
 
   // `cancelado` = cobrança que existiu mas nunca vai ser recebida (write-off) — não é receita do
   // mês nem da evolução histórica, mas o registro em si fica (auditoria). Excluído de toda soma
@@ -351,5 +367,7 @@ export async function computeFinanceiroMetrics(evolutionMonths = 6): Promise<Fin
     contractsExpiringEntries,
     goal,
     revenueWithoutContractEntries,
+    mrrConcentrationTop5Pct,
+    mrrConcentrationEntries: mrrConcentrationRanked.map((row) => ({ label: row.clientName, value: currency.format(row.amount), meta: `${row.percentage.toFixed(1)}% do MRR` })),
   };
 }

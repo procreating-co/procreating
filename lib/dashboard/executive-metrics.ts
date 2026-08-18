@@ -4,6 +4,7 @@ import { getCurrentMonthGoal, sumRealizedRevenue, type GoalProgress } from "@/li
 import { computeComercialMetrics } from "@/lib/comercial/metrics";
 import { listPipelineStages } from "@/lib/comercial/queries";
 import { computeFinanceiroMetrics } from "@/lib/financeiro/queries";
+import { computeTopClientConcentration } from "@/lib/financeiro/calculations";
 import { dayOfMonthOf, daysInMonth, todayUTCAnchor } from "@/lib/date";
 import type { Client, Contract, Lead } from "@/lib/supabase/types/database";
 import type { MonthlyEvolutionPoint } from "@/lib/financeiro/types";
@@ -280,20 +281,18 @@ export async function computeExecutiveDashboard(cashFlowMonths = 6): Promise<Exe
     const value = contract.type === "recorrente" ? Number(contract.monthly_value ?? 0) : Number(contract.total_value ?? 0);
     revenueByClient.set(contract.client_id, (revenueByClient.get(contract.client_id) ?? 0) + value);
   }
-  const clientRevenueValues = Array.from(revenueByClient.values()).sort((a, b) => b - a);
-  const totalClientRevenue = clientRevenueValues.reduce((sum, value) => sum + value, 0);
-  const top5Revenue = clientRevenueValues.slice(0, 5).reduce((sum, value) => sum + value, 0);
-  const concentrationTop5Pct = totalClientRevenue > 0 ? (top5Revenue / totalClientRevenue) * 100 : null;
-  const averageClientValue = clientRevenueValues.length > 0 ? totalClientRevenue / clientRevenueValues.length : null;
+  // Ranking + % do Top 5 — função compartilhada com o Financeiro (Bloco 4 item 4 do redesign,
+  // `lib/financeiro/calculations.ts`), mesma matemática, cada página decide só quais contratos
+  // entram no `revenueByClient` acima.
+  const { top5Percentage: concentrationTop5Pct, ranked: clientConcentrationRanked } = computeTopClientConcentration(revenueByClient, clientNameById);
+  const totalClientRevenue = clientConcentrationRanked.reduce((sum, row) => sum + row.amount, 0);
+  const averageClientValue = clientConcentrationRanked.length > 0 ? totalClientRevenue / clientConcentrationRanked.length : null;
 
-  const topClientsRanked = Array.from(revenueByClient.entries())
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map(([clientId, amount]) => ({
-      label: clientNameById.get(clientId) ?? "Cliente removido",
-      value: currency(amount),
-      meta: totalClientRevenue > 0 ? `${((amount / totalClientRevenue) * 100).toFixed(1)}%` : undefined,
-    }));
+  const topClientsRanked = clientConcentrationRanked.slice(0, 5).map((row) => ({
+    label: row.clientName,
+    value: currency(row.amount),
+    meta: totalClientRevenue > 0 ? `${row.percentage.toFixed(1)}%` : undefined,
+  }));
 
   // --- Attention required ---
   const overdueRevenueList = overdueRevenue ?? [];

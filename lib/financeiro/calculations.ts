@@ -44,6 +44,26 @@ export function groupRevenueByClient(rows: Pick<Revenue, "client_id" | "amount">
   return Array.from(amountByClient.values()).sort((a, b) => b.amount - a.amount);
 }
 
+export type ClientConcentration = { clientId: string; clientName: string; amount: number; percentage: number };
+
+/**
+ * Concentração de receita por cliente — ranking + % do Top 5 sobre o total. Mesma função usada
+ * no Dashboard (Home, `lib/dashboard/executive-metrics.ts`) e no Financeiro (Bloco 4 item 4 do
+ * redesign) — cada contexto decide QUAIS contratos entram no `valueByClient` (Home: todo
+ * contrato ativo, recorrente ou pontual; Financeiro: só recorrente ativo, mesmo escopo de MRR da
+ * página), mas a MATEMÁTICA (ranking, % do topo 5 sobre o total) é uma função só, não duas
+ * implementações que podem divergir.
+ */
+export function computeTopClientConcentration(valueByClient: Map<string, number>, clientNameById: Map<string, string>): { top5Percentage: number | null; ranked: ClientConcentration[] } {
+  const total = Array.from(valueByClient.values()).reduce((sum, value) => sum + value, 0);
+  const ranked = Array.from(valueByClient.entries())
+    .map(([clientId, amount]) => ({ clientId, clientName: clientNameById.get(clientId) ?? "Cliente removido", amount, percentage: total > 0 ? (amount / total) * 100 : 0 }))
+    .sort((a, b) => b.amount - a.amount);
+  const top5Amount = ranked.slice(0, 5).reduce((sum, row) => sum + row.amount, 0);
+  const top5Percentage = total > 0 ? (top5Amount / total) * 100 : null;
+  return { top5Percentage, ranked };
+}
+
 /** Automação §72 regra 3 — contas a receber PENDENTES (nunca `atrasado`, que é um alerta à
  *  parte) vencendo entre hoje e hoje+`windowDays`. */
 export function computeUpcomingReceivables(
