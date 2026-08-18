@@ -1,10 +1,10 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentMonthGoal } from "@/lib/dashboard/goals";
+import { getCurrentMonthGoal, sumRealizedRevenue, type GoalProgress } from "@/lib/dashboard/goals";
 import { computeComercialMetrics } from "@/lib/comercial/metrics";
 import { listPipelineStages } from "@/lib/comercial/queries";
 import { computeFinanceiroMetrics } from "@/lib/financeiro/queries";
-import { dayOfMonthOf, todayUTCAnchor } from "@/lib/date";
+import { dayOfMonthOf, daysInMonth, todayUTCAnchor } from "@/lib/date";
 import type { Client, Contract, Lead } from "@/lib/supabase/types/database";
 import type { MonthlyEvolutionPoint } from "@/lib/financeiro/types";
 
@@ -26,9 +26,11 @@ import type { MonthlyEvolutionPoint } from "@/lib/financeiro/types";
 // nunca os locais (`getFullYear`/`getMonth`/`getDate`/`new Date(y,m,d)`): misturar os dois é
 // exatamente o viés de fuso descrito em `lib/date.ts` — funciona só "por coincidência" quando o
 // runtime do servidor está em UTC (caso da Vercel hoje), quebra em qualquer outro fuso.
-function daysInMonth(year: number, monthIndex: number): number {
-  return new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate();
-}
+// `GoalProgress` reexportado por compatibilidade — quem já importava daqui (`dashboard-date-
+// header.tsx`) continua funcionando sem mudar o import; a definição real mora em `goals.ts`
+// agora (Financeiro também precisa, e `lib/financeiro` não pode depender deste arquivo — ele já
+// depende de `lib/financeiro/queries.ts`, seria import circular).
+export type { GoalProgress };
 
 function startOfMonth(date: Date): Date {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
@@ -41,8 +43,6 @@ function startOfPreviousMonth(date: Date): Date {
 function toISODate(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
-
-export type GoalProgress = { amount: number; realized: number; percentage: number; expectedPacePercentage: number };
 
 export type RevenueVsTargetPoint = { day: number; realized: number | null; pace: number };
 
@@ -112,14 +112,6 @@ const ROLE_LABEL: Record<string, string> = {
   production: "Produção",
   client: "Cliente",
 };
-
-/** Soma de `revenue.amount` com `status='pago'` cujo `paid_at` cai no intervalo — "realizado",
- *  não "previsto" (ver nota do módulo). */
-async function sumRealizedRevenue(fromISO: string, toISO: string): Promise<number> {
-  const supabase = await createClient();
-  const { data } = await supabase.from("revenue").select("amount").eq("status", "pago").gte("paid_at", fromISO).lt("paid_at", toISO);
-  return (data ?? []).reduce((sum, row) => sum + Number(row.amount), 0);
-}
 
 async function sumRealizedExpenses(fromISO: string, toISO: string): Promise<number> {
   const supabase = await createClient();
@@ -223,7 +215,7 @@ export async function computeExecutiveDashboard(cashFlowMonths = 6): Promise<Exe
   const clientNameById = new Map(clients.map((client) => [client.id, client.name]));
 
   // --- Goal / Revenue vs. Target ---
-  const daysThisMonth = daysInMonth(now.getUTCFullYear(), now.getUTCMonth());
+  const daysThisMonth = daysInMonth(now.getUTCFullYear(), now.getUTCMonth() + 1);
   const dayOfMonth = now.getUTCDate();
   const goal: GoalProgress | null = goalRow
     ? {

@@ -71,6 +71,15 @@ export function dayOfMonthOf(dateOnlyISO: string): number {
   return Number(dateOnlyISO.slice(8, 10));
 }
 
+/** Quantos dias tem `month` (1-12) de `year` — usa `Date.UTC` só como truque de aritmética de
+ *  calendário (dia 0 do mês seguinte = último dia deste), não pra ler "agora"/fuso, então não
+ *  sofre do viés que o resto deste arquivo evita. Compartilhado entre Dashboard (ritmo de meta) e
+ *  Financeiro (mesmo cálculo, novo lugar) — única fonte, evita duas contas de calendário
+ *  divergirem. */
+export function daysInMonth(year: number, month: number): number {
+  return new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
+
 /** Formata uma data-calendário (`YYYY-MM-DD`, sem hora) pra exibição — achado em produção via
  *  hydration mismatch real (React #418): `new Intl.DateTimeFormat(...).format(new Date(dateOnly))`
  *  sem `timeZone` explícito usa o fuso LOCAL do runtime — servidor (Vercel, UTC) e navegador

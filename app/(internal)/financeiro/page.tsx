@@ -118,6 +118,27 @@ export default async function FinanceiroPage({
     <main className="mx-auto flex max-w-[1400px] flex-col gap-10 px-6 pt-8 pb-16 lg:px-10">
       <PageHeader title="Financeiro" />
 
+      {/* Meta do mês inline (Bloco 4 item 2) — mesmo cálculo que já alimenta "Receita vs Meta" na
+       *  Home, só que aqui é uma barra simples, não um gráfico dia-a-dia (pedido explícito:
+       *  "inline"). Omitida quando ninguém definiu meta ainda, nunca "0%" inventado. */}
+      {metrics.goal && (
+        <div className="flex flex-col gap-2 rounded-xl border border-border/60 bg-card/40 p-5">
+          <div className="flex items-baseline justify-between gap-4 text-sm">
+            <span className="text-muted-foreground">
+              Meta do mês — {currencyFormatter.format(metrics.goal.realized)} de {currencyFormatter.format(metrics.goal.amount)}
+            </span>
+            <span className="font-medium tabular-nums">{metrics.goal.percentage.toFixed(0)}%</span>
+          </div>
+          <div className="relative h-2 overflow-hidden rounded-full bg-muted">
+            <div className="absolute inset-y-0 left-0 rounded-full bg-brand transition-all" style={{ width: `${Math.min(100, Math.max(0, metrics.goal.percentage))}%` }} />
+            {/* Marcador do ritmo esperado — "onde deveria estar hoje, no calendário" (mesmo dado
+             *  de `expectedPacePercentage` que a Home já calcula). */}
+            <div className="absolute inset-y-0 w-0.5 bg-foreground/40" style={{ left: `${Math.min(100, Math.max(0, metrics.goal.expectedPacePercentage))}%` }} />
+          </div>
+          <p className="text-xs text-muted-foreground">Ritmo esperado hoje: {metrics.goal.expectedPacePercentage.toFixed(0)}% do mês</p>
+        </div>
+      )}
+
       {/* KPIs + Evolução — fica como estava, só saiu de trás de uma aba. Todo bloco é clicável
        *  (`CardWithDetail`) — abre a lista real das entradas por trás do número, mesmo padrão já
        *  usado no Dashboard. Nenhum número novo: as listas vêm prontas de

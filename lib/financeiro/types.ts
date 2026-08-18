@@ -1,7 +1,14 @@
+import type { GoalProgress } from "@/lib/dashboard/goals";
+
 /** Mesmo formato de `DetailEntry` (`lib/dashboard/executive-metrics.ts`) — duplicado aqui de
  *  propósito em vez de importado: `lib/financeiro` não deveria depender de `lib/dashboard`
  *  (direção errada de dependência). Estruturalmente idêntico, então `DetailList`
- *  (`components/dashboard/detail-list.tsx`) aceita normalmente por tipagem estrutural. */
+ *  (`components/dashboard/detail-list.tsx`) aceita normalmente por tipagem estrutural.
+ *
+ *  Exceção deliberada logo abaixo (`GoalProgress`, importado de `lib/dashboard/goals.ts`): não é
+ *  um tipo de exibição, é a mesma regra de negócio da meta do mês (Bloco 4 item 2 do redesign) —
+ *  `lib/dashboard/goals.ts` não depende de `lib/financeiro` (zero risco de import circular,
+ *  diferente de `executive-metrics.ts`, que já importa `lib/financeiro/queries.ts`). */
 export type FinancialDetailEntry = { label: string; value?: string; meta?: string };
 
 export type ExpenseInput = {
@@ -96,4 +103,7 @@ export type FinanceiroMetrics = {
    *  alerta (`CONTRACT_RENEWAL_ALERT_DAYS`, lib/financeiro/queries.ts). Alimenta a Faixa de
    *  atenção. */
   contractsExpiringEntries: FinancialDetailEntry[];
+  /** Bloco 4 item 2 — mesma meta/progresso que já alimenta "Receita vs Meta" na Home
+   *  (`lib/dashboard/goals.ts`), `null` se ninguém definiu meta pro mês. */
+  goal: GoalProgress | null;
 };
