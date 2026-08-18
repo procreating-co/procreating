@@ -21,7 +21,6 @@ import { cn } from "@/lib/utils";
 import type { DetailEntry } from "@/lib/dashboard/executive-metrics";
 
 const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
-const compactCurrencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", notation: "compact", maximumFractionDigits: 1 });
 const percentFormatter = (value: number) => `${value.toFixed(1)}%`;
 
 /**
@@ -56,8 +55,9 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
   const cashFlowMonths = Number(monthsParam) || 6;
   const [metrics, session] = await Promise.all([computeExecutiveDashboard(cashFlowMonths), getSession()]);
   const canView = session ? canViewFinancials(session.user.role) : false;
+  // Pedido explícito: sempre o valor completo (R$14.640), nunca abreviado (R$14,6 mil) —
+  // `compactMoney` existia só pra isso e foi removido, não só desativado.
   const money = (value: number) => (canView ? currencyFormatter.format(value) : MASKED_CURRENCY);
-  const compactMoney = (value: number) => (canView ? compactCurrencyFormatter.format(value) : MASKED_CURRENCY);
   const d = metrics.details;
 
   return (
@@ -70,7 +70,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
           <MetricCard
             icon={<TrendingUp className="size-3.5" />}
             label="Receita"
-            value={compactMoney(metrics.kpis.revenue.value)}
+            value={money(metrics.kpis.revenue.value)}
             sparkline={metrics.kpis.revenue.sparkline}
             delta={metrics.kpis.revenue.deltaPct != null ? { value: percentFormatter(Math.abs(metrics.kpis.revenue.deltaPct)), direction: metrics.kpis.revenue.deltaPct >= 0 ? "up" : "down" } : undefined}
             tone={metrics.kpis.revenue.deltaPct == null ? "info" : metrics.kpis.revenue.deltaPct >= 0 ? "success" : "danger"}
@@ -93,7 +93,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
           <MetricCard
             icon={<Wallet className="size-3.5" />}
             label="Lucro Líquido"
-            value={compactMoney(metrics.kpis.netProfit.value)}
+            value={money(metrics.kpis.netProfit.value)}
             sparkline={metrics.kpis.netProfit.sparkline}
             tone={metrics.kpis.netProfit.value >= 0 ? "success" : "danger"}
           />
@@ -115,19 +115,23 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
           <MetricCard
             icon={<Banknote className="size-3.5" />}
             label="Fluxo de Caixa"
-            value={compactMoney(metrics.kpis.cashFlow.value)}
+            value={money(metrics.kpis.cashFlow.value)}
             sparkline={metrics.kpis.cashFlow.sparkline}
             tone={metrics.kpis.cashFlow.value >= 0 ? "success" : "danger"}
           />
         </CardWithDetail>
         <CardWithDetail title="Pipeline" description="Leads abertos, por valor potencial." detail={<DetailList items={maskEntries(d.openLeads, canView)} emptyLabel="Nenhum lead aberto." />}>
-          <MetricCard icon={<Handshake className="size-3.5" />} label="Pipeline" value={compactMoney(metrics.kpis.pipeline.value)} tone="info" />
+          <MetricCard icon={<Handshake className="size-3.5" />} label="Pipeline" value={money(metrics.kpis.pipeline.value)} tone="info" />
         </CardWithDetail>
-        <CardWithDetail title="Clientes Ativos" detail={<DetailList items={d.activeClients} emptyLabel="Nenhum cliente ativo ainda." />}>
-          <MetricCard icon={<Users className="size-3.5" />} label="Clientes Ativos" value={String(metrics.kpis.activeClients.value)} tone="success" />
+        {/* Pedido explícito — substitui "Clientes Ativos"/"Equipe" aqui especificamente (as
+         *  outras 2 seções mais abaixo que também usam esses nomes continuam com o significado
+         *  de sempre, não foram tocadas). "Clientes Recorrentes" = cliente ativo com contrato
+         *  `type='recorrente'`; "Projetos" = cliente ativo com contrato `type='pontual'`. */}
+        <CardWithDetail title="Clientes Recorrentes" detail={<DetailList items={d.recurringClients} emptyLabel="Nenhum cliente recorrente ainda." />}>
+          <MetricCard icon={<Users className="size-3.5" />} label="Clientes Recorrentes" value={String(metrics.kpis.recurringClients.value)} tone="success" />
         </CardWithDetail>
-        <CardWithDetail title="Equipe" detail={<DetailList items={d.teamMembers} emptyLabel="Nenhum usuário cadastrado." />}>
-          <MetricCard icon={<UsersRound className="size-3.5" />} label="Equipe" value={String(metrics.kpis.team.value)} tone="brand" />
+        <CardWithDetail title="Projetos" detail={<DetailList items={d.projectClients} emptyLabel="Nenhum projeto pontual ativo." />}>
+          <MetricCard icon={<UsersRound className="size-3.5" />} label="Projetos" value={String(metrics.kpis.projectClients.value)} tone="brand" />
         </CardWithDetail>
       </section>
 

@@ -60,6 +60,11 @@ export type ExecutiveMetrics = {
     pipeline: { value: number; openCount: number };
     activeClients: { value: number; deltaCount: number | null };
     team: { value: number };
+    /** Linha de KPIs do topo (redesign) — "Clientes Recorrentes"/"Projetos" substituem
+     *  "Clientes Ativos"/"Equipe" ali especificamente (as duas seções mais abaixo que também
+     *  usam "Clientes Ativos"/"Equipe" continuam com o significado de sempre, sem mudança). */
+    recurringClients: { value: number };
+    projectClients: { value: number };
   };
   revenueVsTarget: { points: RevenueVsTargetPoint[]; goalAmount: number | null };
   financialHealth: {
@@ -94,6 +99,8 @@ export type ExecutiveMetrics = {
     churnedClients: DetailEntry[];
     topClients: DetailEntry[];
     teamMembers: DetailEntry[];
+    recurringClients: DetailEntry[];
+    projectClients: DetailEntry[];
     overdueRevenue: DetailEntry[];
     overdueExpenses: DetailEntry[];
     upcomingRevenue: DetailEntry[];
@@ -281,6 +288,15 @@ export async function computeExecutiveDashboard(cashFlowMonths = 6): Promise<Exe
     const value = contract.type === "recorrente" ? Number(contract.monthly_value ?? 0) : Number(contract.total_value ?? 0);
     revenueByClient.set(contract.client_id, (revenueByClient.get(contract.client_id) ?? 0) + value);
   }
+
+  // "Clientes Recorrentes"/"Projetos" (redesign, linha de KPIs do topo) — cliente ativo com
+  // contrato `type='recorrente'` vs `type='pontual'` (dentro dos mesmos `activeContracts` já
+  // buscados). Um cliente com os dois tipos de contrato conta nas duas listas — são contratos
+  // sendo classificados, não o cliente em si.
+  const recurringContractClientIds = new Set(contracts.filter((c) => c.type === "recorrente").map((c) => c.client_id));
+  const pontualContractClientIds = new Set(contracts.filter((c) => c.type === "pontual").map((c) => c.client_id));
+  const recurringClientsList = activeClientsList.filter((client) => recurringContractClientIds.has(client.id));
+  const projectClientsList = activeClientsList.filter((client) => pontualContractClientIds.has(client.id));
   // Ranking + % do Top 5 — função compartilhada com o Financeiro (Bloco 4 item 4 do redesign,
   // `lib/financeiro/calculations.ts`), mesma matemática, cada página decide só quais contratos
   // entram no `revenueByClient` acima.
@@ -364,6 +380,8 @@ export async function computeExecutiveDashboard(cashFlowMonths = 6): Promise<Exe
       pipeline: { value: comercial.pipelineValue, openCount: comercial.openLeads },
       activeClients: { value: activeClientsList.length, deltaCount: null },
       team: { value: users?.length ?? 0 },
+      recurringClients: { value: recurringClientsList.length },
+      projectClients: { value: projectClientsList.length },
     },
     revenueVsTarget: { points: revenueVsTargetPoints, goalAmount: goalRow ? Number(goalRow.amount) : null },
     financialHealth: {
@@ -412,6 +430,8 @@ export async function computeExecutiveDashboard(cashFlowMonths = 6): Promise<Exe
       churnedClients: churnedClientsList.map((client) => ({ label: client.name, meta: client.segment ?? undefined })),
       topClients: topClientsRanked,
       teamMembers: (users ?? []).map((user) => ({ label: user.name, meta: ROLE_LABEL[user.role] ?? user.role })),
+      recurringClients: recurringClientsList.map((client) => ({ label: client.name, meta: client.segment ?? undefined })),
+      projectClients: projectClientsList.map((client) => ({ label: client.name, meta: client.segment ?? undefined })),
       overdueRevenue: overdueRevenueList.map((row) => ({
         label: row.description || clientNameById.get(row.client_id ?? "") || "Receita",
         value: currency(Number(row.amount)),
