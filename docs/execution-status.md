@@ -17,7 +17,22 @@ alimentava o bloco, em `computeFinanceiroMetrics` (`lib/financeiro/queries.ts`).
 entradas por trás pra mostrar) — se o pedido for pra cobrir ela também, é extensão rápida do
 mesmo padrão. Deployado (`9db749f`).
 
-**Depois disso, mais 3 rodadas na mesma sessão**:
+**Depois disso, mais 4 rodadas na mesma sessão**:
+
+-1. Ajustes finos na Visão Geral do Financeiro (`c9f976b`), 6 pedidos numa mensagem só: reordena/
+    renomeia os 6 primeiros blocos (Receita do Mês, Receita Recorrente Mensal, Salário, Caixa
+    Operacional, Despesas, A receber); clicar num mês na tabela do gráfico "Evolução" agora abre
+    o breakdown por cliente daquele mês (`evolution-detail.tsx`, novo — reaproveita
+    `revenueByClient` já calculado); descrição do PageHeader removida; modal de "Despesas" ganhou
+    2 botões "+" (Pontual/Recorrente, `expenses-quick-add.tsx`, novo — reaproveita
+    `ExpenseFormDialog`/`CostFormDialog` que já existiam); ícone de "Salário" virou `DollarSign`
+    tom `success` (verde). **BUG REAL corrigido**: "A receber (até &lt;ano&gt;)" só mostrava a
+    Elenita — clientes antigos (Kawhen/Bruna/Maria Tabarez) só têm linha de `revenue` gerada até
+    o mês corrente (cobrança criada mês a mês pra eles, diferente do lote de 5 meses do
+    onboarding da Elenita), então a soma antiga (só linhas já existentes) não achava nada deles.
+    Reescrito pra projetar por contrato × mês até dezembro do ano corrente + 1, usando a linha
+    real quando existe e projetando `monthly_value` quando não — verificado contra o banco
+    (R$242.400 esperado, não mais R$20.000).
 
 0. Aba Distribuição também ficou clicável (`58e3945`) — fecha o gap deixado de fora de propósito
    na primeira rodada ("cards ali já são auto-explicativos"). A cadeia Faturamento→Operacional→
