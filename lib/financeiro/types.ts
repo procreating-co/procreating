@@ -84,4 +84,12 @@ export type FinanceiroMetrics = {
   receivablesRecurringYear: number;
   receivablesRecurringThroughNextYear: number;
   receivablesRecurringEntries: FinancialDetailEntry[];
+  /** Fluxo de caixa projetado — receita pendente menos despesa pendente vencendo dentro de cada
+   *  janela cumulativa (0-30/0-60/0-90 dias a partir de hoje). Pode ser negativo. */
+  projectedCashFlow30: number;
+  projectedCashFlow60: number;
+  projectedCashFlow90: number;
+  projectedCashFlow30Entries: FinancialDetailEntry[];
+  projectedCashFlow60Entries: FinancialDetailEntry[];
+  projectedCashFlow90Entries: FinancialDetailEntry[];
 };

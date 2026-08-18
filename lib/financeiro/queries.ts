@@ -1,6 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import { currentMonthKey, formatDateOnly, lastMonthKeys, monthKeyOf, todayISO, todayParts } from "@/lib/date";
+import { addDaysISO, currentMonthKey, formatDateOnly, lastMonthKeys, monthKeyOf, todayISO, todayParts } from "@/lib/date";
 import { computeMargin, computeMrr, computeUpcomingReceivables, groupRevenueByClient, sumAmount, sumAmountForMonth } from "@/lib/financeiro/calculations";
 import type { Cost, Expense, FinancialEntryStatus, Revenue } from "@/lib/supabase/types/database";
 import type { FinanceiroMetrics, FinancialDetailEntry, MonthlyEvolutionPoint, PipelineOpportunity } from "@/lib/financeiro/types";
@@ -132,6 +132,33 @@ export async function computeFinanceiroMetrics(evolutionMonths = 6): Promise<Fin
   const receivablesAlertDays = financialRule?.receivables_alert_days ?? FALLBACK_RECEIVABLES_ALERT_DAYS;
   const upcomingReceivables = computeUpcomingReceivables(revenue, today, receivablesAlertDays);
 
+  // Fluxo de caixa projetado (Bloco 3 do redesign) — 3 janelas cumulativas (0-30/0-60/0-90 dias
+  // a partir de hoje), receita pendente menos despesa pendente vencendo dentro de cada janela.
+  // Só `pendente` (nunca `atrasado`) — mesma regra de `computeUpcomingReceivables` acima: algo já
+  // vencido é um alerta à parte, não "vai vencer em N dias".
+  function projectedCashFlow(days: number): { total: number; entries: FinancialDetailEntry[] } {
+    const windowEnd = addDaysISO(today, days);
+    const pendingRevenueRows = revenue.filter((row) => row.status === "pendente" && row.due_date >= today && row.due_date <= windowEnd);
+    const pendingExpenseRows = expenses.filter((row) => row.status === "pendente" && row.due_date >= today && row.due_date <= windowEnd);
+    const revenueEntries: (FinancialDetailEntry & { dueDate: string })[] = pendingRevenueRows.map((row) => ({
+      label: (row.client_id && clientNameById.get(row.client_id)) || "Sem cliente vinculado",
+      value: `+ ${currency.format(Number(row.amount))}`,
+      meta: `${row.description} · vence ${formatDateOnly(row.due_date)}`,
+      dueDate: row.due_date,
+    }));
+    const expenseEntries: (FinancialDetailEntry & { dueDate: string })[] = pendingExpenseRows.map((row) => ({
+      label: row.description,
+      value: `− ${currency.format(Number(row.amount))}`,
+      meta: `${row.category} · vence ${formatDateOnly(row.due_date)}`,
+      dueDate: row.due_date,
+    }));
+    const entries = [...revenueEntries, ...expenseEntries].sort((a, b) => a.dueDate.localeCompare(b.dueDate)).map(({ dueDate: _dueDate, ...entry }) => entry);
+    return { total: sumAmount(pendingRevenueRows) - sumAmount(pendingExpenseRows), entries };
+  }
+  const cashFlow30 = projectedCashFlow(30);
+  const cashFlow60 = projectedCashFlow(60);
+  const cashFlow90 = projectedCashFlow(90);
+
   // Decomposição de cada bloco da Visão Geral pro clique-pra-detalhe (`CardWithDetail`) — mesma
   // fonte que já alimenta o número do bloco, nenhuma soma nova. `label` prioriza o nome do
   // cliente (mais útil pra reconhecer a linha de relance); `meta` carrega o que não cabe no
@@ -255,5 +282,11 @@ export async function computeFinanceiroMetrics(evolutionMonths = 6): Promise<Fin
     receivablesRecurringYear,
     receivablesRecurringThroughNextYear,
     receivablesRecurringEntries,
+    projectedCashFlow30: cashFlow30.total,
+    projectedCashFlow60: cashFlow60.total,
+    projectedCashFlow90: cashFlow90.total,
+    projectedCashFlow30Entries: cashFlow30.entries,
+    projectedCashFlow60Entries: cashFlow60.entries,
+    projectedCashFlow90Entries: cashFlow90.entries,
   };
 }

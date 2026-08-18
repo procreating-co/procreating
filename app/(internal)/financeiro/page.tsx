@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AlertTriangle, ArrowDownCircle, ArrowRight, ArrowUpCircle, CalendarClock, Clock, DollarSign, PiggyBank, Settings2, ShieldAlert, TrendingUp, Wallet } from "lucide-react";
+import { AlertTriangle, ArrowDownCircle, ArrowRight, ArrowUpCircle, CalendarClock, Clock, DollarSign, LineChart, PiggyBank, Settings2, ShieldAlert, TrendingUp, Wallet } from "lucide-react";
 import { computeFinanceiroMetrics, listCosts, listExpenses, listRevenue } from "@/lib/financeiro/queries";
 import { computeDistribution } from "@/lib/financeiro/rules";
 import { updateRevenueStatusAction } from "@/lib/financeiro/actions";
@@ -205,6 +205,52 @@ export default async function FinanceiroPage({
           </CardWithDetail>
           <CardWithDetail title="A pagar (pendente + atrasado)" detail={<DetailList items={metrics.payablesEntries} emptyLabel="Nada a pagar em aberto." />}>
             <StatTile demo={false} label="A pagar (pendente + atrasado)" value={currencyFormatter.format(metrics.payablesPending + metrics.payablesOverdue)} icon={<Wallet className="size-4.5" />} tone="warning" />
+          </CardWithDetail>
+        </div>
+
+        {/* Fluxo de caixa projetado (Bloco 3 do redesign) — 3 números, não um gráfico novo:
+         *  receita pendente menos despesa pendente vencendo dentro de cada janela cumulativa
+         *  (0-30/0-60/0-90 dias a partir de hoje). Tom por sinal — negativo é alerta de verdade
+         *  (mais a pagar do que a receber nessa janela), não decorativo. */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <CardWithDetail
+            title="Fluxo projetado — 30 dias"
+            description="Receita pendente menos despesa pendente vencendo nos próximos 30 dias."
+            detail={<DetailList items={metrics.projectedCashFlow30Entries} emptyLabel="Nada pendente vencendo nessa janela." />}
+          >
+            <StatTile
+              demo={false}
+              label="Fluxo projetado — 30 dias"
+              value={currencyFormatter.format(metrics.projectedCashFlow30)}
+              icon={<LineChart className="size-4.5" />}
+              tone={metrics.projectedCashFlow30 >= 0 ? "success" : "danger"}
+            />
+          </CardWithDetail>
+          <CardWithDetail
+            title="Fluxo projetado — 60 dias"
+            description="Receita pendente menos despesa pendente vencendo nos próximos 60 dias."
+            detail={<DetailList items={metrics.projectedCashFlow60Entries} emptyLabel="Nada pendente vencendo nessa janela." />}
+          >
+            <StatTile
+              demo={false}
+              label="Fluxo projetado — 60 dias"
+              value={currencyFormatter.format(metrics.projectedCashFlow60)}
+              icon={<LineChart className="size-4.5" />}
+              tone={metrics.projectedCashFlow60 >= 0 ? "success" : "danger"}
+            />
+          </CardWithDetail>
+          <CardWithDetail
+            title="Fluxo projetado — 90 dias"
+            description="Receita pendente menos despesa pendente vencendo nos próximos 90 dias."
+            detail={<DetailList items={metrics.projectedCashFlow90Entries} emptyLabel="Nada pendente vencendo nessa janela." />}
+          >
+            <StatTile
+              demo={false}
+              label="Fluxo projetado — 90 dias"
+              value={currencyFormatter.format(metrics.projectedCashFlow90)}
+              icon={<LineChart className="size-4.5" />}
+              tone={metrics.projectedCashFlow90 >= 0 ? "success" : "danger"}
+            />
           </CardWithDetail>
         </div>
 
