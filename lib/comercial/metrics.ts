@@ -4,7 +4,15 @@ import { listPipelineStages, listStrategies } from "@/lib/comercial/queries";
 import { computeStrategyFunnel } from "@/lib/comercial/funnel";
 import { resolvePeriod, type PeriodRange } from "@/lib/comercial/period";
 import { listUsers } from "@/lib/admin/users/queries";
+import { formatDateOnly } from "@/lib/date";
 import type { Strategy } from "@/lib/supabase/types/database";
+
+const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+
+/** Mesmo formato de `DetailEntry` (`lib/dashboard/executive-metrics.ts`) — duplicado aqui de
+ *  propósito, mesmo motivo de `FinancialDetailEntry` (`lib/financeiro/types.ts`): `lib/comercial`
+ *  não deveria depender de `lib/dashboard`. */
+export type ComercialDetailEntry = { label: string; value?: string; meta?: string };
 
 export type ComercialMetrics = {
   openLeads: number;
@@ -15,6 +23,17 @@ export type ComercialMetrics = {
   pipelineValue: number;
   conversionRate: number | null;
   period: PeriodRange;
+  /** Lista real por trás de cada bloco da Visão Geral — mesmo padrão de clique-pra-detalhe do
+   *  Dashboard/Financeiro, extensão direta do mesmo pedido pra deixar as 3 telas consistentes.
+   *  `pipelineValue` reaproveita `openLeadsEntries` (mesmo conjunto de leads, só o total exibido
+   *  no bloco muda — soma de valor em vez de contagem). `conversionBreakdown` não é uma lista de
+   *  linhas, é a conta em si (numerador/denominador), já que "conversão" não tem uma entidade
+   *  própria por trás — mesmo espírito do detalhe de "Lucro Líquido" na Home. */
+  openLeadsEntries: ComercialDetailEntry[];
+  newLeadsEntries: ComercialDetailEntry[];
+  inNegotiationEntries: ComercialDetailEntry[];
+  closedInPeriodEntries: ComercialDetailEntry[];
+  conversionBreakdown: ComercialDetailEntry[];
 };
 
 /**
@@ -33,26 +52,54 @@ export async function computeComercialMetrics(period: PeriodRange = resolvePerio
   const stages = await listPipelineStages();
   const negotiationStageIds = stages.filter((stage) => stage.key === "negociacao" || stage.key === "proposta_enviada").map((stage) => stage.id);
 
-  const [{ data: openLeads }, { data: newLeads }, { count: closedInPeriodCount }, { count: leadsInPeriodCount }, { count: wonInPeriodCount }] =
+  const [{ data: openLeads }, { data: newLeads }, { data: closedInPeriodEvents }, { count: leadsInPeriodCount }, { count: wonInPeriodCount }, { data: clients }] =
     await Promise.all([
       supabase.from("leads").select("*").is("client_id", null),
       supabase.from("leads").select("*").gte("created_at", period.fromISO).lt("created_at", period.toISO),
-      supabase.from("events").select("*", { count: "exact", head: true }).eq("type", "client_created").gte("created_at", period.fromISO).lt("created_at", period.toISO),
+      // Não mais `head: true` — precisa das linhas de verdade agora pro detalhe clicável do bloco
+      // "Fechados (período)", não só a contagem.
+      supabase.from("events").select("entity_id, created_at").eq("type", "client_created").gte("created_at", period.fromISO).lt("created_at", period.toISO),
       supabase.from("leads").select("*", { count: "exact", head: true }).gte("created_at", period.fromISO).lt("created_at", period.toISO),
       supabase.from("leads").select("*", { count: "exact", head: true }).not("client_id", "is", null).gte("created_at", period.fromISO).lt("created_at", period.toISO),
+      supabase.from("clients").select("id, name"),
     ]);
 
   const open = openLeads ?? [];
   const pipelineValue = open.reduce((sum, lead) => sum + Number(lead.potential_value ?? 0), 0);
-  const inNegotiation = open.filter((lead) => negotiationStageIds.includes(lead.stage_id)).length;
+  const inNegotiationLeads = open.filter((lead) => negotiationStageIds.includes(lead.stage_id));
+  const inNegotiation = inNegotiationLeads.length;
+
+  const stageById = new Map(stages.map((stage) => [stage.id, stage]));
+  const clientNameById = new Map((clients ?? []).map((client) => [client.id, client.name]));
+  const leadEntry = (lead: (typeof open)[number]): ComercialDetailEntry => ({
+    label: lead.company_name,
+    value: lead.potential_value != null ? currency.format(Number(lead.potential_value)) : undefined,
+    meta: stageById.get(lead.stage_id)?.label,
+  });
+  const openLeadsEntries = open.map(leadEntry);
+  const newLeadsEntries = (newLeads ?? []).map((lead) => ({ ...leadEntry(lead), meta: `Criado ${formatDateOnly(lead.created_at.slice(0, 10))}` }));
+  const inNegotiationEntries = inNegotiationLeads.map(leadEntry);
+  const closedInPeriodEntries: ComercialDetailEntry[] = (closedInPeriodEvents ?? []).map((event) => ({
+    label: (event.entity_id && clientNameById.get(event.entity_id)) || "Cliente removido",
+    meta: `Fechado ${formatDateOnly(event.created_at.slice(0, 10))}`,
+  }));
+  const conversionBreakdown: ComercialDetailEntry[] = [
+    { label: "Leads criados no período", value: String(leadsInPeriodCount ?? 0) },
+    { label: "Fechados (desses mesmos leads)", value: String(wonInPeriodCount ?? 0) },
+  ];
 
   return {
     openLeads: open.length,
     newLeadsInPeriod: newLeads?.length ?? 0,
     inNegotiation,
-    closedInPeriod: closedInPeriodCount ?? 0,
+    closedInPeriod: closedInPeriodEvents?.length ?? 0,
     pipelineValue,
     conversionRate: leadsInPeriodCount && leadsInPeriodCount > 0 ? (wonInPeriodCount ?? 0) / leadsInPeriodCount : null,
+    openLeadsEntries,
+    newLeadsEntries,
+    inNegotiationEntries,
+    closedInPeriodEntries,
+    conversionBreakdown,
     period,
   };
 }

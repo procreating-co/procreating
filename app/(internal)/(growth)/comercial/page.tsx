@@ -25,6 +25,8 @@ import { StatTile } from "@/components/dashboard/stat-tile";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { PageTabs } from "@/components/dashboard/page-tabs";
 import { SectionHeader } from "@/components/dashboard/section-header";
+import { CardWithDetail } from "@/components/dashboard/card-with-detail";
+import { DetailList } from "@/components/dashboard/detail-list";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { LeadsTable } from "@/components/comercial/leads-table";
 import { LeadsPagination } from "@/components/comercial/leads-pagination";
@@ -208,19 +210,47 @@ export default async function ComercialPage({
     ]);
     content = (
       <>
+        {/* Todo bloco é clicável (`CardWithDetail`) — mesmo padrão do Dashboard/Financeiro,
+         *  extensão direta pra deixar as 3 telas consistentes. */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <StatTile demo={false} label="Leads abertos" value={String(metrics.openLeads)} icon={<UserPlus className="size-4.5" />} tone="info" />
-          <StatTile demo={false} label={`Novos (${period.label.toLowerCase()})`} value={String(metrics.newLeadsInPeriod)} icon={<Target className="size-4.5" />} tone="brand" />
-          <StatTile demo={false} label="Em negociação" value={String(metrics.inNegotiation)} icon={<Handshake className="size-4.5" />} tone="warning" />
-          <StatTile demo={false} label={`Fechados (${period.label.toLowerCase()})`} value={String(metrics.closedInPeriod)} icon={<PackageCheck className="size-4.5" />} tone="success" />
-          <StatTile demo={false} label="Pipeline em aberto" value={currencyFormatter.format(metrics.pipelineValue)} icon={<Wallet className="size-4.5" />} tone="info" />
-          <StatTile
-            demo={false}
-            label="Conversão lead → fechado"
-            value={metrics.conversionRate != null ? `${(metrics.conversionRate * 100).toFixed(0)}%` : "—"}
-            icon={<TrendingUp className="size-4.5" />}
-            tone="success"
-          />
+          <CardWithDetail title="Leads abertos" detail={<DetailList items={metrics.openLeadsEntries} emptyLabel="Nenhum lead aberto no momento." />}>
+            <StatTile demo={false} label="Leads abertos" value={String(metrics.openLeads)} icon={<UserPlus className="size-4.5" />} tone="info" />
+          </CardWithDetail>
+          <CardWithDetail
+            title={`Novos (${period.label.toLowerCase()})`}
+            detail={<DetailList items={metrics.newLeadsEntries} emptyLabel="Nenhum lead novo neste período." />}
+          >
+            <StatTile demo={false} label={`Novos (${period.label.toLowerCase()})`} value={String(metrics.newLeadsInPeriod)} icon={<Target className="size-4.5" />} tone="brand" />
+          </CardWithDetail>
+          <CardWithDetail title="Em negociação" detail={<DetailList items={metrics.inNegotiationEntries} emptyLabel="Nenhum lead em negociação." />}>
+            <StatTile demo={false} label="Em negociação" value={String(metrics.inNegotiation)} icon={<Handshake className="size-4.5" />} tone="warning" />
+          </CardWithDetail>
+          <CardWithDetail
+            title={`Fechados (${period.label.toLowerCase()})`}
+            detail={<DetailList items={metrics.closedInPeriodEntries} emptyLabel="Nenhum negócio fechado neste período." />}
+          >
+            <StatTile demo={false} label={`Fechados (${period.label.toLowerCase()})`} value={String(metrics.closedInPeriod)} icon={<PackageCheck className="size-4.5" />} tone="success" />
+          </CardWithDetail>
+          <CardWithDetail
+            title="Pipeline em aberto"
+            description="Mesmos leads abertos — soma do valor potencial em vez da contagem."
+            detail={<DetailList items={metrics.openLeadsEntries} emptyLabel="Nenhum lead aberto no momento." />}
+          >
+            <StatTile demo={false} label="Pipeline em aberto" value={currencyFormatter.format(metrics.pipelineValue)} icon={<Wallet className="size-4.5" />} tone="info" />
+          </CardWithDetail>
+          <CardWithDetail
+            title="Conversão lead → fechado"
+            description="Dos leads criados neste período, quantos já fecharam."
+            detail={<DetailList items={metrics.conversionBreakdown} emptyLabel="Sem leads criados neste período." />}
+          >
+            <StatTile
+              demo={false}
+              label="Conversão lead → fechado"
+              value={metrics.conversionRate != null ? `${(metrics.conversionRate * 100).toFixed(0)}%` : "—"}
+              icon={<TrendingUp className="size-4.5" />}
+              tone="success"
+            />
+          </CardWithDetail>
         </div>
 
         <section className="flex flex-col gap-4">
