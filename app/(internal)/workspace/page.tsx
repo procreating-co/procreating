@@ -65,7 +65,7 @@ export default async function WorkspacePage() {
         {/* Minimalismo — "clique pra marcar concluída" era instrução de uso de um checkbox, um
          *  elemento que já é auto-explicativo. */}
         <SectionHeader title="Semana" description="Hoje e os próximos 6 dias." />
-        <WeekView tasks={overview.weekTasks} />
+        <WeekView tasks={overview.weekTasks} userId={userId} teamMembers={teamMembers} />
       </section>
 
       {overview.otherUser && (

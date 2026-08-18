@@ -2,9 +2,14 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { updateTaskAction, updateTaskStatusAction } from "@/lib/tasks/actions";
+import { Plus } from "lucide-react";
+import { createTaskAction, updateTaskAction, updateTaskStatusAction } from "@/lib/tasks/actions";
 import { addDaysISO, formatDateOnly, todayISO } from "@/lib/date";
-import type { Task } from "@/lib/supabase/types/database";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import type { Task, User } from "@/lib/supabase/types/database";
 import { cn } from "@/lib/utils";
 
 /**
@@ -26,12 +31,19 @@ import { cn } from "@/lib/utils";
  * já documentado em `lib/date.ts` (SSR em UTC vs. navegador em UTC-3 formatando dia diferente
  * perto da meia-noite).
  */
-export function WeekView({ tasks }: { tasks: Task[] }) {
+export function WeekView({ tasks, userId, teamMembers }: { tasks: Task[]; userId: string; teamMembers: User[] }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
   const [dragOverDay, setDragOverDay] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Clicar num dia abre modal pra adicionar tarefa naquele dia (pedido explícito) — `addingDay`
+  // guarda a data-calendário do dia clicado, `null` = modal fechado.
+  const [addingDay, setAddingDay] = useState<string | null>(null);
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [newTaskAssignee, setNewTaskAssignee] = useState(userId);
+  const [addError, setAddError] = useState<string | null>(null);
+  const [isAdding, startAddTransition] = useTransition();
 
   const today = todayISO();
   const days = Array.from({ length: 7 }, (_, i) => addDaysISO(today, i));
@@ -78,6 +90,28 @@ export function WeekView({ tasks }: { tasks: Task[] }) {
     });
   }
 
+  function openAddTask(day: string) {
+    setAddError(null);
+    setNewTaskTitle("");
+    setNewTaskAssignee(userId);
+    setAddingDay(day);
+  }
+
+  function handleAddTask(e: React.FormEvent) {
+    e.preventDefault();
+    if (!addingDay) return;
+    setAddError(null);
+    startAddTransition(async () => {
+      const result = await createTaskAction({ title: newTaskTitle, assigneeId: newTaskAssignee || null, dueDate: addingDay });
+      if (!result.ok) {
+        setAddError(result.error);
+        return;
+      }
+      setAddingDay(null);
+      router.refresh();
+    });
+  }
+
   return (
     <div className="flex flex-col gap-2">
       {error && (
@@ -110,7 +144,18 @@ export function WeekView({ tasks }: { tasks: Task[] }) {
                 <span className={cn("text-xs font-medium uppercase tracking-wide", index === 0 ? "text-brand" : "text-muted-foreground")}>
                   {index === 0 ? "Hoje" : formatDateOnly(day, { weekday: "short" })}
                 </span>
-                <span className="text-[11px] text-muted-foreground">{formatDateOnly(day, { day: "2-digit", month: "2-digit" })}</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] text-muted-foreground">{formatDateOnly(day, { day: "2-digit", month: "2-digit" })}</span>
+                  {/* Clicar no dia abre modal pra adicionar tarefa nele (pedido explícito) */}
+                  <button
+                    type="button"
+                    onClick={() => openAddTask(day)}
+                    aria-label={`Adicionar tarefa em ${formatDateOnly(day)}`}
+                    className="flex size-4 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground"
+                  >
+                    <Plus className="size-3" />
+                  </button>
+                </div>
               </div>
               {dayTasks.length === 0 ? (
                 <p className="text-xs text-muted-foreground/60">—</p>
@@ -141,6 +186,49 @@ export function WeekView({ tasks }: { tasks: Task[] }) {
           );
         })}
       </div>
+
+      <Dialog open={addingDay !== null} onOpenChange={(open) => !open && setAddingDay(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Nova tarefa</DialogTitle>
+            <DialogDescription>{addingDay ? formatDateOnly(addingDay, { weekday: "long", day: "2-digit", month: "long" }) : ""}</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleAddTask} className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="week-add-title">Título</Label>
+              <Input id="week-add-title" value={newTaskTitle} onChange={(e) => setNewTaskTitle(e.target.value)} required autoFocus />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="week-add-assignee">Responsável</Label>
+              <select
+                id="week-add-assignee"
+                value={newTaskAssignee}
+                onChange={(e) => setNewTaskAssignee(e.target.value)}
+                className="h-9 rounded-md border border-input bg-input-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              >
+                {teamMembers.map((member) => (
+                  <option key={member.id} value={member.id}>
+                    {member.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {addError && (
+              <p role="alert" className="text-sm text-destructive">
+                {addError}
+              </p>
+            )}
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setAddingDay(null)}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={isAdding || !newTaskTitle.trim()}>
+                {isAdding ? "Adicionando..." : "Adicionar"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
