@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -14,6 +14,9 @@ const TOOL_LABEL: Record<string, string> = {
   get_financial_summary: "Financeiro",
   get_overdue_accounts: "Contas atrasadas",
   get_upcoming_receivables: "A receber",
+  get_goal_progress: "Meta mensal",
+  get_top_client: "Maior cliente",
+  get_growth_target: "Calculadora de meta",
 };
 
 /**
@@ -21,12 +24,15 @@ const TOOL_LABEL: Record<string, string> = {
  * pergunta por vez, sem histórico persistido entre perguntas (decisão explícita desta primeira
  * fatia, §73-74): abrir o dialog sempre começa do zero. A resposta cita quais ferramentas foram
  * consultadas (chips pequenos) — transparência de onde o número veio, não é o modelo inventando.
+ * Cérebro local-first (`lib/ai/orchestrator.ts`): a maioria das perguntas nunca toca a Anthropic
+ * — o chip "Sem IA paga" aparece quando a resposta veio 100% do Intent Engine determinístico.
  */
 export function AiAssistant() {
   const [open, setOpen] = useState(false);
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<string | null>(null);
   const [toolsUsed, setToolsUsed] = useState<string[]>([]);
+  const [local, setLocal] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -34,6 +40,7 @@ export function AiAssistant() {
     setQuestion("");
     setAnswer(null);
     setToolsUsed([]);
+    setLocal(false);
     setError(null);
   }
 
@@ -50,6 +57,7 @@ export function AiAssistant() {
       }
       setAnswer(result.answer);
       setToolsUsed(result.toolsUsed);
+      setLocal(result.local);
     });
   }
 
@@ -78,7 +86,7 @@ export function AiAssistant() {
               <Sparkles className="size-4 text-ai" />
               Assistente
             </DialogTitle>
-            <DialogDescription>Pergunte sobre pipeline, tarefas ou financeiro — a resposta usa só dado real do sistema.</DialogDescription>
+            <DialogDescription>Pergunte sobre pipeline, tarefas, meta ou financeiro — a resposta usa só dado real do sistema, e a maioria não depende de IA paga.</DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="flex items-center gap-2">
@@ -104,9 +112,17 @@ export function AiAssistant() {
           {answer && (
             <div className="flex flex-col gap-3 rounded-xl border border-border/60 bg-card/40 p-4">
               <p className="text-sm leading-relaxed whitespace-pre-line">{answer}</p>
-              {toolsUsed.length > 0 && (
+              {(toolsUsed.length > 0 || local) && (
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="text-[11px] text-muted-foreground">Consultado:</span>
+                  {/* `local` = respondido pelo Intent Engine, sem passar pela Anthropic — pedido
+                   *  explícito de transparência (item 1: zero custo pras funções principais). */}
+                  {local && (
+                    <span className="flex items-center gap-1 rounded-full border border-success/25 bg-success-subtle px-2 py-0.5 text-[11px] text-success">
+                      <Zap className="size-2.5" />
+                      Sem IA paga
+                    </span>
+                  )}
+                  {toolsUsed.length > 0 && <span className="text-[11px] text-muted-foreground">Consultado:</span>}
                   {[...new Set(toolsUsed)].map((tool) => (
                     <span key={tool} className="rounded-full border border-border/60 px-2 py-0.5 text-[11px] text-muted-foreground">
                       {TOOL_LABEL[tool] ?? tool}
