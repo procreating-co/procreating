@@ -11,11 +11,12 @@ import { Home, Layers, LayoutDashboard, TrendingUp, Wallet, type LucideIcon } fr
  * paralelo — era assim antes e um dos dois ficou desatualizado quando Clientes mudou de área, a
  * raiz do bug).
  *
- * Growth e Finance NÃO têm mais `tabs` aqui — cada um virou uma rota só
- * (`/comercial`, `/financeiro`) com abas internas (`components/dashboard/page-tabs.tsx`, dentro
- * da própria página) no lugar de sub-rotas. Manter um array de tabs aqui pra essas duas áreas
- * recriaria a mesma duplicação de navegação (duas barras de aba) que foi corrigida quando o
- * header e o top-nav antigo foram unificados.
+ * Growth e Finance NÃO têm `tabs` aqui — cada um virou uma rota só (`/comercial`, `/financeiro`),
+ * sem sub-navegação nenhuma: Financeiro usa abas internas próprias
+ * (`components/dashboard/page-tabs.tsx`); Comercial (pedido explícito: "CRM e etc numa única
+ * page") nem isso — é uma rolagem só, Visão Geral/CRM/Planejamento empilhados. Manter um array
+ * de tabs aqui pra essas áreas recriaria a mesma duplicação de navegação (duas barras de aba) que
+ * foi corrigida quando o header e o top-nav antigo foram unificados.
  *
  * Casca de navegação (rótulos de grupo e de aba) em português — mesma língua do resto do produto.
  */
@@ -23,16 +24,16 @@ export type TopNavTab = { label: string; href: string };
 
 /** Clientes (visão 360º, `/clientes`) mora aqui — não em Growth (é a Operação que é dona da
  *  entrega/relação contínua com o cliente, não o Comercial, que é dono da conquista do lead).
- *  Ordem — pedido explícito: "Projetos" primeiro (bate com pra onde `/operacao` já redireciona,
- *  `operacao/page.tsx` → `/operacao/projetos` — antes disso "Clientes" aparecia como a aba mais à
- *  esquerda mesmo sem ser o destino real do clique em "Operação" na sidebar). */
+ *  Ordem — "Clientes" primeiro: pedido explícito mais recente, clicar em "Operação" na sidebar
+ *  agora abre `/clientes` direto (era `/operacao/projetos` — ver `NAV_GROUPS`/`operacao/page.tsx`
+ *  abaixo, os dois mudaram juntos pra ficar consistente). */
 export const OPERATIONS_TABS: TopNavTab[] = [
+  { label: "Clientes", href: "/clientes" },
   { label: "Projetos", href: "/operacao/projetos" },
   { label: "Produção", href: "/operacao/producao" },
   { label: "Entregas", href: "/operacao/entregas" },
   { label: "Equipe", href: "/operacao/equipe" },
   { label: "Recursos", href: "/operacao/conteudo" },
-  { label: "Clientes", href: "/clientes" },
 ];
 
 /** Não vive num grupo de `NAV_GROUPS` (Settings só existe no rodapé da sidebar, ver comentário
@@ -72,5 +73,5 @@ export const NAV_GROUPS: NavGroupDef[] = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: "/", matchPrefixes: ["/"] },
   { key: "finance", label: "Financeiro", icon: Wallet, href: "/financeiro", matchPrefixes: ["/financeiro"] },
   { key: "growth", label: "Comercial", icon: TrendingUp, href: "/comercial", matchPrefixes: ["/comercial"] },
-  { key: "operations", label: "Operação", icon: Layers, href: "/operacao", matchPrefixes: ["/operacao", "/clientes"], tabs: OPERATIONS_TABS },
+  { key: "operations", label: "Operação", icon: Layers, href: "/clientes", matchPrefixes: ["/operacao", "/clientes"], tabs: OPERATIONS_TABS },
 ];
