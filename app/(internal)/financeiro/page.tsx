@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AlertTriangle, ArrowDownCircle, ArrowRight, ArrowUpCircle, CalendarClock, Clock, DollarSign, EyeOff, LineChart, PiggyBank, Settings2, ShieldAlert, TrendingUp, Wallet } from "lucide-react";
+import { AlertTriangle, ArrowDownCircle, ArrowRight, ArrowUpCircle, Clock, DollarSign, EyeOff, PiggyBank, Settings2, ShieldAlert, TrendingUp } from "lucide-react";
 import { CONCENTRATION_RISK_THRESHOLD_PCT, computeFinanceiroMetrics, listCosts, listExpenses, listRevenue } from "@/lib/financeiro/queries";
 import { computeDistribution } from "@/lib/financeiro/rules";
+import { listClients } from "@/lib/clientes/queries";
 import { updateRevenueStatusAction } from "@/lib/financeiro/actions";
 import { requireFinancialPageAccess } from "@/lib/auth/permissions";
-import { formatDateOnly } from "@/lib/date";
 import { StatTile } from "@/components/dashboard/stat-tile";
 import { Button } from "@/components/ui/button";
 import { RevenueChart } from "@/components/financeiro/revenue-chart";
@@ -75,14 +75,25 @@ export default async function FinanceiroPage({
   const receivablesStatusFilter: "pendentes" | "todas" = receivablesStatusParam === "todas" ? "todas" : "pendentes";
   const payablesStatusFilter: "pendentes" | "todas" = payablesStatusParam === "todas" ? "todas" : "pendentes";
 
-  const [metrics, revenue, expenses, costs] = await Promise.all([computeFinanceiroMetrics(months), listRevenue(), listExpenses(), listCosts()]);
+  const [metrics, revenue, expenses, costs, clients] = await Promise.all([computeFinanceiroMetrics(months), listRevenue(), listExpenses(), listCosts(), listClients()]);
   // Mesma regra 20/80 já usada na Distribuição (`computeDistribution`) — também alimenta Caixa
   // Operacional/Salário logo abaixo dos KPIs.
   const distribution = await computeDistribution(metrics.revenueThisMonth);
   const partnerSalaryEach = distribution.distributable / 2;
+  const clientNameById = new Map(clients.map((client) => [client.id, client.name]));
 
   const filteredReceivables = receivablesStatusFilter === "todas" ? revenue : revenue.filter((row) => row.status === "pendente" || row.status === "atrasado");
-  const receivablesRows = filteredReceivables.map((row) => ({ id: row.id, label: row.description, category: null, amount: Number(row.amount), dueDate: row.due_date, status: row.status }));
+  // Nome do cliente como label (pedido explícito: "conta como nome de todas Mensalidade, mude
+  // pro nome do cliente") — a descrição ("Mensalidade 08/2026") vira o texto pequeno de apoio
+  // (mesmo slot que `ExpensesTable` usa pra categoria).
+  const receivablesRows = filteredReceivables.map((row) => ({
+    id: row.id,
+    label: (row.client_id && clientNameById.get(row.client_id)) || "Sem cliente vinculado",
+    category: row.description,
+    amount: Number(row.amount),
+    dueDate: row.due_date,
+    status: row.status,
+  }));
 
   const filteredPayables = payablesStatusFilter === "todas" ? expenses : expenses.filter((row) => row.status === "pendente" || row.status === "atrasado");
   const payablesRows = filteredPayables.map((row) => ({ id: row.id, label: row.description, category: row.category, amount: Number(row.amount), dueDate: row.due_date, status: row.status }));
@@ -228,86 +239,16 @@ export default async function FinanceiroPage({
             <StatTile demo={false} label="Despesas" value={money(metrics.expensesThisMonth)} icon={<ArrowDownCircle className="size-4.5" />} tone="info" />
           </CardWithDetail>
           <CardWithDetail
-            title={`A receber (até ${metrics.receivablesRecurringYear})`}
-            description="Todo cliente com contrato recorrente ativo, projetado mês a mês — usa a cobrança real quando já existe, projeta o valor do contrato quando ainda não existe."
-            detail={<DetailList items={maskEntries(metrics.receivablesRecurringEntries, canView)} emptyLabel="Nada pendente de cliente recorrente até lá." />}
+            title={`A receber (em ${metrics.receivablesRecurringYear})`}
+            description="Por cliente recorrente — quanto ele ainda vai pagar até o fim do ano."
+            detail={<DetailList items={maskEntries(metrics.receivablesRecurringEntries, canView)} emptyLabel="Nada pendente de cliente recorrente até o fim do ano." />}
           >
             <StatTile
               demo={false}
-              label={`A receber (até ${metrics.receivablesRecurringYear})`}
+              label={`A receber (em ${metrics.receivablesRecurringYear})`}
               value={money(metrics.receivablesRecurringThroughNextYear)}
               icon={<Clock className="size-4.5" />}
               tone="warning"
-            />
-          </CardWithDetail>
-          <CardWithDetail title="A receber (atrasado)" detail={<DetailList items={maskEntries(metrics.receivablesOverdueEntries, canView)} emptyLabel="Nada atrasado no momento." />}>
-            <StatTile demo={false} label="A receber (atrasado)" value={money(metrics.receivablesOverdue)} icon={<AlertTriangle className="size-4.5" />} tone="danger" />
-          </CardWithDetail>
-          <CardWithDetail
-            title={`Vence nos próximos ${metrics.upcomingReceivables.windowDays} dias`}
-            description="Só pendentes — o que já está atrasado tem alerta próprio."
-            detail={
-              <DetailList
-                items={metrics.upcomingReceivables.entries.map((entry) => ({ label: entry.description, value: money(entry.amount), meta: `Vence ${formatDateOnly(entry.dueDate)}` }))}
-                emptyLabel="Nada vencendo nessa janela."
-              />
-            }
-          >
-            <StatTile
-              demo={false}
-              label={`Vence nos próximos ${metrics.upcomingReceivables.windowDays} dias`}
-              value={money(metrics.upcomingReceivables.total)}
-              icon={<CalendarClock className="size-4.5" />}
-              tone="warning"
-            />
-          </CardWithDetail>
-          <CardWithDetail title="A pagar (pendente + atrasado)" detail={<DetailList items={maskEntries(metrics.payablesEntries, canView)} emptyLabel="Nada a pagar em aberto." />}>
-            <StatTile demo={false} label="A pagar (pendente + atrasado)" value={money(metrics.payablesPending + metrics.payablesOverdue)} icon={<Wallet className="size-4.5" />} tone="warning" />
-          </CardWithDetail>
-        </div>
-
-        {/* Fluxo de caixa projetado (Bloco 3 do redesign) — 3 números, não um gráfico novo:
-         *  receita pendente menos despesa pendente vencendo dentro de cada janela cumulativa
-         *  (0-30/0-60/0-90 dias a partir de hoje). Tom por sinal — negativo é alerta de verdade
-         *  (mais a pagar do que a receber nessa janela), não decorativo. */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <CardWithDetail
-            title="Fluxo projetado — 30 dias"
-            description="Receita pendente menos despesa pendente vencendo nos próximos 30 dias."
-            detail={<DetailList items={maskEntries(metrics.projectedCashFlow30Entries, canView)} emptyLabel="Nada pendente vencendo nessa janela." />}
-          >
-            <StatTile
-              demo={false}
-              label="Fluxo projetado — 30 dias"
-              value={money(metrics.projectedCashFlow30)}
-              icon={<LineChart className="size-4.5" />}
-              tone={metrics.projectedCashFlow30 >= 0 ? "success" : "danger"}
-            />
-          </CardWithDetail>
-          <CardWithDetail
-            title="Fluxo projetado — 60 dias"
-            description="Receita pendente menos despesa pendente vencendo nos próximos 60 dias."
-            detail={<DetailList items={maskEntries(metrics.projectedCashFlow60Entries, canView)} emptyLabel="Nada pendente vencendo nessa janela." />}
-          >
-            <StatTile
-              demo={false}
-              label="Fluxo projetado — 60 dias"
-              value={money(metrics.projectedCashFlow60)}
-              icon={<LineChart className="size-4.5" />}
-              tone={metrics.projectedCashFlow60 >= 0 ? "success" : "danger"}
-            />
-          </CardWithDetail>
-          <CardWithDetail
-            title="Fluxo projetado — 90 dias"
-            description="Receita pendente menos despesa pendente vencendo nos próximos 90 dias."
-            detail={<DetailList items={maskEntries(metrics.projectedCashFlow90Entries, canView)} emptyLabel="Nada pendente vencendo nessa janela." />}
-          >
-            <StatTile
-              demo={false}
-              label="Fluxo projetado — 90 dias"
-              value={money(metrics.projectedCashFlow90)}
-              icon={<LineChart className="size-4.5" />}
-              tone={metrics.projectedCashFlow90 >= 0 ? "success" : "danger"}
             />
           </CardWithDetail>
         </div>

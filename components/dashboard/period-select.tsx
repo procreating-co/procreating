@@ -31,6 +31,12 @@ export function PeriodSelect({ paramKey = "months", defaultValue = "6" }: { para
     <select
       value={current}
       onChange={(e) => handleChange(e.target.value)}
+      // BUG REAL corrigido (reportado: "não abre quando clico pra abrir 12/6 meses, abre
+      // completo") — este `<select>` sempre viveu dentro do botão clicável de
+      // `ChartExpandDialog` (o card inteiro abre o modal ampliado ao clicar). Sem
+      // `stopPropagation`, o clique pra abrir o dropdown nativo borbulhava pro botão ancestral e
+      // abria o modal no mesmo gesto, antes da escolha de período realmente se registrar.
+      onClick={(e) => e.stopPropagation()}
       aria-label="Selecionar período"
       className="h-8 rounded-md border border-input bg-transparent px-2.5 text-xs text-muted-foreground outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
     >
