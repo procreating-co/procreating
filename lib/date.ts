@@ -105,3 +105,25 @@ export function lastMonthKeys(count: number): string[] {
   }
   return months;
 }
+
+const MONTH_NAMES_PT = [
+  "Janeiro",
+  "Fevereiro",
+  "Março",
+  "Abril",
+  "Maio",
+  "Junho",
+  "Julho",
+  "Agosto",
+  "Setembro",
+  "Outubro",
+  "Novembro",
+  "Dezembro",
+];
+
+/** `monthKeyOf`-shaped "MM/YYYY" por extenso — "02/2026" → "Fevereiro/2026". Só lookup em array,
+ *  sem `Date`/fuso envolvido (não há dia nem hora aqui pra ter viés nenhum). */
+export function formatMonthKeyLong(monthKey: string): string {
+  const [mm, yyyy] = monthKey.split("/");
+  return `${MONTH_NAMES_PT[Number(mm) - 1] ?? mm}/${yyyy}`;
+}

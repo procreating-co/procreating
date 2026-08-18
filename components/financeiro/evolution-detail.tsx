@@ -7,6 +7,7 @@ import { RevenueChart } from "@/components/financeiro/revenue-chart";
 import { EmptyInline } from "@/components/dashboard/empty-inline";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { formatMonthKeyLong } from "@/lib/date";
 import type { MonthlyEvolutionPoint } from "@/lib/financeiro/types";
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -20,6 +21,10 @@ const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "
  */
 export function EvolutionDetail({ data }: { data: MonthlyEvolutionPoint[] }) {
   const [selectedMonth, setSelectedMonth] = useState<MonthlyEvolutionPoint | null>(null);
+  // `data` chega do mais antigo pro mais recente (é como o gráfico precisa ler, cronológico da
+  // esquerda pra direita) — a TABELA é o inverso: mês atual primeiro, mais antigo por último,
+  // rolando pra baixo (pedido explícito), então só a lista da tabela é invertida aqui.
+  const rowsNewestFirst = [...data].reverse();
 
   return (
     <div className="flex flex-col gap-5">
@@ -27,7 +32,7 @@ export function EvolutionDetail({ data }: { data: MonthlyEvolutionPoint[] }) {
       {data.length === 0 ? (
         <EmptyInline icon={Wallet} label="Sem dado suficiente." />
       ) : (
-        <div className="overflow-hidden rounded-xl border border-border/60">
+        <div className="max-h-96 overflow-y-auto overflow-x-auto rounded-xl border border-border/60">
           <Table>
             <TableHeader>
               <TableRow className="border-border/60 hover:bg-transparent">
@@ -38,9 +43,9 @@ export function EvolutionDetail({ data }: { data: MonthlyEvolutionPoint[] }) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data.map((point) => (
+              {rowsNewestFirst.map((point) => (
                 <TableRow key={point.month} className="cursor-pointer border-border/60" onClick={() => setSelectedMonth(point)}>
-                  <TableCell className="font-medium underline-offset-4 hover:underline">{point.month}</TableCell>
+                  <TableCell className="font-medium underline-offset-4 hover:underline">{formatMonthKeyLong(point.month)}</TableCell>
                   <TableCell className="text-right tabular-nums">{currency.format(point.revenue)}</TableCell>
                   <TableCell className="text-right tabular-nums">{currency.format(point.expenses)}</TableCell>
                   <TableCell className="text-right tabular-nums">{currency.format(point.revenue - point.expenses)}</TableCell>
@@ -54,7 +59,7 @@ export function EvolutionDetail({ data }: { data: MonthlyEvolutionPoint[] }) {
       <Dialog open={selectedMonth !== null} onOpenChange={(open) => !open && setSelectedMonth(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{selectedMonth?.month}</DialogTitle>
+            <DialogTitle>{selectedMonth ? formatMonthKeyLong(selectedMonth.month) : ""}</DialogTitle>
             <DialogDescription>De onde saiu a receita do mês, por cliente.</DialogDescription>
           </DialogHeader>
           {selectedMonth && selectedMonth.revenueByClient.length === 0 ? (
