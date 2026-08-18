@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { createQuoteAction, getServiceCatalogAction, type QuoteItemInput } from "@/lib/comercial/quote-actions";
 import type { ServiceCatalogItem } from "@/lib/supabase/types/database";
 
-const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
 type DraftItem = QuoteItemInput & { key: string };
 

@@ -11,7 +11,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { deleteCostAction } from "@/lib/financeiro/actions";
 import type { Cost } from "@/lib/supabase/types/database";
 
-const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 const MASKED_CURRENCY = "R$ ••••";
 const RECURRENCE_LABEL: Record<Cost["recurrence"], string> = { fixo: "Fixo", variavel: "Variável" };
 

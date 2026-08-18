@@ -32,7 +32,7 @@ export type ToolSpec = {
 const STALE_LEAD_DAYS_DEFAULT = 3;
 const MAX_LIST_ROWS = 10;
 
-const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
 const TOOLS: ToolSpec[] = [
   {

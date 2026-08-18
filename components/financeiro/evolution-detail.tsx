@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { formatMonthKeyLong } from "@/lib/date";
 import type { MonthlyEvolutionPoint } from "@/lib/financeiro/types";
 
-const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
 /**
  * Conteúdo ampliado do gráfico "Evolução" — pedido explícito: "ao clicar no mês eu quero ver de

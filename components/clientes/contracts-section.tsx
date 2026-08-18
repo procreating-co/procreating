@@ -8,7 +8,7 @@ import { ContractFormDialog } from "@/components/clientes/contract-form-dialog";
 import { CONTRACT_CATEGORY_LABEL, CONTRACT_CATEGORY_TONE } from "@/lib/financeiro/contract-category";
 import type { Contract, ContractScopeItem } from "@/lib/supabase/types/database";
 
-const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 const dateFormatter = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" });
 
 type ContractWithScope = Contract & { scopeItems: ContractScopeItem[] };

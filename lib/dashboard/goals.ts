@@ -19,5 +19,8 @@ export async function getCurrentMonthGoal(): Promise<RevenueGoal | null> {
 
 /** Progresso da meta do mês corrente — `amount` (meta), `realized` (receita paga no mês),
  *  `percentage`/`expectedPacePercentage` pra comparar "quanto já foi" vs. "quanto já devia ter
- *  sido, no ritmo do calendário". Mesmo formato usado no Dashboard (Home) e no Financeiro. */
-export type GoalProgress = { amount: number; realized: number; percentage: number; expectedPacePercentage: number };
+ *  sido, no ritmo do calendário". `daysRemaining` — pedido explícito: o header do Dashboard
+ *  mostrava a mesma porcentagem duas vezes (label + número à direita da barra); o número à
+ *  direita virou "dias restantes" em vez de repetir o %. Mesmo formato usado no Dashboard (Home)
+ *  e no Financeiro. */
+export type GoalProgress = { amount: number; realized: number; percentage: number; expectedPacePercentage: number; daysRemaining: number };

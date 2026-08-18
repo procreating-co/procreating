@@ -32,7 +32,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 const MASKED_CURRENCY = "R$ ••••";
 
 /** `dev_tester` (leitura mascarada, `requireFinancialPageAccess`) — mesmo padrão já usado na

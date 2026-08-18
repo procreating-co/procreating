@@ -7,7 +7,7 @@ import { listUsers } from "@/lib/admin/users/queries";
 import { formatDateOnly } from "@/lib/date";
 import type { Strategy } from "@/lib/supabase/types/database";
 
-const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
 /** Mesmo formato de `DetailEntry` (`lib/dashboard/executive-metrics.ts`) — duplicado aqui de
  *  propósito, mesmo motivo de `FinancialDetailEntry` (`lib/financeiro/types.ts`): `lib/comercial`

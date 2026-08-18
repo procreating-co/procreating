@@ -6,7 +6,7 @@ import { getCurrentMonthGoal, type GoalProgress } from "@/lib/dashboard/goals";
 import type { Cost, Expense, FinancialEntryStatus, Revenue } from "@/lib/supabase/types/database";
 import type { FinanceiroMetrics, FinancialDetailEntry, MonthlyEvolutionPoint, PipelineOpportunity } from "@/lib/financeiro/types";
 
-const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 const STATUS_LABEL: Record<FinancialEntryStatus, string> = { pendente: "Pendente", pago: "Pago", atrasado: "Atrasado", cancelado: "Cancelado" };
 
 /** "MM/YYYY" de `fromMonthKey` (inclusive) até dezembro de `toYear` (inclusive) — só pra
@@ -186,6 +186,7 @@ export async function computeFinanceiroMetrics(evolutionMonths = 6): Promise<Fin
         realized: revenueThisMonth,
         percentage: (revenueThisMonth / Number(goalRow.amount)) * 100,
         expectedPacePercentage: (currentDay / daysInMonth(currentYear, currentMonthNum)) * 100,
+        daysRemaining: daysInMonth(currentYear, currentMonthNum) - currentDay,
       }
     : null;
 

@@ -12,7 +12,7 @@ import { StatTile } from "@/components/dashboard/stat-tile";
 import type { Strategy, StrategyFunnel } from "@/lib/comercial/types";
 import type { SequenceStep } from "@/lib/supabase/types/database";
 
-const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
 export type StrategyDetailData = { strategy: Strategy; funnel: StrategyFunnel; sequenceSteps: SequenceStep[] };
 

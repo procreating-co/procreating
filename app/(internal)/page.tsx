@@ -1,4 +1,4 @@
-import { AlertTriangle, Banknote, EyeOff, Handshake, TrendingUp, Users, UsersRound, Wallet } from "lucide-react";
+import { AlertTriangle, Banknote, EyeOff, Handshake, Repeat, TrendingUp, Users, Wallet } from "lucide-react";
 import { computeExecutiveDashboard } from "@/lib/dashboard/executive-metrics";
 import { getSession } from "@/lib/admin/auth";
 import { canViewFinancials } from "@/lib/auth/permissions";
@@ -20,7 +20,7 @@ import type { MetricTone } from "@/lib/dashboard/metric-tone";
 import { cn } from "@/lib/utils";
 import type { DetailEntry } from "@/lib/dashboard/executive-metrics";
 
-const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 const percentFormatter = (value: number) => `${value.toFixed(1)}%`;
 
 /**
@@ -64,8 +64,11 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
     <main className="mx-auto flex max-w-[1400px] flex-col gap-10 px-6 pt-8 pb-16 lg:px-10">
       <DashboardDateHeader goal={metrics.goal} />
 
-      {/* Linha de KPIs */}
-      <section className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
+      {/* Linha de KPIs — pedido explícito: "os blocos devem ser Receita, Receita Recorrente,
+       *  Lucro Líquido, Salário". Pipeline/Fluxo de Caixa/Clientes Recorrentes/Projetos saíram
+       *  desta linha especificamente (os cálculos continuam existindo e aparecem em outras
+       *  seções da página, não foram apagados). */}
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <CardWithDetail title="Receita" description="Receita deste mês — mesmo número do Financeiro." detail={<DetailList items={maskEntries(d.revenueEntries, canView)} emptyLabel="Nenhuma receita com vencimento este mês ainda." />}>
           <MetricCard
             icon={<TrendingUp className="size-3.5" />}
@@ -75,6 +78,13 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
             delta={metrics.kpis.revenue.deltaPct != null ? { value: percentFormatter(Math.abs(metrics.kpis.revenue.deltaPct)), direction: metrics.kpis.revenue.deltaPct >= 0 ? "up" : "down" } : undefined}
             tone={metrics.kpis.revenue.deltaPct == null ? "info" : metrics.kpis.revenue.deltaPct >= 0 ? "success" : "danger"}
           />
+        </CardWithDetail>
+        <CardWithDetail
+          title="Receita Recorrente"
+          description="MRR — mesmo número do Financeiro."
+          detail={<DetailList items={maskEntries(d.mrrEntries, canView)} emptyLabel="Nenhum contrato recorrente ativo ainda." />}
+        >
+          <MetricCard icon={<Repeat className="size-3.5" />} label="Receita Recorrente" value={money(metrics.kpis.recurringRevenue.value)} tone="brand" />
         </CardWithDetail>
         <CardWithDetail
           title="Lucro Líquido"
@@ -99,39 +109,19 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
           />
         </CardWithDetail>
         <CardWithDetail
-          title="Fluxo de Caixa"
-          description="Entradas − saídas deste mês."
+          title="Salário"
+          description="Distribuível (receita − operacional) dividido por 2 — mesma conta do bloco Salário no Financeiro."
           detail={
             <DetailList
               items={[
-                { label: "Entradas", value: money(metrics.financialHealth.revenue) },
-                { label: "Saídas", value: `− ${money(metrics.financialHealth.expenses)}` },
-                { label: "Fluxo de Caixa", value: `${metrics.financialHealth.cashFlow >= 0 ? "+" : ""}${money(metrics.financialHealth.cashFlow)}` },
+                { label: "Receita (mês)", value: money(metrics.financialHealth.revenue) },
+                { label: "Por sócio (÷ 2)", value: money(metrics.kpis.partnerSalary.value) },
               ]}
               emptyLabel="Sem dado suficiente."
             />
           }
         >
-          <MetricCard
-            icon={<Banknote className="size-3.5" />}
-            label="Fluxo de Caixa"
-            value={money(metrics.kpis.cashFlow.value)}
-            sparkline={metrics.kpis.cashFlow.sparkline}
-            tone={metrics.kpis.cashFlow.value >= 0 ? "success" : "danger"}
-          />
-        </CardWithDetail>
-        <CardWithDetail title="Pipeline" description="Leads abertos, por valor potencial." detail={<DetailList items={maskEntries(d.openLeads, canView)} emptyLabel="Nenhum lead aberto." />}>
-          <MetricCard icon={<Handshake className="size-3.5" />} label="Pipeline" value={money(metrics.kpis.pipeline.value)} tone="info" />
-        </CardWithDetail>
-        {/* Pedido explícito — substitui "Clientes Ativos"/"Equipe" aqui especificamente (as
-         *  outras 2 seções mais abaixo que também usam esses nomes continuam com o significado
-         *  de sempre, não foram tocadas). "Clientes Recorrentes" = cliente ativo com contrato
-         *  `type='recorrente'`; "Projetos" = cliente ativo com contrato `type='pontual'`. */}
-        <CardWithDetail title="Clientes Recorrentes" detail={<DetailList items={d.recurringClients} emptyLabel="Nenhum cliente recorrente ainda." />}>
-          <MetricCard icon={<Users className="size-3.5" />} label="Clientes Recorrentes" value={String(metrics.kpis.recurringClients.value)} tone="success" />
-        </CardWithDetail>
-        <CardWithDetail title="Projetos" detail={<DetailList items={d.projectClients} emptyLabel="Nenhum projeto pontual ativo." />}>
-          <MetricCard icon={<UsersRound className="size-3.5" />} label="Projetos" value={String(metrics.kpis.projectClients.value)} tone="brand" />
+          <MetricCard icon={<Banknote className="size-3.5" />} label="Salário (cada sócio)" value={money(metrics.kpis.partnerSalary.value)} tone="success" />
         </CardWithDetail>
       </section>
 

@@ -13,7 +13,7 @@ import type { LeadWithRelations, PipelineStage } from "@/lib/comercial/types";
 import type { Strategy, User } from "@/lib/supabase/types/database";
 import { cn } from "@/lib/utils";
 
-const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
 export function LeadsTable({
   leads,

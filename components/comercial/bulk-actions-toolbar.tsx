@@ -9,7 +9,7 @@ import { bulkAddTagAction, bulkAssignOwnerAction, bulkAssignStrategyAction, bulk
 import type { LeadWithRelations, PipelineStage } from "@/lib/comercial/types";
 import type { Strategy, User } from "@/lib/supabase/types/database";
 
-const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
 /**
  * Master prompt §71 — "toolbar contextual que aparece somente quando houver seleção", não um

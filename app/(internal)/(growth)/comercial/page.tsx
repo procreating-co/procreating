@@ -49,7 +49,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
 const TABS = [
   { key: "overview", label: "Visão Geral" },

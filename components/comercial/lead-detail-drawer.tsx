@@ -17,7 +17,7 @@ import type { QuoteWithItems } from "@/lib/comercial/quotes";
 import type { LeadPatch, LeadWithRelations } from "@/lib/comercial/types";
 import { cn } from "@/lib/utils";
 
-const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
 const QUOTE_STATUS_LABEL: Record<QuoteStatus, string> = { rascunho: "Rascunho", enviado: "Enviado", aceito: "Aceito", recusado: "Recusado" };
 const QUOTE_STATUS_TONE: Record<QuoteStatus, StatusTone> = { rascunho: "neutral", enviado: "pending", aceito: "active", recusado: "danger" };

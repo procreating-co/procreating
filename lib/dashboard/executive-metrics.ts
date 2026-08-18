@@ -5,6 +5,7 @@ import { computeComercialMetrics } from "@/lib/comercial/metrics";
 import { listPipelineStages } from "@/lib/comercial/queries";
 import { computeFinanceiroMetrics } from "@/lib/financeiro/queries";
 import { computeTopClientConcentration } from "@/lib/financeiro/calculations";
+import { computeDistribution } from "@/lib/financeiro/rules";
 import { dayOfMonthOf, daysInMonth, todayUTCAnchor } from "@/lib/date";
 import type { Client, Contract, Lead } from "@/lib/supabase/types/database";
 import type { MonthlyEvolutionPoint } from "@/lib/financeiro/types";
@@ -73,6 +74,15 @@ export type ExecutiveMetrics = {
      *  usam "Clientes Ativos"/"Equipe" continuam com o significado de sempre, sem mudança). */
     recurringClients: { value: number };
     projectClients: { value: number };
+    /** Pedido explícito — linha de KPIs do topo virou "Receita, Receita Recorrente, Lucro
+     *  Líquido, Salário" (as 4 acima ficaram fora dessa linha, mas continuam calculadas/usadas
+     *  em outras seções da página). `recurringRevenue` = MRR (mesmo `financeiro.mrr` que
+     *  alimenta "Receita Recorrente Mensal" no Financeiro). `partnerSalary` = mesma conta do
+     *  bloco "Salário" do Financeiro (`computeDistribution`, distribuível ÷ 2) — reaproveitada,
+     *  não recalculada com uma fórmula própria (mesma razão do fix de Receita/Lucro Líquido:
+     *  nunca duas contas em paralelo pro mesmo número). */
+    recurringRevenue: { value: number };
+    partnerSalary: { value: number };
   };
   revenueVsTarget: { points: RevenueVsTargetPoint[]; goalAmount: number | null };
   financialHealth: {
@@ -109,13 +119,16 @@ export type ExecutiveMetrics = {
     teamMembers: DetailEntry[];
     recurringClients: DetailEntry[];
     projectClients: DetailEntry[];
+    /** Detalhe do bloco "Receita Recorrente" (linha de KPIs do topo) — mesmas linhas de
+     *  `financeiro.mrrEntries` (cliente + valor/mês), não uma lista própria sem valor. */
+    mrrEntries: DetailEntry[];
     overdueRevenue: DetailEntry[];
     overdueExpenses: DetailEntry[];
     upcomingRevenue: DetailEntry[];
   };
 };
 
-const currency = (value: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+const currency = (value: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(value);
 const shortDate = (iso: string | null) => (iso ? new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit" }).format(new Date(iso)) : "—");
 
 const ROLE_LABEL: Record<string, string> = {
@@ -195,6 +208,12 @@ export async function computeExecutiveDashboard(cashFlowMonths = 6): Promise<Exe
   const revenueLastMonth = financeiro.monthlyEvolution.length >= 2 ? financeiro.monthlyEvolution[financeiro.monthlyEvolution.length - 2].revenue : 0;
   const revenueDeltaPct = revenueLastMonth > 0 ? ((revenueThisMonth - revenueLastMonth) / revenueLastMonth) * 100 : null;
 
+  // "Receita Recorrente"/"Salário" (linha de KPIs do topo) — mesmas contas do Financeiro, nunca
+  // recalculadas: `financeiro.mrr` é o mesmo MRR de "Receita Recorrente Mensal";
+  // `computeDistribution` é a mesma regra 20/80 de "Caixa Operacional"/"Salário" lá.
+  const distribution = await computeDistribution(revenueThisMonth);
+  const partnerSalaryEach = distribution.distributable / 2;
+
   const clients: Client[] = allClients ?? [];
   const clientNameById = new Map(clients.map((client) => [client.id, client.name]));
 
@@ -207,6 +226,7 @@ export async function computeExecutiveDashboard(cashFlowMonths = 6): Promise<Exe
         realized: revenueThisMonth,
         percentage: (revenueThisMonth / Number(goalRow.amount)) * 100,
         expectedPacePercentage: (dayOfMonth / daysThisMonth) * 100,
+        daysRemaining: daysThisMonth - dayOfMonth,
       }
     : null;
 
@@ -357,6 +377,8 @@ export async function computeExecutiveDashboard(cashFlowMonths = 6): Promise<Exe
       team: { value: users?.length ?? 0 },
       recurringClients: { value: recurringClientsList.length },
       projectClients: { value: projectClientsList.length },
+      recurringRevenue: { value: financeiro.mrr },
+      partnerSalary: { value: partnerSalaryEach },
     },
     revenueVsTarget: { points: revenueVsTargetPoints, goalAmount: goalRow ? Number(goalRow.amount) : null },
     financialHealth: {
@@ -411,6 +433,7 @@ export async function computeExecutiveDashboard(cashFlowMonths = 6): Promise<Exe
       teamMembers: (users ?? []).map((user) => ({ label: user.name, meta: ROLE_LABEL[user.role] ?? user.role })),
       recurringClients: recurringClientsList.map((client) => ({ label: client.name, meta: client.segment ?? undefined })),
       projectClients: projectClientsList.map((client) => ({ label: client.name, meta: client.segment ?? undefined })),
+      mrrEntries: financeiro.mrrEntries,
       overdueRevenue: overdueRevenueList.map((row) => ({
         label: row.description || clientNameById.get(row.client_id ?? "") || "Receita",
         value: currency(Number(row.amount)),
@@ -431,5 +454,5 @@ export async function computeExecutiveDashboard(cashFlowMonths = 6): Promise<Exe
 }
 
 function formatCurrency(value: number): string {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(value);
 }

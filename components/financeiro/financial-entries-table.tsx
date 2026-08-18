@@ -19,7 +19,7 @@ export type FinancialEntryRow = {
   status: FinancialEntryStatus;
 };
 
-const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
 const STATUS_TONE: Record<FinancialEntryStatus, StatusTone> = {
   pendente: "pending",
