@@ -133,22 +133,40 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: P
             </>
           }
         />
-        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border/60 bg-card/40 p-6">
-          <div className="flex flex-col gap-0.5">
-            <p className="text-xs text-muted-foreground">Faturamento (mês)</p>
-            <p className="text-2xl font-semibold tabular-nums">{currencyFormatter.format(distribution.revenue)}</p>
+        {/* Clique-pra-detalhe (`CardWithDetail`) — mesmo padrão do resto do Financeiro. Os 3
+         *  segmentos (Faturamento → Operacional → Distribuível) são uma conta só em cadeia, não 3
+         *  métricas independentes — um clique só, com a cadeia completa no modal, em vez de
+         *  fragmentar em 3 cards (mesmo espírito do detalhe de "Lucro Líquido" na Home). */}
+        <CardWithDetail
+          title="Faturamento → Operacional → Distribuível"
+          detail={
+            <DetailList
+              items={[
+                { label: "Faturamento (mês)", value: currencyFormatter.format(distribution.revenue) },
+                { label: `Operacional (${distribution.operationalPercentage}%)`, value: `− ${currencyFormatter.format(distribution.operationalAmount)}` },
+                { label: "Distribuível", value: currencyFormatter.format(distribution.distributable) },
+              ]}
+              emptyLabel="Sem dado suficiente."
+            />
+          }
+        >
+          <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border/60 bg-card/40 p-6 text-left">
+            <div className="flex flex-col gap-0.5">
+              <p className="text-xs text-muted-foreground">Faturamento (mês)</p>
+              <p className="text-2xl font-semibold tabular-nums">{currencyFormatter.format(distribution.revenue)}</p>
+            </div>
+            <ArrowRight className="size-4 text-muted-foreground" />
+            <div className="flex flex-col gap-0.5">
+              <p className="text-xs text-muted-foreground">Operacional ({distribution.operationalPercentage}%)</p>
+              <p className="text-2xl font-semibold tabular-nums">{currencyFormatter.format(distribution.operationalAmount)}</p>
+            </div>
+            <ArrowRight className="size-4 text-muted-foreground" />
+            <div className="flex flex-col gap-0.5">
+              <p className="text-xs text-muted-foreground">Distribuível</p>
+              <p className="text-2xl font-semibold tabular-nums text-brand">{currencyFormatter.format(distribution.distributable)}</p>
+            </div>
           </div>
-          <ArrowRight className="size-4 text-muted-foreground" />
-          <div className="flex flex-col gap-0.5">
-            <p className="text-xs text-muted-foreground">Operacional ({distribution.operationalPercentage}%)</p>
-            <p className="text-2xl font-semibold tabular-nums">{currencyFormatter.format(distribution.operationalAmount)}</p>
-          </div>
-          <ArrowRight className="size-4 text-muted-foreground" />
-          <div className="flex flex-col gap-0.5">
-            <p className="text-xs text-muted-foreground">Distribuível</p>
-            <p className="text-2xl font-semibold tabular-nums text-brand">{currencyFormatter.format(distribution.distributable)}</p>
-          </div>
-        </div>
+        </CardWithDetail>
         <div className="flex flex-col gap-4">
           <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Por sócio</h3>
           {distribution.partners.length === 0 ? (
@@ -156,11 +174,31 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: P
           ) : (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {distribution.partners.map((partner) => (
-                <div key={partner.userId} className="flex flex-col gap-1 rounded-xl border border-border/60 bg-card/40 p-5">
-                  <p className="text-sm font-medium">{partner.name}</p>
-                  <p className="text-2xl font-semibold tabular-nums">{currencyFormatter.format(partner.amount)}</p>
-                  <p className="text-xs text-muted-foreground">{partner.percentage.toFixed(1)}% do distribuível</p>
-                </div>
+                <CardWithDetail
+                  key={partner.userId}
+                  title={partner.name}
+                  description={
+                    partner.isOverride
+                      ? "Percentual configurado manualmente em Regras financeiras."
+                      : "Divisão igual automática — sem percentual próprio configurado."
+                  }
+                  detail={
+                    <DetailList
+                      items={[
+                        { label: "Distribuível", value: currencyFormatter.format(distribution.distributable) },
+                        { label: `Percentual (${partner.isOverride ? "manual" : "automático"})`, value: `${partner.percentage.toFixed(1)}%` },
+                        { label: partner.name, value: currencyFormatter.format(partner.amount) },
+                      ]}
+                      emptyLabel="Sem dado suficiente."
+                    />
+                  }
+                >
+                  <div className="flex flex-col gap-1 rounded-xl border border-border/60 bg-card/40 p-5 text-left">
+                    <p className="text-sm font-medium">{partner.name}</p>
+                    <p className="text-2xl font-semibold tabular-nums">{currencyFormatter.format(partner.amount)}</p>
+                    <p className="text-xs text-muted-foreground">{partner.percentage.toFixed(1)}% do distribuível</p>
+                  </div>
+                </CardWithDetail>
               ))}
             </div>
           )}

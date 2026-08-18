@@ -2,7 +2,17 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import type { FinancialRule } from "@/lib/supabase/types/database";
 
-export type PartnerDistributionEntry = { userId: string; name: string; percentage: number; amount: number };
+export type PartnerDistributionEntry = {
+  userId: string;
+  name: string;
+  percentage: number;
+  amount: number;
+  /** `true` = percentual veio de uma linha própria em `partner_shares` (override manual,
+   *  configurado em Configurações → Regras financeiras); `false` = divisão igual automática do
+   *  que sobrou dos 100%. Só pra explicar "por que esse %" no clique-pra-detalhe — não muda a
+   *  conta em si. */
+  isOverride: boolean;
+};
 
 export type DistributionResult = {
   revenue: number;
@@ -57,8 +67,9 @@ export async function computeDistribution(revenue: number): Promise<Distribution
   const evenShare = withoutOverride.length > 0 ? remainingPercentage / withoutOverride.length : 0;
 
   const partners: PartnerDistributionEntry[] = ownersList.map((owner) => {
+    const isOverride = percentageByUserId.has(owner.id);
     const percentage = percentageByUserId.get(owner.id) ?? evenShare;
-    return { userId: owner.id, name: owner.name, percentage, amount: distributable * (percentage / 100) };
+    return { userId: owner.id, name: owner.name, percentage, amount: distributable * (percentage / 100), isOverride };
   });
 
   return { revenue, operationalPercentage, operationalAmount, distributable, partners };
