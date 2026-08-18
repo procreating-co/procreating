@@ -76,4 +76,10 @@ export type FinanceiroMetrics = {
   receivablesPendingEntries: FinancialDetailEntry[];
   receivablesOverdueEntries: FinancialDetailEntry[];
   payablesEntries: FinancialDetailEntry[];
+  /** "A receber (até <ano>)" — pedido explícito: projeção mais longa, só clientes com contrato
+   *  recorrente ativo, até dezembro do ano corrente + 1 (ver `queries.ts` pra não cravar "2027"
+   *  como literal). */
+  receivablesRecurringYear: number;
+  receivablesRecurringThroughNextYear: number;
+  receivablesRecurringEntries: FinancialDetailEntry[];
 };

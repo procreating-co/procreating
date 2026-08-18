@@ -1,6 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import { currentMonthKey, formatDateOnly, lastMonthKeys, monthKeyOf, todayISO } from "@/lib/date";
+import { currentMonthKey, formatDateOnly, lastMonthKeys, monthKeyOf, todayISO, todayParts } from "@/lib/date";
 import { computeMargin, computeMrr, computeUpcomingReceivables, groupRevenueByClient, sumAmount, sumAmountForMonth } from "@/lib/financeiro/calculations";
 import type { Cost, Expense, FinancialEntryStatus, Revenue } from "@/lib/supabase/types/database";
 import type { FinanceiroMetrics, FinancialDetailEntry, MonthlyEvolutionPoint, PipelineOpportunity } from "@/lib/financeiro/types";
@@ -162,6 +162,27 @@ export async function computeFinanceiroMetrics(evolutionMonths = 6): Promise<Fin
       meta: `${row.category} · ${row.status === "atrasado" ? "venceu" : "vence"} ${formatDateOnly(row.due_date)}`,
     }));
 
+  // "A receber (até <ano>)" — pedido explícito: projeção mais longa que "A receber (pendente)"
+  // (que soma QUALQUER pendente, sem corte de data), escopada só a cliente com contrato
+  // recorrente ativo (via `revenue.contract_id`, não `client_id` — um cliente podia ter mais de
+  // um contrato). Corte em "ano corrente + 1" (não a data literal "2027" hardcoded) — cravar o
+  // ano vira errado sozinho depois que 2027 passar; `todayParts().year + 1` mantém a mesma
+  // distância (~1-2 anos à frente) pra sempre, sem precisar de outra rodada só pra atualizar.
+  const receivablesRecurringYear = todayParts().year + 1;
+  const receivablesRecurringCutoff = `${receivablesRecurringYear}-12-31`;
+  const recurringContractIds = new Set((activeRecurringContracts ?? []).map((contract) => contract.id));
+  const receivablesRecurringRows = revenue.filter(
+    (row) => row.status === "pendente" && row.contract_id != null && recurringContractIds.has(row.contract_id) && row.due_date <= receivablesRecurringCutoff,
+  );
+  const receivablesRecurringThroughNextYear = sumAmount(receivablesRecurringRows);
+  const receivablesRecurringEntries: FinancialDetailEntry[] = [...receivablesRecurringRows]
+    .sort((a, b) => a.due_date.localeCompare(b.due_date))
+    .map((row) => ({
+      label: (row.client_id && clientNameById.get(row.client_id)) || "Sem cliente vinculado",
+      value: currency.format(Number(row.amount)),
+      meta: `${row.description} · vence ${formatDateOnly(row.due_date)}`,
+    }));
+
   return {
     mrr,
     revenueThisMonth,
@@ -182,5 +203,8 @@ export async function computeFinanceiroMetrics(evolutionMonths = 6): Promise<Fin
     receivablesPendingEntries,
     receivablesOverdueEntries,
     payablesEntries,
+    receivablesRecurringYear,
+    receivablesRecurringThroughNextYear,
+    receivablesRecurringEntries,
   };
 }

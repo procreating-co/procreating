@@ -18,7 +18,7 @@ export function CardWithDetail({
   className,
 }: {
   title: string;
-  description?: string;
+  description?: ReactNode;
   detail: ReactNode;
   children: ReactNode;
   className?: string;

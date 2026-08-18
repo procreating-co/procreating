@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { AlertTriangle, ArrowDownCircle, ArrowRight, ArrowUpCircle, CalendarClock, Clock, ShieldAlert, TrendingUp, Wallet } from "lucide-react";
+import { AlertTriangle, ArrowDownCircle, ArrowRight, ArrowUpCircle, CalendarClock, Clock, PiggyBank, ShieldAlert, TrendingUp, Users, Wallet } from "lucide-react";
 import { computeFinanceiroMetrics, listCosts, listExpenses, listRevenue } from "@/lib/financeiro/queries";
 import { computeDistribution } from "@/lib/financeiro/rules";
 import { updateRevenueStatusAction } from "@/lib/financeiro/actions";
@@ -170,6 +170,10 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: P
   } else {
     const months = Number(monthsParam) || 6;
     const metrics = await computeFinanceiroMetrics(months);
+    // Mesma regra 20/80 já usada na aba Distribuição (`computeDistribution`) — pedido explícito
+    // pra trazer "Caixa Operacional" e "Salário dos Sócios" pra Visão Geral também, não só lá.
+    const distribution = await computeDistribution(metrics.revenueThisMonth);
+    const partnerSalaryEach = distribution.distributable / 2;
     content = (
       <>
         {/* Todo bloco é clicável (`CardWithDetail`) — abre a lista real das entradas por trás do
@@ -194,8 +198,18 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: P
           <CardWithDetail title="Despesas este mês" detail={<DetailList items={metrics.expensesThisMonthEntries} emptyLabel="Nenhuma despesa com vencimento este mês." />}>
             <StatTile demo={false} label="Despesas este mês" value={currencyFormatter.format(metrics.expensesThisMonth)} icon={<ArrowDownCircle className="size-4.5" />} tone="info" />
           </CardWithDetail>
-          <CardWithDetail title="A receber (pendente)" detail={<DetailList items={metrics.receivablesPendingEntries} emptyLabel="Nada pendente no momento." />}>
-            <StatTile demo={false} label="A receber (pendente)" value={currencyFormatter.format(metrics.receivablesPending)} icon={<Clock className="size-4.5" />} tone="warning" />
+          <CardWithDetail
+            title={`A receber (até ${metrics.receivablesRecurringYear})`}
+            description="Só clientes com contrato recorrente ativo — pendente, ainda não vencido nem pago."
+            detail={<DetailList items={metrics.receivablesRecurringEntries} emptyLabel="Nada pendente de cliente recorrente até lá." />}
+          >
+            <StatTile
+              demo={false}
+              label={`A receber (até ${metrics.receivablesRecurringYear})`}
+              value={currencyFormatter.format(metrics.receivablesRecurringThroughNextYear)}
+              icon={<Clock className="size-4.5" />}
+              tone="warning"
+            />
           </CardWithDetail>
           <CardWithDetail title="A receber (atrasado)" detail={<DetailList items={metrics.receivablesOverdueEntries} emptyLabel="Nada atrasado no momento." />}>
             <StatTile demo={false} label="A receber (atrasado)" value={currencyFormatter.format(metrics.receivablesOverdue)} icon={<AlertTriangle className="size-4.5" />} tone="danger" />
@@ -220,6 +234,44 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: P
           </CardWithDetail>
           <CardWithDetail title="A pagar (pendente + atrasado)" detail={<DetailList items={metrics.payablesEntries} emptyLabel="Nada a pagar em aberto." />}>
             <StatTile demo={false} label="A pagar (pendente + atrasado)" value={currencyFormatter.format(metrics.payablesPending + metrics.payablesOverdue)} icon={<Wallet className="size-4.5" />} tone="warning" />
+          </CardWithDetail>
+          <CardWithDetail
+            title="Caixa Operacional"
+            description={
+              <>
+                {distribution.operationalPercentage}% da receita bruta deste mês — mesma regra de{" "}
+                <Link href="/configuracoes/regras-financeiras" className="underline underline-offset-4 hover:text-foreground">
+                  Regras financeiras
+                </Link>
+                .
+              </>
+            }
+            detail={
+              <DetailList
+                items={[
+                  { label: "Receita bruta (mês)", value: currencyFormatter.format(distribution.revenue) },
+                  { label: `Operacional (${distribution.operationalPercentage}%)`, value: currencyFormatter.format(distribution.operationalAmount) },
+                ]}
+                emptyLabel="Sem dado suficiente."
+              />
+            }
+          >
+            <StatTile demo={false} label="Caixa Operacional" value={currencyFormatter.format(distribution.operationalAmount)} icon={<PiggyBank className="size-4.5" />} tone="info" />
+          </CardWithDetail>
+          <CardWithDetail
+            title="Salário dos Sócios"
+            description="Distribuível (receita − operacional) dividido por 2 — divisão fixa, diferente da regra configurável (por sócio) da aba Distribuição."
+            detail={
+              <DetailList
+                items={[
+                  { label: `Distribuível (${100 - distribution.operationalPercentage}%)`, value: currencyFormatter.format(distribution.distributable) },
+                  { label: "Por sócio (÷ 2)", value: currencyFormatter.format(partnerSalaryEach) },
+                ]}
+                emptyLabel="Sem dado suficiente."
+              />
+            }
+          >
+            <StatTile demo={false} label="Salário dos Sócios (cada)" value={currencyFormatter.format(partnerSalaryEach)} icon={<Users className="size-4.5" />} tone="brand" />
           </CardWithDetail>
         </div>
 
