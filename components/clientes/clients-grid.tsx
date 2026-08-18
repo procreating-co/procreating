@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ClientCard } from "@/components/clientes/client-card";
-import { ClientDetailDrawer } from "@/components/clientes/client-detail-drawer";
 import { cn } from "@/lib/utils";
 import type { ClientCardData } from "@/lib/clientes/queries";
 
@@ -26,10 +25,12 @@ const SORT_OPTIONS: { value: SortKey; label: string }[] = [
 ];
 
 /**
- * Grid + busca + filtros + ordenação + drawer — a Central de Clientes em si. Tudo client-side
- * sobre o array já carregado pela página (`rows`, `ClientsOverview.rows`) — pedido explícito
- * ("não fazer busca server-side ainda"), e cabe folgado: é a lista de clientes da empresa, não
- * um dataset que justifique paginação/busca no banco por enquanto.
+ * Grid + busca + filtros + ordenação — a Central de Clientes em si. Clicar num card navega em
+ * tela cheia pra `/clientes/[id]` (era um drawer lateral, trocado por pedido explícito — ver
+ * `client-card.tsx`). Busca/filtro/ordenação client-side sobre o array já carregado pela página
+ * (`rows`, `ClientsOverview.rows`) — pedido explícito ("não fazer busca server-side ainda"), e
+ * cabe folgado: é a lista de clientes da empresa, não um dataset que justifique paginação/busca
+ * no banco por enquanto.
  *
  * `rows` já chega filtrada (só ativos/recorrentes — pedido explícito, `listClientsOverview` em
  * `lib/clientes/queries.ts`), então não existe mais chip "Churn" aqui — seria sempre vazio por
@@ -42,7 +43,6 @@ export function ClientsGrid({ rows }: { rows: ClientCardData[] }) {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<StatusFilter>("all");
   const [sort, setSort] = useState<SortKey>("recent");
-  const [selected, setSelected] = useState<ClientCardData | null>(null);
 
   const visible = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -114,16 +114,10 @@ export function ClientsGrid({ rows }: { rows: ClientCardData[] }) {
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {visible.map((row) => (
-            <ClientCard key={row.client.id} data={row} onOpen={() => setSelected(row)} />
+            <ClientCard key={row.client.id} data={row} />
           ))}
         </div>
       )}
-
-      <ClientDetailDrawer
-        data={selected}
-        onOpenChange={(open) => !open && setSelected(null)}
-        onArchived={() => setSelected(null)}
-      />
     </div>
   );
 }

@@ -12,9 +12,9 @@ export const metadata: Metadata = {
 };
 
 /**
- * Central de Clientes — redesenhada (era `ClientsTable`, tabela tradicional). Continua sendo uma
- * página só: clicar num cliente abre o `ClientDetailDrawer` sem navegar, a lista/busca/filtros
- * de trás não se perdem (pedido explícito, mesmo padrão do drawer de lead no Pipeline). Dado
+ * Central de Clientes — redesenhada (era `ClientsTable`, tabela tradicional). Clicar num cliente
+ * navega em tela cheia pra `/clientes/[id]` (era um drawer lateral que preservava a lista atrás;
+ * trocado por pedido explícito — a rota `/clientes/[id]` já existia, nunca foi tocada). Dado
  * real, `listClientsOverview()` — nenhum mock; o pedido original citava conceitos de outro
  * domínio (link público, deploy status, assets) que pertencem ao admin do Client Hub/portfólio
  * da Pascoal (`/admin/clientes`, escopo de outra sessão), não a este ERP — a versão aqui foi

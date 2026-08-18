@@ -83,6 +83,13 @@ export type ExecutiveMetrics = {
      *  nunca duas contas em paralelo pro mesmo número). */
     recurringRevenue: { value: number };
     partnerSalary: { value: number };
+    /** Pedido explícito — linha de KPIs do topo virou "Receita Mensal, Receita Recorrente,
+     *  Pró-labore, Caixa Operacional" (Lucro Líquido saiu dessa linha — continua calculado/usado
+     *  em Saúde Financeira mais abaixo). Mesma conta de sempre, reaproveitada:
+     *  `distribution.operationalAmount` (`computeDistribution`, % configurável de Regras
+     *  Financeiras sobre a receita bruta — default 20%) já alimenta o bloco "Caixa Operacional"
+     *  do Financeiro; nunca uma segunda fórmula pro mesmo número aqui. */
+    operationalCash: { value: number; percentage: number };
   };
   revenueVsTarget: { points: RevenueVsTargetPoint[]; goalAmount: number | null };
   financialHealth: {
@@ -379,6 +386,7 @@ export async function computeExecutiveDashboard(cashFlowMonths = 6): Promise<Exe
       projectClients: { value: projectClientsList.length },
       recurringRevenue: { value: financeiro.mrr },
       partnerSalary: { value: partnerSalaryEach },
+      operationalCash: { value: distribution.operationalAmount, percentage: distribution.operationalPercentage },
     },
     revenueVsTarget: { points: revenueVsTargetPoints, goalAmount: goalRow ? Number(goalRow.amount) : null },
     financialHealth: {

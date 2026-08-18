@@ -1,4 +1,4 @@
-import { AlertTriangle, Banknote, EyeOff, Handshake, Repeat, TrendingUp, Users, Wallet } from "lucide-react";
+import { AlertTriangle, Banknote, EyeOff, Handshake, PiggyBank, Repeat, TrendingUp, Users, Wallet } from "lucide-react";
 import { computeExecutiveDashboard } from "@/lib/dashboard/executive-metrics";
 import { getSession } from "@/lib/admin/auth";
 import { canViewFinancials } from "@/lib/auth/permissions";
@@ -64,19 +64,21 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
     <main className="mx-auto flex max-w-[1400px] flex-col gap-10 px-6 pt-8 pb-16 lg:px-10">
       <DashboardDateHeader goal={metrics.goal} canView={canView} revenueEntries={maskEntries(d.revenueEntries, canView)} />
 
-      {/* Linha de KPIs — pedido explícito: "os blocos devem ser Receita, Receita Recorrente,
-       *  Lucro Líquido, Salário". Pipeline/Fluxo de Caixa/Clientes Recorrentes/Projetos saíram
-       *  desta linha especificamente (os cálculos continuam existindo e aparecem em outras
-       *  seções da página, não foram apagados). */}
+      {/* Linha de KPIs — pedido explícito: "os blocos devem ser Receita Mensal, Receita
+       *  Recorrente, Pró-labore, Caixa Operacional" (Lucro Líquido saiu desta linha — continua
+       *  calculado/usado em Saúde Financeira mais abaixo, não foi apagado). Pró-labore não cita
+       *  "cada sócio"/"por sócio" em lugar nenhum (label, descrição ou detalhe) — pedido
+       *  explícito, mesma conta de sempre (`kpis.partnerSalary`), só sem atribuir a divisão a
+       *  quem recebe. */}
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {/* Pedido explícito — todo bloco no tamanho padrão: `MetricCard` cresce quando recebe
          *  `sparkline` (só Receita/Lucro Líquido tinham); os 4 ficam com a mesma forma simples
          *  agora (ícone + label + valor), nenhum cresce sozinho por ter um extra que os outros
          *  não têm. */}
-        <CardWithDetail title="Receita" description="Receita deste mês — mesmo número do Financeiro." detail={<DetailList items={maskEntries(d.revenueEntries, canView)} emptyLabel="Nenhuma receita com vencimento este mês ainda." />}>
+        <CardWithDetail title="Receita Mensal" description="Receita deste mês — mesmo número do Financeiro." detail={<DetailList items={maskEntries(d.revenueEntries, canView)} emptyLabel="Nenhuma receita com vencimento este mês ainda." />}>
           <MetricCard
             icon={<TrendingUp className="size-3.5" />}
-            label="Receita"
+            label="Receita Mensal"
             value={money(metrics.kpis.revenue.value)}
             tone={metrics.kpis.revenue.deltaPct == null ? "info" : metrics.kpis.revenue.deltaPct >= 0 ? "success" : "danger"}
           />
@@ -89,35 +91,35 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
           <MetricCard icon={<Repeat className="size-3.5" />} label="Receita Recorrente" value={money(metrics.kpis.recurringRevenue.value)} tone="brand" />
         </CardWithDetail>
         <CardWithDetail
-          title="Lucro Líquido"
-          description="Receita − despesas − custos, este mês."
+          title="Pró-labore"
+          description="Receita mensal menos a taxa operacional, dividido por 2."
           detail={
             <DetailList
               items={[
-                { label: "Receita", value: money(metrics.financialHealth.revenue) },
-                { label: "Despesas", value: `− ${money(metrics.financialHealth.expenses)}` },
-                { label: "Lucro Líquido", value: money(metrics.financialHealth.netProfit) },
+                { label: "Receita mensal", value: money(metrics.financialHealth.revenue) },
+                { label: `Taxa operacional (${metrics.kpis.operationalCash.percentage}%)`, value: `− ${money(metrics.kpis.operationalCash.value)}` },
+                { label: "Pró-labore (÷ 2)", value: money(metrics.kpis.partnerSalary.value) },
               ]}
               emptyLabel="Sem dado suficiente."
             />
           }
         >
-          <MetricCard icon={<Wallet className="size-3.5" />} label="Lucro Líquido" value={money(metrics.kpis.netProfit.value)} tone={metrics.kpis.netProfit.value >= 0 ? "success" : "danger"} />
+          <MetricCard icon={<Banknote className="size-3.5" />} label="Pró-labore" value={money(metrics.kpis.partnerSalary.value)} tone="success" />
         </CardWithDetail>
         <CardWithDetail
-          title="Pró-labore"
-          description="Distribuível (receita − operacional) dividido por 2 — mesma conta do bloco Pró-labore no Financeiro."
+          title="Caixa Operacional"
+          description={`${metrics.kpis.operationalCash.percentage}% da receita mensal.`}
           detail={
             <DetailList
               items={[
-                { label: "Receita (mês)", value: money(metrics.financialHealth.revenue) },
-                { label: "Por sócio (÷ 2)", value: money(metrics.kpis.partnerSalary.value) },
+                { label: "Receita mensal", value: money(metrics.financialHealth.revenue) },
+                { label: `Caixa Operacional (${metrics.kpis.operationalCash.percentage}%)`, value: money(metrics.kpis.operationalCash.value) },
               ]}
               emptyLabel="Sem dado suficiente."
             />
           }
         >
-          <MetricCard icon={<Banknote className="size-3.5" />} label="Pró-labore (cada sócio)" value={money(metrics.kpis.partnerSalary.value)} tone="success" />
+          <MetricCard icon={<PiggyBank className="size-3.5" />} label="Caixa Operacional" value={money(metrics.kpis.operationalCash.value)} tone="info" />
         </CardWithDetail>
       </section>
 

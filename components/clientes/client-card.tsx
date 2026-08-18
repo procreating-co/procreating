@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { StatusDot, type StatusTone } from "@/components/dashboard/status-dot";
 import { CONTRACT_CATEGORY_LABEL, CONTRACT_CATEGORY_TONE } from "@/lib/financeiro/contract-category";
 import type { ClientCardData } from "@/lib/clientes/queries";
@@ -41,20 +42,21 @@ function initials(name: string): string {
 }
 
 /**
- * Card de cliente da Central de Clientes — bloco inteiro clicável (o `<button>` que embrulha
- * isto mora em `clients-grid.tsx`, aqui é só a apresentação). "Cliente recorrente"/"Projeto
- * único"/"N projetos" e as categorias vêm de `contracts` de verdade (`ContractCategory`), nunca
- * inventados — um cliente sem nenhum contrato ainda (`contractCount === 0`, ex. onboarding recém
- * criado) mostra isso explicitamente, não finge ter "0 projetos" como se fosse um dado normal.
+ * Card de cliente da Central de Clientes — bloco inteiro clicável, navega em tela cheia pra
+ * `/clientes/[id]` (pedido explícito: "ao clicar no nome... quero que abra full screen", em vez
+ * do drawer lateral que existia antes — a rota `/clientes/[id]` já existia e nunca foi tocada,
+ * só passou a ser o destino real do clique). "Cliente recorrente"/"Projeto único"/"N projetos" e
+ * as categorias vêm de `contracts` de verdade (`ContractCategory`), nunca inventados — um
+ * cliente sem nenhum contrato ainda (`contractCount === 0`, ex. onboarding recém criado) mostra
+ * isso explicitamente, não finge ter "0 projetos" como se fosse um dado normal.
  */
-export function ClientCard({ data, onOpen }: { data: ClientCardData; onOpen: () => void }) {
+export function ClientCard({ data }: { data: ClientCardData }) {
   const { client, categories, contractCount } = data;
   const isRecurring = categories.includes("recorrente_ativo");
 
   return (
-    <button
-      type="button"
-      onClick={onOpen}
+    <Link
+      href={`/clientes/${client.id}`}
       className="group flex flex-col gap-3 rounded-xl border border-border/60 bg-card/40 p-4 text-left transition-all duration-150 hover:-translate-y-0.5 hover:border-border hover:bg-card/70 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
     >
       <div className="flex items-start justify-between gap-3">
@@ -86,6 +88,6 @@ export function ClientCard({ data, onOpen }: { data: ClientCardData; onOpen: () 
         <span>Última atualização</span>
         <span className="font-mono tabular-nums">{timeAgo(client.updated_at)}</span>
       </div>
-    </button>
+    </Link>
   );
 }

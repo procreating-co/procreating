@@ -5,8 +5,11 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Menu } from "lucide-react";
 import { NAV_GROUPS, SETTINGS_TABS, type TopNavTab } from "@/components/dashboard/nav-config";
+import { CommandPalette } from "@/components/dashboard/command-palette";
+import { QuickAddMenu } from "@/components/dashboard/quick-add-menu";
 import { AiAssistant } from "@/components/dashboard/ai-assistant";
 import { KeyboardShortcuts } from "@/components/dashboard/keyboard-shortcuts";
+import { ThemeToggle } from "@/components/dashboard/theme-toggle";
 import { cn } from "@/lib/utils";
 
 /** Some completamente ao rolar pra baixo, volta ao rolar pra cima — não é só perder a borda,
@@ -63,15 +66,14 @@ function getAreaTabs(pathname: string): TopNavTab[] | null {
  * mesma causa: navegação de área espalhada em vários componentes.
  *
  * Fix: este componente resolve sozinho as abas da área atual (`getAreaTabs`) e desenha tudo numa
- * `<header>` só — `[menu mobile] [abas da área, se houver] [atalhos de teclado, IA]`, sempre a
- * mesma altura, sempre a mesma linha. `TopNav` (`top-nav.tsx`) e os 4 `layout.tsx` que só chamavam
+ * `<header>` só — `[menu mobile] [abas da área, se houver] [+ busca IA tema]`, sempre a mesma
+ * altura, sempre a mesma linha. `TopNav` (`top-nav.tsx`) e os 4 `layout.tsx` que só chamavam
  * `<TopNav tabs={...} />` foram removidos — Next.js usa o layout do pai quando não há um layout no
  * segmento, comportamento idêntico, sem regressão de rota.
  *
- * Busca (⌘K)/criar (+)/tema saíram daqui — migraram pra `DashboardSidebar` (ações globais do
- * produto, mais perto do resto do chrome fixo do que da barra de contexto da área atual). Só
- * `KeyboardShortcuts` (listener global, sem UI própria) e `AiAssistant` (sparkles) continuam
- * neste grupo de ícones.
+ * Busca (⌘K)/criar (+)/tema voltaram pra cá — chegaram a migrar pra `DashboardSidebar` numa
+ * rodada anterior, revertido por pedido explícito ("devem voltar ao local inicial no menu top
+ * bar e não no lateral menu").
  */
 export function DashboardHeader({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
   const pathname = usePathname();
@@ -117,9 +119,14 @@ export function DashboardHeader({ onOpenMobileNav }: { onOpenMobileNav: () => vo
           <div className="flex-1" />
         )}
 
+        {/* + (criar) → lupa (buscar) → sparkles (IA) → sol/lua (tema), sempre nessa ordem — um
+         *  grupo só de ícones à direita, nada de texto/pill grande. */}
         <div className="flex items-center gap-1">
           <KeyboardShortcuts />
+          <QuickAddMenu />
+          <CommandPalette />
           <AiAssistant />
+          <ThemeToggle />
         </div>
       </div>
     </header>

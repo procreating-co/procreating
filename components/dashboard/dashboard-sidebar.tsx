@@ -9,9 +9,6 @@ import { NAV_GROUPS } from "@/components/dashboard/nav-config";
 import { ProcreatingMark } from "@/components/dashboard/procreating-mark";
 import { AccountMenu } from "@/components/dashboard/account-menu";
 import { AccountAvatar } from "@/components/dashboard/account-avatar";
-import { CommandPalette } from "@/components/dashboard/command-palette";
-import { QuickAddMenu } from "@/components/dashboard/quick-add-menu";
-import { ThemeToggle } from "@/components/dashboard/theme-toggle";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
@@ -97,18 +94,6 @@ function SidebarContent({ expanded, user, onNavigate }: { expanded: boolean; use
          *  (o avatar, mais largo, puxava o olho mais pra direita). Com o mesmo slot de 28px
          *  centralizando cada ícone, a coluna fica reta independente do tamanho do glifo lá
          *  dentro. */}
-        {/* Busca (⌘K) / criar (+) / tema — migraram do `DashboardHeader` pra cá (pedido
-         *  explícito: são ações globais do produto, não navegação de área, fazem mais sentido
-         *  perto do resto do chrome fixo — logo, grupos, conta — do que na barra de contexto da
-         *  página atual). Empilhados verticalmente, não numa linha: são 3 botões `size-8` fixos e
-         *  a sidebar recolhida tem só ~44px de área útil (`w-16` menos `p-2.5` de padding) — 3
-         *  lado a lado vazariam. Empilhado cabe em qualquer largura, recolhida ou expandida. */}
-        <div className="mb-1 flex flex-col items-start gap-0.5">
-          <QuickAddMenu />
-          <CommandPalette />
-          <ThemeToggle />
-        </div>
-
         {/* Mesmo fix de espaçamento do nav acima (`ml-3`/`ml-0` no filho colapsável em vez de
          *  `gap-3` no pai) — mesma estrutura, mesmo bug de fundo/hover deslocado do centro do
          *  ícone/avatar quando recolhido. */}

@@ -38,10 +38,13 @@ export function DashboardDateHeader({ goal, canView, revenueEntries }: { goal: G
     setMonth(monthLabel());
   }, []);
 
-  // Pedido explícito — trocou de "N dias restantes" (rodada anterior) pra "R$X restante": quanto
-  // falta em reais pra bater a meta, não mais o calendário. Nunca negativo (meta já batida = 0
-  // faltando, não "-R$X sobrando" — essa leitura pertenceria a outro bloco, não a este).
+  // Pedido explícito, versão mais recente — volta a juntar % + R$ restante + dias restantes na
+  // mesma linha (rodadas anteriores foram só % + R$, depois só % + dias; agora os 3 juntos):
+  // "62,1% | R$11.360 para meta mensal" à esquerda, "Restam X dias" à direita. Nunca negativo
+  // (meta já batida = 0 faltando, não "-R$X sobrando" — essa leitura pertence a outro bloco).
   const remaining = goal ? Math.max(0, goal.amount - goal.realized) : 0;
+  const remainingLabel = canView ? currencyFormatter.format(remaining) : "R$ ••••";
+  const daysLabel = goal ? (goal.daysRemaining === 1 ? "Resta 1 dia" : `Restam ${goal.daysRemaining} dias`) : "";
 
   return (
     <div className="flex flex-col gap-4">
@@ -49,9 +52,9 @@ export function DashboardDateHeader({ goal, canView, revenueEntries }: { goal: G
       {goal ? (
         <GoalDetailDialog goal={goal} canView={canView} revenueEntries={revenueEntries} monthLabel={month ?? ""} className="max-w-md">
           <ProgressBar
-            label={`${goal.percentage.toFixed(1)}% da meta mensal`}
+            label={`${goal.percentage.toFixed(1)}% | ${remainingLabel} para meta mensal`}
             percentage={goal.percentage}
-            rightLabel={canView ? `${currencyFormatter.format(remaining)} restante` : "R$ •••• restante"}
+            rightLabel={daysLabel}
           />
         </GoalDetailDialog>
       ) : (
