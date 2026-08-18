@@ -45,21 +45,29 @@ export type FinancialEntryRowActions = {
 /** `actions` é opcional — Receitas continuam só com o toggle de status (parcelas vêm de contrato,
  *  editar/excluir ali é editar o contrato, não a linha). Despesas são cadastro manual, então
  *  ganham editar/excluir (via `ExpensesTable`, que passa `actions`). */
+const MASKED_CURRENCY = "R$ ••••";
+
 export function FinancialEntriesTable({
   rows,
   onStatusChange,
   emptyLabel,
   actions,
+  canView = true,
 }: {
   rows: FinancialEntryRow[];
   onStatusChange: (id: string, status: FinancialEntryStatus) => Promise<{ ok: boolean; error?: string }>;
   emptyLabel: string;
   actions?: FinancialEntryRowActions;
+  /** `false` (leitura mascarada, `dev_tester`) — valor vira "R$ ••••" e o `<select>` de status
+   *  (e editar/excluir, quando `actions` existe) somem, pra não oferecer um controle que o
+   *  servidor só vai barrar. */
+  canView?: boolean;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [deletingRow, setDeletingRow] = useState<FinancialEntryRow | null>(null);
   const [isDeleting, startDeleteTransition] = useTransition();
+  const showActions = canView && Boolean(actions);
 
   if (rows.length === 0) {
     return <div className="rounded-xl border border-border/60 bg-card/20 px-6 py-16 text-center text-muted-foreground">{emptyLabel}</div>;
@@ -83,7 +91,7 @@ export function FinancialEntriesTable({
             <TableHead>Vencimento</TableHead>
             <TableHead>Valor</TableHead>
             <TableHead>Status</TableHead>
-            {actions && <TableHead />}
+            {showActions && <TableHead />}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -94,37 +102,39 @@ export function FinancialEntriesTable({
                 {row.category && <span className="ml-2 text-xs text-muted-foreground">{row.category}</span>}
               </TableCell>
               <TableCell className={cn("text-muted-foreground", row.status === "atrasado" && "text-red-300")}>{formatDateOnly(row.dueDate)}</TableCell>
-              <TableCell className="text-muted-foreground">{currencyFormatter.format(row.amount)}</TableCell>
+              <TableCell className="text-muted-foreground">{canView ? currencyFormatter.format(row.amount) : MASKED_CURRENCY}</TableCell>
               <TableCell>
                 <div className="flex items-center gap-2">
                   <StatusDot tone={STATUS_TONE[row.status]} label={STATUS_LABEL[row.status]} />
-                  <select
-                    aria-label={`Status de ${row.label}`}
-                    value={row.status}
-                    disabled={isPending}
-                    onChange={(e) => {
-                      const status = e.target.value as FinancialEntryStatus;
-                      startTransition(async () => {
-                        await onStatusChange(row.id, status);
-                        router.refresh();
-                      });
-                    }}
-                    className="h-7 rounded-md border border-input bg-transparent px-1.5 text-xs outline-none focus-visible:border-ring"
-                  >
-                    {STATUS_OPTIONS.map((status) => (
-                      <option key={status} value={status}>
-                        {STATUS_LABEL[status]}
-                      </option>
-                    ))}
-                  </select>
+                  {canView && (
+                    <select
+                      aria-label={`Status de ${row.label}`}
+                      value={row.status}
+                      disabled={isPending}
+                      onChange={(e) => {
+                        const status = e.target.value as FinancialEntryStatus;
+                        startTransition(async () => {
+                          await onStatusChange(row.id, status);
+                          router.refresh();
+                        });
+                      }}
+                      className="h-7 rounded-md border border-input bg-transparent px-1.5 text-xs outline-none focus-visible:border-ring"
+                    >
+                      {STATUS_OPTIONS.map((status) => (
+                        <option key={status} value={status}>
+                          {STATUS_LABEL[status]}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
               </TableCell>
-              {actions && (
+              {showActions && (
                 <TableCell>
                   <div className="flex items-center justify-end gap-3">
                     <button
                       type="button"
-                      onClick={() => actions.onEdit(row)}
+                      onClick={() => actions?.onEdit(row)}
                       className="text-muted-foreground transition-colors hover:text-foreground"
                       aria-label={`Editar ${row.label}`}
                     >
@@ -146,7 +156,7 @@ export function FinancialEntriesTable({
         </TableBody>
       </Table>
 
-      {actions && (
+      {showActions && (
         <ConfirmDialog
           open={deletingRow !== null}
           onOpenChange={(open) => !open && setDeletingRow(null)}

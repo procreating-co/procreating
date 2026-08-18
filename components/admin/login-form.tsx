@@ -39,7 +39,7 @@ export function LoginForm() {
             {isPending ? "Entrando..." : "Entrar"}
           </Button>
           <Link href={ADMIN_SIGNUP_PATH} className="text-center text-sm text-muted-foreground transition-colors hover:text-foreground">
-            Primeiro acesso do Eduardo? Cadastre-se
+            Primeiro acesso? Cadastre-se
           </Link>
         </form>
       </CardContent>

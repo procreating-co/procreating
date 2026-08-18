@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AlertTriangle, ArrowDownCircle, ArrowRight, ArrowUpCircle, CalendarClock, Clock, DollarSign, LineChart, PiggyBank, Settings2, ShieldAlert, TrendingUp, Wallet } from "lucide-react";
+import { AlertTriangle, ArrowDownCircle, ArrowRight, ArrowUpCircle, CalendarClock, Clock, DollarSign, EyeOff, LineChart, PiggyBank, Settings2, ShieldAlert, TrendingUp, Wallet } from "lucide-react";
 import { CONCENTRATION_RISK_THRESHOLD_PCT, computeFinanceiroMetrics, listCosts, listExpenses, listRevenue } from "@/lib/financeiro/queries";
 import { computeDistribution } from "@/lib/financeiro/rules";
 import { updateRevenueStatusAction } from "@/lib/financeiro/actions";
-import { requireFinancialAccess } from "@/lib/auth/permissions";
+import { requireFinancialPageAccess } from "@/lib/auth/permissions";
 import { formatDateOnly } from "@/lib/date";
 import { StatTile } from "@/components/dashboard/stat-tile";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ import { DetailList } from "@/components/dashboard/detail-list";
 import { ExpensesQuickAdd } from "@/components/financeiro/expenses-quick-add";
 import { EvolutionDetail } from "@/components/financeiro/evolution-detail";
 import { cn } from "@/lib/utils";
+import type { FinancialDetailEntry } from "@/lib/financeiro/types";
 
 export const metadata: Metadata = {
   title: "Financeiro — Procreating",
@@ -32,6 +33,14 @@ export const metadata: Metadata = {
 };
 
 const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const MASKED_CURRENCY = "R$ ••••";
+
+/** `dev_tester` (leitura mascarada, `requireFinancialPageAccess`) — mesmo padrão já usado na
+ *  Home: todo R$ vira "R$ ••••", contagens/percentuais continuam visíveis. */
+function maskEntries(entries: FinancialDetailEntry[], canView: boolean): FinancialDetailEntry[] {
+  if (canView) return entries;
+  return entries.map((entry) => (entry.value ? { ...entry, value: MASKED_CURRENCY } : entry));
+}
 
 /**
  * Financeiro — página única, sem abas (redesign, Bloco 1). Antes disso, 5 abas decidiam o
@@ -47,8 +56,10 @@ export default async function FinanceiroPage({
 }: {
   searchParams: Promise<{ months?: string; receivablesStatus?: string; payablesStatus?: string }>;
 }) {
-  // RBAC mínimo (Passo 1 item 2) — owner/admin/finance apenas. Página inteira.
-  const access = await requireFinancialAccess();
+  // RBAC — owner/admin/finance véem tudo; dev_tester entra com valores mascarados
+  // (`requireFinancialPageAccess`, diferente do gate de escrita que as Server Actions usam);
+  // qualquer outro papel continua bloqueado.
+  const access = await requireFinancialPageAccess();
   if (!access.ok) {
     return (
       <main className="mx-auto flex max-w-[1400px] flex-col px-6 pt-8 pb-16 lg:px-10">
@@ -56,6 +67,8 @@ export default async function FinanceiroPage({
       </main>
     );
   }
+  const canView = !access.masked;
+  const money = (value: number) => (canView ? currencyFormatter.format(value) : MASKED_CURRENCY);
 
   const { months: monthsParam, receivablesStatus: receivablesStatusParam, payablesStatus: payablesStatusParam } = await searchParams;
   const months = Number(monthsParam) || 6;
@@ -83,7 +96,7 @@ export default async function FinanceiroPage({
     const count = metrics.receivablesOverdueEntries.length;
     financialAttention.push({
       label: `${count} conta${count === 1 ? "" : "s"} a receber atrasada${count === 1 ? "" : "s"}`,
-      amount: currencyFormatter.format(metrics.receivablesOverdue),
+      amount: money(metrics.receivablesOverdue),
       href: "#a-receber",
     });
   }
@@ -91,7 +104,7 @@ export default async function FinanceiroPage({
     const count = metrics.payablesOverdueEntries.length;
     financialAttention.push({
       label: `${count} conta${count === 1 ? "" : "s"} a pagar atrasada${count === 1 ? "" : "s"}`,
-      amount: currencyFormatter.format(metrics.payablesOverdue),
+      amount: money(metrics.payablesOverdue),
       href: "#a-pagar",
     });
   }
@@ -134,7 +147,7 @@ export default async function FinanceiroPage({
         <div className="flex flex-col gap-2 rounded-xl border border-border/60 bg-card/40 p-5">
           <div className="flex items-baseline justify-between gap-4 text-sm">
             <span className="text-muted-foreground">
-              Meta do mês — {currencyFormatter.format(metrics.goal.realized)} de {currencyFormatter.format(metrics.goal.amount)}
+              Meta do mês — {money(metrics.goal.realized)} de {money(metrics.goal.amount)}
             </span>
             <span className="font-medium tabular-nums">{metrics.goal.percentage.toFixed(0)}%</span>
           </div>
@@ -157,17 +170,17 @@ export default async function FinanceiroPage({
           <CardWithDetail
             title="Receita do Mês"
             description="Todo lançamento com vencimento este mês — pago, pendente ou atrasado."
-            detail={<DetailList items={metrics.revenueThisMonthEntries} emptyLabel="Nenhuma receita com vencimento este mês." />}
+            detail={<DetailList items={maskEntries(metrics.revenueThisMonthEntries, canView)} emptyLabel="Nenhuma receita com vencimento este mês." />}
           >
-            <StatTile demo={false} label="Receita do Mês" value={currencyFormatter.format(metrics.revenueThisMonth)} icon={<ArrowUpCircle className="size-4.5" />} tone="success" />
+            <StatTile demo={false} label="Receita do Mês" value={money(metrics.revenueThisMonth)} icon={<ArrowUpCircle className="size-4.5" />} tone="success" />
           </CardWithDetail>
           <div id="receita-recorrente-mensal" className="scroll-mt-20">
             <CardWithDetail
               title="Receita Recorrente Mensal"
               description="Contratos recorrentes ativos, um por cliente."
-              detail={<DetailList items={metrics.mrrEntries} emptyLabel="Nenhum contrato recorrente ativo ainda." />}
+              detail={<DetailList items={maskEntries(metrics.mrrEntries, canView)} emptyLabel="Nenhum contrato recorrente ativo ainda." />}
             >
-              <StatTile demo={false} label="Receita Recorrente Mensal" value={currencyFormatter.format(metrics.mrr)} icon={<TrendingUp className="size-4.5" />} tone="brand" />
+              <StatTile demo={false} label="Receita Recorrente Mensal" value={money(metrics.mrr)} icon={<TrendingUp className="size-4.5" />} tone="brand" />
             </CardWithDetail>
           </div>
           <CardWithDetail
@@ -176,14 +189,14 @@ export default async function FinanceiroPage({
             detail={
               <DetailList
                 items={[
-                  { label: `Distribuível (${100 - distribution.operationalPercentage}%)`, value: currencyFormatter.format(distribution.distributable) },
-                  { label: "Por sócio (÷ 2)", value: currencyFormatter.format(partnerSalaryEach) },
+                  { label: `Distribuível (${100 - distribution.operationalPercentage}%)`, value: money(distribution.distributable) },
+                  { label: "Por sócio (÷ 2)", value: money(partnerSalaryEach) },
                 ]}
                 emptyLabel="Sem dado suficiente."
               />
             }
           >
-            <StatTile demo={false} label="Salário (cada sócio)" value={currencyFormatter.format(partnerSalaryEach)} icon={<DollarSign className="size-4.5" />} tone="success" />
+            <StatTile demo={false} label="Salário (cada sócio)" value={money(partnerSalaryEach)} icon={<DollarSign className="size-4.5" />} tone="success" />
           </CardWithDetail>
           <CardWithDetail
             title="Caixa Operacional"
@@ -192,8 +205,8 @@ export default async function FinanceiroPage({
               <div className="flex flex-col gap-3">
                 <DetailList
                   items={[
-                    { label: "Receita bruta (mês)", value: currencyFormatter.format(distribution.revenue) },
-                    { label: `Operacional (${distribution.operationalPercentage}%)`, value: currencyFormatter.format(distribution.operationalAmount) },
+                    { label: "Receita bruta (mês)", value: money(distribution.revenue) },
+                    { label: `Operacional (${distribution.operationalPercentage}%)`, value: money(distribution.operationalAmount) },
                   ]}
                   emptyLabel="Sem dado suficiente."
                 />
@@ -206,33 +219,36 @@ export default async function FinanceiroPage({
               </div>
             }
           >
-            <StatTile demo={false} label="Caixa Operacional" value={currencyFormatter.format(distribution.operationalAmount)} icon={<PiggyBank className="size-4.5" />} tone="info" />
+            <StatTile demo={false} label="Caixa Operacional" value={money(distribution.operationalAmount)} icon={<PiggyBank className="size-4.5" />} tone="info" />
           </CardWithDetail>
-          <CardWithDetail title="Despesas" detail={<ExpensesQuickAdd entries={metrics.expensesThisMonthEntries} emptyLabel="Nenhuma despesa com vencimento este mês." />}>
-            <StatTile demo={false} label="Despesas" value={currencyFormatter.format(metrics.expensesThisMonth)} icon={<ArrowDownCircle className="size-4.5" />} tone="info" />
+          <CardWithDetail
+            title="Despesas"
+            detail={<ExpensesQuickAdd entries={maskEntries(metrics.expensesThisMonthEntries, canView)} emptyLabel="Nenhuma despesa com vencimento este mês." canAdd={canView} />}
+          >
+            <StatTile demo={false} label="Despesas" value={money(metrics.expensesThisMonth)} icon={<ArrowDownCircle className="size-4.5" />} tone="info" />
           </CardWithDetail>
           <CardWithDetail
             title={`A receber (até ${metrics.receivablesRecurringYear})`}
             description="Todo cliente com contrato recorrente ativo, projetado mês a mês — usa a cobrança real quando já existe, projeta o valor do contrato quando ainda não existe."
-            detail={<DetailList items={metrics.receivablesRecurringEntries} emptyLabel="Nada pendente de cliente recorrente até lá." />}
+            detail={<DetailList items={maskEntries(metrics.receivablesRecurringEntries, canView)} emptyLabel="Nada pendente de cliente recorrente até lá." />}
           >
             <StatTile
               demo={false}
               label={`A receber (até ${metrics.receivablesRecurringYear})`}
-              value={currencyFormatter.format(metrics.receivablesRecurringThroughNextYear)}
+              value={money(metrics.receivablesRecurringThroughNextYear)}
               icon={<Clock className="size-4.5" />}
               tone="warning"
             />
           </CardWithDetail>
-          <CardWithDetail title="A receber (atrasado)" detail={<DetailList items={metrics.receivablesOverdueEntries} emptyLabel="Nada atrasado no momento." />}>
-            <StatTile demo={false} label="A receber (atrasado)" value={currencyFormatter.format(metrics.receivablesOverdue)} icon={<AlertTriangle className="size-4.5" />} tone="danger" />
+          <CardWithDetail title="A receber (atrasado)" detail={<DetailList items={maskEntries(metrics.receivablesOverdueEntries, canView)} emptyLabel="Nada atrasado no momento." />}>
+            <StatTile demo={false} label="A receber (atrasado)" value={money(metrics.receivablesOverdue)} icon={<AlertTriangle className="size-4.5" />} tone="danger" />
           </CardWithDetail>
           <CardWithDetail
             title={`Vence nos próximos ${metrics.upcomingReceivables.windowDays} dias`}
             description="Só pendentes — o que já está atrasado tem alerta próprio."
             detail={
               <DetailList
-                items={metrics.upcomingReceivables.entries.map((entry) => ({ label: entry.description, value: currencyFormatter.format(entry.amount), meta: `Vence ${formatDateOnly(entry.dueDate)}` }))}
+                items={metrics.upcomingReceivables.entries.map((entry) => ({ label: entry.description, value: money(entry.amount), meta: `Vence ${formatDateOnly(entry.dueDate)}` }))}
                 emptyLabel="Nada vencendo nessa janela."
               />
             }
@@ -240,13 +256,13 @@ export default async function FinanceiroPage({
             <StatTile
               demo={false}
               label={`Vence nos próximos ${metrics.upcomingReceivables.windowDays} dias`}
-              value={currencyFormatter.format(metrics.upcomingReceivables.total)}
+              value={money(metrics.upcomingReceivables.total)}
               icon={<CalendarClock className="size-4.5" />}
               tone="warning"
             />
           </CardWithDetail>
-          <CardWithDetail title="A pagar (pendente + atrasado)" detail={<DetailList items={metrics.payablesEntries} emptyLabel="Nada a pagar em aberto." />}>
-            <StatTile demo={false} label="A pagar (pendente + atrasado)" value={currencyFormatter.format(metrics.payablesPending + metrics.payablesOverdue)} icon={<Wallet className="size-4.5" />} tone="warning" />
+          <CardWithDetail title="A pagar (pendente + atrasado)" detail={<DetailList items={maskEntries(metrics.payablesEntries, canView)} emptyLabel="Nada a pagar em aberto." />}>
+            <StatTile demo={false} label="A pagar (pendente + atrasado)" value={money(metrics.payablesPending + metrics.payablesOverdue)} icon={<Wallet className="size-4.5" />} tone="warning" />
           </CardWithDetail>
         </div>
 
@@ -258,12 +274,12 @@ export default async function FinanceiroPage({
           <CardWithDetail
             title="Fluxo projetado — 30 dias"
             description="Receita pendente menos despesa pendente vencendo nos próximos 30 dias."
-            detail={<DetailList items={metrics.projectedCashFlow30Entries} emptyLabel="Nada pendente vencendo nessa janela." />}
+            detail={<DetailList items={maskEntries(metrics.projectedCashFlow30Entries, canView)} emptyLabel="Nada pendente vencendo nessa janela." />}
           >
             <StatTile
               demo={false}
               label="Fluxo projetado — 30 dias"
-              value={currencyFormatter.format(metrics.projectedCashFlow30)}
+              value={money(metrics.projectedCashFlow30)}
               icon={<LineChart className="size-4.5" />}
               tone={metrics.projectedCashFlow30 >= 0 ? "success" : "danger"}
             />
@@ -271,12 +287,12 @@ export default async function FinanceiroPage({
           <CardWithDetail
             title="Fluxo projetado — 60 dias"
             description="Receita pendente menos despesa pendente vencendo nos próximos 60 dias."
-            detail={<DetailList items={metrics.projectedCashFlow60Entries} emptyLabel="Nada pendente vencendo nessa janela." />}
+            detail={<DetailList items={maskEntries(metrics.projectedCashFlow60Entries, canView)} emptyLabel="Nada pendente vencendo nessa janela." />}
           >
             <StatTile
               demo={false}
               label="Fluxo projetado — 60 dias"
-              value={currencyFormatter.format(metrics.projectedCashFlow60)}
+              value={money(metrics.projectedCashFlow60)}
               icon={<LineChart className="size-4.5" />}
               tone={metrics.projectedCashFlow60 >= 0 ? "success" : "danger"}
             />
@@ -284,12 +300,12 @@ export default async function FinanceiroPage({
           <CardWithDetail
             title="Fluxo projetado — 90 dias"
             description="Receita pendente menos despesa pendente vencendo nos próximos 90 dias."
-            detail={<DetailList items={metrics.projectedCashFlow90Entries} emptyLabel="Nada pendente vencendo nessa janela." />}
+            detail={<DetailList items={maskEntries(metrics.projectedCashFlow90Entries, canView)} emptyLabel="Nada pendente vencendo nessa janela." />}
           >
             <StatTile
               demo={false}
               label="Fluxo projetado — 90 dias"
-              value={currencyFormatter.format(metrics.projectedCashFlow90)}
+              value={money(metrics.projectedCashFlow90)}
               icon={<LineChart className="size-4.5" />}
               tone={metrics.projectedCashFlow90 >= 0 ? "success" : "danger"}
             />
@@ -299,10 +315,10 @@ export default async function FinanceiroPage({
         <ChartExpandDialog
           title={`Evolução (últimos ${months} meses)`}
           description="Clique num mês na tabela pra ver de onde saiu o faturamento — quais clientes, quanto cada um."
-          expanded={<EvolutionDetail data={metrics.monthlyEvolution} />}
+          expanded={canView ? <EvolutionDetail data={metrics.monthlyEvolution} /> : <EmptyInline icon={EyeOff} label="Gráfico oculto — este número financeiro exige acesso." />}
         >
           <ChartCard title={`Evolução (últimos ${months} meses)`} action={<PeriodSelect />}>
-            <RevenueChart data={metrics.monthlyEvolution} />
+            {canView ? <RevenueChart data={metrics.monthlyEvolution} /> : <EmptyInline icon={EyeOff} label="Gráfico oculto — este número financeiro exige acesso." />}
           </ChartCard>
         </ChartExpandDialog>
 
@@ -310,13 +326,13 @@ export default async function FinanceiroPage({
           <div className="flex flex-col gap-3 rounded-xl border border-dashed border-brand/40 bg-brand/5 p-5">
             <div className="flex items-baseline justify-between gap-4">
               <p className="text-sm text-muted-foreground">Pipeline em negociação — MRR potencial se fechar (nunca somado ao MRR nem a "a receber")</p>
-              <p className="text-2xl font-semibold tabular-nums text-brand">{currencyFormatter.format(metrics.pipelinePotentialMrr)}</p>
+              <p className="text-2xl font-semibold tabular-nums text-brand">{money(metrics.pipelinePotentialMrr)}</p>
             </div>
             <div className="flex flex-col divide-y divide-border/60">
               {metrics.pipelineOpportunities.map((opportunity) => (
                 <div key={opportunity.label} className="flex items-center justify-between gap-4 py-2 text-sm">
                   <span>{opportunity.label}</span>
-                  <span className="tabular-nums text-muted-foreground">{currencyFormatter.format(opportunity.potentialMonthlyValue)}/mês</span>
+                  <span className="tabular-nums text-muted-foreground">{money(opportunity.potentialMonthlyValue)}/mês</span>
                 </div>
               ))}
             </div>
@@ -330,7 +346,7 @@ export default async function FinanceiroPage({
           <CardWithDetail
             title="Receita sem contrato vinculado"
             description="Lançamento manual sem passar pelo onboarding, ou contrato removido depois — vale conferir."
-            detail={<DetailList items={metrics.revenueWithoutContractEntries} emptyLabel="Nenhuma." />}
+            detail={<DetailList items={maskEntries(metrics.revenueWithoutContractEntries, canView)} emptyLabel="Nenhuma." />}
           >
             <div className="flex items-center justify-between gap-4 rounded-xl border border-dashed border-border bg-card/40 p-5 text-left">
               <span className="text-sm text-muted-foreground">
@@ -347,7 +363,7 @@ export default async function FinanceiroPage({
           <CardWithDetail
             title="Possível despesa duplicada"
             description="Mesma descrição e valor, lançados perto um do outro — vale conferir antes de pagar os dois."
-            detail={<DetailList items={metrics.duplicateExpenseEntries} emptyLabel="Nenhuma." />}
+            detail={<DetailList items={maskEntries(metrics.duplicateExpenseEntries, canView)} emptyLabel="Nenhuma." />}
           >
             <div className="flex items-center justify-between gap-4 rounded-xl border border-dashed border-warning/40 bg-warning-subtle/40 p-5 text-left">
               <span className="text-sm text-muted-foreground">
@@ -398,6 +414,7 @@ export default async function FinanceiroPage({
           rows={receivablesRows}
           onStatusChange={updateRevenueStatusAction}
           emptyLabel={receivablesStatusFilter === "todas" ? "Nenhum lançamento de receita ainda." : "Nada pendente ou atrasado — tudo em dia."}
+          canView={canView}
         />
       </section>
 
@@ -408,11 +425,15 @@ export default async function FinanceiroPage({
           action={
             <div className="flex items-center gap-3">
               <StatusToggle paramKey="payablesStatus" status={payablesStatusFilter} otherParams={payablesOtherParams} />
-              <DespesasToolbar />
+              {canView && <DespesasToolbar />}
             </div>
           }
         />
-        <ExpensesTable rows={payablesRows} emptyLabel={payablesStatusFilter === "todas" ? "Nenhuma despesa cadastrada ainda." : "Nada pendente ou atrasado — tudo em dia."} />
+        <ExpensesTable
+          rows={payablesRows}
+          emptyLabel={payablesStatusFilter === "todas" ? "Nenhuma despesa cadastrada ainda." : "Nada pendente ou atrasado — tudo em dia."}
+          canView={canView}
+        />
       </section>
 
       <section id="custos" className="flex scroll-mt-20 flex-col gap-4">
@@ -420,10 +441,10 @@ export default async function FinanceiroPage({
         {costs.length > 0 && (
           <p className="-mt-2 text-sm">
             <span className="text-muted-foreground">Run-rate mensal: </span>
-            <span className="font-medium tabular-nums">{currencyFormatter.format(costsMonthlyTotal)}</span>
+            <span className="font-medium tabular-nums">{money(costsMonthlyTotal)}</span>
           </p>
         )}
-        <CostsList costs={costs} />
+        <CostsList costs={costs} canView={canView} />
       </section>
 
       <section id="distribuicao" className="flex scroll-mt-20 flex-col gap-4">
@@ -448,9 +469,9 @@ export default async function FinanceiroPage({
           detail={
             <DetailList
               items={[
-                { label: "Faturamento (mês)", value: currencyFormatter.format(distribution.revenue) },
-                { label: `Operacional (${distribution.operationalPercentage}%)`, value: `− ${currencyFormatter.format(distribution.operationalAmount)}` },
-                { label: "Distribuível", value: currencyFormatter.format(distribution.distributable) },
+                { label: "Faturamento (mês)", value: money(distribution.revenue) },
+                { label: `Operacional (${distribution.operationalPercentage}%)`, value: `− ${money(distribution.operationalAmount)}` },
+                { label: "Distribuível", value: money(distribution.distributable) },
               ]}
               emptyLabel="Sem dado suficiente."
             />
@@ -459,17 +480,17 @@ export default async function FinanceiroPage({
           <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border/60 bg-card/40 p-6 text-left">
             <div className="flex flex-col gap-0.5">
               <p className="text-xs text-muted-foreground">Faturamento (mês)</p>
-              <p className="text-2xl font-semibold tabular-nums">{currencyFormatter.format(distribution.revenue)}</p>
+              <p className="text-2xl font-semibold tabular-nums">{money(distribution.revenue)}</p>
             </div>
             <ArrowRight className="size-4 text-muted-foreground" />
             <div className="flex flex-col gap-0.5">
               <p className="text-xs text-muted-foreground">Operacional ({distribution.operationalPercentage}%)</p>
-              <p className="text-2xl font-semibold tabular-nums">{currencyFormatter.format(distribution.operationalAmount)}</p>
+              <p className="text-2xl font-semibold tabular-nums">{money(distribution.operationalAmount)}</p>
             </div>
             <ArrowRight className="size-4 text-muted-foreground" />
             <div className="flex flex-col gap-0.5">
               <p className="text-xs text-muted-foreground">Distribuível</p>
-              <p className="text-2xl font-semibold tabular-nums text-brand">{currencyFormatter.format(distribution.distributable)}</p>
+              <p className="text-2xl font-semibold tabular-nums text-brand">{money(distribution.distributable)}</p>
             </div>
           </div>
         </CardWithDetail>
@@ -491,9 +512,9 @@ export default async function FinanceiroPage({
                   detail={
                     <DetailList
                       items={[
-                        { label: "Distribuível", value: currencyFormatter.format(distribution.distributable) },
+                        { label: "Distribuível", value: money(distribution.distributable) },
                         { label: `Percentual (${partner.isOverride ? "manual" : "automático"})`, value: `${partner.percentage.toFixed(1)}%` },
-                        { label: partner.name, value: currencyFormatter.format(partner.amount) },
+                        { label: partner.name, value: money(partner.amount) },
                       ]}
                       emptyLabel="Sem dado suficiente."
                     />
@@ -501,7 +522,7 @@ export default async function FinanceiroPage({
                 >
                   <div className="flex flex-col gap-1 rounded-xl border border-border/60 bg-card/40 p-5 text-left">
                     <p className="text-sm font-medium">{partner.name}</p>
-                    <p className="text-2xl font-semibold tabular-nums">{currencyFormatter.format(partner.amount)}</p>
+                    <p className="text-2xl font-semibold tabular-nums">{money(partner.amount)}</p>
                     <p className="text-xs text-muted-foreground">{partner.percentage.toFixed(1)}% do distribuível</p>
                   </div>
                 </CardWithDetail>

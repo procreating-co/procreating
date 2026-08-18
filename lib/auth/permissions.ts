@@ -22,6 +22,14 @@ export function canViewFinancials(role: UserRole): boolean {
   return FINANCIAL_ROLES.has(role);
 }
 
+/** `dev_tester` — terceiro nível, diferente de "sem acesso": entra no Financeiro pra revisar
+ *  UI/UX, mas todo valor em R$ (e contagem de cliente, onde aparecer) vem mascarado. Papel
+ *  próprio, não reaproveita nenhum dos outros — nenhum deles deveria ganhar essa regra por
+ *  engano. */
+export function canViewFinancialsMasked(role: UserRole): boolean {
+  return role === "dev_tester";
+}
+
 /** Segundo domínio de RBAC (gestão de usuários — `/configuracoes/usuarios`) — quem pode ver
  *  papel de cada colega e revogar convite pendente. `owner`/`admin` apenas, mesmo espírito
  *  restrito do financeiro (dado sensível de quem tem acesso ao quê). */
@@ -33,9 +41,10 @@ export function canManageUsers(role: UserRole): boolean {
 
 export type PermissionResult = { ok: true; userId: string; role: UserRole } | { ok: false; error: string };
 
-/** O que toda Server Action/query de `lib/financeiro/**` chama antes de ler ou escrever —
- *  resolve a sessão de verdade (nunca confia em nada vindo do chamador) e aplica
- *  `canViewFinancials` num passo só. */
+/** O que toda Server Action de `lib/financeiro/**` chama antes de ESCREVER — resolve a sessão de
+ *  verdade (nunca confia em nada vindo do chamador) e aplica `canViewFinancials` num passo só.
+ *  `dev_tester` NUNCA passa aqui, mesmo tendo leitura mascarada da página (`requireFinancial
+ *  PageAccess` abaixo) — ver/mascarar é uma permissão, escrever é outra bem diferente. */
 export async function requireFinancialAccess(): Promise<PermissionResult> {
   const session = await getSession();
   if (!session) return { ok: false, error: "Sessão expirada — faça login de novo." };
@@ -43,6 +52,20 @@ export async function requireFinancialAccess(): Promise<PermissionResult> {
     return { ok: false, error: "Você não tem permissão para acessar dados financeiros." };
   }
   return { ok: true, userId: session.user.id, role: session.user.role };
+}
+
+export type FinancialPageAccess = { ok: true; userId: string; role: UserRole; masked: boolean } | { ok: false; error: string };
+
+/** Gate específico pra LEITURA da página `/financeiro` (só ela) — deixa `dev_tester` entrar com
+ *  `masked: true` (a página troca todo R$ por "R$ ••••"), em vez do bloqueio total que
+ *  `requireFinancialAccess` continua aplicando pra escrita. Nunca usar isto pra autorizar uma
+ *  Server Action — só o carregamento da página. */
+export async function requireFinancialPageAccess(): Promise<FinancialPageAccess> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: "Sessão expirada — faça login de novo." };
+  if (canViewFinancials(session.user.role)) return { ok: true, userId: session.user.id, role: session.user.role, masked: false };
+  if (canViewFinancialsMasked(session.user.role)) return { ok: true, userId: session.user.id, role: session.user.role, masked: true };
+  return { ok: false, error: "Você não tem permissão para acessar dados financeiros." };
 }
 
 /** Mesmo padrão de `requireFinancialAccess` — resolve sessão real, nunca confia em `role`

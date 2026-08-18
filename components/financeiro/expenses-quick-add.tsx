@@ -16,25 +16,34 @@ import type { FinancialDetailEntry } from "@/lib/financeiro/types";
  * recorrente = `CostFormDialog` (`Cost`, estrutura fixa/variável, aba Custos). Radix suporta
  * dialog dentro de dialog nativamente — o modal de detalhe (`CardWithDetail`) fica aberto atrás.
  */
-export function ExpensesQuickAdd({ entries, emptyLabel }: { entries: FinancialDetailEntry[]; emptyLabel: string }) {
+export function ExpensesQuickAdd({ entries, emptyLabel, canAdd = true }: { entries: FinancialDetailEntry[]; emptyLabel: string; canAdd?: boolean }) {
   const [addingExpense, setAddingExpense] = useState(false);
   const [addingCost, setAddingCost] = useState(false);
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex gap-2">
-        <Button type="button" variant="outline" size="sm" className="h-7 gap-1 px-2 text-xs" onClick={() => setAddingExpense(true)}>
-          <Plus className="size-3" />
-          Pontual
-        </Button>
-        <Button type="button" variant="outline" size="sm" className="h-7 gap-1 px-2 text-xs" onClick={() => setAddingCost(true)}>
-          <Plus className="size-3" />
-          Recorrente
-        </Button>
-      </div>
+      {/* `canAdd=false` (leitura mascarada, dev_tester) — o servidor já bloqueia a escrita
+       *  (`requireFinancialAccess`), mas mostrar um botão que só vai errar é má experiência;
+       *  melhor nem oferecer. */}
+      {canAdd && (
+        <div className="flex gap-2">
+          <Button type="button" variant="outline" size="sm" className="h-7 gap-1 px-2 text-xs" onClick={() => setAddingExpense(true)}>
+            <Plus className="size-3" />
+            Pontual
+          </Button>
+          <Button type="button" variant="outline" size="sm" className="h-7 gap-1 px-2 text-xs" onClick={() => setAddingCost(true)}>
+            <Plus className="size-3" />
+            Recorrente
+          </Button>
+        </div>
+      )}
       <DetailList items={entries} emptyLabel={emptyLabel} />
-      <ExpenseFormDialog open={addingExpense} onOpenChange={setAddingExpense} />
-      <CostFormDialog open={addingCost} onOpenChange={setAddingCost} />
+      {canAdd && (
+        <>
+          <ExpenseFormDialog open={addingExpense} onOpenChange={setAddingExpense} />
+          <CostFormDialog open={addingCost} onOpenChange={setAddingCost} />
+        </>
+      )}
     </div>
   );
 }

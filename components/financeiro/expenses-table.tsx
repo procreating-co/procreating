@@ -8,7 +8,7 @@ import { deleteExpenseAction, updateExpenseStatusAction } from "@/lib/financeiro
 /** Fina camada sobre `FinancialEntriesTable` só pra despesas — dona do estado de "qual linha
  *  estou editando" e do dialog de edição (`ExpenseFormDialog` reaproveitado, mesmo componente da
  *  criação). Receitas continuam usando `FinancialEntriesTable` direto, sem `actions`. */
-export function ExpensesTable({ rows, emptyLabel }: { rows: FinancialEntryRow[]; emptyLabel: string }) {
+export function ExpensesTable({ rows, emptyLabel, canView = true }: { rows: FinancialEntryRow[]; emptyLabel: string; canView?: boolean }) {
   const [editingRow, setEditingRow] = useState<FinancialEntryRow | null>(null);
 
   return (
@@ -18,6 +18,7 @@ export function ExpensesTable({ rows, emptyLabel }: { rows: FinancialEntryRow[];
         onStatusChange={updateExpenseStatusAction}
         emptyLabel={emptyLabel}
         actions={{ onEdit: setEditingRow, onDelete: deleteExpenseAction }}
+        canView={canView}
       />
       {editingRow && (
         <ExpenseFormDialog
