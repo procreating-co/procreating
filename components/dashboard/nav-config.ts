@@ -22,14 +22,17 @@ import { Home, Layers, LayoutDashboard, TrendingUp, Wallet, type LucideIcon } fr
 export type TopNavTab = { label: string; href: string };
 
 /** Clientes (visão 360º, `/clientes`) mora aqui — não em Growth (é a Operação que é dona da
- *  entrega/relação contínua com o cliente, não o Comercial, que é dono da conquista do lead). */
+ *  entrega/relação contínua com o cliente, não o Comercial, que é dono da conquista do lead).
+ *  Ordem — pedido explícito: "Projetos" primeiro (bate com pra onde `/operacao` já redireciona,
+ *  `operacao/page.tsx` → `/operacao/projetos` — antes disso "Clientes" aparecia como a aba mais à
+ *  esquerda mesmo sem ser o destino real do clique em "Operação" na sidebar). */
 export const OPERATIONS_TABS: TopNavTab[] = [
-  { label: "Clientes", href: "/clientes" },
   { label: "Projetos", href: "/operacao/projetos" },
   { label: "Produção", href: "/operacao/producao" },
   { label: "Entregas", href: "/operacao/entregas" },
   { label: "Equipe", href: "/operacao/equipe" },
   { label: "Recursos", href: "/operacao/conteudo" },
+  { label: "Clientes", href: "/clientes" },
 ];
 
 /** Não vive num grupo de `NAV_GROUPS` (Settings só existe no rodapé da sidebar, ver comentário
