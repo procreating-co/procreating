@@ -1,3 +1,9 @@
+/** Mesmo formato de `DetailEntry` (`lib/dashboard/executive-metrics.ts`) — duplicado aqui de
+ *  propósito em vez de importado: `lib/financeiro` não deveria depender de `lib/dashboard`
+ *  (direção errada de dependência). Estruturalmente idêntico, então `DetailList`
+ *  (`components/dashboard/detail-list.tsx`) aceita normalmente por tipagem estrutural. */
+export type FinancialDetailEntry = { label: string; value?: string; meta?: string };
+
 export type ExpenseInput = {
   category: string;
   description: string;
@@ -60,4 +66,14 @@ export type FinanceiroMetrics = {
   pipelinePotentialMrr: number;
   pipelineOpportunities: PipelineOpportunity[];
   upcomingReceivables: UpcomingReceivablesSummary;
+  /** Lista real por trás de cada bloco da Visão Geral (pedido explícito: "todos os blocos devem
+   *  ser clicáveis pra ver mais informações das entradas") — mesmo padrão já usado no Dashboard
+   *  (`CardWithDetail`/`DetailList`), nenhum número novo calculado, só a decomposição do que já
+   *  soma pro total do bloco. */
+  mrrEntries: FinancialDetailEntry[];
+  revenueThisMonthEntries: FinancialDetailEntry[];
+  expensesThisMonthEntries: FinancialDetailEntry[];
+  receivablesPendingEntries: FinancialDetailEntry[];
+  receivablesOverdueEntries: FinancialDetailEntry[];
+  payablesEntries: FinancialDetailEntry[];
 };

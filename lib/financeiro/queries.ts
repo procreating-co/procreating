@@ -1,9 +1,12 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import { currentMonthKey, lastMonthKeys, monthKeyOf, todayISO } from "@/lib/date";
+import { currentMonthKey, formatDateOnly, lastMonthKeys, monthKeyOf, todayISO } from "@/lib/date";
 import { computeMargin, computeMrr, computeUpcomingReceivables, groupRevenueByClient, sumAmount, sumAmountForMonth } from "@/lib/financeiro/calculations";
-import type { Cost, Expense, Revenue } from "@/lib/supabase/types/database";
-import type { FinanceiroMetrics, MonthlyEvolutionPoint, PipelineOpportunity } from "@/lib/financeiro/types";
+import type { Cost, Expense, FinancialEntryStatus, Revenue } from "@/lib/supabase/types/database";
+import type { FinanceiroMetrics, FinancialDetailEntry, MonthlyEvolutionPoint, PipelineOpportunity } from "@/lib/financeiro/types";
+
+const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const STATUS_LABEL: Record<FinancialEntryStatus, string> = { pendente: "Pendente", pago: "Pago", atrasado: "Atrasado", cancelado: "Cancelado" };
 
 /** Fallback só pro caso (não deveria acontecer em produção) de `financial_rules` estar vazia —
  *  mesmo valor default da coluna (`receivables_alert_days`, migration `20260818000000`). A
@@ -110,6 +113,55 @@ export async function computeFinanceiroMetrics(evolutionMonths = 6): Promise<Fin
   const receivablesAlertDays = financialRule?.receivables_alert_days ?? FALLBACK_RECEIVABLES_ALERT_DAYS;
   const upcomingReceivables = computeUpcomingReceivables(revenue, today, receivablesAlertDays);
 
+  // Decomposição de cada bloco da Visão Geral pro clique-pra-detalhe (`CardWithDetail`) — mesma
+  // fonte que já alimenta o número do bloco, nenhuma soma nova. `label` prioriza o nome do
+  // cliente (mais útil pra reconhecer a linha de relance); `meta` carrega o que não cabe no
+  // rótulo — descrição da cobrança, status, vencimento.
+  const mrrEntries: FinancialDetailEntry[] = [...(activeRecurringContracts ?? [])]
+    .sort((a, b) => Number(b.monthly_value ?? 0) - Number(a.monthly_value ?? 0))
+    .map((contract) => ({ label: clientNameById.get(contract.client_id) ?? "Cliente removido", value: `${currency.format(Number(contract.monthly_value ?? 0))}/mês` }));
+
+  const revenueRowsThisMonth = revenue.filter((row) => monthKeyOf(row.due_date) === thisMonthKey);
+  const revenueThisMonthEntries: FinancialDetailEntry[] = [...revenueRowsThisMonth]
+    .sort((a, b) => Number(b.amount) - Number(a.amount))
+    .map((row) => ({
+      label: (row.client_id && clientNameById.get(row.client_id)) || "Sem cliente vinculado",
+      value: currency.format(Number(row.amount)),
+      meta: `${row.description} · ${STATUS_LABEL[row.status]}`,
+    }));
+
+  const expenseRowsThisMonth = expenses.filter((row) => monthKeyOf(row.due_date) === thisMonthKey);
+  const expensesThisMonthEntries: FinancialDetailEntry[] = [...expenseRowsThisMonth]
+    .sort((a, b) => Number(b.amount) - Number(a.amount))
+    .map((row) => ({ label: row.description, value: currency.format(Number(row.amount)), meta: `${row.category} · ${STATUS_LABEL[row.status]}` }));
+
+  const receivablesPendingEntries: FinancialDetailEntry[] = revenue
+    .filter((row) => row.status === "pendente")
+    .sort((a, b) => a.due_date.localeCompare(b.due_date))
+    .map((row) => ({
+      label: (row.client_id && clientNameById.get(row.client_id)) || "Sem cliente vinculado",
+      value: currency.format(Number(row.amount)),
+      meta: `${row.description} · vence ${formatDateOnly(row.due_date)}`,
+    }));
+
+  const receivablesOverdueEntries: FinancialDetailEntry[] = revenue
+    .filter((row) => row.status === "atrasado")
+    .sort((a, b) => a.due_date.localeCompare(b.due_date))
+    .map((row) => ({
+      label: (row.client_id && clientNameById.get(row.client_id)) || "Sem cliente vinculado",
+      value: currency.format(Number(row.amount)),
+      meta: `${row.description} · venceu ${formatDateOnly(row.due_date)}`,
+    }));
+
+  const payablesEntries: FinancialDetailEntry[] = expenses
+    .filter((row) => row.status === "pendente" || row.status === "atrasado")
+    .sort((a, b) => a.due_date.localeCompare(b.due_date))
+    .map((row) => ({
+      label: row.description,
+      value: currency.format(Number(row.amount)),
+      meta: `${row.category} · ${row.status === "atrasado" ? "venceu" : "vence"} ${formatDateOnly(row.due_date)}`,
+    }));
+
   return {
     mrr,
     revenueThisMonth,
@@ -124,5 +176,11 @@ export async function computeFinanceiroMetrics(evolutionMonths = 6): Promise<Fin
     pipelinePotentialMrr,
     pipelineOpportunities,
     upcomingReceivables,
+    mrrEntries,
+    revenueThisMonthEntries,
+    expensesThisMonthEntries,
+    receivablesPendingEntries,
+    receivablesOverdueEntries,
+    payablesEntries,
   };
 }

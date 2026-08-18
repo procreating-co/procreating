@@ -6,6 +6,7 @@ import { computeFinanceiroMetrics, listCosts, listExpenses, listRevenue } from "
 import { computeDistribution } from "@/lib/financeiro/rules";
 import { updateRevenueStatusAction } from "@/lib/financeiro/actions";
 import { requireFinancialAccess } from "@/lib/auth/permissions";
+import { formatDateOnly } from "@/lib/date";
 import { StatTile } from "@/components/dashboard/stat-tile";
 import { RevenueChart } from "@/components/financeiro/revenue-chart";
 import { SectionHeader } from "@/components/dashboard/section-header";
@@ -17,6 +18,11 @@ import { ExpensesTable } from "@/components/financeiro/expenses-table";
 import { DespesasToolbar } from "@/components/financeiro/despesas-toolbar";
 import { CostsList } from "@/components/financeiro/costs-list";
 import { EmptyState } from "@/components/dashboard/empty-state";
+import { CardWithDetail } from "@/components/dashboard/card-with-detail";
+import { ChartExpandDialog } from "@/components/dashboard/chart-expand-dialog";
+import { ChartCard } from "@/components/dashboard/chart-card";
+import { DetailList } from "@/components/dashboard/detail-list";
+import { DataTable } from "@/components/dashboard/data-table";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
@@ -166,28 +172,81 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: P
     const metrics = await computeFinanceiroMetrics(months);
     content = (
       <>
+        {/* Todo bloco é clicável (`CardWithDetail`) — abre a lista real das entradas por trás do
+         *  número, mesmo padrão já usado no Dashboard (pedido explícito: "todos os blocos devem
+         *  ser clicáveis pra ver mais informações das entradas"). Nenhum número novo: as listas
+         *  vêm prontas de `computeFinanceiroMetrics` (mesma soma que já vira o valor do bloco). */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <StatTile demo={false} label="MRR (recorrente ativo)" value={currencyFormatter.format(metrics.mrr)} icon={<TrendingUp className="size-4.5" />} tone="brand" />
-          <StatTile demo={false} label="Receita este mês" value={currencyFormatter.format(metrics.revenueThisMonth)} icon={<ArrowUpCircle className="size-4.5" />} tone="success" />
-          <StatTile demo={false} label="Despesas este mês" value={currencyFormatter.format(metrics.expensesThisMonth)} icon={<ArrowDownCircle className="size-4.5" />} tone="info" />
-          <StatTile demo={false} label="A receber (pendente)" value={currencyFormatter.format(metrics.receivablesPending)} icon={<Clock className="size-4.5" />} tone="warning" />
-          <StatTile demo={false} label="A receber (atrasado)" value={currencyFormatter.format(metrics.receivablesOverdue)} icon={<AlertTriangle className="size-4.5" />} tone="danger" />
-          <StatTile
-            demo={false}
-            label={`Vence nos próximos ${metrics.upcomingReceivables.windowDays} dias`}
-            value={currencyFormatter.format(metrics.upcomingReceivables.total)}
-            icon={<CalendarClock className="size-4.5" />}
-            tone="warning"
-          />
-          <StatTile demo={false} label="A pagar (pendente + atrasado)" value={currencyFormatter.format(metrics.payablesPending + metrics.payablesOverdue)} icon={<Wallet className="size-4.5" />} tone="warning" />
+          <CardWithDetail
+            title="MRR (recorrente ativo)"
+            description="Contratos recorrentes ativos, um por cliente."
+            detail={<DetailList items={metrics.mrrEntries} emptyLabel="Nenhum contrato recorrente ativo ainda." />}
+          >
+            <StatTile demo={false} label="MRR (recorrente ativo)" value={currencyFormatter.format(metrics.mrr)} icon={<TrendingUp className="size-4.5" />} tone="brand" />
+          </CardWithDetail>
+          <CardWithDetail
+            title="Receita este mês"
+            description="Todo lançamento com vencimento este mês — pago, pendente ou atrasado."
+            detail={<DetailList items={metrics.revenueThisMonthEntries} emptyLabel="Nenhuma receita com vencimento este mês." />}
+          >
+            <StatTile demo={false} label="Receita este mês" value={currencyFormatter.format(metrics.revenueThisMonth)} icon={<ArrowUpCircle className="size-4.5" />} tone="success" />
+          </CardWithDetail>
+          <CardWithDetail title="Despesas este mês" detail={<DetailList items={metrics.expensesThisMonthEntries} emptyLabel="Nenhuma despesa com vencimento este mês." />}>
+            <StatTile demo={false} label="Despesas este mês" value={currencyFormatter.format(metrics.expensesThisMonth)} icon={<ArrowDownCircle className="size-4.5" />} tone="info" />
+          </CardWithDetail>
+          <CardWithDetail title="A receber (pendente)" detail={<DetailList items={metrics.receivablesPendingEntries} emptyLabel="Nada pendente no momento." />}>
+            <StatTile demo={false} label="A receber (pendente)" value={currencyFormatter.format(metrics.receivablesPending)} icon={<Clock className="size-4.5" />} tone="warning" />
+          </CardWithDetail>
+          <CardWithDetail title="A receber (atrasado)" detail={<DetailList items={metrics.receivablesOverdueEntries} emptyLabel="Nada atrasado no momento." />}>
+            <StatTile demo={false} label="A receber (atrasado)" value={currencyFormatter.format(metrics.receivablesOverdue)} icon={<AlertTriangle className="size-4.5" />} tone="danger" />
+          </CardWithDetail>
+          <CardWithDetail
+            title={`Vence nos próximos ${metrics.upcomingReceivables.windowDays} dias`}
+            description="Só pendentes — o que já está atrasado tem alerta próprio."
+            detail={
+              <DetailList
+                items={metrics.upcomingReceivables.entries.map((entry) => ({ label: entry.description, value: currencyFormatter.format(entry.amount), meta: `Vence ${formatDateOnly(entry.dueDate)}` }))}
+                emptyLabel="Nada vencendo nessa janela."
+              />
+            }
+          >
+            <StatTile
+              demo={false}
+              label={`Vence nos próximos ${metrics.upcomingReceivables.windowDays} dias`}
+              value={currencyFormatter.format(metrics.upcomingReceivables.total)}
+              icon={<CalendarClock className="size-4.5" />}
+              tone="warning"
+            />
+          </CardWithDetail>
+          <CardWithDetail title="A pagar (pendente + atrasado)" detail={<DetailList items={metrics.payablesEntries} emptyLabel="Nada a pagar em aberto." />}>
+            <StatTile demo={false} label="A pagar (pendente + atrasado)" value={currencyFormatter.format(metrics.payablesPending + metrics.payablesOverdue)} icon={<Wallet className="size-4.5" />} tone="warning" />
+          </CardWithDetail>
         </div>
 
-        <section className="flex flex-col gap-4">
-          <SectionHeader title={`Evolução (últimos ${months} meses)`} action={<PeriodSelect />} />
-          <div className="rounded-xl border border-border/60 bg-card/40 p-5">
+        <ChartExpandDialog
+          title={`Evolução (últimos ${months} meses)`}
+          expanded={
+            <div className="flex flex-col gap-5">
+              <RevenueChart data={metrics.monthlyEvolution} height={360} />
+              <DataTable
+                columns={[
+                  { key: "month", header: "Mês", render: (row) => row.month },
+                  { key: "revenue", header: "Receita", align: "right", render: (row) => currencyFormatter.format(row.revenue) },
+                  { key: "expenses", header: "Despesas", align: "right", render: (row) => currencyFormatter.format(row.expenses) },
+                  { key: "net", header: "Líquido", align: "right", render: (row) => currencyFormatter.format(row.revenue - row.expenses) },
+                ]}
+                rows={metrics.monthlyEvolution}
+                getRowKey={(row) => row.month}
+                emptyIcon={Wallet}
+                emptyLabel="Sem dado suficiente."
+              />
+            </div>
+          }
+        >
+          <ChartCard title={`Evolução (últimos ${months} meses)`} action={<PeriodSelect />}>
             <RevenueChart data={metrics.monthlyEvolution} />
-          </div>
-        </section>
+          </ChartCard>
+        </ChartExpandDialog>
 
         <section className="flex flex-col gap-4">
           <SectionHeader title="Pipeline — em negociação" description="Nunca somado ao MRR nem a 'a receber' — só vira receita se o negócio for ganho." />
