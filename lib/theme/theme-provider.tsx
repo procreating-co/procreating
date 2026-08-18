@@ -26,8 +26,12 @@ export function ThemeProvider({ initialTheme, children }: { initialTheme: UserTh
     });
   }, []);
 
+  // Ciclo de 3 (era binário light↔dark) — light → dark → focus → light. Ordem escolhida pra não
+  // quebrar o hábito de quem já usa o toggle pra alternar light/dark (continuam adjacentes no
+  // ciclo), focus é o passo extra no fim.
   const toggleTheme = useCallback(() => {
-    setTheme(theme === "dark" ? "light" : "dark");
+    const next = theme === "light" ? "dark" : theme === "dark" ? "focus" : "light";
+    setTheme(next);
   }, [theme, setTheme]);
 
   return <ThemeContext.Provider value={{ theme, setTheme, toggleTheme, isPending }}>{children}</ThemeContext.Provider>;

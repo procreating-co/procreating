@@ -1,28 +1,33 @@
 "use client";
 
-import { Moon, Sun } from "lucide-react";
+import { Cloud, Moon, Sun } from "lucide-react";
 import { useTheme } from "@/lib/theme/theme-provider";
 import { cn } from "@/lib/utils";
 
-/** Alternância direta entre os dois temas — sem menu de 3 opções ("sistema" fica pra depois, o
- *  prompt liberou pular se não for trivial e cookie/conta só guardam light/dark mesmo). */
+/** Ciclo de 3 temas agora (era alternância binária) — light → dark → focus → light. O ícone
+ *  mostrado é sempre o do PRÓXIMO tema (mesma convenção de antes: "clique pra ir pra cá"), não o
+ *  do tema atual — `Cloud` pro Focus Mode (pedido explícito). */
+const NEXT_THEME_ICON = { light: Moon, dark: Cloud, focus: Sun } as const;
+const NEXT_THEME_LABEL = { light: "Mudar para tema escuro", dark: "Mudar para o Modo Foco", focus: "Mudar para tema claro" } as const;
+
 export function ThemeToggle({ className }: { className?: string }) {
   const { theme, toggleTheme, isPending } = useTheme();
-  const isDark = theme === "dark";
+  const Icon = NEXT_THEME_ICON[theme];
+  const label = NEXT_THEME_LABEL[theme];
 
   return (
     <button
       type="button"
       onClick={toggleTheme}
       disabled={isPending}
-      aria-label={isDark ? "Mudar para tema claro" : "Mudar para tema escuro"}
-      title={isDark ? "Tema claro" : "Tema escuro"}
+      aria-label={label}
+      title={label}
       className={cn(
         "flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground",
         className
       )}
     >
-      {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
+      <Icon className="size-4" />
     </button>
   );
 }

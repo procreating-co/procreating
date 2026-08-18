@@ -114,180 +114,234 @@
   --font-family-mono: var(--font-geist-mono), 'Geist Mono', ui-monospace, monospace;
   --font-family-display: var(--font-geist-sans), 'Geist', system-ui, sans-serif;
 
-  /* Paleta light v2 — substitui a "Warm Ivory" (accent dourado) por um accent roxo/azul vívido
-     (estilo Stripe) sobre a mesma base creme. Só o tema LIGHT do shell interno muda aqui —
-     `.os-shell[data-theme="dark"]` abaixo continua igual, `:root` (admin/client) nem é tocado.
-     O usuário deu 10 cores-base (Background/Surface/Text/Secondary Text/Border/Primary-Action/
-     AI-Brain/Success/Warning/Danger) — bem mais enxuto que a v1; os demais tokens (superfície
-     elevada, borda forte, texto "faint", hover/active, soft de status, sidebar/inputs/kanban)
-     são DERIVADOS a partir dessas 10 (marcado em cada linha), mantendo a mesma estrutura de
-     tokens já em uso pelos componentes (não dá pra simplificar a estrutura sem reverter
-     `dashboard-sidebar.tsx`/`input.tsx`/`pipeline-board.tsx`/`status-dot.tsx`). */
-  --background: #f6f3ea; /* Background */
-  --foreground: #18181b; /* Text */
-  --card: #fbf9f4; /* Surface */
-  --card-foreground: #18181b;
-  --card-raised: #fffffc; /* derivado — mais claro que Surface, pro mesmo papel de "elevada" */
-  --popover: #fffffc;
-  --popover-foreground: #18181b;
-  --primary: #18181b;
-  --primary-foreground: #fbf9f4;
-  --secondary: #efece3; /* derivado — entre Background e Surface */
-  --secondary-foreground: #18181b;
-  --muted: #efece3;
-  --muted-foreground: #71717a; /* Secondary Text */
-  --faint-foreground: #9c9a93; /* derivado — um degrau mais claro que Secondary Text */
-  --accent: #f0ece2; /* derivado — fundo de hover genérico */
-  --accent-foreground: #18181b;
-  --destructive: #ef4444; /* Danger */
-  --destructive-foreground: #fffffc;
-  --border: #e4e1d8; /* Border */
-  --input: #e4e1d8;
-  --ring: #635bff; /* Primary/Action como cor de foco */
+  /* Paleta light v3 — pedido explícito: reset pro neutro padrão shadcn (zero matiz em todo
+     token, oklch "x x 0"), substituindo a v2 (creme + roxo Stripe). O usuário deu 11 tokens
+     (background/foreground/card/primary/primary-foreground/secondary/muted/muted-foreground/
+     border/destructive/sidebar) — são exatamente os valores default do shadcn/ui "neutral", "os
+     demais (accent/popover/ring/chart-1..5/sidebar-accent/sidebar-ring etc.) completados com os
+     valores companheiros PADRÃO dessa mesma paleta shadcn (não inventados à mão), documentado
+     onde adaptei pra estrutura de tokens já em uso por este projeto (brand/ai/success-warning-
+     danger-info/kanban/input-background, que o shadcn puro não tem). `--brand` (usado em botões/
+     StatTiles/links por todo o produto) vira neutro aqui igual `--primary` — o único lugar com
+     matiz de verdade fica sendo o roxo do `--sidebar-primary` no DARK (ver bloco abaixo), de
+     propósito: light monocromático puro, um único acento reservado pro dark. */
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --card-raised: oklch(0.99 0 0); /* derivado — levemente acima de Card, pro mesmo papel de "elevada" */
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --faint-foreground: oklch(0.708 0 0); /* derivado — um degrau mais claro que Muted Foreground */
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
 
-  --brand: #635bff; /* Primary / Action */
-  --brand-strong: #544dd9; /* derivado — Primary escurecido ~15%, hover/ênfase */
-  --brand-foreground: #ffffff; /* branco — Primary é escuro/saturado o bastante pra pedir texto claro */
-  --brand-subtle: #e7e5fc; /* derivado — Primary bem clareado, fundo de item ativo/seleção */
-  --brand-subtle-border: #635bff66; /* Primary a 40% alpha */
+  --brand: oklch(0.205 0 0); /* = --primary — light fica monocromático de propósito, ver nota acima */
+  --brand-strong: oklch(0.145 0 0); /* derivado — Primary escurecido, hover/ênfase */
+  --brand-foreground: oklch(0.985 0 0);
+  --brand-subtle: oklch(0.97 0 0); /* derivado — = --muted, fundo de item ativo/seleção */
+  --brand-subtle-border: oklch(0.205 0 0 / 20%);
 
-  /* AI / Brain — mesmo valor de Primary hoje (o usuário deu os dois iguais), mas é um token
-     semântico à parte: preparação pra UI de IA (master prompt §73) ser sempre "isto é IA", nunca
-     confundido com uma ação primária comum, mesmo se algum dia os dois valores divergirem. */
-  --ai: #635bff;
+  --ai: oklch(0.205 0 0); /* mesmo valor de --brand hoje — token semântico à parte, ver dark */
 
   --success: #16a34a;
   --warning: #f59e0b;
   --danger: #ef4444;
-  --info: #3b82f6; /* derivado — não fornecido; combina com o restante (mesma família Tailwind das outras 3 cores de status) */
-
-  /* Fundos suaves por status — não fornecidos; usados os tons -100 do Tailwind que correspondem
-     exatamente às cores -500/-600 dadas (success/warning/danger/info aqui batem com as escalas
-     green/amber/red/blue do Tailwind), pra não inventar um tom desalinhado à mão. */
+  --info: #3b82f6;
   --success-subtle: #dcfce7;
   --warning-subtle: #fef3c7;
   --danger-subtle: #fee2e2;
   --info-subtle: #dbeafe;
 
-  /* Text/Secondary Text batem exatos com zinc-900/zinc-500 do Tailwind — os 2 tons intermediários
-     usam a mesma escala (zinc-600/zinc-400) por consistência, não um valor inventado à parte. */
-  --chart-1: #18181b;
-  --chart-2: #52525b;
-  --chart-3: #71717a;
-  --chart-4: #a1a1aa;
-  --chart-5: #e4e1d8;
+  /* Chart 1-5 padrão shadcn (categórico, com matiz — únicas cores "decorativas" fora do status
+     que sobrevivem no light monocromático; gráfico de série categórica precisa distinguir
+     série, uma rampa neutra sozinha não dá conta disso). */
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
 
-  --sidebar: #f0ece2; /* derivado — mesmo tom do --accent genérico */
-  --sidebar-foreground: #18181b;
-  --sidebar-primary: #18181b;
-  --sidebar-primary-foreground: #fbf9f4;
-  --sidebar-accent: #e7e5fc; /* item ativo = --brand-subtle (sem uma cor própria fornecida desta vez) */
-  --sidebar-accent-foreground: #18181b;
-  --sidebar-border: #e4e1d8;
-  --sidebar-ring: #635bff;
-  --sidebar-hover: #efece3; /* derivado — distinto do item ativo, mesmo tom do --secondary/--muted */
-  --sidebar-muted-foreground: #71717a;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar-hover: oklch(0.97 0 0); /* derivado — = --sidebar-accent, mesmo tom de --secondary/--muted */
+  --sidebar-muted-foreground: oklch(0.556 0 0);
 
   /* Inputs — fundo preenchido, hover/foco próprios (ver `components/ui/input.tsx`). `--input`
-     acima é a BORDA (convenção shadcn); estes 3 são a SUPERFÍCIE — nenhum valor próprio
-     fornecido desta vez, derivados de Surface/Background. */
-  --input-background: #fbf9f4;
-  --input-background-hover: #f5f2ea;
-  --input-background-focus: #fffffc;
-  --input-placeholder: #a1a1aa;
+     acima é a BORDA (convenção shadcn); estes 3 são a SUPERFÍCIE, derivados de Background/Card. */
+  --input-background: oklch(1 0 0);
+  --input-background-hover: oklch(0.985 0 0);
+  --input-background-focus: oklch(1 0 0);
+  --input-placeholder: oklch(0.708 0 0);
 
-  /* Kanban (Pipeline) — sem valores próprios fornecidos desta vez, derivados da mesma escala
-     Background→Surface→Elevada; ver `components/comercial/pipeline-board.tsx`. */
-  --kanban-board: #f0ece2;
-  --kanban-column: #f5f2ea;
-  --kanban-card: #fbf9f4;
-  --kanban-card-hover: #fffffc;
+  /* Kanban (Pipeline) — derivado da mesma escala Background→Surface→Elevada. */
+  --kanban-board: oklch(0.985 0 0);
+  --kanban-column: oklch(0.99 0 0);
+  --kanban-card: oklch(1 0 0);
+  --kanban-card-hover: oklch(0.99 0 0);
 }
 
 .os-shell[data-theme="dark"] {
-  /* Contraste reduzido, "mais confortável e premium" (pedido explícito) — branco puro (#FFFFFF/
-     oklch 0.96-1) nunca mais aparece aqui, nem como texto nem como superfície clara (botão
-     primário, item ativo). 3 âncoras dadas: fundo #0B0B0D, texto/superfície clara #E7E5E4 (no
-     lugar do branco), texto secundário #A1A1AA. O resto (superfícies intermediárias, bordas) é
-     uma rampa neutra derivada entre essas duas pontas — mesmo raciocínio de derivação já usado
-     no tema light v2 (documentado token a token lá). */
-  --background: #0b0b0d;
-  --foreground: #e7e5e4;
-  --card: #17171a;
-  --card-foreground: #e7e5e4;
-  --card-raised: #1f1f23; /* elevada — popover, hover de linha */
-  --popover: #1f1f23;
-  --popover-foreground: #e7e5e4;
-  --primary: #e7e5e4;
-  --primary-foreground: #0b0b0d;
-  --secondary: #1c1c20;
-  --secondary-foreground: #e7e5e4;
-  --muted: #1c1c20;
-  --muted-foreground: #a1a1aa;
-  --faint-foreground: #6b6b70; /* um degrau abaixo de --muted-foreground */
-  --accent: #222226;
-  --accent-foreground: #e7e5e4;
-  --destructive: oklch(0.66 0.2 25);
-  --destructive-foreground: #e7e5e4;
-  --border: #2a2a2f;
-  --input: #2a2a2f;
-  --ring: #a1a1aa;
+  /* Paleta dark v3 — mesmo pedido, valores default shadcn/ui "neutral" dark. Único acento com
+     matiz de verdade no produto inteiro: `--sidebar-primary` (roxo/azul, dado explicitamente) —
+     o item ativo da sidebar ganha cor, o resto do dark segue monocromático puro, mesmo raciocínio
+     do light acima (documentado lá). */
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --card-raised: oklch(0.269 0 0); /* elevada — popover, hover de linha */
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --faint-foreground: oklch(0.556 0 0); /* derivado — um degrau abaixo de Muted Foreground */
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
 
-  --brand: #e7e5e4;
-  --brand-strong: #f2f0ee; /* mais emphasis = mais claro no dark (mesmo padrão de sempre), nunca branco puro */
-  --brand-foreground: #0b0b0d;
-  --brand-subtle: #232327;
-  --brand-subtle-border: #e7e5e466; /* 40% alpha, mesmo padrão do light */
+  --brand: oklch(0.922 0 0); /* = --primary — dark também monocromático fora do acento da sidebar */
+  --brand-strong: oklch(0.985 0 0);
+  --brand-foreground: oklch(0.205 0 0);
+  --brand-subtle: oklch(0.269 0 0);
+  --brand-subtle-border: oklch(0.922 0 0 / 20%);
 
   --success: oklch(0.72 0.15 155);
   --warning: oklch(0.74 0.17 60);
   --danger: oklch(0.68 0.19 25);
   --info: oklch(0.72 0.09 250);
-  /* "Soft" = mesma cor a baixa opacidade (não um tom sólido próprio, como no light Warm Ivory) —
-     dark mode não teve paleta nova pedida, isto só existe pra `StatusDot` (que passou a usar
-     `bg-*-subtle` nos dois temas) continuar com um preenchimento decente aqui em vez de cair no
-     fallback genérico `--muted`. */
   --success-subtle: oklch(0.72 0.15 155 / 16%);
   --warning-subtle: oklch(0.74 0.17 60 / 16%);
   --danger-subtle: oklch(0.68 0.19 25 / 16%);
   --info-subtle: oklch(0.72 0.09 250 / 16%);
 
-  --chart-1: #e7e5e4;
-  --chart-2: #a1a1aa;
-  --chart-3: #6b6b70;
-  --chart-4: #3f3f46;
-  --chart-5: #2a2a2f;
+  /* Chart 1-5 padrão shadcn dark. */
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
 
-  --sidebar: #0f0f12;
-  --sidebar-foreground: #e7e5e4;
-  --sidebar-primary: #e7e5e4;
-  --sidebar-primary-foreground: #0b0b0d;
-  --sidebar-accent: #232327;
-  --sidebar-accent-foreground: #e7e5e4;
-  --sidebar-border: #2a2a2f;
-  --sidebar-ring: #a1a1aa;
-  --sidebar-hover: #1a1a1e; /* distinto do item ativo (--sidebar-accent, mais claro) */
-  --sidebar-muted-foreground: #a1a1aa;
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376); /* azul/roxo — único acento com matiz do produto */
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar-hover: oklch(0.235 0 0); /* derivado — distinto do item ativo (--sidebar-accent, mais claro) */
+  --sidebar-muted-foreground: oklch(0.708 0 0);
 
-  /* BUG CORRIGIDO: estes tokens (+ os 4 de kanban abaixo) só existiam no bloco light — como
-     `.os-shell[data-theme="dark"]` NUNCA os redefinia, o valor de `--kanban-card` etc. herdava
-     do `.os-shell` (light, creme/branco) mesmo dentro do dark, porque CSS custom property
-     resolve por PROPRIEDADE, não por bloco — o fallback `var(--x, var(--y))` do `@theme inline`
-     só entra em ação quando `--x` está indefinida em TODA a cascata, e aqui ela não estava (só
-     não tinha valor redefinido no dark). Efeito visível: cards do Pipeline com fundo branco/
-     creme sólido em tema escuro, hover da sidebar branco. Corrigido explicitando os 2 grupos
-     aqui, com os mesmos tons já usados no resto do dark (card/card-raised/secondary/border). */
-  --input-background: #17171a;
-  --input-background-hover: #1c1c20;
-  --input-background-focus: #1f1f23;
-  --input-placeholder: #6b6b70;
+  --input-background: oklch(0.205 0 0);
+  --input-background-hover: oklch(0.235 0 0);
+  --input-background-focus: oklch(0.269 0 0);
+  --input-placeholder: oklch(0.556 0 0);
 
-  --kanban-board: #0f0f12;
-  --kanban-column: #151518;
-  --kanban-card: #1c1c20;
-  --kanban-card-hover: #26262b;
+  --kanban-board: oklch(0.145 0 0);
+  --kanban-column: oklch(0.175 0 0);
+  --kanban-card: oklch(0.205 0 0);
+  --kanban-card-hover: oklch(0.269 0 0);
 
-  --ai: #e7e5e4; /* ainda sem uso em UI — mantido em sincronia com --brand por precaução */
+  --ai: oklch(0.922 0 0); /* ainda sem uso em UI — mantido em sincronia com --brand por precaução */
+}
+
+.os-shell[data-theme="focus"] {
+  /* Focus Mode — terceiro tema, pedido explícito (preto profundo + roxo vibrante, ícone de
+     nuvem no toggle). 5 âncoras dadas (background/sidebar/sidebar-primary/sidebar-foreground/
+     sidebar-border); o resto derivado com o MESMO roxo como acento geral (não só na sidebar,
+     diferente do dark padrão acima) — é o que diferencia Focus de "só um dark mais escuro": aqui
+     o roxo é a identidade do modo inteiro, não um detalhe da navegação. */
+  --background: hsl(0 0% 6%);
+  --foreground: hsl(0 0% 92%);
+  --card: hsl(0 0% 9%);
+  --card-foreground: hsl(0 0% 92%);
+  --card-raised: hsl(0 0% 13%);
+  --popover: hsl(0 0% 12%);
+  --popover-foreground: hsl(0 0% 92%);
+  --primary: hsl(262 80% 65%);
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(0 0% 12%);
+  --secondary-foreground: hsl(0 0% 92%);
+  --muted: hsl(0 0% 12%);
+  --muted-foreground: hsl(0 0% 80%); /* = --sidebar-foreground dado */
+  --faint-foreground: hsl(0 0% 55%);
+  --accent: hsl(0 0% 14%);
+  --accent-foreground: hsl(0 0% 92%);
+  --destructive: hsl(0 84% 65%);
+  --destructive-foreground: hsl(0 0% 100%);
+  --border: hsl(0 0% 12%); /* = --sidebar-border dado */
+  --input: hsl(0 0% 14%);
+  --ring: hsl(262 80% 65%);
+
+  --brand: hsl(262 80% 65%); /* = --sidebar-primary dado — aqui é o acento do modo inteiro */
+  --brand-strong: hsl(262 80% 72%);
+  --brand-foreground: hsl(0 0% 100%);
+  --brand-subtle: hsl(262 45% 18%);
+  --brand-subtle-border: hsl(262 80% 65% / 40%);
+
+  --ai: hsl(262 80% 65%);
+
+  --success: hsl(155 55% 55%);
+  --warning: hsl(45 90% 60%);
+  --danger: hsl(0 84% 65%);
+  --info: hsl(217 90% 65%);
+  --success-subtle: hsl(155 55% 55% / 16%);
+  --warning-subtle: hsl(45 90% 60% / 16%);
+  --danger-subtle: hsl(0 84% 65% / 16%);
+  --info-subtle: hsl(217 90% 65% / 16%);
+
+  --chart-1: hsl(262 80% 65%);
+  --chart-2: hsl(0 0% 75%);
+  --chart-3: hsl(0 0% 55%);
+  --chart-4: hsl(0 0% 38%);
+  --chart-5: hsl(0 0% 22%);
+
+  --sidebar: hsl(0 0% 6%);
+  --sidebar-foreground: hsl(0 0% 80%);
+  --sidebar-primary: hsl(262 80% 65%);
+  --sidebar-primary-foreground: hsl(0 0% 100%);
+  --sidebar-accent: hsl(0 0% 12%);
+  --sidebar-accent-foreground: hsl(0 0% 92%);
+  --sidebar-border: hsl(0 0% 12%);
+  --sidebar-ring: hsl(262 80% 65%);
+  --sidebar-hover: hsl(0 0% 10%);
+  --sidebar-muted-foreground: hsl(0 0% 65%);
+
+  --input-background: hsl(0 0% 9%);
+  --input-background-hover: hsl(0 0% 11%);
+  --input-background-focus: hsl(0 0% 12%);
+  --input-placeholder: hsl(0 0% 45%);
+
+  --kanban-board: hsl(0 0% 6%);
+  --kanban-column: hsl(0 0% 8%);
+  --kanban-card: hsl(0 0% 11%);
+  --kanban-card-hover: hsl(0 0% 14%);
 }
 
 @theme inline {

@@ -55,7 +55,10 @@ export type ChartColors = {
  *  constante fixa direto (que ficaria presa no tema errado depois do toggle). */
 export function useChartColors(): ChartColors {
   const { theme } = useTheme();
-  return theme === "dark"
+  // `focus` (terceiro tema, fundo escuro) usa a mesma rampa de `dark` — sem paleta própria de
+  // gráfico ainda; `!== "light"` (não `=== "dark"`) garante que focus caia aqui, não no fallback
+  // light (que ficaria ilegível sobre fundo escuro).
+  return theme !== "light"
     ? { sequential: CHART_SEQUENTIAL_DARK, brand: CHART_BRAND_DARK, status: CHART_STATUS_DARK }
     : { sequential: CHART_SEQUENTIAL_LIGHT, brand: CHART_BRAND_LIGHT, status: CHART_STATUS_LIGHT };
 }

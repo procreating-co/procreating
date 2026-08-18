@@ -8,7 +8,7 @@ import type { UserTheme } from "@/lib/supabase/types/database";
 export async function getThemeCookie(): Promise<UserTheme | null> {
   const store = await cookies();
   const value = store.get(OS_THEME_COOKIE)?.value;
-  return value === "light" || value === "dark" ? value : null;
+  return value === "light" || value === "dark" || value === "focus" ? value : null;
 }
 
 export async function setThemeCookie(theme: UserTheme) {
