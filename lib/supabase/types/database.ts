@@ -412,7 +412,13 @@ export type ContractStatus = "ativo" | "encerrado" | "cancelado";
  *  por regra de negócio uma negociação nunca vira `contracts` até ser fechada, então uma linha
  *  desta tabela, por definição, já deixou de ser pipeline — "Pipeline" como categoria existe só
  *  em `leads` (`lib/financeiro/queries.ts`, `pipelinePotentialMrr`), nunca aqui. */
-export type ContractCategory = "recorrente_ativo" | "pontual_concluido" | "pontual_em_andamento" | "recorrente_churn";
+/** `recorrente_renovado` — contrato recorrente encerrado mas sucedido por outro contrato do
+ *  mesmo cliente (sem gap: o novo começa onde o antigo terminou) — é renovação, não perda de
+ *  cliente. Antes disso só existia `recorrente_churn` pra qualquer recorrente encerrado, o que
+ *  rotulava renovação como churn (achado real: Bruna Gonçalves Montenegro, Maria Tabarez —
+ *  migration `add_recorrente_renovado_category`). Derivado automaticamente, nunca escolhido na
+ *  UI — ver `reconcileRenewedContracts` em `lib/clientes/contract-actions.ts`. */
+export type ContractCategory = "recorrente_ativo" | "pontual_concluido" | "pontual_em_andamento" | "recorrente_churn" | "recorrente_renovado";
 
 export type Contract = {
   id: string;

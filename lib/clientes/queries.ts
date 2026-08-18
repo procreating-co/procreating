@@ -37,12 +37,15 @@ export async function listClientsWithCategories(): Promise<ClientWithCategories[
 export type ClientCardData = { client: Client; categories: ContractCategory[]; contractCount: number };
 export type ClientsOverview = { rows: ClientCardData[]; activeContractsCount: number };
 
-/** `/clientes` (Central de Clientes) — mesma junção de `listClientsWithCategories`, só que
- *  devolve também `contractCount` (pro card "N projetos"/"Cliente recorrente") e
- *  `activeContractsCount` (contratos pontuais em andamento em TODA a base, pra faixa de
- *  métricas — contagem de CONTRATO, não de cliente, por isso não dá pra derivar do array de
- *  categorias deduplicado por cliente). Mesmas 2 queries de sempre, nenhuma nova — tudo
- *  calculado em cima do mesmo `contracts` já buscado, sem N+1. */
+/** `/clientes` (Central de Clientes) — pedido explícito: só clientes ATIVOS ou RECORRENTES
+ *  aparecem aqui (lead/onboarding/risco/churn ficam de fora — a página é sobre quem está de pé
+ *  hoje, não o histórico completo da base). "Recorrente" = tem pelo menos um contrato
+ *  `recorrente_ativo`, mesmo que `client.status` não seja `ativo` (ex.: um recorrente marcado
+ *  `atencao` continua aparecendo — é exatamente o tipo de cliente que precisa de olho, esconder
+ *  seria pior). Filtro aplicado AQUI, não no componente, pra `activeContractsCount` bater com o
+ *  mesmo recorte de `rows` — nunca dois números diferentes pro mesmo conceito na mesma tela.
+ *  `contractCount` pro card "N projetos"/"Cliente recorrente". Mesmas 2 queries de sempre,
+ *  nenhuma nova — tudo calculado em cima do mesmo `contracts` já buscado, sem N+1. */
 export async function listClientsOverview(): Promise<ClientsOverview> {
   const supabase = await createClient();
   const [{ data: clients }, { data: contracts }] = await Promise.all([
@@ -51,19 +54,25 @@ export async function listClientsOverview(): Promise<ClientsOverview> {
   ]);
 
   const byClient = new Map<string, { categories: Set<ContractCategory>; count: number }>();
-  let activeContractsCount = 0;
   for (const contract of contracts ?? []) {
     const entry = byClient.get(contract.client_id) ?? { categories: new Set<ContractCategory>(), count: 0 };
     entry.categories.add(contract.category);
     entry.count += 1;
     byClient.set(contract.client_id, entry);
-    if (contract.category === "pontual_em_andamento") activeContractsCount += 1;
   }
 
-  const rows = (clients ?? []).map((client) => {
-    const entry = byClient.get(client.id);
-    return { client, categories: Array.from(entry?.categories ?? []), contractCount: entry?.count ?? 0 };
-  });
+  const rows = (clients ?? [])
+    .map((client) => {
+      const entry = byClient.get(client.id);
+      return { client, categories: Array.from(entry?.categories ?? []), contractCount: entry?.count ?? 0 };
+    })
+    .filter((row) => row.client.status === "ativo" || row.categories.includes("recorrente_ativo"));
+
+  const visibleClientIds = new Set(rows.map((row) => row.client.id));
+  let activeContractsCount = 0;
+  for (const contract of contracts ?? []) {
+    if (contract.category === "pontual_em_andamento" && visibleClientIds.has(contract.client_id)) activeContractsCount += 1;
+  }
 
   return { rows, activeContractsCount };
 }

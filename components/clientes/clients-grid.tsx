@@ -8,7 +8,7 @@ import { ClientDetailDrawer } from "@/components/clientes/client-detail-drawer";
 import { cn } from "@/lib/utils";
 import type { ClientCardData } from "@/lib/clientes/queries";
 
-type StatusFilter = "all" | "ativo" | "recorrente" | "atencao" | "churn";
+type StatusFilter = "all" | "ativo" | "recorrente" | "atencao";
 type SortKey = "recent" | "oldest" | "most_projects" | "name";
 
 const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
@@ -16,7 +16,6 @@ const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
   { value: "ativo", label: "Ativos" },
   { value: "recorrente", label: "Recorrentes" },
   { value: "atencao", label: "Em atenção" },
-  { value: "churn", label: "Churn" },
 ];
 
 const SORT_OPTIONS: { value: SortKey; label: string }[] = [
@@ -32,12 +31,12 @@ const SORT_OPTIONS: { value: SortKey; label: string }[] = [
  * ("não fazer busca server-side ainda"), e cabe folgado: é a lista de clientes da empresa, não
  * um dataset que justifique paginação/busca no banco por enquanto.
  *
- * Filtro "Em atenção"/"Churn" usa `client.status` de verdade (`atencao`/`churn`, ver
- * `ClientStatus` no schema) — o pedido original citava "Arquivados" como um filtro à parte, mas
- * esse status não existe no domínio real (o mais próximo é Churn, que já é o destino da ação
- * "Arquivar" no drawer); "Em produção"/"Sem projeto ativo" do pedido original também não têm
- * contrapartida direta — adaptado pros status que o produto realmente tem, em vez de inventar um
- * novo enum só pra esta tela.
+ * `rows` já chega filtrada (só ativos/recorrentes — pedido explícito, `listClientsOverview` em
+ * `lib/clientes/queries.ts`), então não existe mais chip "Churn" aqui — seria sempre vazio por
+ * definição. "Em atenção" continua útil: um cliente recorrente pode estar nesse status sem sair
+ * do recorte ativo/recorrente (é justamente quem precisa de olho). "Arquivados" do pedido
+ * original não tem status próprio no domínio real — a ação "Arquivar" no drawer marca
+ * `status='churn'`, que some daqui automaticamente (mesmo filtro da query).
  */
 export function ClientsGrid({ rows }: { rows: ClientCardData[] }) {
   const [query, setQuery] = useState("");

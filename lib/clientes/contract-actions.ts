@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserId } from "@/lib/supabase/current-user";
 import type { ContractCategory, ContractStatus, ContractType } from "@/lib/supabase/types/database";
 
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
+
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
 export type ContractFormInput = {
@@ -23,10 +25,39 @@ export type ContractFormInput = {
  *  migration de backfill (`20260816000000_contract_category.sql`) e do `close_lead_and_
  *  create_client` (correção `20260816020000`). Um contrato recorrente ativo É `recorrente_ativo`
  *  por definição — deixar a categoria solta pra edição manual reabriria exatamente o bug que a
- *  categoria foi criada pra fechar (MRR calculado errado por estado inconsistente). */
+ *  categoria foi criada pra fechar (MRR calculado errado por estado inconsistente). Base
+ *  simples/pura de propósito — não sabe nada sobre outros contratos do cliente; quem decide
+ *  "isto foi renovado, não perdido" é `reconcileRenewedContracts`, chamada logo depois de salvar
+ *  (ver abaixo). */
 function deriveCategory(type: ContractType, status: ContractStatus): ContractCategory {
   if (type === "recorrente") return status === "ativo" ? "recorrente_ativo" : "recorrente_churn";
   return status === "ativo" ? "pontual_em_andamento" : "pontual_concluido";
+}
+
+/**
+ * Achado real (Bruna Gonçalves Montenegro, Maria Tabarez): `deriveCategory` rotulava TODO
+ * recorrente encerrado como `recorrente_churn`, mesmo quando o cliente nunca saiu — só renovou
+ * pra um contrato novo (data de início do novo = data de fim do antigo, sem gap). Isso também
+ * significava que a correção manual de um caso desses seria revertida sozinha na próxima vez que
+ * alguém editasse aquele contrato (`updateContractAction` recalcula `category` do zero a cada
+ * save). Fix na raiz: depois de criar/editar um contrato, reconcilia TODOS os recorrentes
+ * encerrados desse cliente — se existir outro contrato recorrente do mesmo cliente começando no
+ * dia (ou depois) em que este terminou, é renovação (`recorrente_renovado`), não churn.
+ * Self-healing: roda de novo a cada escrita, então nunca fica desatualizado nem depende de
+ * alguém lembrar de rodar uma correção manual.
+ */
+async function reconcileRenewedContracts(supabase: SupabaseServerClient, clientId: string): Promise<void> {
+  const { data: contracts } = await supabase.from("contracts").select("id, type, status, category, start_date, end_date").eq("client_id", clientId);
+  if (!contracts) return;
+
+  for (const contract of contracts) {
+    if (contract.type !== "recorrente" || contract.status === "ativo" || !contract.end_date) continue;
+    const wasRenewed = contracts.some((other) => other.id !== contract.id && other.type === "recorrente" && other.start_date >= contract.end_date!);
+    const correctCategory: ContractCategory = wasRenewed ? "recorrente_renovado" : "recorrente_churn";
+    if (contract.category !== correctCategory) {
+      await supabase.from("contracts").update({ category: correctCategory }).eq("id", contract.id);
+    }
+  }
 }
 
 function validate(input: ContractFormInput): string | null {
@@ -60,6 +91,7 @@ export async function createContractAction(clientId: string, input: ContractForm
     created_by: userId,
   });
   if (error) return { ok: false, error: error.message };
+  await reconcileRenewedContracts(supabase, clientId);
 
   revalidatePath(`/clientes/${clientId}`);
   revalidatePath("/clientes");
@@ -90,6 +122,7 @@ export async function updateContractAction(contractId: string, clientId: string,
     })
     .eq("id", contractId);
   if (error) return { ok: false, error: error.message };
+  await reconcileRenewedContracts(supabase, clientId);
 
   revalidatePath(`/clientes/${clientId}`);
   revalidatePath("/clientes");
