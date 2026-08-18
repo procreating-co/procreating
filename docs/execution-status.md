@@ -17,7 +17,13 @@ alimentava o bloco, em `computeFinanceiroMetrics` (`lib/financeiro/queries.ts`).
 entradas por trás pra mostrar) — se o pedido for pra cobrir ela também, é extensão rápida do
 mesmo padrão. Deployado (`9db749f`).
 
-**Depois disso, mais 2 rodadas na mesma sessão**:
+**Depois disso, mais 3 rodadas na mesma sessão**:
+
+0. Aba Distribuição também ficou clicável (`58e3945`) — fecha o gap deixado de fora de propósito
+   na primeira rodada ("cards ali já são auto-explicativos"). A cadeia Faturamento→Operacional→
+   Distribuível vira 1 clique só (é uma conta em cadeia, não 3 métricas — não fragmenta em 3
+   cards); cada card "Por sócio" mostra se o percentual é override manual (`partner_shares`) ou
+   divisão igual automática (`PartnerDistributionEntry.isOverride`, novo).
 
 1. Comercial ganhou o mesmo clique-pra-detalhe (`f2e9e7e`) — Comercial era a última tela com
    `StatTile` sem `CardWithDetail`, extensão direta do pedido original pra deixar Dashboard/
