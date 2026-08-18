@@ -3,7 +3,29 @@
 Documento de retomada. Se você é uma sessão nova retomando isto, comece por aqui antes de reler
 o histórico inteiro — este arquivo é a fonte da verdade, não a memória de conversa de ninguém.
 
-**Atualização mais recente**: bug reportado pelo usuário — "fechei um cliente, o valor não
+**Atualização mais recente**: pedido explícito — "no financeiro todos os blocos e o gráfico devem
+ser clicáveis para ver mais informações das entradas". Mesmo padrão já usado no Dashboard
+(`CardWithDetail`/`ChartExpandDialog`/`DetailList`, `components/dashboard/`), aplicado à aba
+Visão Geral do Financeiro: os 7 blocos (MRR, Receita este mês, Despesas este mês, A receber
+pendente/atrasado, Vence nos próximos N dias, A pagar) abrem modal com a lista real de
+lançamentos por trás do número (cliente, valor, status/vencimento); o gráfico "Evolução" abre
+ampliado com tabela mês a mês. Nenhum número novo — listas decompostas da mesma soma que já
+alimentava o bloco, em `computeFinanceiroMetrics` (`lib/financeiro/queries.ts`).
+`FinancialDetailEntry` (`lib/financeiro/types.ts`) duplica de propósito o formato de
+`DetailEntry` do Dashboard, em vez de importar — `lib/financeiro` não deveria depender de
+`lib/dashboard`. Não mexi na aba Distribuição (cards ali já são auto-explicativos, sem lista de
+entradas por trás pra mostrar) — se o pedido for pra cobrir ela também, é extensão rápida do
+mesmo padrão. Deployado (`9db749f`).
+
+Nessa mesma janela, o usuário reportou de novo "o valor da Elenita não entrou" — investiguei ao
+vivo no banco: MRR (R$14.900) e Receita este mês (R$18.640) no Financeiro JÁ incluem os R$4.000
+dela: são a soma de todo contrato/lançamento não-cancelado, pago ou não. O card "Receita" do
+Dashboard mostra R$14.640 (sem ela) DE PROPÓSITO — é "receita realizada (paga)", cash-basis, e a
+parcela dela ainda está `status=pendente`. Não é bug, é a mesma distinção que o produto já faz em
+outros lugares (realizado vs. faturado vs. contratado); o clique-pra-detalhe que acabou de entrar
+deixa isso visível na hora (tag de status por linha) em vez de precisar perguntar.
+
+**Antes disso**: bug reportado pelo usuário — "fechei um cliente, o valor não
 apareceu no Dashboard/Financeiro". Verificação direta no banco (Supabase MCP, `execute_sql`)
 confirmou que o dado sempre esteve correto (cliente, contrato recorrente R$4.000/mês com
 `category=recorrente_ativo`, 5 linhas de receita projetada — tudo gravado certo pela RPC
