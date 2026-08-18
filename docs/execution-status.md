@@ -28,6 +28,12 @@ Sequência de pedidos pontuais + 1 mudança grande (tema), todos deployados:
 página só, mostrando clientes recorrentes — é escopo explícito da OUTRA sessão que compartilha
 este repositório (`app/(internal)/operacao/**`), não toquei.
 
+**Ajuste logo em seguida**: o número à direita da barra de meta (que tinha acabado de virar
+"dias restantes") virou "R$X restante" — quanto falta em reais pra bater a meta
+(`max(0, meta − realizado)`, mascarado pra quem não vê financeiro). Verificado contra o banco:
+meta R$30.000, realizado R$18.640 = 62,1% (bate exato com o que o usuário via), restante
+R$11.360.
+
 **Também sinalizado, aguardando decisão do usuário**: integração do calendário do Workspace com
 Apple Calendar (pessoal ou compartilhado com o Eduardo) — precisa escolher entre assinatura .ics
 somente-leitura (simples, sem credencial) ou CalDAV de verdade (bidirecional, exige senha de app
