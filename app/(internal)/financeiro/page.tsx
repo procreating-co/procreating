@@ -17,6 +17,7 @@ import { ExpensesTable } from "@/components/financeiro/expenses-table";
 import { DespesasToolbar } from "@/components/financeiro/despesas-toolbar";
 import { CostsList } from "@/components/financeiro/costs-list";
 import { EmptyState } from "@/components/dashboard/empty-state";
+import { EmptyInline } from "@/components/dashboard/empty-inline";
 import { CardWithDetail } from "@/components/dashboard/card-with-detail";
 import { ChartExpandDialog } from "@/components/dashboard/chart-expand-dialog";
 import { ChartCard } from "@/components/dashboard/chart-card";
@@ -74,6 +75,27 @@ export default async function FinanceiroPage({
   const payablesRows = filteredPayables.map((row) => ({ id: row.id, label: row.description, category: row.category, amount: Number(row.amount), dueDate: row.due_date, status: row.status }));
 
   const costsMonthlyTotal = costs.reduce((sum, cost) => sum + Number(cost.amount), 0);
+
+  // Faixa de atenção (Bloco 2) — junta atrasados de A Receber e A Pagar, dado que
+  // `computeFinanceiroMetrics` já calcula (nenhuma query nova). Bloco 4 item 1 (contrato
+  // vencendo sem renovação) soma a este mesmo array quando implementado.
+  const financialAttention: { label: string; amount: string; href: string }[] = [];
+  if (metrics.receivablesOverdueEntries.length > 0) {
+    const count = metrics.receivablesOverdueEntries.length;
+    financialAttention.push({
+      label: `${count} conta${count === 1 ? "" : "s"} a receber atrasada${count === 1 ? "" : "s"}`,
+      amount: currencyFormatter.format(metrics.receivablesOverdue),
+      href: "#a-receber",
+    });
+  }
+  if (metrics.payablesOverdueEntries.length > 0) {
+    const count = metrics.payablesOverdueEntries.length;
+    financialAttention.push({
+      label: `${count} conta${count === 1 ? "" : "s"} a pagar atrasada${count === 1 ? "" : "s"}`,
+      amount: currencyFormatter.format(metrics.payablesOverdue),
+      href: "#a-pagar",
+    });
+  }
 
   const receivablesOtherParams = new URLSearchParams();
   if (payablesStatusParam === "todas") receivablesOtherParams.set("payablesStatus", "todas");
@@ -211,6 +233,31 @@ export default async function FinanceiroPage({
               ))}
             </div>
           </div>
+        )}
+      </section>
+
+      {/* Faixa de atenção (Bloco 2 do redesign) — mesmo padrão visual/componente de "Atenção
+       *  agora" do Workspace (`app/(internal)/workspace/page.tsx`), reaproveitado, não duplicado
+       *  num componente paralelo. Junta atrasados de A Receber e A Pagar num só lugar, clicável
+       *  (rola pra seção correspondente), sem esperar o fim do mês pra alguém notar. */}
+      <section className="flex flex-col gap-4">
+        <SectionHeader title="Atenção agora" />
+        {financialAttention.length === 0 ? (
+          <EmptyInline icon={AlertTriangle} label="Nada atrasado no momento." />
+        ) : (
+          <ul className="flex flex-col divide-y divide-border/60 rounded-xl border border-border/60 bg-card">
+            {financialAttention.map((item) => (
+              <li key={item.label}>
+                <Link href={item.href} className="flex items-center justify-between gap-3 px-5 py-3.5 text-sm transition-colors hover:bg-foreground/[0.03]">
+                  <span>{item.label}</span>
+                  <span className="flex items-center gap-2 shrink-0">
+                    <span className="tabular-nums text-danger">{item.amount}</span>
+                    <ArrowRight className="size-4 text-muted-foreground" />
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
         )}
       </section>
 

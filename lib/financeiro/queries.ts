@@ -172,6 +172,14 @@ export async function computeFinanceiroMetrics(evolutionMonths = 6): Promise<Fin
       meta: `${row.description} · venceu ${formatDateOnly(row.due_date)}`,
     }));
 
+  // Só a fatia atrasada de `payablesEntries` (que já mistura pendente+atrasado) — separada pra
+  // alimentar a Faixa de atenção (Bloco 2 do redesign), que precisa contar SÓ atrasado, mesma
+  // urgência de `receivablesOverdueEntries` acima.
+  const payablesOverdueEntries: FinancialDetailEntry[] = expenses
+    .filter((row) => row.status === "atrasado")
+    .sort((a, b) => a.due_date.localeCompare(b.due_date))
+    .map((row) => ({ label: row.description, value: currency.format(Number(row.amount)), meta: `${row.category} · venceu ${formatDateOnly(row.due_date)}` }));
+
   const payablesEntries: FinancialDetailEntry[] = expenses
     .filter((row) => row.status === "pendente" || row.status === "atrasado")
     .sort((a, b) => a.due_date.localeCompare(b.due_date))
@@ -243,6 +251,7 @@ export async function computeFinanceiroMetrics(evolutionMonths = 6): Promise<Fin
     receivablesPendingEntries,
     receivablesOverdueEntries,
     payablesEntries,
+    payablesOverdueEntries,
     receivablesRecurringYear,
     receivablesRecurringThroughNextYear,
     receivablesRecurringEntries,
