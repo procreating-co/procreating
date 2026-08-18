@@ -304,7 +304,7 @@ export function CommandPalette() {
           {results.expenses.length > 0 && (
             <CommandGroup heading="Despesas">
               {results.expenses.map((expense) => (
-                <CommandItem key={expense.id} onSelect={() => navigate("/financeiro?tab=payables&status=todas")}>
+                <CommandItem key={expense.id} onSelect={() => navigate("/financeiro?payablesStatus=todas#a-pagar")}>
                   <Receipt className="size-4 text-muted-foreground" />
                   {expense.description}
                 </CommandItem>
@@ -315,7 +315,7 @@ export function CommandPalette() {
           {results.costs.length > 0 && (
             <CommandGroup heading="Custos">
               {results.costs.map((cost) => (
-                <CommandItem key={cost.id} onSelect={() => navigate("/financeiro?tab=costs")}>
+                <CommandItem key={cost.id} onSelect={() => navigate("/financeiro#custos")}>
                   <Wallet className="size-4 text-muted-foreground" />
                   {cost.name}
                 </CommandItem>
