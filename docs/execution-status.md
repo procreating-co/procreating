@@ -1,3 +1,52 @@
+## Rodada — Central de Clientes (grid+drawer→full-screen), Cérebro do OS local-first, ajustes de shell/dashboard
+
+Sequência longa de pedidos pontuais + 2 mudanças grandes, todos deployados:
+
+1. **Central de Clientes** (`/clientes`) — redesenhada de tabela simples pra grid de
+   cards + busca/filtro/ordenação. Pedido original ("Central de Clientes" completa, com
+   link público/status de deploy/assets) era pro admin do Client Hub/portfólio da
+   Pascoal (`/admin/clientes`) — confirmado com o usuário que era engano de rota, a
+   versão real ficou em `/clientes` (ERP), adaptada pro domínio real (cliente→contrato,
+   sem inventar Template/Deployment/Asset que não existem aqui). Clicar num cliente
+   abre `/clientes/[id]` (já existia, nunca foi tocada) em tela cheia — chegou a ser um
+   drawer lateral, trocado por pedido explícito.
+   **2 bugs reais de dado corrigidos**: (a) Bruna Gonçalves Montenegro e Maria Tabarez
+   apareciam com contrato "Churn" — eram renovações (contrato novo começa exatamente
+   onde o antigo termina). Categoria nova `recorrente_renovado` + rotina
+   `reconcileRenewedContracts` que roda a cada save de contrato (self-healing, não só
+   uma correção pontual). (b) Pascoal Bombas e Maria das Graças (clientes só-pontuais)
+   apareciam junto dos recorrentes — filtro de `/clientes` corrigido pra só
+   `recorrente_ativo`, sem o `OR status='ativo'` que deixava passar projeto único.
+   Duplicata "Dra. Elenita" (sem nenhum dado real atrás) excluída, mantida "Dra. Elenita
+   Luzardo" (dado real intacto).
+2. **Cérebro do Procreating OS — local-first, zero custo** (`lib/ai/intent-engine.ts`,
+   novo) — motivado por a Anthropic ter ficado sem crédito e o assistente parar de
+   funcionar por completo. Intent Engine determinístico reconhece a pergunta por padrão
+   (regex, sem rede) e chama as ferramentas já existentes direto, sem tocar a Anthropic,
+   pra MRR/receita/despesas/atrasados/a receber/pipeline/tarefas/meta/maior cliente/
+   calculadora de crescimento (3 ferramentas novas). Claude virou adapter de verdade
+   opcional — erro da Anthropic nunca mais aparece cru pro usuário. Fase 4 (modelo local
+   WebLLM no navegador) e ferramentas de escrita/memória persistente ficaram de fora
+   desta rodada, por decisão consciente (avaliação técnica própria / superfície de
+   segurança maior).
+3. Menu lateral: reordenado (Workspace/Dashboard/Financeiro/Comercial/Operação), ícones
+   (grupos/avatar/logo/Configurações) realinhados numa causa estrutural real (`gap`
+   reservando espaço mesmo com label colapsado — corrigido com `margin` no filho em vez
+   de `gap` no pai). Busca (⌘K)/criar (+)/tema migraram pra sidebar e depois voltaram
+   pro header (revertido por pedido explícito).
+4. Dashboard: meta mensal virou clicável (entradas + calculadora de meta/ritmo), header
+   da meta passou por 3 formatos até fixar em "%|R$ restante" + "Restam N dias"; KPIs do
+   topo viraram Receita Mensal/Receita Recorrente/Pró-labore/Caixa Operacional (Lucro
+   Líquido saiu da linha, continua em Saúde Financeira); Pró-labore não cita mais "cada
+   sócio" em lugar nenhum.
+5. Perfil: modal de editar perfil (foto grande + nome editável — não existia edição de
+   nome antes), "XP e conquistas" (placeholder sem info real) removido do menu.
+6. `/operacao`: autorizado pelo usuário a mexer nesta rodada (era escopo só da outra
+   sessão até aqui) — "Projetos" virou a primeira aba (bate com pra onde `/operacao` já
+   redireciona).
+
+typecheck + build + 79 testes (vitest, 13 novos) passando em cada commit desta rodada.
+
 ## Rodada — Focus Mode vira dark oficial, menu/avatar/logo alinhados, meta clicável, perfil editável, busca/+/tema migram pro sidebar
 
 Sequência de pedidos pontuais, todos deployados:
