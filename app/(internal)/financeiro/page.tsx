@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { AlertTriangle, ArrowDownCircle, ArrowRight, ArrowUpCircle, CalendarClock, Clock, DollarSign, PiggyBank, ShieldAlert, TrendingUp, Wallet } from "lucide-react";
+import { AlertTriangle, ArrowDownCircle, ArrowRight, ArrowUpCircle, CalendarClock, Clock, DollarSign, PiggyBank, Settings2, ShieldAlert, TrendingUp, Wallet } from "lucide-react";
 import { computeFinanceiroMetrics, listCosts, listExpenses, listRevenue } from "@/lib/financeiro/queries";
 import { computeDistribution } from "@/lib/financeiro/rules";
 import { updateRevenueStatusAction } from "@/lib/financeiro/actions";
 import { requireFinancialAccess } from "@/lib/auth/permissions";
 import { formatDateOnly } from "@/lib/date";
 import { StatTile } from "@/components/dashboard/stat-tile";
+import { Button } from "@/components/ui/button";
 import { RevenueChart } from "@/components/financeiro/revenue-chart";
 import { SectionHeader } from "@/components/dashboard/section-header";
 import { PageHeader } from "@/components/dashboard/page-header";
@@ -251,23 +252,23 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: P
           </CardWithDetail>
           <CardWithDetail
             title="Caixa Operacional"
-            description={
-              <>
-                {distribution.operationalPercentage}% da receita bruta deste mês — mesma regra de{" "}
-                <Link href="/configuracoes/regras-financeiras" className="underline underline-offset-4 hover:text-foreground">
-                  Regras financeiras
-                </Link>
-                .
-              </>
-            }
+            description={`${distribution.operationalPercentage}% da receita bruta deste mês.`}
             detail={
-              <DetailList
-                items={[
-                  { label: "Receita bruta (mês)", value: currencyFormatter.format(distribution.revenue) },
-                  { label: `Operacional (${distribution.operationalPercentage}%)`, value: currencyFormatter.format(distribution.operationalAmount) },
-                ]}
-                emptyLabel="Sem dado suficiente."
-              />
+              <div className="flex flex-col gap-3">
+                <DetailList
+                  items={[
+                    { label: "Receita bruta (mês)", value: currencyFormatter.format(distribution.revenue) },
+                    { label: `Operacional (${distribution.operationalPercentage}%)`, value: currencyFormatter.format(distribution.operationalAmount) },
+                  ]}
+                  emptyLabel="Sem dado suficiente."
+                />
+                <Button asChild variant="outline" size="sm" className="w-fit gap-1.5">
+                  <Link href="/configuracoes/regras-financeiras">
+                    <Settings2 className="size-3.5" />
+                    Editar percentual em Regras financeiras
+                  </Link>
+                </Button>
+              </div>
             }
           >
             <StatTile demo={false} label="Caixa Operacional" value={currencyFormatter.format(distribution.operationalAmount)} icon={<PiggyBank className="size-4.5" />} tone="info" />
