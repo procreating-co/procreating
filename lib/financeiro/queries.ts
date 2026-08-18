@@ -2,7 +2,7 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { addDaysISO, currentMonthKey, daysInMonth, diffDaysISO, formatDateOnly, lastMonthKeys, monthKeyOf, todayISO, todayParts } from "@/lib/date";
 import { computeMargin, computeMrr, computeTopClientConcentration, computeUpcomingReceivables, groupRevenueByClient, sumAmount, sumAmountForMonth } from "@/lib/financeiro/calculations";
-import { getCurrentMonthGoal, sumRealizedRevenue, type GoalProgress } from "@/lib/dashboard/goals";
+import { getCurrentMonthGoal, type GoalProgress } from "@/lib/dashboard/goals";
 import type { Cost, Expense, FinancialEntryStatus, Revenue } from "@/lib/supabase/types/database";
 import type { FinanceiroMetrics, FinancialDetailEntry, MonthlyEvolutionPoint, PipelineOpportunity } from "@/lib/financeiro/types";
 
@@ -123,42 +123,26 @@ export async function computeFinanceiroMetrics(evolutionMonths = 6): Promise<Fin
   // parâmetro do `.map((month) => ...)` de `monthlyEvolution` mais abaixo (sombra silenciosa,
   // compila mas confunde).
   const { year: currentYear, month: currentMonthNum, day: currentDay } = todayParts();
-  const monthStartISO = `${currentYear}-${String(currentMonthNum).padStart(2, "0")}-01`;
-  const nextMonthNum = currentMonthNum === 12 ? 1 : currentMonthNum + 1;
-  const nextMonthYear = currentMonthNum === 12 ? currentYear + 1 : currentYear;
-  const nextMonthStartISO = `${nextMonthYear}-${String(nextMonthNum).padStart(2, "0")}-01`;
 
-  const [revenueRaw, expenses, costs, { data: activeRecurringContracts }, { data: negociacaoStage }, { data: clients }, { data: financialRule }, goalRow, revenueThisMonthRealized] =
-    await Promise.all([
-      listRevenue(),
-      listExpenses(),
-      listCosts(),
-      // MRR = só `category='recorrente_ativo'` — não mais `type`+`status` inferido na leitura (era
-      // aí que uma fase antiga renegociada, nunca marcada `encerrado`, inflava o MRR: ver
-      // `contracts.category`, `lib/supabase/types/database.ts`).
-      supabase.from("contracts").select("*").eq("category", "recorrente_ativo"),
-      // Junção manual em TS, não embed do PostgREST (mesmo motivo de `lib/clientes/queries.ts`):
-      // `Database` é uma aproximação manual, embed aninhado arrisca inferência `never`.
-      supabase.from("pipeline_stages").select("id").eq("key", "negociacao").maybeSingle(),
-      // Só pra resolver `client_id` → nome no breakdown por cliente do gráfico de evolução (hover).
-      supabase.from("clients").select("id, name"),
-      // `receivables_alert_days` — automação §72 regra 3, configurável em Regras financeiras.
-      supabase.from("financial_rules").select("receivables_alert_days").order("created_at", { ascending: false }).limit(1).maybeSingle(),
-      // Bloco 4 item 2 (redesign) — "Meta do mês inline", mesmo cálculo que já alimenta "Receita
-      // vs Meta" na Home (lib/dashboard/goals.ts), não recalculado do zero.
-      getCurrentMonthGoal(),
-      sumRealizedRevenue(monthStartISO, nextMonthStartISO),
-    ]);
+  const [revenueRaw, expenses, costs, { data: activeRecurringContracts }, { data: negociacaoStage }, { data: clients }, { data: financialRule }, goalRow] = await Promise.all([
+    listRevenue(),
+    listExpenses(),
+    listCosts(),
+    // MRR = só `category='recorrente_ativo'` — não mais `type`+`status` inferido na leitura (era
+    // aí que uma fase antiga renegociada, nunca marcada `encerrado`, inflava o MRR: ver
+    // `contracts.category`, `lib/supabase/types/database.ts`).
+    supabase.from("contracts").select("*").eq("category", "recorrente_ativo"),
+    // Junção manual em TS, não embed do PostgREST (mesmo motivo de `lib/clientes/queries.ts`):
+    // `Database` é uma aproximação manual, embed aninhado arrisca inferência `never`.
+    supabase.from("pipeline_stages").select("id").eq("key", "negociacao").maybeSingle(),
+    // Só pra resolver `client_id` → nome no breakdown por cliente do gráfico de evolução (hover).
+    supabase.from("clients").select("id, name"),
+    // `receivables_alert_days` — automação §72 regra 3, configurável em Regras financeiras.
+    supabase.from("financial_rules").select("receivables_alert_days").order("created_at", { ascending: false }).limit(1).maybeSingle(),
+    // Bloco 4 item 2 (redesign) — "Meta do mês inline".
+    getCurrentMonthGoal(),
+  ]);
   const clientNameById = new Map((clients ?? []).map((client) => [client.id, client.name]));
-
-  const goal: GoalProgress | null = goalRow
-    ? {
-        amount: Number(goalRow.amount),
-        realized: revenueThisMonthRealized,
-        percentage: (revenueThisMonthRealized / Number(goalRow.amount)) * 100,
-        expectedPacePercentage: (currentDay / daysInMonth(currentYear, currentMonthNum)) * 100,
-      }
-    : null;
 
   // Pipeline (negociação em aberto) — nunca soma no MRR nem em "a receber", é um número à parte
   // ("MRR potencial se fechar"). Só o estágio 'negociacao': é o que o funil chama de negócio já
@@ -191,6 +175,19 @@ export async function computeFinanceiroMetrics(evolutionMonths = 6): Promise<Fin
   const expensesThisMonth = sumAmountForMonth(expenses, thisMonthKey);
   const monthlyCostsTotal = sumAmount(costs);
   const margin = computeMargin(revenueThisMonth, expensesThisMonth, monthlyCostsTotal);
+
+  // Meta do mês (Bloco 4 item 2) — BUG REAL corrigido nesta rodada: usava `sumRealizedRevenue`
+  // (cash, status='pago') enquanto o card "Receita do Mês" já mostrava `revenueThisMonth`
+  // (faturado, due_date) — dois números diferentes na MESMA página pro "mesmo" conceito. Agora
+  // usa `revenueThisMonth` direto, já calculado acima — mesma fonte, sem segunda conta.
+  const goal: GoalProgress | null = goalRow
+    ? {
+        amount: Number(goalRow.amount),
+        realized: revenueThisMonth,
+        percentage: (revenueThisMonth / Number(goalRow.amount)) * 100,
+        expectedPacePercentage: (currentDay / daysInMonth(currentYear, currentMonthNum)) * 100,
+      }
+    : null;
 
   const receivablesPending = sumAmount(revenue.filter((row) => row.status === "pendente"));
   const receivablesOverdue = sumAmount(revenue.filter((row) => row.status === "atrasado"));

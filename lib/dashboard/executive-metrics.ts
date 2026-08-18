@@ -1,6 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentMonthGoal, sumRealizedRevenue, type GoalProgress } from "@/lib/dashboard/goals";
+import { getCurrentMonthGoal, type GoalProgress } from "@/lib/dashboard/goals";
 import { computeComercialMetrics } from "@/lib/comercial/metrics";
 import { listPipelineStages } from "@/lib/comercial/queries";
 import { computeFinanceiroMetrics } from "@/lib/financeiro/queries";
@@ -12,10 +12,18 @@ import type { MonthlyEvolutionPoint } from "@/lib/financeiro/types";
 // ---------------------------------------------------------------------------
 // Query central do Dashboard executivo — junta o que já existe (lib/comercial, lib/financeiro,
 // lib/dashboard/goals) com o que precisou de query nova, sempre marcando explicitamente o que
-// não tem dado suficiente (`null`/array vazio) em vez de inventar. Ver decisões documentadas no
-// plano aprovado — "Revenue" aqui é REALIZADO (status='pago', paid_at no mês), diferente do
-// `revenueThisMonth` de `computeFinanceiroMetrics()` (tudo com due_date no mês, sem filtrar
-// status) — os dois convivem, só nomeados sem ambiguidade.
+// não tem dado suficiente (`null`/array vazio) em vez de inventar.
+//
+// BUG REAL corrigido nesta rodada (reportado pelo usuário, "erro grave"): "Receita"/"Lucro
+// Líquido"/"Fluxo de Caixa" aqui usavam uma definição PRÓPRIA (REALIZADO — só `status='pago'`,
+// por `paid_at`), diferente do `revenueThisMonth` de `computeFinanceiroMetrics()` (tudo com
+// `due_date` no mês, sem filtrar status) — os dois "conviviam", mas mostravam números diferentes
+// pro mesmo mês em telas diferentes, exatamente o tipo de inconsistência que o usuário rejeitou
+// explicitamente ("o dashboard deve ser o resultado do financeiro"). Corrigido: Receita/Despesas/
+// Lucro Líquido/Fluxo de Caixa/Meta/sparklines agora vêm TODOS de `financeiro` (o mesmo
+// `computeFinanceiroMetrics()` que a página Financeiro usa) — nunca mais uma segunda conta em
+// paralelo pro mesmo número. O gráfico dia-a-dia "Receita vs Meta" também foi migrado de
+// `paid_at` pra `due_date` (mesma base), pelo mesmo motivo.
 //
 // `details` — todo card do Dashboard é clicável e abre um modal com a lista real por trás do
 // número (pedido explícito). Cada campo de `details` é a lista que alimenta o modal do card
@@ -121,41 +129,6 @@ const ROLE_LABEL: Record<string, string> = {
   client: "Cliente",
 };
 
-async function sumRealizedExpenses(fromISO: string, toISO: string): Promise<number> {
-  const supabase = await createClient();
-  const { data } = await supabase.from("expenses").select("amount").eq("status", "pago").gte("paid_at", fromISO).lt("paid_at", toISO);
-  return (data ?? []).reduce((sum, row) => sum + Number(row.amount), 0);
-}
-
-/** Série mensal (últimos `months` meses) de receita/despesa REALIZADA — base dos sparklines do
- *  KPI row. Uma query por tipo (não por mês) pra não fazer N chamadas. */
-async function monthlyRealizedSeries(months: number): Promise<{ revenue: number[]; expenses: number[] }> {
-  const supabase = await createClient();
-  const now = todayUTCAnchor();
-  const from = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (months - 1), 1));
-
-  const [{ data: revenueRows }, { data: expenseRows }] = await Promise.all([
-    supabase.from("revenue").select("amount, paid_at").eq("status", "pago").gte("paid_at", toISODate(from)),
-    supabase.from("expenses").select("amount, paid_at").eq("status", "pago").gte("paid_at", toISODate(from)),
-  ]);
-
-  const bucket = (rows: { amount: number; paid_at: string | null }[] | null) => {
-    const sums = new Array(months).fill(0);
-    for (const row of rows ?? []) {
-      if (!row.paid_at) continue;
-      // `paid_at` é `date` (sem hora, ex. "2026-08-14") — `new Date(str)` é sempre parseado como
-      // UTC-midnight pra strings ISO date-only, e `from` já é UTC-anchored acima, então os
-      // getters UTC dos dois lados são consistentes entre si (nunca misturar com getters locais).
-      const paid = new Date(row.paid_at);
-      const index = (paid.getUTCFullYear() - from.getUTCFullYear()) * 12 + (paid.getUTCMonth() - from.getUTCMonth());
-      if (index >= 0 && index < months) sums[index] += Number(row.amount);
-    }
-    return sums;
-  };
-
-  return { revenue: bucket(revenueRows), expenses: bucket(expenseRows) };
-}
-
 /** `cashFlowMonths` controla só a janela do gráfico "Cash Flow — Last 6 Months" (Financial
  *  Health) — o resto do Dashboard (KPIs do mês, meta, pipeline) não muda com isso. */
 export async function computeExecutiveDashboard(cashFlowMonths = 6): Promise<ExecutiveMetrics> {
@@ -176,10 +149,6 @@ export async function computeExecutiveDashboard(cashFlowMonths = 6): Promise<Exe
     { data: activeContracts },
     { data: costs },
     { data: users },
-    revenueThisMonthRealized,
-    revenueLastMonthRealized,
-    expensesThisMonthRealized,
-    monthlySeries,
     { data: revenueDaily },
     { data: overdueRevenue },
     { data: overdueExpenses },
@@ -200,24 +169,31 @@ export async function computeExecutiveDashboard(cashFlowMonths = 6): Promise<Exe
     supabase.from("contracts").select("*").in("category", ["recorrente_ativo", "pontual_em_andamento"]),
     supabase.from("costs").select("amount"),
     supabase.from("users").select("id, name, role"),
-    sumRealizedRevenue(toISODate(monthStart), toISODate(nextMonthStart)),
-    sumRealizedRevenue(toISODate(prevMonthStart), toISODate(monthStart)),
-    sumRealizedExpenses(toISODate(monthStart), toISODate(nextMonthStart)),
-    monthlyRealizedSeries(6),
-    supabase.from("revenue").select("amount, paid_at").eq("status", "pago").gte("paid_at", toISODate(monthStart)).lt("paid_at", toISODate(nextMonthStart)),
+    // Dia-a-dia do mês (gráfico "Receita vs Meta") — mesma base de `financeiro.revenueThisMonth`
+    // agora: `due_date`, qualquer status que não `cancelado` (era `paid_at`+`status='pago'`, a
+    // fonte da inconsistência corrigida nesta rodada).
+    supabase.from("revenue").select("amount, due_date").neq("status", "cancelado").gte("due_date", toISODate(monthStart)).lt("due_date", toISODate(nextMonthStart)),
     supabase.from("revenue").select("client_id, description, amount, due_date").eq("status", "atrasado"),
     supabase.from("expenses").select("category, description, amount, due_date").eq("status", "atrasado"),
-    supabase.from("revenue").select("client_id, description, amount, paid_at").eq("status", "pago").gte("paid_at", toISODate(monthStart)).lt("paid_at", toISODate(nextMonthStart)),
-    supabase.from("expenses").select("category, description, amount, paid_at").eq("status", "pago").gte("paid_at", toISODate(monthStart)).lt("paid_at", toISODate(nextMonthStart)),
+    supabase.from("revenue").select("client_id, description, amount, due_date, status").neq("status", "cancelado").gte("due_date", toISODate(monthStart)).lt("due_date", toISODate(nextMonthStart)),
+    supabase.from("expenses").select("category, description, amount, due_date, status").neq("status", "cancelado").gte("due_date", toISODate(monthStart)).lt("due_date", toISODate(nextMonthStart)),
   ]);
 
   const monthlyCostsTotal = (costs ?? []).reduce((sum, cost) => sum + Number(cost.amount), 0);
-  const netProfitThisMonth = revenueThisMonthRealized - expensesThisMonthRealized - monthlyCostsTotal;
+  // Receita/Despesas/Lucro Líquido/Fluxo de Caixa vêm de `financeiro` agora — mesma fonte que a
+  // página Financeiro usa, nunca mais uma segunda conta em paralelo (ver comentário do módulo).
+  const revenueThisMonth = financeiro.revenueThisMonth;
+  const expensesThisMonth = financeiro.expensesThisMonth;
+  const netProfitThisMonth = financeiro.margin;
+  const cashFlowThisMonth = financeiro.revenueThisMonth - financeiro.expensesThisMonth;
+  const monthlySeries = { revenue: financeiro.monthlyEvolution.map((point) => point.revenue), expenses: financeiro.monthlyEvolution.map((point) => point.expenses) };
   const netProfitSeries = monthlySeries.revenue.map((rev, i) => rev - monthlySeries.expenses[i] - monthlyCostsTotal);
   const cashFlowSeries = monthlySeries.revenue.map((rev, i) => rev - monthlySeries.expenses[i]);
-  const cashFlowThisMonth = revenueThisMonthRealized - expensesThisMonthRealized;
 
-  const revenueDeltaPct = revenueLastMonthRealized > 0 ? ((revenueThisMonthRealized - revenueLastMonthRealized) / revenueLastMonthRealized) * 100 : null;
+  // `monthlyEvolution` vem do mais antigo pro mais recente (mesma ordem de `lastMonthKeys`) — o
+  // último ponto é o mês corrente, o penúltimo é o mês passado.
+  const revenueLastMonth = financeiro.monthlyEvolution.length >= 2 ? financeiro.monthlyEvolution[financeiro.monthlyEvolution.length - 2].revenue : 0;
+  const revenueDeltaPct = revenueLastMonth > 0 ? ((revenueThisMonth - revenueLastMonth) / revenueLastMonth) * 100 : null;
 
   const clients: Client[] = allClients ?? [];
   const clientNameById = new Map(clients.map((client) => [client.id, client.name]));
@@ -228,24 +204,23 @@ export async function computeExecutiveDashboard(cashFlowMonths = 6): Promise<Exe
   const goal: GoalProgress | null = goalRow
     ? {
         amount: Number(goalRow.amount),
-        realized: revenueThisMonthRealized,
-        percentage: (revenueThisMonthRealized / Number(goalRow.amount)) * 100,
+        realized: revenueThisMonth,
+        percentage: (revenueThisMonth / Number(goalRow.amount)) * 100,
         expectedPacePercentage: (dayOfMonth / daysThisMonth) * 100,
       }
     : null;
 
-  const dailyRealizedMap = new Map<number, number>();
+  const dailyRevenueMap = new Map<number, number>();
   for (const row of revenueDaily ?? []) {
-    if (!row.paid_at) continue;
-    // `paid_at` é `date` (sem hora) — extrai o dia direto da string, nunca via `new Date(str).getDate()`
+    // `due_date` é `date` (sem hora) — extrai o dia direto da string, nunca via `new Date(str).getDate()`
     // (que reintroduziria o mesmo viés de fuso que este arquivo inteiro está corrigindo).
-    const day = dayOfMonthOf(row.paid_at);
-    dailyRealizedMap.set(day, (dailyRealizedMap.get(day) ?? 0) + Number(row.amount));
+    const day = dayOfMonthOf(row.due_date);
+    dailyRevenueMap.set(day, (dailyRevenueMap.get(day) ?? 0) + Number(row.amount));
   }
   let cumulative = 0;
   const revenueVsTargetPoints: RevenueVsTargetPoint[] = Array.from({ length: daysThisMonth }, (_, i) => {
     const day = i + 1;
-    if (day <= dayOfMonth) cumulative += dailyRealizedMap.get(day) ?? 0;
+    if (day <= dayOfMonth) cumulative += dailyRevenueMap.get(day) ?? 0;
     return {
       day,
       realized: day <= dayOfMonth ? cumulative : null,
@@ -374,7 +349,7 @@ export async function computeExecutiveDashboard(cashFlowMonths = 6): Promise<Exe
   return {
     goal,
     kpis: {
-      revenue: { value: revenueThisMonthRealized, sparkline: monthlySeries.revenue, deltaPct: revenueDeltaPct },
+      revenue: { value: revenueThisMonth, sparkline: monthlySeries.revenue, deltaPct: revenueDeltaPct },
       netProfit: { value: netProfitThisMonth, sparkline: netProfitSeries },
       cashFlow: { value: cashFlowThisMonth, sparkline: cashFlowSeries },
       pipeline: { value: comercial.pipelineValue, openCount: comercial.openLeads },
@@ -385,8 +360,8 @@ export async function computeExecutiveDashboard(cashFlowMonths = 6): Promise<Exe
     },
     revenueVsTarget: { points: revenueVsTargetPoints, goalAmount: goalRow ? Number(goalRow.amount) : null },
     financialHealth: {
-      revenue: revenueThisMonthRealized,
-      expenses: expensesThisMonthRealized,
+      revenue: revenueThisMonth,
+      expenses: expensesThisMonth,
       netProfit: netProfitThisMonth,
       cashFlow: cashFlowThisMonth,
       monthlyEvolution: financeiro.monthlyEvolution,
@@ -408,15 +383,19 @@ export async function computeExecutiveDashboard(cashFlowMonths = 6): Promise<Exe
     attention,
     pulse,
     details: {
+      // Nome do cliente primeiro, descrição ("Mensalidade 08/2026") como meta — mesmo ajuste
+      // pedido explicitamente pro Financeiro ("A Receber... mude pro nome do cliente"), aplicado
+      // aqui também pela mesma razão (mostrar "Mensalidade" como se fosse o nome não ajuda a
+      // reconhecer de relance quem é).
       revenueEntries: (revenueEntriesThisMonth ?? []).map((row) => ({
-        label: row.description || clientNameById.get(row.client_id ?? "") || "Receita",
+        label: (row.client_id && clientNameById.get(row.client_id)) || row.description || "Receita",
         value: currency(Number(row.amount)),
-        meta: shortDate(row.paid_at),
+        meta: row.description ? `${row.description} · ${shortDate(row.due_date)}` : shortDate(row.due_date),
       })),
       expenseEntries: (expenseEntriesThisMonth ?? []).map((row) => ({
         label: row.description || row.category,
         value: currency(Number(row.amount)),
-        meta: shortDate(row.paid_at),
+        meta: shortDate(row.due_date),
       })),
       openLeads: leadsOpen.map((lead) => ({
         label: lead.company_name,

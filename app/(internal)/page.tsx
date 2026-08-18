@@ -66,7 +66,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
 
       {/* Linha de KPIs */}
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
-        <CardWithDetail title="Receita" description="Receita realizada este mês (paga)." detail={<DetailList items={maskEntries(d.revenueEntries, canView)} emptyLabel="Nenhuma receita paga este mês ainda." />}>
+        <CardWithDetail title="Receita" description="Receita deste mês — mesmo número do Financeiro." detail={<DetailList items={maskEntries(d.revenueEntries, canView)} emptyLabel="Nenhuma receita com vencimento este mês ainda." />}>
           <MetricCard
             icon={<TrendingUp className="size-3.5" />}
             label="Receita"
@@ -100,7 +100,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
         </CardWithDetail>
         <CardWithDetail
           title="Fluxo de Caixa"
-          description="Entradas − saídas realizadas este mês."
+          description="Entradas − saídas deste mês."
           detail={
             <DetailList
               items={[
@@ -138,7 +138,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
       {/* Receita vs. Meta */}
       <ChartExpandDialog
         title="Receita vs. Meta"
-        description="Realizado (área) vs. ritmo esperado (linha pontilhada) — dia a dia do mês corrente."
+        description="Faturado (área) vs. ritmo esperado (linha pontilhada) — dia a dia do mês corrente."
         expanded={
           !canView ? (
             <EmptyInline icon={EyeOff} label="Gráfico oculto — este número financeiro exige acesso." />
@@ -171,10 +171,10 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
       <section className="flex flex-col gap-4">
         <SectionHeader title="Saúde Financeira" />
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <CardWithDetail title="Receita" description="Receita realizada este mês (paga)." detail={<DetailList items={maskEntries(d.revenueEntries, canView)} emptyLabel="Nenhuma receita paga este mês ainda." />}>
+          <CardWithDetail title="Receita" description="Receita deste mês — mesmo número do Financeiro." detail={<DetailList items={maskEntries(d.revenueEntries, canView)} emptyLabel="Nenhuma receita com vencimento este mês ainda." />}>
             <FinancialBlock label="Receita" value={money(metrics.financialHealth.revenue)} />
           </CardWithDetail>
-          <CardWithDetail title="Despesas" description="Despesas pagas este mês." detail={<DetailList items={maskEntries(d.expenseEntries, canView)} emptyLabel="Nenhuma despesa paga este mês ainda." />}>
+          <CardWithDetail title="Despesas" description="Despesas deste mês — mesmo número do Financeiro." detail={<DetailList items={maskEntries(d.expenseEntries, canView)} emptyLabel="Nenhuma despesa com vencimento este mês ainda." />}>
             <FinancialBlock label="Despesas" value={money(metrics.financialHealth.expenses)} />
           </CardWithDetail>
           <CardWithDetail
@@ -195,7 +195,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
           </CardWithDetail>
           <CardWithDetail
             title="Fluxo de Caixa"
-            description="Entradas − saídas realizadas este mês."
+            description="Entradas − saídas deste mês."
             detail={
               <DetailList
                 items={[

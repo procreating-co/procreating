@@ -17,17 +17,6 @@ export async function getCurrentMonthGoal(): Promise<RevenueGoal | null> {
   return data ?? null;
 }
 
-/** Soma de `revenue.amount` com `status='pago'` cujo `paid_at` cai no intervalo — "realizado",
- *  não "previsto". Mora aqui (não em `lib/dashboard/executive-metrics.ts`, onde nasceu) porque
- *  `lib/financeiro/queries.ts` também precisa (Bloco 4 item 2 do redesign — "Meta do mês"
- *  reaproveitada, mesmo número, novo lugar) e `executive-metrics.ts` já importa DE
- *  `lib/financeiro/queries.ts` — importar de volta de lá criaria dependência circular. */
-export async function sumRealizedRevenue(fromISO: string, toISO: string): Promise<number> {
-  const supabase = await createClient();
-  const { data } = await supabase.from("revenue").select("amount").eq("status", "pago").gte("paid_at", fromISO).lt("paid_at", toISO);
-  return (data ?? []).reduce((sum, row) => sum + Number(row.amount), 0);
-}
-
 /** Progresso da meta do mês corrente — `amount` (meta), `realized` (receita paga no mês),
  *  `percentage`/`expectedPacePercentage` pra comparar "quanto já foi" vs. "quanto já devia ter
  *  sido, no ritmo do calendário". Mesmo formato usado no Dashboard (Home) e no Financeiro. */
