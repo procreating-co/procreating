@@ -1,3 +1,47 @@
+## Rodada — Focus Mode vira dark oficial, menu/avatar/logo alinhados, meta clicável, perfil editável, busca/+/tema migram pro sidebar
+
+Sequência de pedidos pontuais, todos deployados:
+
+1. **Focus Mode virou o dark oficial** — app voltou a ser binário light/dark (era ciclo de 3).
+   Paleta roxa do antigo Focus foi pro `.os-shell[data-theme="dark"]`; fundo levantado de
+   `hsl(0 0% 6%)` pra `#242424` (pedido explícito) — toda a escala de cinza do dark deslocada
+   +8pp junto, pra não quebrar a hierarquia de elevação (card/popover ficariam mais escuros que o
+   próprio fundo se só `--background` mudasse). Migration `merge_focus_theme_into_dark` no
+   Supabase (usuário com `theme='focus'` virou `'dark'`, CHECK constraint só aceita as duas).
+2. **Menu da sidebar reordenado**: Workspace, Dashboard, Financeiro, Comercial, Operação (era
+   Workspace, Dashboard, Operação, Comercial, Financeiro) — só `NAV_GROUPS` reordenado.
+3. **Avatar/logo desalinhados na sidebar recolhida** — ícones de grupo (Lucide, ~18px) e avatar
+   (círculo 28px) só compartilhavam a borda esquerda do padding, não um eixo central — larguras
+   diferentes deixavam a coluna com zigue-zague óptico. Corrigido dando a cada ícone (grupos,
+   avatar, Configurações, logo) o mesmo slot fixo `size-7` centralizado. O logo precisou de um
+   ajuste extra (regressão da própria correção): ficou puxado pra esquerda até entrar no mesmo
+   slot (`size-6` dentro do slot `size-7`, mantendo peso visual maior que ícone de linha comum).
+4. **Meta mensal do Dashboard virou clicável** (`GoalDetailDialog`, novo) — abre modal com
+   entradas do mês (mesma lista do card "Receita") + calculadora de meta/ritmo (meta hipotética
+   digitada recalcula %/restante/ritmo diário necessário na hora, com botão pra aplicar de
+   verdade). **Gap de RBAC real corrigido nesse caminho**: `setCurrentMonthGoalAction` só checava
+   sessão, nunca o papel — `dev_tester` conseguiria escrever a meta oficial da empresa. Ganhou
+   `requireFinancialAccess()`, mesmo gate do resto do Financeiro.
+5. **Modal de editar perfil** (`ProfileEditDialog`, novo) — clicar no cabeçalho (avatar+nome+
+   e-mail) do menu de conta abre modal de verdade (padrão Slack/Notion): foto grande clicável +
+   nome editável (`updateProfileAction`, novo — não existia jeito de corrigir nome digitado
+   errado) + e-mail só-leitura. "Foto de perfil" (item solto) e "XP e conquistas" (placeholder
+   desabilitado, sem info real atrás) saíram do menu.
+6. **Busca (⌘K)/criar (+)/tema migraram do `DashboardHeader` pra `DashboardSidebar`** — ações
+   globais do produto, mais perto do resto do chrome fixo (logo, grupos, conta) do que da barra
+   de contexto da área atual. Empilhados verticalmente no rodapé da sidebar (3 botões `size-8`
+   não cabem lado a lado nos ~44px úteis da sidebar recolhida). Header ficou só com abas
+   contextuais + `KeyboardShortcuts`/`AiAssistant`.
+
+**Fora de escopo, sinalizado ao usuário, não implementado**: pedido de "Central de Clientes" em
+`/admin/clientes` (grid de clientes + drawer, entidades Template/ProjectVersion/Deployment/
+Asset/Event) — é o admin do Client Hub/portfólio da Pascoal (`/admin/clientes`, `/admin/projetos`,
+`/admin/templates`, `/p/[client]/**`), escopo da OUTRA sessão que compartilha este repositório,
+não do Procreating OS (ERP). Não toquei — flaguei o conflito de escopo ao usuário em vez de
+executar ou ignorar silenciosamente.
+
+typecheck + build + 66 testes (vitest) passando em cada commit desta rodada.
+
 ## Rodada — tema novo (Focus Mode) + correções pontuais de Dashboard/Financeiro/Workspace
 
 Sequência de pedidos pontuais + 1 mudança grande (tema), todos deployados:
