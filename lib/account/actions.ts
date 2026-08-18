@@ -43,3 +43,24 @@ export async function uploadAvatarAction(formData: FormData): Promise<UploadAvat
   revalidatePath("/", "layout");
   return { ok: true, avatarUrl };
 }
+
+export type UpdateProfileResult = { ok: true } | { ok: false; error: string };
+
+/** Nome de exibição — não existia nenhum jeito de corrigir (só era gravado no cadastro em
+ *  `/admin/signup`, nunca mais editável). Só o dono da própria conta pode mudar (não recebe
+ *  `userId` de fora); e-mail fica de fora de propósito — é a credencial de login, mudar isso é
+ *  outro fluxo (verificação), não um campo de perfil comum. */
+export async function updateProfileAction(name: string): Promise<UpdateProfileResult> {
+  const trimmed = name.trim();
+  if (trimmed.length < 2) return { ok: false, error: "Informe um nome válido." };
+
+  const userId = await getCurrentUserId();
+  if (!userId) return { ok: false, error: "Sessão expirada — faça login de novo." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("users").update({ name: trimmed }).eq("id", userId);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/", "layout");
+  return { ok: true };
+}

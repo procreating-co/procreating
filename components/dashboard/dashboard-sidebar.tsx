@@ -7,7 +7,8 @@ import { Settings } from "lucide-react";
 import { useAdminUser } from "@/lib/admin/auth/auth-context";
 import { NAV_GROUPS } from "@/components/dashboard/nav-config";
 import { ProcreatingMark } from "@/components/dashboard/procreating-mark";
-import { AccountMenu, AccountAvatar } from "@/components/dashboard/account-menu";
+import { AccountMenu } from "@/components/dashboard/account-menu";
+import { AccountAvatar } from "@/components/dashboard/account-avatar";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
@@ -25,11 +26,17 @@ function SidebarContent({ expanded, user, onNavigate }: { expanded: boolean; use
       {/* Logo = também um atalho pro Workspace (`/workspace`, era `/meu-dia`) — redundante com o
        *  ícone de Workspace logo abaixo (pedido explícito: ícone de casa próprio, acima do
        *  Dashboard), mas mantido: é convenção comum (logo sempre leva pro "home") e não
-       *  atrapalha. `px-2.5` (não `px-4`) — mesmo eixo esquerdo dos ícones de grupo e do avatar
-       *  no rodapé, ver comentário lá embaixo; o símbolo em si ficou maior (`size-7`) pra ter
-       *  peso visual condizente com essa função de "logo clicável", não só mais um ícone de linha. */}
+       *  atrapalha. `px-2.5` (não `px-4`) — mesmo eixo esquerdo do slot dos ícones de grupo e do
+       *  avatar no rodapé (ver comentário lá embaixo). O símbolo agora mora no MESMO slot
+       *  centralizado `size-7` deles (antes era um `size-7` cru, preenchendo a caixa borda a
+       *  borda — ficava sem o mesmo recuo óptico que os ícones de linha ganharam, então o logo
+       *  parecia "puxado" pra esquerda comparado ao resto da coluna). `size-6` dentro do slot
+       *  `size-7` mantém o peso visual maior que um ícone de linha comum, só um pouco menor pra
+       *  caber com o mesmo recuo. */}
       <Link href="/workspace" onClick={onNavigate} className="flex h-16 shrink-0 items-center gap-2.5 px-2.5">
-        <ProcreatingMark className="size-7 shrink-0 text-foreground" />
+        <span className="flex size-7 shrink-0 items-center justify-center">
+          <ProcreatingMark className="size-6 text-foreground" />
+        </span>
         <span className={cn("overflow-hidden whitespace-nowrap font-display text-lg tracking-tight transition-opacity duration-150", expanded ? "opacity-100" : "w-0 opacity-0")}>
           Procreating OS
         </span>
