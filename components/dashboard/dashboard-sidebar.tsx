@@ -50,7 +50,9 @@ function SidebarContent({ expanded, user, onNavigate }: { expanded: boolean; use
                 active ? "bg-sidebar-accent text-brand" : "text-sidebar-muted-foreground hover:bg-sidebar-hover hover:text-sidebar-foreground"
               )}
             >
-              <Icon className="size-4.5 shrink-0" />
+              <span className="flex size-7 shrink-0 items-center justify-center">
+                <Icon className="size-4.5" />
+              </span>
               <span className={cn("overflow-hidden whitespace-nowrap transition-opacity duration-150", expanded ? "opacity-100" : "w-0 opacity-0")}>{group.label}</span>
             </Link>
           );
@@ -58,12 +60,16 @@ function SidebarContent({ expanded, user, onNavigate }: { expanded: boolean; use
       </nav>
 
       <div className="border-t border-border/60 p-2.5">
-        {/* Mesma classe (px-2.5 py-2, gap-3) dos Link de grupo acima — mesmo eixo esquerdo
-         *  garantido, sem matemática de padding pra acertar visualmente (era o motivo do avatar
-         *  não alinhar com os ícones: 3 divs aninhados com padding próprio, cada um). */}
+        {/* `size-7` é o mesmo slot dos ícones de grupo acima (o `<span>` que embrulha cada
+         *  `Icon`) — antes o avatar (círculo `size-7`, 28px) ficava ancorado só pela borda
+         *  esquerda do padding, igual aos ícones de linha (18px), então os dois "pareciam"
+         *  alinhados pela esquerda mas ficavam ópticamente desencontrados na coluna recolhida
+         *  (o avatar, mais largo, puxava o olho mais pra direita). Com o mesmo slot de 28px
+         *  centralizando cada ícone, a coluna fica reta independente do tamanho do glifo lá
+         *  dentro. */}
         <AccountMenu user={{ name: user.name, email: user.email, avatarUrl: user.avatarUrl }}>
           <button type="button" className="flex w-full items-center gap-3 rounded-md px-2.5 py-2 text-left text-sm text-sidebar-foreground transition-colors hover:bg-sidebar-hover">
-            <AccountAvatar user={user} className="size-7 text-[10px]" />
+            <AccountAvatar user={user} className="size-7 shrink-0 text-[10px]" />
             <div className={cn("min-w-0 flex-1 overflow-hidden transition-opacity duration-150", expanded ? "opacity-100" : "w-0 opacity-0")}>
               <p className="truncate text-sm">{user.name}</p>
               <p className="truncate text-xs text-sidebar-muted-foreground">{user.email}</p>
@@ -79,7 +85,9 @@ function SidebarContent({ expanded, user, onNavigate }: { expanded: boolean; use
           title={expanded ? undefined : "Configurações"}
           className="mt-1 flex items-center gap-3 rounded-md px-2.5 py-2 text-sm text-sidebar-muted-foreground transition-colors hover:bg-sidebar-hover hover:text-sidebar-foreground"
         >
-          <Settings className="size-4 shrink-0" />
+          <span className="flex size-7 shrink-0 items-center justify-center">
+            <Settings className="size-4" />
+          </span>
           <span className={cn("overflow-hidden whitespace-nowrap transition-opacity duration-150", expanded ? "opacity-100" : "w-0 opacity-0")}>Configurações</span>
         </Link>
       </div>

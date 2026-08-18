@@ -67,7 +67,7 @@ export type NavGroupDef = {
 export const NAV_GROUPS: NavGroupDef[] = [
   { key: "workspace", label: "Workspace", icon: Home, href: "/workspace", matchPrefixes: ["/workspace"] },
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: "/", matchPrefixes: ["/"] },
-  { key: "operations", label: "Operação", icon: Layers, href: "/operacao", matchPrefixes: ["/operacao", "/clientes"], tabs: OPERATIONS_TABS },
-  { key: "growth", label: "Comercial", icon: TrendingUp, href: "/comercial", matchPrefixes: ["/comercial"] },
   { key: "finance", label: "Financeiro", icon: Wallet, href: "/financeiro", matchPrefixes: ["/financeiro"] },
+  { key: "growth", label: "Comercial", icon: TrendingUp, href: "/comercial", matchPrefixes: ["/comercial"] },
+  { key: "operations", label: "Operação", icon: Layers, href: "/operacao", matchPrefixes: ["/operacao", "/clientes"], tabs: OPERATIONS_TABS },
 ];
