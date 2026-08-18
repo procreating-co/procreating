@@ -8,6 +8,25 @@ import type { FinanceiroMetrics, FinancialDetailEntry, MonthlyEvolutionPoint, Pi
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const STATUS_LABEL: Record<FinancialEntryStatus, string> = { pendente: "Pendente", pago: "Pago", atrasado: "Atrasado", cancelado: "Cancelado" };
 
+/** "MM/YYYY" de `fromMonthKey` (inclusive) até dezembro de `toYear` (inclusive) — só pra
+ *  projeção de recebíveis futuros; `lastMonthKeys` (lib/date.ts) é o inverso (últimos N meses
+ *  terminando agora), não serve aqui. */
+function monthKeysThrough(fromMonthKey: string, toYear: number, toMonth: number): string[] {
+  const [fm, fy] = fromMonthKey.split("/").map(Number);
+  const keys: string[] = [];
+  let year = fy;
+  let month = fm;
+  while (year < toYear || (year === toYear && month <= toMonth)) {
+    keys.push(`${String(month).padStart(2, "0")}/${year}`);
+    month++;
+    if (month > 12) {
+      month = 1;
+      year++;
+    }
+  }
+  return keys;
+}
+
 /** Fallback só pro caso (não deveria acontecer em produção) de `financial_rules` estar vazia —
  *  mesmo valor default da coluna (`receivables_alert_days`, migration `20260818000000`). A
  *  janela em si agora é configurável em Configurações → Regras financeiras, não mais uma
@@ -162,25 +181,46 @@ export async function computeFinanceiroMetrics(evolutionMonths = 6): Promise<Fin
       meta: `${row.category} · ${row.status === "atrasado" ? "venceu" : "vence"} ${formatDateOnly(row.due_date)}`,
     }));
 
-  // "A receber (até <ano>)" — pedido explícito: projeção mais longa que "A receber (pendente)"
-  // (que soma QUALQUER pendente, sem corte de data), escopada só a cliente com contrato
-  // recorrente ativo (via `revenue.contract_id`, não `client_id` — um cliente podia ter mais de
-  // um contrato). Corte em "ano corrente + 1" (não a data literal "2027" hardcoded) — cravar o
-  // ano vira errado sozinho depois que 2027 passar; `todayParts().year + 1` mantém a mesma
-  // distância (~1-2 anos à frente) pra sempre, sem precisar de outra rodada só pra atualizar.
+  // "A receber (até <ano>)" — projeção de todo cliente com contrato recorrente ativo, mês a mês,
+  // até dezembro do ano corrente + 1 (não "2027" hardcoded — ver comentário mais abaixo). Bug
+  // real corrigido aqui (reportado pelo usuário: "só aparece a Elenita"): a versão anterior só
+  // somava linhas de `revenue` que JÁ EXISTIAM na tabela — mas clientes antigos (Kawhen, Bruna,
+  // Maria Tabarez) só têm linha gerada até o mês corrente (cobrança é criada mês a mês pra eles,
+  // não em lote como no onboarding da Elenita), então não tinham NENHUMA linha futura pra somar.
+  // Agora projeta por contrato × mês: usa a linha real quando ela já existe (nunca conta um mês
+  // já `pago`/`cancelado` como "a receber"), e projeta `monthly_value` pros meses que ainda não
+  // têm cobrança gerada — cada linha do detalhe diz se é real ou projetada.
   const receivablesRecurringYear = todayParts().year + 1;
-  const receivablesRecurringCutoff = `${receivablesRecurringYear}-12-31`;
-  const recurringContractIds = new Set((activeRecurringContracts ?? []).map((contract) => contract.id));
-  const receivablesRecurringRows = revenue.filter(
-    (row) => row.status === "pendente" && row.contract_id != null && recurringContractIds.has(row.contract_id) && row.due_date <= receivablesRecurringCutoff,
-  );
-  const receivablesRecurringThroughNextYear = sumAmount(receivablesRecurringRows);
-  const receivablesRecurringEntries: FinancialDetailEntry[] = [...receivablesRecurringRows]
-    .sort((a, b) => a.due_date.localeCompare(b.due_date))
-    .map((row) => ({
-      label: (row.client_id && clientNameById.get(row.client_id)) || "Sem cliente vinculado",
-      value: currency.format(Number(row.amount)),
-      meta: `${row.description} · vence ${formatDateOnly(row.due_date)}`,
+  const revenueByContractMonth = new Map<string, Revenue>();
+  for (const row of revenueRaw) {
+    if (!row.contract_id) continue;
+    revenueByContractMonth.set(`${row.contract_id}|${monthKeyOf(row.due_date)}`, row);
+  }
+  const projectionMonths = monthKeysThrough(thisMonthKey, receivablesRecurringYear, 12);
+  type ReceivableRecurringLine = { clientName: string; amount: number; year: number; month: number; label: string; projected: boolean };
+  const receivablesRecurringLines: ReceivableRecurringLine[] = [];
+  for (const contract of activeRecurringContracts ?? []) {
+    const clientName = clientNameById.get(contract.client_id) ?? "Cliente removido";
+    for (const monthKey of projectionMonths) {
+      const [mm, yyyy] = monthKey.split("/").map(Number);
+      const existing = revenueByContractMonth.get(`${contract.id}|${monthKey}`);
+      if (existing) {
+        if (existing.status === "pendente" || existing.status === "atrasado") {
+          receivablesRecurringLines.push({ clientName, amount: Number(existing.amount), year: yyyy, month: mm, label: existing.description, projected: false });
+        }
+        // `pago`/`cancelado` — já resolvido, não é mais "a receber".
+      } else {
+        receivablesRecurringLines.push({ clientName, amount: Number(contract.monthly_value ?? 0), year: yyyy, month: mm, label: `Mensalidade ${monthKey}`, projected: true });
+      }
+    }
+  }
+  const receivablesRecurringThroughNextYear = receivablesRecurringLines.reduce((sum, line) => sum + line.amount, 0);
+  const receivablesRecurringEntries: FinancialDetailEntry[] = [...receivablesRecurringLines]
+    .sort((a, b) => a.year - b.year || a.month - b.month)
+    .map((line) => ({
+      label: line.clientName,
+      value: currency.format(line.amount),
+      meta: `${line.label} · ${String(line.month).padStart(2, "0")}/${line.year}${line.projected ? " · projetada" : ""}`,
     }));
 
   return {

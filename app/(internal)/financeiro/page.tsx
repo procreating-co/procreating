@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { AlertTriangle, ArrowDownCircle, ArrowRight, ArrowUpCircle, CalendarClock, Clock, PiggyBank, ShieldAlert, TrendingUp, Users, Wallet } from "lucide-react";
+import { AlertTriangle, ArrowDownCircle, ArrowRight, ArrowUpCircle, CalendarClock, Clock, DollarSign, PiggyBank, ShieldAlert, TrendingUp, Wallet } from "lucide-react";
 import { computeFinanceiroMetrics, listCosts, listExpenses, listRevenue } from "@/lib/financeiro/queries";
 import { computeDistribution } from "@/lib/financeiro/rules";
 import { updateRevenueStatusAction } from "@/lib/financeiro/actions";
@@ -22,7 +22,8 @@ import { CardWithDetail } from "@/components/dashboard/card-with-detail";
 import { ChartExpandDialog } from "@/components/dashboard/chart-expand-dialog";
 import { ChartCard } from "@/components/dashboard/chart-card";
 import { DetailList } from "@/components/dashboard/detail-list";
-import { DataTable } from "@/components/dashboard/data-table";
+import { ExpensesQuickAdd } from "@/components/financeiro/expenses-quick-add";
+import { EvolutionDetail } from "@/components/financeiro/evolution-detail";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
@@ -220,25 +221,63 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: P
          *  vêm prontas de `computeFinanceiroMetrics` (mesma soma que já vira o valor do bloco). */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <CardWithDetail
-            title="MRR (recorrente ativo)"
-            description="Contratos recorrentes ativos, um por cliente."
-            detail={<DetailList items={metrics.mrrEntries} emptyLabel="Nenhum contrato recorrente ativo ainda." />}
-          >
-            <StatTile demo={false} label="MRR (recorrente ativo)" value={currencyFormatter.format(metrics.mrr)} icon={<TrendingUp className="size-4.5" />} tone="brand" />
-          </CardWithDetail>
-          <CardWithDetail
-            title="Receita este mês"
+            title="Receita do Mês"
             description="Todo lançamento com vencimento este mês — pago, pendente ou atrasado."
             detail={<DetailList items={metrics.revenueThisMonthEntries} emptyLabel="Nenhuma receita com vencimento este mês." />}
           >
-            <StatTile demo={false} label="Receita este mês" value={currencyFormatter.format(metrics.revenueThisMonth)} icon={<ArrowUpCircle className="size-4.5" />} tone="success" />
+            <StatTile demo={false} label="Receita do Mês" value={currencyFormatter.format(metrics.revenueThisMonth)} icon={<ArrowUpCircle className="size-4.5" />} tone="success" />
           </CardWithDetail>
-          <CardWithDetail title="Despesas este mês" detail={<DetailList items={metrics.expensesThisMonthEntries} emptyLabel="Nenhuma despesa com vencimento este mês." />}>
-            <StatTile demo={false} label="Despesas este mês" value={currencyFormatter.format(metrics.expensesThisMonth)} icon={<ArrowDownCircle className="size-4.5" />} tone="info" />
+          <CardWithDetail
+            title="Receita Recorrente Mensal"
+            description="Contratos recorrentes ativos, um por cliente."
+            detail={<DetailList items={metrics.mrrEntries} emptyLabel="Nenhum contrato recorrente ativo ainda." />}
+          >
+            <StatTile demo={false} label="Receita Recorrente Mensal" value={currencyFormatter.format(metrics.mrr)} icon={<TrendingUp className="size-4.5" />} tone="brand" />
+          </CardWithDetail>
+          <CardWithDetail
+            title="Salário"
+            description="Distribuível (receita − operacional) dividido por 2 — divisão fixa, diferente da regra configurável (por sócio) da aba Distribuição."
+            detail={
+              <DetailList
+                items={[
+                  { label: `Distribuível (${100 - distribution.operationalPercentage}%)`, value: currencyFormatter.format(distribution.distributable) },
+                  { label: "Por sócio (÷ 2)", value: currencyFormatter.format(partnerSalaryEach) },
+                ]}
+                emptyLabel="Sem dado suficiente."
+              />
+            }
+          >
+            <StatTile demo={false} label="Salário (cada sócio)" value={currencyFormatter.format(partnerSalaryEach)} icon={<DollarSign className="size-4.5" />} tone="success" />
+          </CardWithDetail>
+          <CardWithDetail
+            title="Caixa Operacional"
+            description={
+              <>
+                {distribution.operationalPercentage}% da receita bruta deste mês — mesma regra de{" "}
+                <Link href="/configuracoes/regras-financeiras" className="underline underline-offset-4 hover:text-foreground">
+                  Regras financeiras
+                </Link>
+                .
+              </>
+            }
+            detail={
+              <DetailList
+                items={[
+                  { label: "Receita bruta (mês)", value: currencyFormatter.format(distribution.revenue) },
+                  { label: `Operacional (${distribution.operationalPercentage}%)`, value: currencyFormatter.format(distribution.operationalAmount) },
+                ]}
+                emptyLabel="Sem dado suficiente."
+              />
+            }
+          >
+            <StatTile demo={false} label="Caixa Operacional" value={currencyFormatter.format(distribution.operationalAmount)} icon={<PiggyBank className="size-4.5" />} tone="info" />
+          </CardWithDetail>
+          <CardWithDetail title="Despesas" detail={<ExpensesQuickAdd entries={metrics.expensesThisMonthEntries} emptyLabel="Nenhuma despesa com vencimento este mês." />}>
+            <StatTile demo={false} label="Despesas" value={currencyFormatter.format(metrics.expensesThisMonth)} icon={<ArrowDownCircle className="size-4.5" />} tone="info" />
           </CardWithDetail>
           <CardWithDetail
             title={`A receber (até ${metrics.receivablesRecurringYear})`}
-            description="Só clientes com contrato recorrente ativo — pendente, ainda não vencido nem pago."
+            description="Todo cliente com contrato recorrente ativo, projetado mês a mês — usa a cobrança real quando já existe, projeta o valor do contrato quando ainda não existe."
             detail={<DetailList items={metrics.receivablesRecurringEntries} emptyLabel="Nada pendente de cliente recorrente até lá." />}
           >
             <StatTile
@@ -273,65 +312,12 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: P
           <CardWithDetail title="A pagar (pendente + atrasado)" detail={<DetailList items={metrics.payablesEntries} emptyLabel="Nada a pagar em aberto." />}>
             <StatTile demo={false} label="A pagar (pendente + atrasado)" value={currencyFormatter.format(metrics.payablesPending + metrics.payablesOverdue)} icon={<Wallet className="size-4.5" />} tone="warning" />
           </CardWithDetail>
-          <CardWithDetail
-            title="Caixa Operacional"
-            description={
-              <>
-                {distribution.operationalPercentage}% da receita bruta deste mês — mesma regra de{" "}
-                <Link href="/configuracoes/regras-financeiras" className="underline underline-offset-4 hover:text-foreground">
-                  Regras financeiras
-                </Link>
-                .
-              </>
-            }
-            detail={
-              <DetailList
-                items={[
-                  { label: "Receita bruta (mês)", value: currencyFormatter.format(distribution.revenue) },
-                  { label: `Operacional (${distribution.operationalPercentage}%)`, value: currencyFormatter.format(distribution.operationalAmount) },
-                ]}
-                emptyLabel="Sem dado suficiente."
-              />
-            }
-          >
-            <StatTile demo={false} label="Caixa Operacional" value={currencyFormatter.format(distribution.operationalAmount)} icon={<PiggyBank className="size-4.5" />} tone="info" />
-          </CardWithDetail>
-          <CardWithDetail
-            title="Salário dos Sócios"
-            description="Distribuível (receita − operacional) dividido por 2 — divisão fixa, diferente da regra configurável (por sócio) da aba Distribuição."
-            detail={
-              <DetailList
-                items={[
-                  { label: `Distribuível (${100 - distribution.operationalPercentage}%)`, value: currencyFormatter.format(distribution.distributable) },
-                  { label: "Por sócio (÷ 2)", value: currencyFormatter.format(partnerSalaryEach) },
-                ]}
-                emptyLabel="Sem dado suficiente."
-              />
-            }
-          >
-            <StatTile demo={false} label="Salário dos Sócios (cada)" value={currencyFormatter.format(partnerSalaryEach)} icon={<Users className="size-4.5" />} tone="brand" />
-          </CardWithDetail>
         </div>
 
         <ChartExpandDialog
           title={`Evolução (últimos ${months} meses)`}
-          expanded={
-            <div className="flex flex-col gap-5">
-              <RevenueChart data={metrics.monthlyEvolution} height={360} />
-              <DataTable
-                columns={[
-                  { key: "month", header: "Mês", render: (row) => row.month },
-                  { key: "revenue", header: "Receita", align: "right", render: (row) => currencyFormatter.format(row.revenue) },
-                  { key: "expenses", header: "Despesas", align: "right", render: (row) => currencyFormatter.format(row.expenses) },
-                  { key: "net", header: "Líquido", align: "right", render: (row) => currencyFormatter.format(row.revenue - row.expenses) },
-                ]}
-                rows={metrics.monthlyEvolution}
-                getRowKey={(row) => row.month}
-                emptyIcon={Wallet}
-                emptyLabel="Sem dado suficiente."
-              />
-            </div>
-          }
+          description="Clique num mês na tabela pra ver de onde saiu o faturamento — quais clientes, quanto cada um."
+          expanded={<EvolutionDetail data={metrics.monthlyEvolution} />}
         >
           <ChartCard title={`Evolução (últimos ${months} meses)`} action={<PeriodSelect />}>
             <RevenueChart data={metrics.monthlyEvolution} />
@@ -366,7 +352,7 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: P
   return (
     <main className="mx-auto flex max-w-[1400px] flex-col gap-6 px-6 pt-8 pb-16 lg:px-10">
       <div className="flex flex-col gap-4">
-        <PageHeader title="Financeiro" description="Receita recorrente, despesas e fluxo de caixa — sem cobrança automática nem integração bancária ainda." />
+        <PageHeader title="Financeiro" />
         <PageTabs tabs={TABS} activeKey={tab} />
       </div>
       <div className="flex flex-col gap-8">{content}</div>
