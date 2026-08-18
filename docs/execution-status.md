@@ -3,7 +3,38 @@
 Documento de retomada. Se você é uma sessão nova retomando isto, comece por aqui antes de reler
 o histórico inteiro — este arquivo é a fonte da verdade, não a memória de conversa de ninguém.
 
-**Atualização mais recente**: pedido novo do usuário no meio do redesign do Financeiro (Bloco 1-4
+**Atualização mais recente**: sequência de bugs reais + pedidos pontuais, todos em produção:
+
+1. **BUG GRAVE corrigido** (reportado pelo usuário: "erro grave que não vou mais aceitar") —
+   Dashboard mostrava Receita R$14.640, Financeiro mostrava R$18.640 pro mesmo mês. Causa:
+   `executive-metrics.ts` calculava "Receita"/"Lucro Líquido"/"Fluxo de Caixa"/Meta com uma
+   definição PRÓPRIA (realizado, `status='pago'`), diferente do `revenueThisMonth` de
+   `computeFinanceiroMetrics()` (faturado, `due_date`) — o comentário do módulo até documentava
+   isso como decisão consciente. Corrigido de raiz: Home passou a consumir os MESMOS números do
+   Financeiro (nunca mais uma segunda conta em paralelo), incluindo sparklines e o gráfico
+   dia-a-dia "Receita vs Meta" (migrado de `paid_at` pra `due_date`). O mesmo tipo de
+   inconsistência existia DENTRO do próprio Financeiro (a "Meta do mês inline" que eu tinha
+   acabado de construir usava `sumRealizedRevenue`, divergindo do "Receita do Mês" da mesma
+   página) — corrigido junto. `sumRealizedRevenue`/`sumRealizedExpenses`/`monthlyRealizedSeries`
+   removidas (mortas depois da migração).
+2. **4 pedidos no Financeiro**: removidos os blocos "A receber (atrasado)"/"Vence em N dias"/
+   "A pagar"/"Fluxo projetado 30/60/90" (cálculos continuam existindo, só sem card próprio — a
+   Faixa de atenção ainda usa "atrasado", outras páginas ainda usam o resto); "A receber (até
+   X)" → "A receber (em <ano corrente>)", detalhe agrupado por CLIENTE (nome + total do ano) em
+   vez de uma linha por mês/fatura; tabela "A Receber" trocou "Mensalidade X/Y" pelo nome do
+   cliente como label principal; **BUG corrigido** — `PeriodSelect` (6/12 meses) vivia dentro do
+   botão clicável de `ChartExpandDialog`, o clique pra abrir o `<select>` borbulhava e abria o
+   modal ampliado antes da escolha se registrar (`stopPropagation` no clique do select — afeta
+   também a Home, mesmo componente).
+3. **Workspace** — cada dia da Visão de semana ganhou um "+" que abre modal pra criar tarefa
+   naquele dia (`createTaskAction`, sem action nova). Integração com Apple Calendar (pessoal ou
+   compartilhada com o Eduardo) NÃO implementada — depende de decisão de abordagem (assinatura
+   .ics somente-leitura vs. CalDAV de verdade, que exige credencial de app do iCloud) e nenhuma
+   credencial configurada; reportado ao usuário, não implementado às cegas.
+
+Deployado em 4 commits sequenciais, cada um com typecheck+build+66 testes passando.
+
+**Antes disso**: pedido novo do usuário no meio do redesign do Financeiro (Bloco 1-4
 item 5 concluídos, ver seção própria abaixo) — pausei pra atender:
 
 1. **Papel `dev_tester`** — `role` em `users`/`team_invites` é `text` com CHECK, não enum real
