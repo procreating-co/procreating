@@ -34,6 +34,40 @@ export async function listClientsWithCategories(): Promise<ClientWithCategories[
   return (clients ?? []).map((client) => ({ client, categories: Array.from(categoriesByClient.get(client.id) ?? []) }));
 }
 
+export type ClientCardData = { client: Client; categories: ContractCategory[]; contractCount: number };
+export type ClientsOverview = { rows: ClientCardData[]; activeContractsCount: number };
+
+/** `/clientes` (Central de Clientes) — mesma junção de `listClientsWithCategories`, só que
+ *  devolve também `contractCount` (pro card "N projetos"/"Cliente recorrente") e
+ *  `activeContractsCount` (contratos pontuais em andamento em TODA a base, pra faixa de
+ *  métricas — contagem de CONTRATO, não de cliente, por isso não dá pra derivar do array de
+ *  categorias deduplicado por cliente). Mesmas 2 queries de sempre, nenhuma nova — tudo
+ *  calculado em cima do mesmo `contracts` já buscado, sem N+1. */
+export async function listClientsOverview(): Promise<ClientsOverview> {
+  const supabase = await createClient();
+  const [{ data: clients }, { data: contracts }] = await Promise.all([
+    supabase.from("clients").select("*").order("name"),
+    supabase.from("contracts").select("client_id, category"),
+  ]);
+
+  const byClient = new Map<string, { categories: Set<ContractCategory>; count: number }>();
+  let activeContractsCount = 0;
+  for (const contract of contracts ?? []) {
+    const entry = byClient.get(contract.client_id) ?? { categories: new Set<ContractCategory>(), count: 0 };
+    entry.categories.add(contract.category);
+    entry.count += 1;
+    byClient.set(contract.client_id, entry);
+    if (contract.category === "pontual_em_andamento") activeContractsCount += 1;
+  }
+
+  const rows = (clients ?? []).map((client) => {
+    const entry = byClient.get(client.id);
+    return { client, categories: Array.from(entry?.categories ?? []), contractCount: entry?.count ?? 0 };
+  });
+
+  return { rows, activeContractsCount };
+}
+
 export type PendingOnboardingTask = { id: string; title: string; clientId: string; clientName: string };
 
 /** Tarefas de onboarding pendentes de todos os clientes, agrupáveis por cliente (usado por

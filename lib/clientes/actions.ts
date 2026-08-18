@@ -2,9 +2,20 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getClientFull } from "@/lib/clientes/queries";
 import type { ClientStatus } from "@/lib/supabase/types/database";
+import type { ClientFull } from "@/lib/clientes/types";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
+
+/** Ponte client→server pro `ClientDetailDrawer` — `getClientFull` é `server-only` (não pode ser
+ *  chamado direto de um componente cliente); a página `/clientes` só carrega a lista leve
+ *  (`listClientsOverview`), a visão 360º completa (contratos+contatos+financeiro+eventos) só é
+ *  buscada quando o drawer de um cliente específico abre, não pra todos de uma vez (evita
+ *  N+1/carregar dado que ninguém vai ver). Mesmo padrão de `getLeadEventsAction` no Pipeline. */
+export async function getClientFullAction(clientId: string): Promise<ClientFull | null> {
+  return getClientFull(clientId);
+}
 
 // Toggle de tarefa de onboarding foi pra `lib/tasks/actions.ts` (`updateTaskStatusAction`) —
 // `tasks` é transversal agora, não faz mais sentido uma action específica de Clientes pra isso.
