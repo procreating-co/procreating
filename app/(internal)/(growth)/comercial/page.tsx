@@ -163,9 +163,12 @@ export default async function ComercialPage({
     <main className="mx-auto flex max-w-[1600px] flex-col gap-10 px-6 pt-8 pb-16 lg:px-10">
       <PageHeader title="Comercial" description="Aquisição, prospecção, CRM e estratégias de crescimento." />
 
-      {/* VISÃO GERAL */}
+      {/* VISÃO GERAL — pedido explícito: título no mesmo tamanho/fonte de "Comercial" (era rótulo
+       *  pequeno igual ao resto de `SectionHeader`, fazia sentido quando isto era uma aba própria;
+       *  agora que a página é uma rolagem só, essas seções precisam do mesmo peso visual do
+       *  título da página). */}
       <div className="flex flex-col gap-6">
-        <SectionHeader title="Visão Geral" />
+        <SectionHeader title="Visão Geral" size="lg" />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <CardWithDetail title="Leads abertos" detail={<DetailList items={metrics.openLeadsEntries} emptyLabel="Nenhum lead aberto no momento." />}>
             <StatTile demo={false} label="Leads abertos" value={String(metrics.openLeads)} icon={<UserPlus className="size-4.5" />} tone="info" />
@@ -200,10 +203,24 @@ export default async function ComercialPage({
             />
           </CardWithDetail>
         </div>
+      </div>
 
+      {/* CRM — pedido explícito: direto embaixo da Visão Geral (era a última das 3, depois de
+       *  Funil/Comparação/Receita), e no mesmo tamanho/fonte do título da página. */}
+      <div className="flex flex-col gap-6">
+        <SectionHeader title="CRM" size="lg" action={filterBar} />
+        <div className="flex flex-col gap-4">
+          <SectionHeader title="Fila de execução" description={queue.length > 0 ? `${queue.length} lead${queue.length === 1 ? "" : "s"} com ação pendente hoje.` : undefined} />
+          <ExecutionQueue items={queue} />
+        </div>
+        {pipelineOrList}
+      </div>
+
+      <div className="flex flex-col gap-6">
         <section className="flex flex-col gap-4">
           <SectionHeader
             title="Funil de conversão"
+            size="lg"
             description={`${funnel.totalLeads} lead${funnel.totalLeads === 1 ? "" : "s"} criado${funnel.totalLeads === 1 ? "" : "s"} no período — taxa de conversão real por estágio.`}
             action={<AnalyticsPeriodSelect current={isPeriodPreset(periodParam) ? periodParam : "month"} />}
           />
@@ -211,7 +228,7 @@ export default async function ComercialPage({
         </section>
 
         <section className="flex flex-col gap-4">
-          <SectionHeader title="Comparação entre estratégias" />
+          <SectionHeader title="Comparação entre estratégias" size="lg" />
           {comparison.length === 0 ? (
             <div className="rounded-xl border border-border/60 bg-card/20 px-6 py-16 text-center text-muted-foreground">Nenhuma estratégia cadastrada ainda.</div>
           ) : (
@@ -306,16 +323,6 @@ export default async function ComercialPage({
             )}
           </section>
         </div>
-      </div>
-
-      {/* CRM */}
-      <div className="flex flex-col gap-4">
-        <SectionHeader title="Fila de execução" description={queue.length > 0 ? `${queue.length} lead${queue.length === 1 ? "" : "s"} com ação pendente hoje.` : undefined} />
-        <ExecutionQueue items={queue} />
-      </div>
-      <div className="flex flex-col gap-4">
-        <SectionHeader title="CRM" action={filterBar} />
-        {pipelineOrList}
       </div>
 
       {/* PLANEJAMENTO */}
