@@ -32,7 +32,10 @@ mesmo padrão. Deployado (`9db749f`).
     onboarding da Elenita), então a soma antiga (só linhas já existentes) não achava nada deles.
     Reescrito pra projetar por contrato × mês até dezembro do ano corrente + 1, usando a linha
     real quando existe e projetando `monthly_value` quando não — verificado contra o banco
-    (R$242.400 esperado, não mais R$20.000).
+    (R$242.400 esperado, não mais R$20.000). A mensagem original terminava incompleta em "ao
+    clicar em caixa operacional." — perguntei ao usuário via `AskUserQuestion`, resposta: queria
+    um atalho de verdade (botão) pra Regras financeiras dentro do detalhe, não só o link no texto
+    da descrição que já existia. Adicionado (`946fc42`).
 
 0. Aba Distribuição também ficou clicável (`58e3945`) — fecha o gap deixado de fora de propósito
    na primeira rodada ("cards ali já são auto-explicativos"). A cadeia Faturamento→Operacional→
