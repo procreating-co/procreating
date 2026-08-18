@@ -26,11 +26,10 @@ export function ThemeProvider({ initialTheme, children }: { initialTheme: UserTh
     });
   }, []);
 
-  // Ciclo de 3 (era binário light↔dark) — light → dark → focus → light. Ordem escolhida pra não
-  // quebrar o hábito de quem já usa o toggle pra alternar light/dark (continuam adjacentes no
-  // ciclo), focus é o passo extra no fim.
+  // Voltou a ser binário light↔dark — o "Focus Mode" (terceiro tema) virou o próprio dark
+  // oficial (`app/globals.css`), não existe mais como estado à parte.
   const toggleTheme = useCallback(() => {
-    const next = theme === "light" ? "dark" : theme === "dark" ? "focus" : "light";
+    const next = theme === "light" ? "dark" : "light";
     setTheme(next);
   }, [theme, setTheme]);
 

@@ -25,9 +25,9 @@
  *  de cliente aparecem mascarados (`lib/auth/permissions.ts`, `canViewFinancialsMasked`). */
 export type UserRole = "owner" | "admin" | "commercial" | "marketing" | "operations" | "finance" | "production" | "client" | "dev_tester";
 
-/** `focus` — terceiro tema (migration `add_focus_theme`): preto profundo + roxo vibrante, ícone
- *  de nuvem no toggle. `app/globals.css` (`.os-shell[data-theme="focus"]`). */
-export type UserTheme = "light" | "dark" | "focus";
+/** Binário light/dark. O antigo terceiro tema ("Focus Mode", roxo vibrante) virou o próprio dark
+ *  oficial (migration `merge_focus_theme_into_dark`) — `app/globals.css` (`.os-shell[data-theme="dark"]`). */
+export type UserTheme = "light" | "dark";
 
 // ---------------------------------------------------------------------------
 // TeamInvite — substitui o array hardcoded `PARTNER_ALLOWLIST` (migration

@@ -1,14 +1,13 @@
 "use client";
 
-import { Cloud, Moon, Sun } from "lucide-react";
+import { Moon, Sun } from "lucide-react";
 import { useTheme } from "@/lib/theme/theme-provider";
 import { cn } from "@/lib/utils";
 
-/** Ciclo de 3 temas agora (era alternância binária) — light → dark → focus → light. O ícone
- *  mostrado é sempre o do PRÓXIMO tema (mesma convenção de antes: "clique pra ir pra cá"), não o
- *  do tema atual — `Cloud` pro Focus Mode (pedido explícito). */
-const NEXT_THEME_ICON = { light: Moon, dark: Cloud, focus: Sun } as const;
-const NEXT_THEME_LABEL = { light: "Mudar para tema escuro", dark: "Mudar para o Modo Foco", focus: "Mudar para tema claro" } as const;
+/** Alternância binária light↔dark (o "Focus Mode" virou o próprio dark oficial, não é mais um
+ *  terceiro estado). O ícone mostrado é sempre o do PRÓXIMO tema — "clique pra ir pra cá". */
+const NEXT_THEME_ICON = { light: Moon, dark: Sun } as const;
+const NEXT_THEME_LABEL = { light: "Mudar para tema escuro", dark: "Mudar para tema claro" } as const;
 
 export function ThemeToggle({ className }: { className?: string }) {
   const { theme, toggleTheme, isPending } = useTheme();
