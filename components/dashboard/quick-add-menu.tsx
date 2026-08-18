@@ -31,6 +31,7 @@ const TEAM_ROLE_LABEL: Record<Exclude<UserRole, "client">, string> = {
   operations: "Operações",
   finance: "Financeiro",
   production: "Produção",
+  dev_tester: "Dev tester (acesso mascarado)",
 };
 
 /**

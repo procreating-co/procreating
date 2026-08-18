@@ -20,7 +20,10 @@
 // vocabulário de papel de toda a plataforma (Fase 1, Foundation) — só gravado por enquanto, sem
 // enforcement de RBAC granular por módulo ainda (ver docs/project-creation.md, seção 8/18).
 // ---------------------------------------------------------------------------
-export type UserRole = "owner" | "admin" | "commercial" | "marketing" | "operations" | "finance" | "production" | "client";
+/** `dev_tester` — papel novo (migration `add_dev_tester_role`): acesso de leitura ao ERP inteiro
+ *  pra revisar UI/UX, mas nunca dado confidencial de verdade — valores financeiros e contagens
+ *  de cliente aparecem mascarados (`lib/auth/permissions.ts`, `canViewFinancialsMasked`). */
+export type UserRole = "owner" | "admin" | "commercial" | "marketing" | "operations" | "finance" | "production" | "client" | "dev_tester";
 
 export type UserTheme = "light" | "dark";
 

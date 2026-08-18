@@ -22,6 +22,7 @@ const ROLE_LABEL: Record<UserRole, string> = {
   finance: "Financeiro",
   production: "Produção",
   client: "Cliente",
+  dev_tester: "Dev tester (acesso mascarado)",
 };
 
 const dateFormatter = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" });
