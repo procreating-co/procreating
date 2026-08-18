@@ -39,9 +39,18 @@ function useHideOnScrollDown() {
  * Growth pra Operations — só um dos dois arrays teria sido atualizado se não fossem unificados
  * agora). `/configuracoes` é caso à parte: não é um grupo da sidebar (só existe no rodapé), então
  * não tem entrada em `NAV_GROUPS` — checado antes por padrão de prefixo fixo.
+ *
+ * `/clientes` — pedido explícito: página única, sem abas. `Clientes` continua em
+ * `OPERATIONS_TABS` (`nav-config.ts`) pra quem estiver em `/operacao/*` conseguir pular direto
+ * pra lá pela barra de abas; só quando VOCÊ JÁ ESTÁ em `/clientes` (agora a Central de Clientes,
+ * uma experiência própria — grid + drawer, não mais "só mais uma aba de Operação") é que a barra
+ * inteira some, igual Dashboard/Workspace/Growth/Finance. O ícone "Operação" da sidebar continua
+ * acendendo normalmente aqui (não mexi em `matchPrefixes`) — só a barra de abas em cima é que não
+ * faz mais sentido pra essa página.
  */
 function getAreaTabs(pathname: string): TopNavTab[] | null {
   if (pathname === "/configuracoes" || pathname.startsWith("/configuracoes/")) return SETTINGS_TABS;
+  if (pathname === "/clientes" || pathname.startsWith("/clientes/")) return null;
   const group = NAV_GROUPS.find((candidate) => candidate.matchPrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)));
   return group?.tabs ?? null;
 }
