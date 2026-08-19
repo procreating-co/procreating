@@ -7,56 +7,72 @@ import { ClientCard } from "@/components/clientes/client-card";
 import { cn } from "@/lib/utils";
 import type { ClientCardData } from "@/lib/clientes/queries";
 
-type StatusFilter = "all" | "ativo" | "atencao";
-type SortKey = "recent" | "oldest" | "most_projects" | "name";
-
-const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
-  { value: "all", label: "Todos" },
-  { value: "ativo", label: "Ativos" },
-  { value: "atencao", label: "Em atenção" },
-];
+type Bucket = "recorrentes" | "projetos" | "inativos";
+type SortKey = "value" | "recent" | "oldest" | "most_projects" | "name";
 
 const SORT_OPTIONS: { value: SortKey; label: string }[] = [
+  { value: "value", label: "Quem paga mais" },
   { value: "recent", label: "Mais recentes" },
   { value: "oldest", label: "Mais antigos" },
   { value: "most_projects", label: "Mais projetos" },
   { value: "name", label: "Nome A–Z" },
 ];
 
+/** Divide a lista completa nos 3 buckets — cliente entra em UM só, nunca duplicado entre eles:
+ *  `recorrentes` (tem contrato `recorrente_ativo`, seja qual for o `client.status`) vence
+ *  `projetos` (tem contrato pontual, mas nenhum recorrente ativo — quem é só recorrente E
+ *  pontual continua contado em recorrentes, é a relação principal); `inativos` é
+ *  `client.status === "churn"`, independente de categoria (mesmo pedido — "aí devem aparecer os
+ *  ex-clientes"). Cliente sem contrato nenhum e sem `status='churn'` (ex.: lead/onboarding ainda
+ *  sem contrato fechado) não entra em nenhum bucket — não é "cliente" operacional ainda. */
+function bucketOf(row: ClientCardData): Bucket | null {
+  if (row.categories.includes("recorrente_ativo")) return "recorrentes";
+  if (row.categories.some((c) => c === "pontual_em_andamento" || c === "pontual_concluido")) return "projetos";
+  if (row.client.status === "churn") return "inativos";
+  return null;
+}
+
 /**
- * Grid + busca + filtros + ordenação — a Central de Clientes em si. Clicar num card navega em
- * tela cheia pra `/clientes/[id]` (era um drawer lateral, trocado por pedido explícito — ver
- * `client-card.tsx`). Busca/filtro/ordenação client-side sobre o array já carregado pela página
- * (`rows`, `ClientsOverview.rows`) — pedido explícito ("não fazer busca server-side ainda"), e
- * cabe folgado: é a lista de clientes da empresa, não um dataset que justifique paginação/busca
- * no banco por enquanto.
+ * Grid + busca + ordenação — a Central de Clientes em si. Clicar num card navega em tela cheia
+ * pra `/clientes/[id]` (era um drawer lateral, trocado por pedido explícito — ver
+ * `client-card.tsx`).
  *
- * `rows` já chega filtrada (só RECORRENTES — pedido explícito, corrigido: a versão anterior
- * também deixava passar clientes só-pontuais com `status='ativo'`, ex. Pascoal Bombas/Maria das
- * Graças, que são projeto único, não devem aparecer aqui). Chip "Recorrentes" saiu do filtro —
- * seria sempre igual a "Todos" agora, por definição; "Churn" já não existia por esse mesmo
- * motivo. "Em atenção" continua útil: um recorrente pode estar nesse status sem sair do recorte
- * (é justamente quem precisa de olho).
+ * Pedido explícito: os blocos do topo SÃO o filtro (Clientes Recorrentes/Projetos, clicáveis —
+ * clicar mostra a lista daquele bucket abaixo) — substituem os chips Todos/Ativos/Em atenção que
+ * existiam antes. "Inativos" (ex-clientes) não ganhou bloco próprio — menos comum, entrou como
+ * mais uma opção no dropdown de ordenação (que aqui funciona também como seletor de bucket
+ * quando o valor é "Inativos"). Ordem padrão — pedido explícito, "a ordem sempre deve ser pagam
+ * mais antes" — é por `totalValue` (mensalidade dos recorrentes + valor total dos pontuais)
+ * decrescente, não mais "mais recentes".
  */
 export function ClientsGrid({ rows }: { rows: ClientCardData[] }) {
   const [query, setQuery] = useState("");
-  const [status, setStatus] = useState<StatusFilter>("all");
-  const [sort, setSort] = useState<SortKey>("recent");
+  const [bucket, setBucket] = useState<Bucket>("recorrentes");
+  const [sort, setSort] = useState<SortKey>("value");
+
+  const buckets = useMemo(() => {
+    const grouped: Record<Bucket, ClientCardData[]> = { recorrentes: [], projetos: [], inativos: [] };
+    for (const row of rows) {
+      const key = bucketOf(row);
+      if (key) grouped[key].push(row);
+    }
+    return grouped;
+  }, [rows]);
 
   const visible = useMemo(() => {
     const normalized = query.trim().toLowerCase();
-    const filtered = rows.filter((row) => {
-      const matchesQuery =
+    const filtered = buckets[bucket].filter(
+      (row) =>
         !normalized ||
         row.client.name.toLowerCase().includes(normalized) ||
         row.client.slug.toLowerCase().includes(normalized) ||
-        (row.client.segment ?? "").toLowerCase().includes(normalized);
-      const matchesStatus = status === "all" || row.client.status === status;
-      return matchesQuery && matchesStatus;
-    });
+        (row.client.segment ?? "").toLowerCase().includes(normalized)
+    );
 
     return [...filtered].sort((a, b) => {
       switch (sort) {
+        case "value":
+          return b.totalValue - a.totalValue;
         case "recent":
           return new Date(b.client.created_at).getTime() - new Date(a.client.created_at).getTime();
         case "oldest":
@@ -69,18 +85,51 @@ export function ClientsGrid({ rows }: { rows: ClientCardData[] }) {
           return 0;
       }
     });
-  }, [rows, query, status, sort]);
+  }, [buckets, bucket, query, sort]);
 
   return (
     <div className="flex flex-col gap-4">
+      <div className="grid grid-cols-2 gap-3">
+        <button
+          type="button"
+          onClick={() => setBucket("recorrentes")}
+          className={cn(
+            "rounded-xl border p-4 text-left transition-colors",
+            bucket === "recorrentes" ? "border-brand bg-brand/5" : "border-border/60 bg-card/40 hover:border-border"
+          )}
+        >
+          <p className="font-mono text-2xl tabular-nums">{buckets.recorrentes.length}</p>
+          <p className="text-sm text-muted-foreground">Clientes Recorrentes</p>
+        </button>
+        <button
+          type="button"
+          onClick={() => setBucket("projetos")}
+          className={cn(
+            "rounded-xl border p-4 text-left transition-colors",
+            bucket === "projetos" ? "border-brand bg-brand/5" : "border-border/60 bg-card/40 hover:border-border"
+          )}
+        >
+          <p className="font-mono text-2xl tabular-nums">{buckets.projetos.length}</p>
+          <p className="text-sm text-muted-foreground">Projetos</p>
+        </button>
+      </div>
+
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative w-full sm:max-w-xs">
           <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar cliente, projeto ou segmento..." className="pl-9" />
         </div>
         <select
-          value={sort}
-          onChange={(e) => setSort(e.target.value as SortKey)}
+          value={bucket === "inativos" ? "inativos" : sort}
+          onChange={(e) => {
+            const value = e.target.value;
+            if (value === "inativos") {
+              setBucket("inativos");
+            } else {
+              setBucket((current) => (current === "inativos" ? "recorrentes" : current));
+              setSort(value as SortKey);
+            }
+          }}
           className="h-9 w-fit rounded-md border border-input bg-transparent px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
           {SORT_OPTIONS.map((option) => (
@@ -88,25 +137,13 @@ export function ClientsGrid({ rows }: { rows: ClientCardData[] }) {
               {option.label}
             </option>
           ))}
+          <option value="inativos">Inativos ({buckets.inativos.length})</option>
         </select>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-1 overflow-x-auto rounded-md border border-border/60 p-0.5 text-xs">
-        {STATUS_FILTERS.map((filter) => (
-          <button
-            key={filter.value}
-            type="button"
-            onClick={() => setStatus(filter.value)}
-            className={cn("shrink-0 rounded px-2.5 py-1.5 transition-colors", status === filter.value ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:text-foreground")}
-          >
-            {filter.label}
-          </button>
-        ))}
       </div>
 
       {visible.length === 0 ? (
         <div className="rounded-xl border border-border/60 bg-card/20 px-6 py-16 text-center text-muted-foreground">
-          {rows.length === 0 ? "Nenhum cliente cadastrado ainda." : "Nenhum cliente encontrado."}
+          {buckets[bucket].length === 0 ? "Nenhum cliente neste grupo ainda." : "Nenhum cliente encontrado."}
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">

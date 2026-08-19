@@ -3,7 +3,6 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { listClientsOverview } from "@/lib/clientes/queries";
 import { Button } from "@/components/ui/button";
-import { ClientsMetricsStrip } from "@/components/clientes/clients-metrics-strip";
 import { ClientsGrid } from "@/components/clientes/clients-grid";
 
 export const metadata: Metadata = {
@@ -25,6 +24,11 @@ export const metadata: Metadata = {
  * (e não foi criado) um jeito de cadastrar cliente direto neste ERP: todo cliente nasce de um
  * lead fechado (`close_lead_and_create_client`, RPC), nunca avulso. Um botão que fingisse criar
  * cliente do zero aqui pularia contrato/onboarding, quebrando esse invariante.
+ *
+ * Os blocos do topo (Clientes Recorrentes/Projetos) SÃO o filtro — pedido explícito — e por isso
+ * moraram pra dentro de `ClientsGrid` (client component, precisa de estado pra saber qual bloco
+ * está ativo); `listClientsOverview()` volta a devolver todo cliente com contrato (não só
+ * recorrente), pro componente poder alternar entre os buckets sem uma query nova a cada clique.
  */
 export default async function ClientesPage() {
   const overview = await listClientsOverview();
@@ -43,8 +47,6 @@ export default async function ClientesPage() {
           </Link>
         </Button>
       </div>
-
-      <ClientsMetricsStrip overview={overview} />
 
       <ClientsGrid rows={overview.rows} />
     </main>

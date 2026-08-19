@@ -34,50 +34,40 @@ export async function listClientsWithCategories(): Promise<ClientWithCategories[
   return (clients ?? []).map((client) => ({ client, categories: Array.from(categoriesByClient.get(client.id) ?? []) }));
 }
 
-export type ClientCardData = { client: Client; categories: ContractCategory[]; contractCount: number };
-export type ClientsOverview = { rows: ClientCardData[]; activeContractsCount: number };
+export type ClientCardData = { client: Client; categories: ContractCategory[]; contractCount: number; totalValue: number };
+export type ClientsOverview = { rows: ClientCardData[] };
 
-/** `/clientes` (Central de Clientes) — pedido explícito, corrigido nesta rodada: só clientes
- *  RECORRENTES aparecem aqui (tem pelo menos um contrato `recorrente_ativo`). Versão anterior
- *  também deixava passar `client.status === "ativo"` sozinho, o que trazia junto clientes
- *  pontuais-only (achado real: Pascoal Bombas, Maria das Graças — projeto único, `ativo`, sem
- *  nenhum contrato recorrente) — "são projetos, não devem aparecer junto dos clientes". Um
- *  cliente pontual continua existindo/editável em `/clientes/[id]` direto (nunca apagado), só
- *  não entra nesta lista. Um recorrente marcado `atencao`/`risco` (não `ativo`) continua
- *  aparecendo — é exatamente quem precisa de olho, esconder seria pior. Filtro aplicado AQUI, não
- *  no componente, pra `activeContractsCount` bater com o mesmo recorte de `rows` — nunca dois
- *  números diferentes pro mesmo conceito na mesma tela. `contractCount` pro card "N projetos".
- *  Mesmas 2 queries de sempre, nenhuma nova — tudo calculado em cima do mesmo `contracts` já
- *  buscado, sem N+1. */
+/** `/clientes` (Central de Clientes) — pedido explícito: os blocos do topo (Clientes Recorrentes/
+ *  Projetos/Inativos) SÃO o filtro agora, calculados e aplicados no componente (`ClientsGrid`),
+ *  não mais aqui — por isso esta função voltou a devolver TODO cliente com contrato (não só
+ *  recorrente), pra o componente poder baldear entre os 3 buckets sem precisar de uma query nova
+ *  a cada clique. `totalValue` — pedido explícito ("a ordem sempre deve ser pagam mais antes"):
+ *  soma de `monthly_value` dos contratos recorrentes + `total_value` dos pontuais, é o número
+ *  usado pra ordenar "quem paga mais" primeiro (ordem padrão da grid). Mesmas 2 queries de
+ *  sempre, nenhuma nova — tudo calculado em cima do mesmo `contracts` já buscado, sem N+1. */
 export async function listClientsOverview(): Promise<ClientsOverview> {
   const supabase = await createClient();
   const [{ data: clients }, { data: contracts }] = await Promise.all([
     supabase.from("clients").select("*").order("name"),
-    supabase.from("contracts").select("client_id, category"),
+    supabase.from("contracts").select("client_id, category, monthly_value, total_value"),
   ]);
 
-  const byClient = new Map<string, { categories: Set<ContractCategory>; count: number }>();
+  const byClient = new Map<string, { categories: Set<ContractCategory>; count: number; value: number }>();
   for (const contract of contracts ?? []) {
-    const entry = byClient.get(contract.client_id) ?? { categories: new Set<ContractCategory>(), count: 0 };
+    const entry = byClient.get(contract.client_id) ?? { categories: new Set<ContractCategory>(), count: 0, value: 0 };
     entry.categories.add(contract.category);
     entry.count += 1;
+    if (contract.category === "recorrente_ativo") entry.value += Number(contract.monthly_value ?? 0);
+    if (contract.category === "pontual_em_andamento" || contract.category === "pontual_concluido") entry.value += Number(contract.total_value ?? 0);
     byClient.set(contract.client_id, entry);
   }
 
-  const rows = (clients ?? [])
-    .map((client) => {
-      const entry = byClient.get(client.id);
-      return { client, categories: Array.from(entry?.categories ?? []), contractCount: entry?.count ?? 0 };
-    })
-    .filter((row) => row.categories.includes("recorrente_ativo"));
+  const rows = (clients ?? []).map((client) => {
+    const entry = byClient.get(client.id);
+    return { client, categories: Array.from(entry?.categories ?? []), contractCount: entry?.count ?? 0, totalValue: entry?.value ?? 0 };
+  });
 
-  const visibleClientIds = new Set(rows.map((row) => row.client.id));
-  let activeContractsCount = 0;
-  for (const contract of contracts ?? []) {
-    if (contract.category === "pontual_em_andamento" && visibleClientIds.has(contract.client_id)) activeContractsCount += 1;
-  }
-
-  return { rows, activeContractsCount };
+  return { rows };
 }
 
 export type PendingOnboardingTask = { id: string; title: string; clientId: string; clientName: string };
