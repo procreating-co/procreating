@@ -805,6 +805,15 @@ export type Database = {
         Args: { p_email: string };
         Returns: undefined;
       };
+      /** Gera as linhas de `revenue` de um contrato (mesma regra que `close_lead_and_create_client`
+       *  já usa) — migration `sync_contract_revenue`. Chamada por `lib/clientes/contract-actions.ts`
+       *  depois de criar/editar um contrato, pra corrigir o achado real de que contratos criados
+       *  fora do onboarding (pra um cliente já existente) nunca geravam receita nenhuma. Idempotente:
+       *  não faz nada se o contrato já tiver alguma linha de receita (paga ou não). */
+      sync_contract_revenue: {
+        Args: { p_contract_id: string };
+        Returns: undefined;
+      };
     };
   };
 };

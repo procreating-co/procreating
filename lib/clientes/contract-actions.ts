@@ -68,6 +68,23 @@ function validate(input: ContractFormInput): string | null {
   return null;
 }
 
+/** Achado real (Pascoal Bombas, contrato pontual novo criado por aqui): esta função só gravava
+ *  em `contracts` — nenhuma linha nascia em `public.revenue`, e TODO cálculo financeiro do
+ *  produto (Receita do Mês, MRR, "A Receber"...) lê exclusivamente de `revenue`, nunca de
+ *  `contracts` direto. Só o RPC `close_lead_and_create_client` (fechamento de lead) gerava
+ *  receita — criar um contrato NOVO pra um cliente já existente (este formulário) saía sem
+ *  nenhum lançamento, o valor nunca entrava em receita nenhuma. Fix: depois de gravar o
+ *  contrato, chama `sync_contract_revenue` (migration `sync_contract_revenue`) — mesma regra de
+ *  geração que o RPC de onboarding já usa (mensalidade por mês pra recorrente, pagamento único
+ *  na data de fim pra pontual), extraída pra ser reaproveitada aqui. Idempotente por natureza
+ *  (só gera se o contrato ainda não tiver nenhuma linha de receita) — chamar de novo não duplica. */
+async function syncContractRevenue(supabase: SupabaseServerClient, contractId: string): Promise<void> {
+  const { error } = await supabase.rpc("sync_contract_revenue", { p_contract_id: contractId });
+  // Nunca falha a action por causa disso — o contrato já foi salvo, a receita é uma
+  // consequência dele, não o contrário. Loga pra investigar, não bloqueia o usuário.
+  if (error) console.error("sync_contract_revenue falhou:", error.message);
+}
+
 /** Achado real ao endurecer a privacidade de `/clientes` (pedido explícito — a tela pode ser
  *  acessada por quem não é sócio, "não pode ter dados sigilosos"): criar/editar contrato grava
  *  `monthly_value`/`total_value`, então precisa do MESMO gate financeiro do resto do produto
@@ -83,22 +100,27 @@ export async function createContractAction(clientId: string, input: ContractForm
   const userId = access.userId;
 
   const supabase = await createClient();
-  const { error } = await supabase.from("contracts").insert({
-    client_id: clientId,
-    type: input.type,
-    status: input.status,
-    category: deriveCategory(input.type, input.status),
-    start_date: input.startDate,
-    end_date: input.endDate,
-    monthly_value: input.type === "recorrente" ? input.monthlyValue : null,
-    total_value: input.type === "pontual" ? input.totalValue : null,
-    due_day: input.type === "recorrente" ? input.dueDay : null,
-    payment_terms: input.paymentTerms,
-    special_conditions: input.specialConditions,
-    created_by: userId,
-  });
+  const { data, error } = await supabase
+    .from("contracts")
+    .insert({
+      client_id: clientId,
+      type: input.type,
+      status: input.status,
+      category: deriveCategory(input.type, input.status),
+      start_date: input.startDate,
+      end_date: input.endDate,
+      monthly_value: input.type === "recorrente" ? input.monthlyValue : null,
+      total_value: input.type === "pontual" ? input.totalValue : null,
+      due_day: input.type === "recorrente" ? input.dueDay : null,
+      payment_terms: input.paymentTerms,
+      special_conditions: input.specialConditions,
+      created_by: userId,
+    })
+    .select("id")
+    .single();
   if (error) return { ok: false, error: error.message };
   await reconcileRenewedContracts(supabase, clientId);
+  await syncContractRevenue(supabase, data.id);
 
   revalidatePath(`/clientes/${clientId}`);
   revalidatePath("/clientes");
@@ -133,6 +155,10 @@ export async function updateContractAction(contractId: string, clientId: string,
     .eq("id", contractId);
   if (error) return { ok: false, error: error.message };
   await reconcileRenewedContracts(supabase, clientId);
+  // Self-healing: se este contrato é de antes do fix acima (nunca gerou receita nenhuma),
+  // salvar uma edição já cura ele sozinho — `sync_contract_revenue` só age quando `revenue`
+  // pra este contrato está zerado, nunca mexe num que já tem lançamento (pago ou não).
+  await syncContractRevenue(supabase, contractId);
 
   revalidatePath(`/clientes/${clientId}`);
   revalidatePath("/clientes");

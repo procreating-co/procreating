@@ -142,50 +142,50 @@ export function ClientsGrid({ rows }: { rows: ClientCardData[] }) {
         </button>
       </div>
 
-      {/* Busca + "Novo cliente" — pedido explícito: a busca fica ao lado esquerdo do botão, uma
-       *  barra só (antes o botão vivia solto no cabeçalho da página). */}
+      {/* Busca + filtro (ordenação/Inativos) + "Novo cliente" — tudo numa barra só. Pedido
+       *  explícito mais recente: o filtro fica ao lado ESQUERDO do botão "Novo cliente" (antes
+       *  morava numa segunda linha, alinhado à direita, separado do botão). */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative w-full sm:max-w-xs">
           <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar cliente, projeto ou segmento..." className="pl-9" />
         </div>
-        <Button type="button" className="gap-1.5" asChild>
-          <Link href="/comercial">
-            <Plus className="size-4" />
-            Novo cliente
-          </Link>
-        </Button>
-      </div>
-
-      <div className="flex justify-end">
-        <select
-          value={bucket === "inativos" ? "inativos" : sort}
-          onChange={(e) => {
-            const value = e.target.value;
-            if (value === "inativos") {
-              setBucket("inativos");
-              setSort("value");
-            } else {
-              setBucket((current) => (current === "inativos" ? "recorrentes" : current));
-              setSort(value as SortKey);
-            }
-          }}
-          className="h-9 w-fit rounded-md border border-input bg-transparent px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-        >
-          {/* Sem opção "Quem paga mais" — pedido explícito, é a ordem implícita padrão (`sort`
-           *  nasce e volta pra `"value"` a cada troca de bloco), nunca uma escolha manual, e sem
-           *  texto próprio nenhum representando esse estado (nem um placeholder) — quando
-           *  `sort === "value"`, o `<select>` simplesmente não tem nenhuma `<option>`
-           *  correspondente montada, então o navegador mostra a primeira opção real ("Mais
-           *  recentes") como texto visível, sem afetar a ordenação de fato aplicada na grid
-           *  (que continua sendo por valor até o usuário escolher outra coisa). */}
-          {SORT_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-          <option value="inativos">Inativos ({buckets.inativos.length})</option>
-        </select>
+        <div className="flex items-center gap-2">
+          <select
+            value={bucket === "inativos" ? "inativos" : sort}
+            onChange={(e) => {
+              const value = e.target.value;
+              if (value === "inativos") {
+                setBucket("inativos");
+                setSort("value");
+              } else {
+                setBucket((current) => (current === "inativos" ? "recorrentes" : current));
+                setSort(value as SortKey);
+              }
+            }}
+            className="h-9 w-fit rounded-md border border-input bg-transparent px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          >
+            {/* Sem opção "Quem paga mais" — pedido explícito, é a ordem implícita padrão (`sort`
+             *  nasce e volta pra `"value"` a cada troca de bloco), nunca uma escolha manual, e
+             *  sem texto próprio nenhum representando esse estado (nem um placeholder) — quando
+             *  `sort === "value"`, o `<select>` simplesmente não tem nenhuma `<option>`
+             *  correspondente montada, então o navegador mostra a primeira opção real ("Mais
+             *  recentes") como texto visível, sem afetar a ordenação de fato aplicada na grid
+             *  (que continua sendo por valor até o usuário escolher outra coisa). */}
+            {SORT_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+            <option value="inativos">Inativos ({buckets.inativos.length})</option>
+          </select>
+          <Button type="button" className="gap-1.5" asChild>
+            <Link href="/comercial">
+              <Plus className="size-4" />
+              Novo cliente
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {visible.length === 0 ? (
