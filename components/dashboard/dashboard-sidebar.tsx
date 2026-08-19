@@ -106,7 +106,15 @@ function SidebarContent({ expanded, user, onNavigate }: { expanded: boolean; use
         </SidebarLabel>
       </Link>
 
-      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-2.5 py-2">
+      {/* SEM `px-2.5` aqui — causa real do desalinhamento reportado: `<nav>` tinha seu próprio
+       *  `px-2.5` ENVOLVENDO `SidebarNavRow`, que também tem `px-2.5` (cada linha é responsável
+       *  pelo próprio padding horizontal, de propósito — mesmo container que o logo usa). Os dois
+       *  juntos empurravam o slot do ícone pra x=20px, enquanto o logo (sem container extra ao
+       *  redor) ficava em x=10px — 10px de diferença real entre o eixo do logo e o eixo de todo o
+       *  resto. Com só a linha controlando seu próprio `px-2.5`, todo mundo (logo, grupos,
+       *  avatar, Configurações) fica na mesma borda esquerda, um padding só, nunca dois
+       *  empilhados. */}
+      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto py-2">
         {NAV_GROUPS.map((group) => {
           const active = group.matchPrefixes.some((prefix) => (prefix === "/" ? pathname === "/" : pathname === prefix || pathname.startsWith(`${prefix}/`)));
           return (
@@ -124,7 +132,9 @@ function SidebarContent({ expanded, user, onNavigate }: { expanded: boolean; use
         })}
       </nav>
 
-      <div className="border-t border-border/60 p-2.5">
+      {/* Mesmo raciocínio do `<nav>` acima — `p-2.5` aqui SÓ o vertical (`py-2.5`), o horizontal
+       *  fica só a cargo de cada linha (`AccountMenu`/`SidebarNavRow`), nunca empilhado. */}
+      <div className="border-t border-border/60 py-2.5">
         <AccountMenu user={{ name: user.name, email: user.email, avatarUrl: user.avatarUrl }}>
           <button type="button" className="flex w-full items-center rounded-md px-2.5 py-2 text-left text-sm text-sidebar-foreground transition-colors hover:bg-sidebar-hover">
             <SidebarIconSlot>
