@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowUpRight } from "lucide-react";
 import { StatusDot, type StatusTone } from "@/components/dashboard/status-dot";
 import { CONTRACT_CATEGORY_LABEL, CONTRACT_CATEGORY_TONE } from "@/lib/financeiro/contract-category";
 import type { ClientCardData } from "@/lib/clientes/queries";
@@ -49,15 +50,27 @@ function initials(name: string): string {
  * as categorias vêm de `contracts` de verdade (`ContractCategory`), nunca inventados — um
  * cliente sem nenhum contrato ainda (`contractCount === 0`, ex. onboarding recém criado) mostra
  * isso explicitamente, não finge ter "0 projetos" como se fosse um dado normal.
+ *
+ * "Acessar Home" — pedido explícito: link pro site público do cliente (`/clients/<slug>/public`,
+ * domínio do Client Hub/portfólio — outra sessão é dona daquele código, mas um LINK saindo daqui
+ * não mexe em nada de lá, só aponta pra URL). Sempre mostrado, mesmo pra cliente cuja página
+ * ainda não existe ("essas páginas ainda não estão prontas mas já crie o botão" — pedido
+ * explícito) — abre em nova aba (`target="_blank"`), sem sair do Procreating OS. Card virou
+ * `<div>` com link "esticado" (`absolute inset-0`) fazendo o papel do clique-no-card-inteiro, o
+ * botão "Acessar Home" fica por cima (`relative z-10`) com a própria área de clique — mesmo
+ * padrão já usado em `components/operacao/projects-grid.tsx`, evita aninhar `<a>` dentro de `<a>`
+ * (inválido em HTML).
  */
 export function ClientCard({ data }: { data: ClientCardData }) {
   const { client, categories, contractCount } = data;
 
   return (
-    <Link
-      href={`/clientes/${client.id}`}
-      className="group flex flex-col gap-3 rounded-xl border border-border/60 bg-card/40 p-4 text-left transition-all duration-150 hover:-translate-y-0.5 hover:border-border hover:bg-card/70 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-    >
+    <div className="group relative flex flex-col gap-3 rounded-xl border border-border/60 bg-card/40 p-4 transition-all duration-150 hover:-translate-y-0.5 hover:border-border hover:bg-card/70 hover:shadow-lg">
+      <Link
+        href={`/clientes/${client.id}`}
+        className="absolute inset-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        aria-label={`Abrir ${client.name}`}
+      />
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-foreground/10 font-mono text-xs text-muted-foreground">{initials(client.name)}</span>
@@ -83,10 +96,20 @@ export function ClientCard({ data }: { data: ClientCardData }) {
         )}
       </div>
 
+      <a
+        href={`/clients/${client.slug}/public/`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="relative z-10 flex w-fit items-center gap-1 rounded px-1.5 py-0.5 text-xs text-foreground/70 underline-offset-2 transition-colors hover:bg-foreground/5 hover:text-foreground hover:underline"
+      >
+        Acessar Home
+        <ArrowUpRight className="size-3" />
+      </a>
+
       <div className="mt-auto flex items-center justify-between border-t border-border/60 pt-2.5 text-xs text-muted-foreground">
         <span>Última atualização</span>
         <span className="font-mono tabular-nums">{timeAgo(client.updated_at)}</span>
       </div>
-    </Link>
+    </div>
   );
 }
