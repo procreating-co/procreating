@@ -54,13 +54,14 @@ export default async function ClienteDetailPage({ params }: { params: Promise<Pa
             <h1 className="font-display text-3xl">{client.name}</h1>
             {/* "Acessar Home" — pedido explícito, mesmo botão do card em `/clientes`
              *  (`ClientCard`), agora também aqui, direto ao lado do nome. Link pro site público
-             *  do cliente (`/clients/<slug>/public/`, domínio do Client Hub/portfólio) — sempre
-             *  mostrado, mesmo pra cliente cuja página ainda não existe. Abre em nova aba. */}
+             *  do cliente (`/clients/<slug>/public`, domínio do Client Hub/portfólio) — sempre
+             *  mostrado, mesmo pra cliente cuja página ainda não existe. Abre em nova aba. Branco
+             *  (pedido explícito, cor literal, não token de tema) — mesmo estilo do card. */}
             <a
-              href={`/clients/${client.slug}/public/`}
+              href={`/clients/${client.slug}/public`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1 rounded-full border border-border/60 px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-border hover:bg-foreground/5 hover:text-foreground"
+              className="flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-xs font-medium text-neutral-900 transition-colors hover:bg-neutral-200"
             >
               Acessar Home
               <ArrowUpRight className="size-3" />

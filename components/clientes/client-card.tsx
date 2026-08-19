@@ -96,11 +96,14 @@ export function ClientCard({ data }: { data: ClientCardData }) {
         )}
       </div>
 
+      {/* Botão branco (pedido explícito, literal — não é um token de tema, é uma cor fixa
+       *  deliberada) — se destaca como CTA em cima do card escuro, sempre visível pra todo
+       *  cliente, mesmo quem ainda não tem página pública de verdade. */}
       <a
-        href={`/clients/${client.slug}/public/`}
+        href={`/clients/${client.slug}/public`}
         target="_blank"
         rel="noopener noreferrer"
-        className="relative z-10 flex w-fit items-center gap-1 rounded px-1.5 py-0.5 text-xs text-foreground/70 underline-offset-2 transition-colors hover:bg-foreground/5 hover:text-foreground hover:underline"
+        className="relative z-10 flex w-fit items-center gap-1 rounded-full bg-white px-2.5 py-1 text-xs font-medium text-neutral-900 transition-colors hover:bg-neutral-200"
       >
         Acessar Home
         <ArrowUpRight className="size-3" />
