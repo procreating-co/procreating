@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ArrowUpRight } from "lucide-react";
 import { getClientFull } from "@/lib/clientes/queries";
 import { ClientStatusSelect } from "@/components/clientes/client-status-select";
 import { ClientInfoDialog } from "@/components/clientes/client-info-dialog";
@@ -50,7 +50,22 @@ export default async function ClienteDetailPage({ params }: { params: Promise<Pa
 
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-col gap-1">
-          <h1 className="font-display text-3xl">{client.name}</h1>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="font-display text-3xl">{client.name}</h1>
+            {/* "Acessar Home" — pedido explícito, mesmo botão do card em `/clientes`
+             *  (`ClientCard`), agora também aqui, direto ao lado do nome. Link pro site público
+             *  do cliente (`/clients/<slug>/public/`, domínio do Client Hub/portfólio) — sempre
+             *  mostrado, mesmo pra cliente cuja página ainda não existe. Abre em nova aba. */}
+            <a
+              href={`/clients/${client.slug}/public/`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 rounded-full border border-border/60 px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-border hover:bg-foreground/5 hover:text-foreground"
+            >
+              Acessar Home
+              <ArrowUpRight className="size-3" />
+            </a>
+          </div>
           {strategy && <p className="text-sm text-muted-foreground">Veio da estratégia "{strategy.name}"</p>}
         </div>
         <div className="flex items-center gap-2">
