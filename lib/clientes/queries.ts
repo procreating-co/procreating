@@ -35,6 +35,8 @@ export async function listClientsWithCategories(): Promise<ClientWithCategories[
 }
 
 export type ClientCardData = { client: Client; categories: ContractCategory[]; contractCount: number; totalValue: number };
+// `project_stage` já vem embutido em `client` (coluna real de `clients`, `Client["project_stage"]`) —
+// nenhum campo novo aqui, `bucketOf`/`ClientCard` leem direto de `data.client.project_stage`.
 export type ClientsOverview = { rows: ClientCardData[] };
 
 /** `/clientes` (Central de Clientes) — pedido explícito: os blocos do topo (Clientes Recorrentes/

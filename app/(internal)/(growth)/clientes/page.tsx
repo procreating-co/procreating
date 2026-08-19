@@ -1,8 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { Plus } from "lucide-react";
 import { listClientsOverview } from "@/lib/clientes/queries";
-import { Button } from "@/components/ui/button";
 import { ClientsGrid } from "@/components/clientes/clients-grid";
 
 export const metadata: Metadata = {
@@ -23,7 +20,9 @@ export const metadata: Metadata = {
  * "Novo cliente" aponta pro Comercial (`/comercial`) em vez de abrir um form aqui — não existe
  * (e não foi criado) um jeito de cadastrar cliente direto neste ERP: todo cliente nasce de um
  * lead fechado (`close_lead_and_create_client`, RPC), nunca avulso. Um botão que fingisse criar
- * cliente do zero aqui pularia contrato/onboarding, quebrando esse invariante.
+ * cliente do zero aqui pularia contrato/onboarding, quebrando esse invariante. Pedido explícito:
+ * mora dentro de `ClientsGrid` agora, ao lado direito da busca (antes ficava solto no cabeçalho
+ * da página) — os dois formam uma barra só.
  *
  * Os blocos do topo (Clientes Recorrentes/Projetos) SÃO o filtro — pedido explícito — e por isso
  * moraram pra dentro de `ClientsGrid` (client component, precisa de estado pra saber qual bloco
@@ -35,17 +34,9 @@ export default async function ClientesPage() {
 
   return (
     <main className="mx-auto flex max-w-[1400px] flex-col gap-8 px-6 pt-8 pb-16 lg:px-10">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex flex-col gap-2">
-          <h1 className="font-display text-3xl">Clientes</h1>
-          <p className="max-w-lg text-sm text-muted-foreground">Gerencie clientes, contratos e a operação de cada um.</p>
-        </div>
-        <Button type="button" className="gap-1.5" asChild>
-          <Link href="/comercial">
-            <Plus className="size-4" />
-            Novo cliente
-          </Link>
-        </Button>
+      <div className="flex flex-col gap-2">
+        <h1 className="font-display text-3xl">Clientes</h1>
+        <p className="max-w-lg text-sm text-muted-foreground">Gerencie clientes, contratos e a operação de cada um.</p>
       </div>
 
       <ClientsGrid rows={overview.rows} />

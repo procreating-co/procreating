@@ -3,7 +3,21 @@ import { ArrowUpRight } from "lucide-react";
 import { StatusDot, type StatusTone } from "@/components/dashboard/status-dot";
 import { CONTRACT_CATEGORY_LABEL, CONTRACT_CATEGORY_TONE } from "@/lib/financeiro/contract-category";
 import type { ClientCardData } from "@/lib/clientes/queries";
-import type { ClientStatus } from "@/lib/supabase/types/database";
+import type { ClientStatus, ProjectStage } from "@/lib/supabase/types/database";
+
+/** Rótulos do funil Projeto→Recorrente (pedido explícito, "guarde isso na sua memória" —
+ *  Planejamento → Roteirização → Captação Realizada → Edição → Entregue → Em negociação →
+ *  Fechado). "Fechado" não deveria aparecer de fato — nesse estágio o cliente já virou
+ *  recorrente e o campo volta a `null` (ver comentário na coluna `clients.project_stage`). */
+export const PROJECT_STAGE_LABEL: Record<ProjectStage, string> = {
+  planejamento: "Planejamento",
+  roteirizacao: "Roteirização",
+  captacao_realizada: "Captação Realizada",
+  edicao: "Edição",
+  entregue: "Entregue",
+  em_negociacao: "Em negociação",
+  fechado: "Fechado",
+};
 
 export const CLIENT_STATUS_TONE: Record<ClientStatus, StatusTone> = {
   lead: "neutral",
@@ -92,6 +106,14 @@ export function ClientCard({ data }: { data: ClientCardData }) {
             {categories.map((category) => (
               <StatusDot key={category} tone={CONTRACT_CATEGORY_TONE[category]} label={CONTRACT_CATEGORY_LABEL[category]} />
             ))}
+          </div>
+        )}
+        {/* Estágio do funil Projeto→Recorrente — pedido explícito ("constar o status, ambas em
+         *  Negociação"). Só aparece pra quem tem `project_stage` de verdade (Pascoal Bombas, Dra.
+         *  Maria das Graças hoje), nunca inventado. */}
+        {client.project_stage && client.project_stage !== "fechado" && (
+          <div className="flex flex-wrap gap-1.5">
+            <StatusDot tone="pending" label={PROJECT_STAGE_LABEL[client.project_stage]} />
           </div>
         )}
       </div>

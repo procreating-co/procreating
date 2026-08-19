@@ -1,8 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search } from "lucide-react";
+import Link from "next/link";
+import { Plus, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { ClientCard } from "@/components/clientes/client-card";
 import { cn } from "@/lib/utils";
 import type { ClientCardData } from "@/lib/clientes/queries";
@@ -35,7 +37,13 @@ const SORT_OPTIONS: { value: SortKey; label: string }[] = [
  *  natural deste bucket, não implementada nesta rodada (fora de escopo do pedido "só ativos"). */
 function bucketOf(row: ClientCardData): Bucket | null {
   if (row.categories.includes("recorrente_ativo")) return "recorrentes";
+  // `project_stage` (funil Projeto→Recorrente, `add_client_project_stage`) também qualifica pra
+  // este bucket — pedido explícito: Pascoal Bombas e Dra. Maria das Graças devem aparecer aqui
+  // com status "Em negociação", mesmo sem contrato `pontual_em_andamento` (o contrato da Maria
+  // das Graças já encerrou; o que os mantém em Projetos agora é o estágio do funil, não o
+  // contrato). "fechado" não conta — nesse estágio o cliente já deveria ter virado recorrente.
   if (row.categories.includes("pontual_em_andamento")) return "projetos";
+  if (row.client.project_stage && row.client.project_stage !== "fechado") return "projetos";
   if (row.client.status === "churn") return "inativos";
   return null;
 }
@@ -134,11 +142,22 @@ export function ClientsGrid({ rows }: { rows: ClientCardData[] }) {
         </button>
       </div>
 
+      {/* Busca + "Novo cliente" — pedido explícito: a busca fica ao lado esquerdo do botão, uma
+       *  barra só (antes o botão vivia solto no cabeçalho da página). */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative w-full sm:max-w-xs">
           <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar cliente, projeto ou segmento..." className="pl-9" />
         </div>
+        <Button type="button" className="gap-1.5" asChild>
+          <Link href="/comercial">
+            <Plus className="size-4" />
+            Novo cliente
+          </Link>
+        </Button>
+      </div>
+
+      <div className="flex justify-end">
         <select
           value={bucket === "inativos" ? "inativos" : sort}
           onChange={(e) => {
@@ -154,14 +173,12 @@ export function ClientsGrid({ rows }: { rows: ClientCardData[] }) {
           className="h-9 w-fit rounded-md border border-input bg-transparent px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
           {/* Sem opção "Quem paga mais" — pedido explícito, é a ordem implícita padrão (`sort`
-           *  nasce e volta pra `"value"` a cada troca de bloco), nunca uma escolha manual. Esta
-           *  entrada só existe pro `<select>` ter ONDE mostrar esse estado sem cair errado em cima
-           *  de "Mais recentes" — some assim que o usuário escolher qualquer opção real. */}
-          {sort === "value" && bucket !== "inativos" && (
-            <option value="value" disabled hidden>
-              Quem paga mais primeiro
-            </option>
-          )}
+           *  nasce e volta pra `"value"` a cada troca de bloco), nunca uma escolha manual, e sem
+           *  texto próprio nenhum representando esse estado (nem um placeholder) — quando
+           *  `sort === "value"`, o `<select>` simplesmente não tem nenhuma `<option>`
+           *  correspondente montada, então o navegador mostra a primeira opção real ("Mais
+           *  recentes") como texto visível, sem afetar a ordenação de fato aplicada na grid
+           *  (que continua sendo por valor até o usuário escolher outra coisa). */}
           {SORT_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}

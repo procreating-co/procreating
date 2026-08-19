@@ -98,7 +98,13 @@ export type Client = {
   created_by: string;
   created_at: string;
   updated_at: string;
+  /** Estágio do funil Projeto→Recorrente (migration `add_client_project_stage`). `null` quando o
+   *  cliente não está nesse funil (já é recorrente, é churn, etc.) — só os 2 clientes em
+   *  negociação hoje (Pascoal Bombas, Dra. Maria das Graças) têm valor aqui. */
+  project_stage: ProjectStage | null;
 };
+
+export type ProjectStage = "planejamento" | "roteirizacao" | "captacao_realizada" | "edicao" | "entregue" | "em_negociacao" | "fechado";
 
 // ---------------------------------------------------------------------------
 // Template — o "molde" de um projeto (hoje só "PosicionamentoPRO"). `blocks` lista os tipos de
