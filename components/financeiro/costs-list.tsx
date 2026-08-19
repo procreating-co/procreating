@@ -9,14 +9,15 @@ import { CostFormDialog } from "@/components/financeiro/cost-form-dialog";
 import { EmptyState } from "@/components/dashboard/empty-state";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { deleteCostAction } from "@/lib/financeiro/actions";
+import { maskAmount } from "@/lib/financeiro/mask";
 import type { Cost } from "@/lib/supabase/types/database";
 
 const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
-const MASKED_CURRENCY = "R$ ••••";
 const RECURRENCE_LABEL: Record<Cost["recurrence"], string> = { fixo: "Fixo", variavel: "Variável" };
 
-/** `canView=false` (leitura mascarada, `dev_tester`) — valor mascarado, "Novo custo" e
- *  editar/excluir somem (o servidor já bloqueia, mas oferecer o controle só pra errar é ruim). */
+/** `canView=false` (leitura mascarada, `dev_tester`) — valor vira o real × 3 (`maskAmount`,
+ *  pedido explícito), "Novo custo" e editar/excluir somem (o servidor já bloqueia, mas oferecer
+ *  o controle só pra errar é ruim). */
 export function CostsList({ costs, canView = true }: { costs: Cost[]; canView?: boolean }) {
   const router = useRouter();
   const [creating, setCreating] = useState(false);
@@ -88,7 +89,7 @@ export function CostsList({ costs, canView = true }: { costs: Cost[]; canView?: 
                 <TableCell className="font-medium">{cost.name}</TableCell>
                 <TableCell className="text-muted-foreground">{cost.category}</TableCell>
                 <TableCell className="text-muted-foreground">{RECURRENCE_LABEL[cost.recurrence]}</TableCell>
-                <TableCell className="text-right tabular-nums text-muted-foreground">{canView ? currencyFormatter.format(Number(cost.amount)) : MASKED_CURRENCY}</TableCell>
+                <TableCell className="text-right tabular-nums text-muted-foreground">{currencyFormatter.format(maskAmount(Number(cost.amount), !canView))}</TableCell>
                 {canView && (
                   <TableCell>
                     <div className="flex items-center justify-end gap-3">

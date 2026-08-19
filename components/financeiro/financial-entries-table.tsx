@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { StatusDot, type StatusTone } from "@/components/dashboard/status-dot";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { formatDateOnly } from "@/lib/date";
+import { maskAmount } from "@/lib/financeiro/mask";
 import type { FinancialEntryStatus } from "@/lib/supabase/types/database";
 import { cn } from "@/lib/utils";
 
@@ -45,7 +46,6 @@ export type FinancialEntryRowActions = {
 /** `actions` é opcional — Receitas continuam só com o toggle de status (parcelas vêm de contrato,
  *  editar/excluir ali é editar o contrato, não a linha). Despesas são cadastro manual, então
  *  ganham editar/excluir (via `ExpensesTable`, que passa `actions`). */
-const MASKED_CURRENCY = "R$ ••••";
 
 export function FinancialEntriesTable({
   rows,
@@ -58,9 +58,9 @@ export function FinancialEntriesTable({
   onStatusChange: (id: string, status: FinancialEntryStatus) => Promise<{ ok: boolean; error?: string }>;
   emptyLabel: string;
   actions?: FinancialEntryRowActions;
-  /** `false` (leitura mascarada, `dev_tester`) — valor vira "R$ ••••" e o `<select>` de status
-   *  (e editar/excluir, quando `actions` existe) somem, pra não oferecer um controle que o
-   *  servidor só vai barrar. */
+  /** `false` (leitura mascarada, `dev_tester`) — valor vira o real × 3 (`maskAmount`) e o
+   *  `<select>` de status (e editar/excluir, quando `actions` existe) somem, pra não oferecer um
+   *  controle que o servidor só vai barrar. */
   canView?: boolean;
 }) {
   const router = useRouter();
@@ -102,7 +102,7 @@ export function FinancialEntriesTable({
                 {row.category && <span className="ml-2 text-xs text-muted-foreground">{row.category}</span>}
               </TableCell>
               <TableCell className={cn("text-muted-foreground", row.status === "atrasado" && "text-red-300")}>{formatDateOnly(row.dueDate)}</TableCell>
-              <TableCell className="text-muted-foreground">{canView ? currencyFormatter.format(row.amount) : MASKED_CURRENCY}</TableCell>
+              <TableCell className="text-muted-foreground">{currencyFormatter.format(maskAmount(row.amount, !canView))}</TableCell>
               <TableCell>
                 <div className="flex items-center gap-2">
                   <StatusDot tone={STATUS_TONE[row.status]} label={STATUS_LABEL[row.status]} />

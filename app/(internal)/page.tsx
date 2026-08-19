@@ -1,7 +1,8 @@
 import { AlertTriangle, Banknote, EyeOff, Handshake, PiggyBank, Repeat, TrendingUp, Users, Wallet } from "lucide-react";
 import { computeExecutiveDashboard } from "@/lib/dashboard/executive-metrics";
 import { getSession } from "@/lib/admin/auth";
-import { canViewFinancials } from "@/lib/auth/permissions";
+import { canViewFinancials, canViewFinancialsMasked } from "@/lib/auth/permissions";
+import { formatMaskedCurrency, maskAmount, maskCurrencyText } from "@/lib/financeiro/mask";
 import { DashboardDateHeader } from "@/components/dashboard/dashboard-date-header";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { ChartCard } from "@/components/dashboard/chart-card";
@@ -37,16 +38,21 @@ const percentFormatter = (value: number) => `${value.toFixed(1)}%`;
  * Rótulos em português (revertido de uma fase anterior em inglês — ver `nav-config.ts`).
  */
 /** RBAC — decisão de produto (não redireciona, mascara): papel sem `can_view_financials` continua
- *  vendo a Home inteira (contexto/layout preservado), só os NÚMEROS financeiros viram "R$ ••••" —
- *  cards, tabelas e o conteúdo dos modais de detalhe (`DetailList`). Gráficos que codificam valor
- *  visualmente (altura de barra/linha) não têm como ser "mascarados" ponto a ponto sem virar
- *  ilegível, então viram um placeholder no lugar do gráfico — mesma ideia, sem dado visual
- *  reconstruível. Contagens/percentuais (clientes ativos, conversão, churn, headcount) não são
- *  "dado financeiro" no sentido estrito já usado por `canViewFinancials` — continuam visíveis. */
+ *  vendo a Home inteira (contexto/layout preservado). Dois níveis de mascaramento diferentes:
+ *  `dev_tester` (`masked`, pedido explícito "coloque 3x o valor de tudo") vê todo NÚMERO
+ *  financeiro — cards, tabelas, modais de detalhe (`DetailList`) e os próprios gráficos — com o
+ *  valor real × 3 (`lib/financeiro/mask.ts`), pra revisar UI/UX com uma tela que parece
+ *  funcional, sem nunca ver o número verdadeiro da empresa. Qualquer outro papel sem acesso
+ *  (comercial, marketing, operação, produção, cliente) continua no comportamento antigo: R$ vira
+ *  "R$ ••••" e gráfico vira um placeholder (dado visual — altura de barra/linha — não dá pra
+ *  "mascarar" ponto a ponto sem virar ilegível ou reconstruível). Contagens/percentuais (clientes
+ *  ativos, conversão, churn, headcount) não são "dado financeiro" no sentido estrito já usado por
+ *  `canViewFinancials` — continuam visíveis e intocadas pros dois casos. */
 const MASKED_CURRENCY = "R$ ••••";
 
-function maskEntries(entries: DetailEntry[], canView: boolean): DetailEntry[] {
+function maskEntries(entries: DetailEntry[], canView: boolean, masked: boolean): DetailEntry[] {
   if (canView) return entries;
+  if (masked) return entries.map((entry) => (entry.value ? { ...entry, value: maskCurrencyText(entry.value, true) } : entry));
   return entries.map((entry) => (entry.value ? { ...entry, value: MASKED_CURRENCY } : entry));
 }
 
@@ -55,14 +61,33 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
   const cashFlowMonths = Number(monthsParam) || 6;
   const [metrics, session] = await Promise.all([computeExecutiveDashboard(cashFlowMonths), getSession()]);
   const canView = session ? canViewFinancials(session.user.role) : false;
+  const masked = session ? canViewFinancialsMasked(session.user.role) : false;
   // Pedido explícito: sempre o valor completo (R$14.640), nunca abreviado (R$14,6 mil) —
-  // `compactMoney` existia só pra isso e foi removido, não só desativado.
-  const money = (value: number) => (canView ? currencyFormatter.format(value) : MASKED_CURRENCY);
+  // `compactMoney` existia só pra isso e foi removido, não só desativado. `dev_tester` (masked)
+  // vê o valor × 3 em vez de "R$ ••••" — ver comentário de RBAC acima.
+  const money = (value: number) => (canView ? currencyFormatter.format(value) : masked ? formatMaskedCurrency(value, true) : MASKED_CURRENCY);
+  // Gráficos com pontos numéricos (barra/linha) — mesma regra: real pra quem tem acesso, × 3 pra
+  // dev_tester, sem tocar quando ninguém dos dois. Escalados uma vez aqui, reusados em todo lugar
+  // que hoje passa `metrics.revenueVsTarget.points`/`.salesPipeline.stages`/
+  // `.financialHealth.monthlyEvolution` direto pro gráfico.
+  const revenueVsTargetPoints = masked
+    ? metrics.revenueVsTarget.points.map((point) => ({ ...point, realized: point.realized == null ? null : maskAmount(point.realized, true), pace: maskAmount(point.pace, true) }))
+    : metrics.revenueVsTarget.points;
+  const revenueVsTargetGoal = masked && metrics.revenueVsTarget.goalAmount != null ? maskAmount(metrics.revenueVsTarget.goalAmount, true) : metrics.revenueVsTarget.goalAmount;
+  const salesPipelineStages = masked ? metrics.salesPipeline.stages.map((stage) => ({ ...stage, value: maskAmount(stage.value, true) })) : metrics.salesPipeline.stages;
+  const monthlyEvolutionForView = masked
+    ? metrics.financialHealth.monthlyEvolution.map((point) => ({
+        ...point,
+        revenue: maskAmount(point.revenue, true),
+        expenses: maskAmount(point.expenses, true),
+        revenueByClient: point.revenueByClient.map((entry) => ({ ...entry, amount: maskAmount(entry.amount, true) })),
+      }))
+    : metrics.financialHealth.monthlyEvolution;
   const d = metrics.details;
 
   return (
     <main className="mx-auto flex max-w-[1400px] flex-col gap-10 px-6 pt-8 pb-16 lg:px-10">
-      <DashboardDateHeader goal={metrics.goal} canView={canView} revenueEntries={maskEntries(d.revenueEntries, canView)} />
+      <DashboardDateHeader goal={metrics.goal} canView={canView} masked={masked} revenueEntries={maskEntries(d.revenueEntries, canView, masked)} />
 
       {/* Linha de KPIs — pedido explícito: "os blocos devem ser Receita Mensal, Receita
        *  Recorrente, Pró-labore, Caixa Operacional" (Lucro Líquido saiu desta linha — continua
@@ -75,7 +100,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
          *  `sparkline` (só Receita/Lucro Líquido tinham); os 4 ficam com a mesma forma simples
          *  agora (ícone + label + valor), nenhum cresce sozinho por ter um extra que os outros
          *  não têm. */}
-        <CardWithDetail title="Receita Mensal" description="Receita deste mês — mesmo número do Financeiro." detail={<DetailList items={maskEntries(d.revenueEntries, canView)} emptyLabel="Nenhuma receita com vencimento este mês ainda." />}>
+        <CardWithDetail title="Receita Mensal" description="Receita deste mês — mesmo número do Financeiro." detail={<DetailList items={maskEntries(d.revenueEntries, canView, masked)} emptyLabel="Nenhuma receita com vencimento este mês ainda." />}>
           <MetricCard
             icon={<TrendingUp className="size-3.5" />}
             label="Receita Mensal"
@@ -86,7 +111,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
         <CardWithDetail
           title="Receita Recorrente"
           description="MRR — mesmo número do Financeiro."
-          detail={<DetailList items={maskEntries(d.mrrEntries, canView)} emptyLabel="Nenhum contrato recorrente ativo ainda." />}
+          detail={<DetailList items={maskEntries(d.mrrEntries, canView, masked)} emptyLabel="Nenhum contrato recorrente ativo ainda." />}
         >
           <MetricCard icon={<Repeat className="size-3.5" />} label="Receita Recorrente" value={money(metrics.kpis.recurringRevenue.value)} tone="brand" />
         </CardWithDetail>
@@ -128,10 +153,10 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
         title="Receita vs. Meta"
         description="Faturado (área) vs. ritmo esperado (linha pontilhada) — dia a dia do mês corrente."
         expanded={
-          !canView ? (
+          !canView && !masked ? (
             <EmptyInline icon={EyeOff} label="Gráfico oculto — este número financeiro exige acesso." />
-          ) : metrics.revenueVsTarget.goalAmount != null ? (
-            <RevenueVsTargetChart points={metrics.revenueVsTarget.points} height={420} />
+          ) : revenueVsTargetGoal != null ? (
+            <RevenueVsTargetChart points={revenueVsTargetPoints} height={420} />
           ) : (
             <EmptyInline icon={TrendingUp} label="Meta não definida — configure em Configurações → Geral." />
           )
@@ -145,10 +170,10 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
               : undefined
           }
         >
-          {!canView ? (
+          {!canView && !masked ? (
             <EmptyInline icon={EyeOff} label="Gráfico oculto — este número financeiro exige acesso." />
-          ) : metrics.revenueVsTarget.goalAmount != null ? (
-            <RevenueVsTargetChart points={metrics.revenueVsTarget.points} />
+          ) : revenueVsTargetGoal != null ? (
+            <RevenueVsTargetChart points={revenueVsTargetPoints} />
           ) : (
             <EmptyInline icon={TrendingUp} label="Meta não definida — configure em Configurações → Geral para ver este gráfico." />
           )}
@@ -159,10 +184,10 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
       <section className="flex flex-col gap-4">
         <SectionHeader title="Saúde Financeira" />
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <CardWithDetail title="Receita" description="Receita deste mês — mesmo número do Financeiro." detail={<DetailList items={maskEntries(d.revenueEntries, canView)} emptyLabel="Nenhuma receita com vencimento este mês ainda." />}>
+          <CardWithDetail title="Receita" description="Receita deste mês — mesmo número do Financeiro." detail={<DetailList items={maskEntries(d.revenueEntries, canView, masked)} emptyLabel="Nenhuma receita com vencimento este mês ainda." />}>
             <FinancialBlock label="Receita" value={money(metrics.financialHealth.revenue)} />
           </CardWithDetail>
-          <CardWithDetail title="Despesas" description="Despesas deste mês — mesmo número do Financeiro." detail={<DetailList items={maskEntries(d.expenseEntries, canView)} emptyLabel="Nenhuma despesa com vencimento este mês ainda." />}>
+          <CardWithDetail title="Despesas" description="Despesas deste mês — mesmo número do Financeiro." detail={<DetailList items={maskEntries(d.expenseEntries, canView, masked)} emptyLabel="Nenhuma despesa com vencimento este mês ainda." />}>
             <FinancialBlock label="Despesas" value={money(metrics.financialHealth.expenses)} />
           </CardWithDetail>
           <CardWithDetail
@@ -205,15 +230,17 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
           title={`Fluxo de Caixa — Últimos ${cashFlowMonths} Meses`}
           expanded={
             <div className="flex flex-col gap-5">
-              {canView ? <RevenueChart data={metrics.financialHealth.monthlyEvolution} height={360} /> : <EmptyInline icon={EyeOff} label="Gráfico oculto — este número financeiro exige acesso." />}
+              {canView || masked ? <RevenueChart data={monthlyEvolutionForView} height={360} /> : <EmptyInline icon={EyeOff} label="Gráfico oculto — este número financeiro exige acesso." />}
               <DataTable
                 columns={[
                   { key: "month", header: "Mês", render: (row) => row.month },
-                  { key: "revenue", header: "Receita", align: "right", render: (row) => money(row.revenue) },
-                  { key: "expenses", header: "Despesas", align: "right", render: (row) => money(row.expenses) },
-                  { key: "net", header: "Líquido", align: "right", render: (row) => money(row.revenue - row.expenses) },
+                  // `rows` já vem escalado (`monthlyEvolutionForView`) — formata direto, sem
+                  // passar de novo por `money()` (dobraria o × 3 pra dev_tester).
+                  { key: "revenue", header: "Receita", align: "right", render: (row) => currencyFormatter.format(row.revenue) },
+                  { key: "expenses", header: "Despesas", align: "right", render: (row) => currencyFormatter.format(row.expenses) },
+                  { key: "net", header: "Líquido", align: "right", render: (row) => currencyFormatter.format(row.revenue - row.expenses) },
                 ]}
-                rows={metrics.financialHealth.monthlyEvolution}
+                rows={monthlyEvolutionForView}
                 getRowKey={(row) => row.month}
                 emptyIcon={Wallet}
                 emptyLabel="Sem dado suficiente."
@@ -222,7 +249,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
           }
         >
           <ChartCard title={`Fluxo de Caixa — Últimos ${cashFlowMonths} Meses`} action={<PeriodSelect />}>
-            {canView ? <RevenueChart data={metrics.financialHealth.monthlyEvolution} /> : <EmptyInline icon={EyeOff} label="Gráfico oculto — este número financeiro exige acesso." />}
+            {canView || masked ? <RevenueChart data={monthlyEvolutionForView} /> : <EmptyInline icon={EyeOff} label="Gráfico oculto — este número financeiro exige acesso." />}
           </ChartCard>
         </ChartExpandDialog>
       </section>
@@ -238,14 +265,15 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
             expanded={
               metrics.salesPipeline.stages.some((stage) => stage.count > 0) ? (
                 <div className="flex flex-col gap-5">
-                  {canView ? <SalesPipelineChart stages={metrics.salesPipeline.stages} height={340} /> : <EmptyInline icon={EyeOff} label="Gráfico oculto — este número financeiro exige acesso." />}
+                  {canView || masked ? <SalesPipelineChart stages={salesPipelineStages} height={340} /> : <EmptyInline icon={EyeOff} label="Gráfico oculto — este número financeiro exige acesso." />}
                   <DataTable
                     columns={[
                       { key: "stage", header: "Estágio", render: (row) => row.label },
                       { key: "count", header: "Leads", align: "right", render: (row) => String(row.count) },
-                      { key: "value", header: "Valor", align: "right", render: (row) => money(row.value) },
+                      // `rows` já vem escalado (`salesPipelineStages`) — formata direto.
+                      { key: "value", header: "Valor", align: "right", render: (row) => currencyFormatter.format(row.value) },
                     ]}
-                    rows={metrics.salesPipeline.stages}
+                    rows={salesPipelineStages}
                     getRowKey={(row) => row.label}
                     emptyIcon={Handshake}
                     emptyLabel="Sem leads abertos."
@@ -258,7 +286,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
           >
             <div className="rounded-xl border border-border/60 bg-card p-5">
               {metrics.salesPipeline.stages.some((stage) => stage.count > 0) ? (
-                canView ? <SalesPipelineChart stages={metrics.salesPipeline.stages} /> : <EmptyInline icon={EyeOff} label="Gráfico oculto — este número financeiro exige acesso." />
+                canView || masked ? <SalesPipelineChart stages={salesPipelineStages} /> : <EmptyInline icon={EyeOff} label="Gráfico oculto — este número financeiro exige acesso." />
               ) : (
                 <EmptyInline icon={Handshake} label="Nenhuma oportunidade ativa — crie um negócio pra começar a construir seu pipeline." />
               )}
@@ -284,7 +312,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
                 tone={metrics.salesPipeline.conversionRate != null ? "success" : "neutral"}
               />
             </CardWithDetail>
-            <CardWithDetail title="Ticket Médio" detail={<DetailList items={maskEntries(d.wonDeals, canView)} emptyLabel="Nenhum negócio fechado com valor registrado ainda." />}>
+            <CardWithDetail title="Ticket Médio" detail={<DetailList items={maskEntries(d.wonDeals, canView, masked)} emptyLabel="Nenhum negócio fechado com valor registrado ainda." />}>
               <FinancialBlock label="Ticket Médio" value={metrics.salesPipeline.averageDeal != null ? money(metrics.salesPipeline.averageDeal) : "Sem dados disponíveis"} />
             </CardWithDetail>
             <CardWithDetail
@@ -292,7 +320,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
               description="Soma do pipeline aberto × probabilidade de cada estágio."
               detail={
                 metrics.salesPipeline.weightedPipeline != null ? (
-                  <DetailList items={maskEntries(d.openLeads, canView)} emptyLabel="Nenhum lead aberto." />
+                  <DetailList items={maskEntries(d.openLeads, canView, masked)} emptyLabel="Nenhum lead aberto." />
                 ) : (
                   <p className="text-sm text-muted-foreground">
                     Ainda não existe probabilidade configurada pra todo estágio do pipeline — sem isso, o cálculo ponderado ficaria incompleto. Configure em Configurações → CRM quando essa tela existir.
@@ -317,7 +345,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
           <CardWithDetail title="Clientes Ativos" detail={<DetailList items={d.activeClients} emptyLabel="Nenhum cliente ativo ainda." />}>
             <FinancialBlock label="Clientes Ativos" value={String(metrics.customerHealth.activeClients)} tone="success" />
           </CardWithDetail>
-          <CardWithDetail title="Concentração de Receita" description="Top 5 clientes por receita de contrato ativo." detail={<DetailList items={maskEntries(d.topClients, canView)} emptyLabel="Sem contrato ativo suficiente." />}>
+          <CardWithDetail title="Concentração de Receita" description="Top 5 clientes por receita de contrato ativo." detail={<DetailList items={maskEntries(d.topClients, canView, masked)} emptyLabel="Sem contrato ativo suficiente." />}>
             <FinancialBlock label="Concentração de Receita (Top 5)" value={metrics.customerHealth.concentrationTop5Pct != null ? percentFormatter(metrics.customerHealth.concentrationTop5Pct) : "Sem dados disponíveis"} />
           </CardWithDetail>
           <CardWithDetail title="Churn (atual)" detail={<DetailList items={d.churnedClients} emptyLabel="Nenhum cliente em churn." />}>
@@ -327,7 +355,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
               tone={metrics.customerHealth.churnPct == null ? "neutral" : metrics.customerHealth.churnPct > 0 ? "danger" : "success"}
             />
           </CardWithDetail>
-          <CardWithDetail title="Valor Médio por Cliente" detail={<DetailList items={maskEntries(d.topClients, canView)} emptyLabel="Sem contrato ativo suficiente." />}>
+          <CardWithDetail title="Valor Médio por Cliente" detail={<DetailList items={maskEntries(d.topClients, canView, masked)} emptyLabel="Sem contrato ativo suficiente." />}>
             <FinancialBlock label="Valor Médio por Cliente" value={metrics.customerHealth.averageClientValue != null ? money(metrics.customerHealth.averageClientValue) : "Sem dados disponíveis"} />
           </CardWithDetail>
         </div>
@@ -367,7 +395,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
         ) : (
           <ul className="flex flex-col divide-y divide-border/60 rounded-xl border border-border/60 bg-card">
             {metrics.attention.map((item) => (
-              <AttentionRow key={item.label} item={item} canView={canView} overdueRevenue={maskEntries(d.overdueRevenue, canView)} overdueExpenses={maskEntries(d.overdueExpenses, canView)} upcomingRevenue={maskEntries(d.upcomingRevenue, canView)} />
+              <AttentionRow key={item.label} item={item} canView={canView} masked={masked} overdueRevenue={maskEntries(d.overdueRevenue, canView, masked)} overdueExpenses={maskEntries(d.overdueExpenses, canView, masked)} upcomingRevenue={maskEntries(d.upcomingRevenue, canView, masked)} />
             ))}
           </ul>
         )}
@@ -441,12 +469,16 @@ function AttentionRow({
   overdueExpenses,
   upcomingRevenue,
   canView,
+  masked,
 }: {
   item: { label: string; detail: string; tone: "danger" | "warning" | "success"; kind?: "overdue_revenue" | "overdue_expenses" | "upcoming_revenue" | "cash_flow" };
   overdueRevenue: DetailEntry[];
   overdueExpenses: DetailEntry[];
   upcomingRevenue: DetailEntry[];
   canView: boolean;
+  /** `dev_tester` — pedido explícito: mostra `item.detail` (frase com R$ embutido) com o valor
+   *  real × 3 em vez de "Valor oculto para seu papel". */
+  masked: boolean;
 }) {
   const items =
     item.kind === "overdue_revenue" ? overdueRevenue : item.kind === "overdue_expenses" ? overdueExpenses : item.kind === "upcoming_revenue" ? upcomingRevenue : [];
@@ -454,7 +486,7 @@ function AttentionRow({
   // Todo item de "Atenção Necessária" hoje é financeiro (overdue_revenue/overdue_expenses/
   // upcoming_revenue/cash_flow — ver lib/dashboard/executive-metrics.ts) — `item.detail` traz um
   // valor em R$ embutido na frase (ex.: "R$ 3.200,00 em aberto"), mascarado por inteiro aqui.
-  const detail = canView ? item.detail : "Valor oculto para seu papel.";
+  const detail = canView ? item.detail : masked ? maskCurrencyText(item.detail, true) : "Valor oculto para seu papel.";
 
   const content = (
     <div className="flex items-center justify-between gap-4 px-5 py-3.5">

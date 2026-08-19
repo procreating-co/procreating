@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AlertTriangle, ArrowDownCircle, ArrowRight, ArrowUpCircle, Clock, DollarSign, EyeOff, PiggyBank, Settings2, ShieldAlert, TrendingUp } from "lucide-react";
+import { AlertTriangle, ArrowDownCircle, ArrowRight, ArrowUpCircle, Clock, DollarSign, PiggyBank, Settings2, ShieldAlert, TrendingUp } from "lucide-react";
 import { CONCENTRATION_RISK_THRESHOLD_PCT, computeFinanceiroMetrics, listCosts, listExpenses, listRevenue } from "@/lib/financeiro/queries";
 import { computeDistribution } from "@/lib/financeiro/rules";
 import { listClients } from "@/lib/clientes/queries";
 import { updateRevenueStatusAction } from "@/lib/financeiro/actions";
 import { requireFinancialPageAccess } from "@/lib/auth/permissions";
+import { maskAmount, maskCurrencyText } from "@/lib/financeiro/mask";
 import { StatTile } from "@/components/dashboard/stat-tile";
 import { Button } from "@/components/ui/button";
 import { RevenueChart } from "@/components/financeiro/revenue-chart";
@@ -33,13 +34,13 @@ export const metadata: Metadata = {
 };
 
 const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
-const MASKED_CURRENCY = "R$ ••••";
 
 /** `dev_tester` (leitura mascarada, `requireFinancialPageAccess`) — mesmo padrão já usado na
- *  Home: todo R$ vira "R$ ••••", contagens/percentuais continuam visíveis. */
+ *  Home: todo R$ vira o valor real × 3 (`maskCurrencyText`, pedido explícito — antes virava
+ *  "R$ ••••"), contagens/percentuais continuam visíveis e intocadas. */
 function maskEntries(entries: FinancialDetailEntry[], canView: boolean): FinancialDetailEntry[] {
   if (canView) return entries;
-  return entries.map((entry) => (entry.value ? { ...entry, value: MASKED_CURRENCY } : entry));
+  return entries.map((entry) => (entry.value ? { ...entry, value: maskCurrencyText(entry.value, true) } : entry));
 }
 
 /**
@@ -68,7 +69,7 @@ export default async function FinanceiroPage({
     );
   }
   const canView = !access.masked;
-  const money = (value: number) => (canView ? currencyFormatter.format(value) : MASKED_CURRENCY);
+  const money = (value: number) => currencyFormatter.format(maskAmount(value, !canView));
 
   const { months: monthsParam, receivablesStatus: receivablesStatusParam, payablesStatus: payablesStatusParam } = await searchParams;
   const months = Number(monthsParam) || 6;
@@ -99,6 +100,19 @@ export default async function FinanceiroPage({
   const payablesRows = filteredPayables.map((row) => ({ id: row.id, label: row.description, category: row.category, amount: Number(row.amount), dueDate: row.due_date, status: row.status }));
 
   const costsMonthlyTotal = costs.reduce((sum, cost) => sum + Number(cost.amount), 0);
+
+  // Evolução (gráfico) — mesma regra do resto da página: `dev_tester` (`!canView` aqui só
+  // acontece pra ele, `access.ok=false` já barrou qualquer outro papel acima) vê os pontos × 3,
+  // nunca mais um "gráfico oculto" — inclusive o breakdown por cliente do tooltip, senão o
+  // total batendo × 3 mas o detalhe do cliente batendo o valor real ficaria incoerente.
+  const monthlyEvolutionForView = canView
+    ? metrics.monthlyEvolution
+    : metrics.monthlyEvolution.map((point) => ({
+        ...point,
+        revenue: maskAmount(point.revenue, true),
+        expenses: maskAmount(point.expenses, true),
+        revenueByClient: point.revenueByClient.map((entry) => ({ ...entry, amount: maskAmount(entry.amount, true) })),
+      }));
 
   // Faixa de atenção (Bloco 2) — junta atrasados de A Receber e A Pagar, dado que
   // `computeFinanceiroMetrics` já calcula (nenhuma query nova).
@@ -256,10 +270,10 @@ export default async function FinanceiroPage({
         <ChartExpandDialog
           title={`Evolução (últimos ${months} meses)`}
           description="Clique num mês na tabela pra ver de onde saiu o faturamento — quais clientes, quanto cada um."
-          expanded={canView ? <EvolutionDetail data={metrics.monthlyEvolution} /> : <EmptyInline icon={EyeOff} label="Gráfico oculto — este número financeiro exige acesso." />}
+          expanded={<EvolutionDetail data={monthlyEvolutionForView} />}
         >
           <ChartCard title={`Evolução (últimos ${months} meses)`} action={<PeriodSelect />}>
-            {canView ? <RevenueChart data={metrics.monthlyEvolution} /> : <EmptyInline icon={EyeOff} label="Gráfico oculto — este número financeiro exige acesso." />}
+            <RevenueChart data={monthlyEvolutionForView} />
           </ChartCard>
         </ChartExpandDialog>
 

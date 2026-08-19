@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { DetailList } from "@/components/dashboard/detail-list";
 import { EmptyInline } from "@/components/dashboard/empty-inline";
 import { setCurrentMonthGoalAction } from "@/lib/dashboard/actions";
+import { formatMaskedCurrency } from "@/lib/financeiro/mask";
 import type { DetailEntry, GoalProgress } from "@/lib/dashboard/executive-metrics";
 import { cn } from "@/lib/utils";
 
@@ -101,6 +102,7 @@ function GoalCalculator({ goal }: { goal: GoalProgress }) {
 export function GoalDetailDialog({
   goal,
   canView,
+  masked = false,
   revenueEntries,
   monthLabel,
   children,
@@ -108,6 +110,10 @@ export function GoalDetailDialog({
 }: {
   goal: GoalProgress;
   canView: boolean;
+  /** `dev_tester` — pedido explícito: descrição mostra realizado/meta × 3 em vez de "Valores
+   *  ocultos"; a calculadora (escrita de verdade, `setCurrentMonthGoalAction`) continua oculta —
+   *  ver/mascarar é permissão, escrever é outra (`requireFinancialAccess`). */
+  masked?: boolean;
   revenueEntries: DetailEntry[];
   monthLabel: string;
   children: ReactNode;
@@ -134,7 +140,9 @@ export function GoalDetailDialog({
             <DialogDescription>
               {canView
                 ? `${currencyFormatter.format(goal.realized)} de ${currencyFormatter.format(goal.amount)} (${goal.percentage.toFixed(1)}%).`
-                : "Valores ocultos para seu papel."}
+                : masked
+                  ? `${formatMaskedCurrency(goal.realized, true)} de ${formatMaskedCurrency(goal.amount, true)} (${goal.percentage.toFixed(1)}%).`
+                  : "Valores ocultos para seu papel."}
             </DialogDescription>
           </DialogHeader>
 
