@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Settings } from "lucide-react";
@@ -14,10 +14,78 @@ import { cn } from "@/lib/utils";
 
 type AdminUser = ReturnType<typeof useAdminUser>;
 
+/** Slot de ícone único, usado por TODA a sidebar — logo, grupos de navegação, avatar de conta e
+ *  Configurações. Um só componente, não 4 blocos de className copiados: garante por construção
+ *  que os quatro fiquem sobre o mesmo eixo central, com a mesma área (`size-7`, 28px), mesmo
+ *  `justify-content: center`/`align-items: center` — impossível um deles divergir sem querer,
+ *  já que todos passam pelo mesmo código. Zero `position: absolute`/`translateX`/offset
+ *  individual — centralização é sempre flexbox puro. */
+function SidebarIconSlot({ children }: { children: ReactNode }) {
+  return <span className="flex size-7 shrink-0 items-center justify-center">{children}</span>;
+}
+
+/** Label colapsável (nome do grupo/"Procreating OS"/e-mail/"Configurações") — espaçamento pro
+ *  ícone vem de `margin-left` NO PRÓPRIO label (`ml-3` expandido, `ml-0` junto com `w-0`
+ *  recolhido), nunca `gap` no container pai: um `gap` reserva espaço entre filhos mesmo com o
+ *  label colapsado a `w-0`, o que empurra o retângulo de fundo ativo/hover pra um lado só do
+ *  ícone (achado real, rodada anterior). Com `margin` no filho, o espaçamento colapsa de
+ *  verdade — a caixa clicável recolhida vira só `padding + slot do ícone`, simétrica dos dois
+ *  lados, ícone sempre no centro geométrico dela. `as="div"` pro botão de conta (nome + e-mail em
+ *  2 linhas — conteúdo em bloco, `<p>` dentro de `<span>` seria HTML inválido). */
+function SidebarLabel({ expanded, className, as: Tag = "span", children }: { expanded: boolean; className?: string; as?: "span" | "div"; children: ReactNode }) {
+  return (
+    <Tag className={cn("overflow-hidden whitespace-nowrap transition-all duration-150", expanded ? "ml-3 opacity-100" : "ml-0 w-0 opacity-0", className)}>{children}</Tag>
+  );
+}
+
+/** Linha de navegação — MESMO container (`flex items-center rounded-md px-2.5 py-2`) do logo, do
+ *  botão de conta e de Configurações, reaproveitado aqui em vez de repetido. `active` só muda a
+ *  cor de fundo/texto, nunca a geometria (padding/altura/posição do ícone continuam idênticos
+ *  entre item ativo e inativo — o pedido explícito de "o item ativo não pode ter uma caixa
+ *  diferente dos demais" é garantido por isto usar o mesmo JSX pros dois estados, não um branch
+ *  visual à parte). */
+function SidebarNavRow({
+  href,
+  onClick,
+  title,
+  active,
+  icon,
+  label,
+  expanded,
+}: {
+  href: string;
+  onClick?: () => void;
+  title?: string;
+  active: boolean;
+  icon: ReactNode;
+  label: string;
+  expanded: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      onClick={onClick}
+      title={title}
+      className={cn(
+        "flex items-center rounded-md px-2.5 py-2 text-sm transition-colors",
+        active ? "bg-sidebar-accent text-brand" : "text-sidebar-muted-foreground hover:bg-sidebar-hover hover:text-sidebar-foreground"
+      )}
+    >
+      <SidebarIconSlot>{icon}</SidebarIconSlot>
+      <SidebarLabel expanded={expanded}>{label}</SidebarLabel>
+    </Link>
+  );
+}
+
 /** Conteúdo da sidebar (logo, 6 grupos, rodapé) — compartilhado entre a versão desktop (hover,
  *  `w-16`↔`w-64`) e a versão mobile (drawer, sempre expandida — não faz sentido "recolher pra só
  *  ícone" dentro de um painel que já ocupa a tela toda). `onNavigate` fecha o drawer mobile ao
- *  clicar num link; `undefined` no desktop (nada a fechar). */
+ *  clicar num link; `undefined` no desktop (nada a fechar).
+ *
+ * Estrutura (3 zonas, cada uma com sua função — nunca offset manual entre elas):
+ * logo (altura fixa `h-16`) → nav (coluna flex, `flex-1`, empurra o rodapé pro fim) → rodapé
+ * (`mt-auto` implícito por estar depois do `flex-1`, preso ao fundo pelo próprio layout, nunca
+ * posicionamento absoluto). */
 function SidebarContent({ expanded, user, onNavigate }: { expanded: boolean; user: AdminUser; onNavigate?: () => void }) {
   const pathname = usePathname();
 
@@ -26,110 +94,60 @@ function SidebarContent({ expanded, user, onNavigate }: { expanded: boolean; use
       {/* Logo = também um atalho pro Workspace (`/workspace`, era `/meu-dia`) — redundante com o
        *  ícone de Workspace logo abaixo (pedido explícito: ícone de casa próprio, acima do
        *  Dashboard), mas mantido: é convenção comum (logo sempre leva pro "home") e não
-       *  atrapalha. `px-2.5` (não `px-4`) — mesmo eixo esquerdo do slot dos ícones de grupo e do
-       *  avatar no rodapé (ver comentário lá embaixo). O símbolo agora mora no MESMO slot
-       *  centralizado `size-7` deles (antes era um `size-7` cru, preenchendo a caixa borda a
-       *  borda — ficava sem o mesmo recuo óptico que os ícones de linha ganharam, então o logo
-       *  parecia "puxado" pra esquerda comparado ao resto da coluna). `size-6` dentro do slot
-       *  `size-7` mantém o peso visual maior que um ícone de linha comum, só um pouco menor pra
-       *  caber com o mesmo recuo. */}
-      <Link href="/workspace" onClick={onNavigate} className="flex h-16 shrink-0 items-center gap-2.5 px-2.5">
-        <span className="flex size-7 shrink-0 items-center justify-center">
+       *  atrapalha. Mesmo `SidebarIconSlot`/`SidebarLabel` do resto da sidebar — `size-6` (menor
+       *  que o slot `size-7`) mantém o símbolo com peso visual de logo, não de ícone de linha
+       *  comum, sem perder o mesmo eixo central dos outros. */}
+      <Link href="/workspace" onClick={onNavigate} className="flex h-16 shrink-0 items-center px-2.5">
+        <SidebarIconSlot>
           <ProcreatingMark className="size-6 text-foreground" />
-        </span>
-        <span className={cn("overflow-hidden whitespace-nowrap font-display text-lg tracking-tight transition-opacity duration-150", expanded ? "opacity-100" : "w-0 opacity-0")}>
+        </SidebarIconSlot>
+        <SidebarLabel expanded={expanded} className="font-display text-lg tracking-tight">
           Procreating OS
-        </span>
+        </SidebarLabel>
       </Link>
 
       <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-2.5 py-2">
         {NAV_GROUPS.map((group) => {
-          const Icon = group.icon;
           const active = group.matchPrefixes.some((prefix) => (prefix === "/" ? pathname === "/" : pathname === prefix || pathname.startsWith(`${prefix}/`)));
           return (
-            <Link
+            <SidebarNavRow
               key={group.key}
               href={group.href}
               onClick={onNavigate}
               title={expanded ? undefined : group.label}
-              className={cn(
-                "group relative flex items-center rounded-md px-2.5 py-2 text-sm transition-colors",
-                active ? "bg-sidebar-accent text-brand" : "text-sidebar-muted-foreground hover:bg-sidebar-hover hover:text-sidebar-foreground"
-              )}
-            >
-              {/* Slot fixo `size-7` centralizando o ícone (já corrigido numa rodada anterior).
-               *  Causa estrutural do novo desalinhamento reportado (fundo/borda do item ativo
-               *  deslocado do centro do ícone): o espaçamento ícone↔label vivia em `gap-3` no
-               *  container flex — um `gap` é reservado ENTRE filhos independente da largura de
-               *  cada um, então mesmo com o label colapsado (`w-0`) na sidebar recolhida, os 12px
-               *  do gap continuavam contando pro fundo/hover do item (aplicado no `<Link>`
-               *  inteiro). Com padding simétrico (`px-2.5` nos dois lados) mas um filho "fantasma"
-               *  de 12px só do lado direito do ícone, o retângulo do fundo ativo ficava mais largo
-               *  à direita do ícone que à esquerda — o ícone parecia puxado pra esquerda dentro do
-               *  próprio destaque. Fix: o espaçamento agora é `margin-left` NO PRÓPRIO label
-               *  (`ml-3` só quando expandido, `ml-0` junto com `w-0` quando recolhido) — colapsa
-               *  de verdade a zero, não só a largura. Recolhido, o fundo vira só
-               *  `padding + slot do ícone`, simétrico dos dois lados → ícone exatamente no centro. */}
-              <span className="flex size-7 shrink-0 items-center justify-center">
-                <Icon className="size-4.5" />
-              </span>
-              <span
-                className={cn(
-                  "overflow-hidden whitespace-nowrap transition-all duration-150",
-                  expanded ? "ml-3 opacity-100" : "ml-0 w-0 opacity-0"
-                )}
-              >
-                {group.label}
-              </span>
-            </Link>
+              active={active}
+              icon={<group.icon className="size-4.5" />}
+              label={group.label}
+              expanded={expanded}
+            />
           );
         })}
       </nav>
 
       <div className="border-t border-border/60 p-2.5">
-        {/* `size-7` é o mesmo slot dos ícones de grupo acima (o `<span>` que embrulha cada
-         *  `Icon`) — antes o avatar (círculo `size-7`, 28px) ficava ancorado só pela borda
-         *  esquerda do padding, igual aos ícones de linha (18px), então os dois "pareciam"
-         *  alinhados pela esquerda mas ficavam ópticamente desencontrados na coluna recolhida
-         *  (o avatar, mais largo, puxava o olho mais pra direita). Com o mesmo slot de 28px
-         *  centralizando cada ícone, a coluna fica reta independente do tamanho do glifo lá
-         *  dentro. */}
-        {/* Mesmo fix de espaçamento do nav acima (`ml-3`/`ml-0` no filho colapsável em vez de
-         *  `gap-3` no pai) — mesma estrutura, mesmo bug de fundo/hover deslocado do centro do
-         *  ícone/avatar quando recolhido. */}
         <AccountMenu user={{ name: user.name, email: user.email, avatarUrl: user.avatarUrl }}>
           <button type="button" className="flex w-full items-center rounded-md px-2.5 py-2 text-left text-sm text-sidebar-foreground transition-colors hover:bg-sidebar-hover">
-            <AccountAvatar user={user} className="size-7 shrink-0 text-[10px]" />
-            <div
-              className={cn(
-                "min-w-0 flex-1 overflow-hidden transition-all duration-150",
-                expanded ? "ml-3 opacity-100" : "ml-0 w-0 opacity-0"
-              )}
-            >
+            <SidebarIconSlot>
+              <AccountAvatar user={user} className="size-7 text-[10px]" />
+            </SidebarIconSlot>
+            <SidebarLabel expanded={expanded} as="div" className="min-w-0 flex-1">
               <p className="truncate text-sm">{user.name}</p>
               <p className="truncate text-xs text-sidebar-muted-foreground">{user.email}</p>
-            </div>
+            </SidebarLabel>
           </button>
         </AccountMenu>
 
-        <Link
-          href="/configuracoes"
-          onClick={onNavigate}
-          title={expanded ? undefined : "Configurações"}
-          className="mt-1 flex items-center rounded-md px-2.5 py-2 text-sm text-sidebar-muted-foreground transition-colors hover:bg-sidebar-hover hover:text-sidebar-foreground"
-        >
-          <span className="flex size-7 shrink-0 items-center justify-center">
-            <Settings className="size-4" />
-          </span>
-          <span
-            className={cn(
-              "overflow-hidden whitespace-nowrap transition-all duration-150",
-              expanded ? "ml-3 opacity-100" : "ml-0 w-0 opacity-0"
-            )}
-          >
-            Configurações
-          </span>
-        </Link>
+        <div className="mt-1">
+          <SidebarNavRow
+            href="/configuracoes"
+            onClick={onNavigate}
+            title={expanded ? undefined : "Configurações"}
+            active={false}
+            icon={<Settings className="size-4" />}
+            label="Configurações"
+            expanded={expanded}
+          />
+        </div>
       </div>
     </>
   );
