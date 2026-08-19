@@ -11,7 +11,6 @@ type Bucket = "recorrentes" | "projetos" | "inativos";
 type SortKey = "value" | "recent" | "oldest" | "most_projects" | "name";
 
 const SORT_OPTIONS: { value: SortKey; label: string }[] = [
-  { value: "value", label: "Quem paga mais" },
   { value: "recent", label: "Mais recentes" },
   { value: "oldest", label: "Mais antigos" },
   { value: "most_projects", label: "Mais projetos" },
@@ -20,14 +19,23 @@ const SORT_OPTIONS: { value: SortKey; label: string }[] = [
 
 /** Divide a lista completa nos 3 buckets — cliente entra em UM só, nunca duplicado entre eles:
  *  `recorrentes` (tem contrato `recorrente_ativo`, seja qual for o `client.status`) vence
- *  `projetos` (tem contrato pontual, mas nenhum recorrente ativo — quem é só recorrente E
- *  pontual continua contado em recorrentes, é a relação principal); `inativos` é
- *  `client.status === "churn"`, independente de categoria (mesmo pedido — "aí devem aparecer os
- *  ex-clientes"). Cliente sem contrato nenhum e sem `status='churn'` (ex.: lead/onboarding ainda
- *  sem contrato fechado) não entra em nenhum bucket — não é "cliente" operacional ainda. */
+ *  `projetos` (tem contrato pontual ATIVO — `pontual_em_andamento`, nunca `pontual_concluido`;
+ *  achado real: a versão anterior contava os dois, o que trazia projeto já entregue/encerrado
+ *  pra dentro do bloco "Projetos" — pedido explícito: só ativo. Quem é só recorrente E pontual
+ *  continua contado em recorrentes, é a relação principal); `inativos` é `client.status ===
+ *  "churn"`, independente de categoria (mesmo pedido — "aí devem aparecer os ex-clientes").
+ *  Cliente sem contrato nenhum e sem `status='churn'` (ex.: lead/onboarding ainda sem contrato
+ *  fechado) não entra em nenhum bucket — não é "cliente" operacional ainda.
+ *
+ *  Conceito de negócio (registrado — "guarde isso"): Projetos é a PORTA DE ENTRADA de um cliente
+ *  pontual até virar recorrente (ex.: Elenita era projeto, virou recorrente; Pascoal está em
+ *  negociação pra virar recorrente). O funil de estágios do projeto em si (Planejamento →
+ *  Roteirização → Captação Realizada → Edição → Entregue → Em negociação → Fechado, "Fechado"
+ *  convertendo o cliente pra recorrente) AINDA NÃO tem campo/UI própria — é a próxima extensão
+ *  natural deste bucket, não implementada nesta rodada (fora de escopo do pedido "só ativos"). */
 function bucketOf(row: ClientCardData): Bucket | null {
   if (row.categories.includes("recorrente_ativo")) return "recorrentes";
-  if (row.categories.some((c) => c === "pontual_em_andamento" || c === "pontual_concluido")) return "projetos";
+  if (row.categories.includes("pontual_em_andamento")) return "projetos";
   if (row.client.status === "churn") return "inativos";
   return null;
 }
@@ -41,9 +49,15 @@ function bucketOf(row: ClientCardData): Bucket | null {
  * clicar mostra a lista daquele bucket abaixo) — substituem os chips Todos/Ativos/Em atenção que
  * existiam antes. "Inativos" (ex-clientes) não ganhou bloco próprio — menos comum, entrou como
  * mais uma opção no dropdown de ordenação (que aqui funciona também como seletor de bucket
- * quando o valor é "Inativos"). Ordem padrão — pedido explícito, "a ordem sempre deve ser pagam
- * mais antes" — é por `totalValue` (mensalidade dos recorrentes + valor total dos pontuais)
- * decrescente, não mais "mais recentes".
+ * quando o valor é "Inativos").
+ *
+ * "Quem paga mais" NÃO é uma opção do dropdown — pedido explícito ("isso deve ser implícito, ao
+ * selecionar qualquer filtro aparece antes quem paga mais"): é a ordem SEMPRE aplicada por baixo
+ * (`totalValue` — mensalidade dos recorrentes + valor total dos pontuais — decrescente), o ponto
+ * de partida em qualquer bucket, nunca uma escolha manual. O dropdown continua deixando escolher
+ * uma ordem DIFERENTE (Mais recentes/antigos/Mais projetos/Nome A–Z) quando fizer sentido — só
+ * não expõe "voltar pra quem paga mais" como opção, porque é o padrão implícito, não precisa de
+ * botão pra isso.
  */
 export function ClientsGrid({ rows }: { rows: ClientCardData[] }) {
   const [query, setQuery] = useState("");
@@ -92,7 +106,10 @@ export function ClientsGrid({ rows }: { rows: ClientCardData[] }) {
       <div className="grid grid-cols-2 gap-3">
         <button
           type="button"
-          onClick={() => setBucket("recorrentes")}
+          onClick={() => {
+            setBucket("recorrentes");
+            setSort("value");
+          }}
           className={cn(
             "rounded-xl border p-4 text-left transition-colors",
             bucket === "recorrentes" ? "border-brand bg-brand/5" : "border-border/60 bg-card/40 hover:border-border"
@@ -103,7 +120,10 @@ export function ClientsGrid({ rows }: { rows: ClientCardData[] }) {
         </button>
         <button
           type="button"
-          onClick={() => setBucket("projetos")}
+          onClick={() => {
+            setBucket("projetos");
+            setSort("value");
+          }}
           className={cn(
             "rounded-xl border p-4 text-left transition-colors",
             bucket === "projetos" ? "border-brand bg-brand/5" : "border-border/60 bg-card/40 hover:border-border"
@@ -125,6 +145,7 @@ export function ClientsGrid({ rows }: { rows: ClientCardData[] }) {
             const value = e.target.value;
             if (value === "inativos") {
               setBucket("inativos");
+              setSort("value");
             } else {
               setBucket((current) => (current === "inativos" ? "recorrentes" : current));
               setSort(value as SortKey);
@@ -132,6 +153,15 @@ export function ClientsGrid({ rows }: { rows: ClientCardData[] }) {
           }}
           className="h-9 w-fit rounded-md border border-input bg-transparent px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
+          {/* Sem opção "Quem paga mais" — pedido explícito, é a ordem implícita padrão (`sort`
+           *  nasce e volta pra `"value"` a cada troca de bloco), nunca uma escolha manual. Esta
+           *  entrada só existe pro `<select>` ter ONDE mostrar esse estado sem cair errado em cima
+           *  de "Mais recentes" — some assim que o usuário escolher qualquer opção real. */}
+          {sort === "value" && bucket !== "inativos" && (
+            <option value="value" disabled hidden>
+              Quem paga mais primeiro
+            </option>
+          )}
           {SORT_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}

@@ -6,7 +6,7 @@ import { signUpAction, type SignUpFormState } from "@/app/admin/signup/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ADMIN_LOGIN_PATH } from "@/lib/admin/auth/constants";
 
 const initialState: SignUpFormState = undefined;
@@ -18,8 +18,7 @@ export function SignupForm() {
   return (
     <Card className="w-full max-w-sm border-border/60 bg-card/60 backdrop-blur">
       <CardHeader>
-        <CardTitle className="font-display text-2xl">Cadastro de sócio</CardTitle>
-        <CardDescription>Só funciona pra e-mails já autorizados pelo Santiago.</CardDescription>
+        <CardTitle className="text-2xl">Cadastro</CardTitle>
       </CardHeader>
       <CardContent>
         <form action={formAction} className="flex flex-col gap-4">

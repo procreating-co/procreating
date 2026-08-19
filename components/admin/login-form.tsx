@@ -6,7 +6,7 @@ import { signInAction, type SignInFormState } from "@/app/admin/login/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardDescription } from "@/components/ui/card";
 import { ADMIN_SIGNUP_PATH } from "@/lib/admin/auth/constants";
 
 const initialState: SignInFormState = undefined;
@@ -17,7 +17,6 @@ export function LoginForm() {
   return (
     <Card className="w-full max-w-sm border-border/60 bg-card/60 backdrop-blur">
       <CardHeader>
-        <CardTitle className="font-display text-2xl">Painel Procreating</CardTitle>
         <CardDescription>Acesso restrito à equipe.</CardDescription>
       </CardHeader>
       <CardContent>

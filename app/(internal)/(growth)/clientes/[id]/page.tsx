@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowUpRight } from "lucide-react";
 import { getClientFull } from "@/lib/clientes/queries";
+import { getSession } from "@/lib/admin/auth";
+import { canViewFinancials } from "@/lib/auth/permissions";
 import { ClientStatusSelect } from "@/components/clientes/client-status-select";
 import { ClientInfoDialog } from "@/components/clientes/client-info-dialog";
 import { ContractsSection } from "@/components/clientes/contracts-section";
@@ -17,11 +19,7 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
   return { title: full ? `${full.client.name} — Procreating` : "Cliente — Procreating", robots: { index: false, follow: false } };
 }
 
-const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
-const dateFormatter = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" });
 const dateTimeFormatter = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" });
-
-const REVENUE_STATUS_LABEL: Record<string, string> = { pendente: "Pendente", pago: "Pago", atrasado: "Atrasado", cancelado: "Cancelado" };
 
 function describeEvent(type: string, metadata: Record<string, unknown>): string {
   switch (type) {
@@ -34,12 +32,11 @@ function describeEvent(type: string, metadata: Record<string, unknown>): string 
 
 export default async function ClienteDetailPage({ params }: { params: Promise<Params> }) {
   const { id } = await params;
-  const full = await getClientFull(id);
+  const [full, session] = await Promise.all([getClientFull(id), getSession()]);
   if (!full) notFound();
+  const canManageContracts = session ? canViewFinancials(session.user.role) : false;
 
-  const { client, strategy, onboarding, contacts, contracts, revenue, tasks, events } = full;
-  const totalContracted = revenue.reduce((sum, row) => sum + Number(row.amount), 0);
-  const totalReceived = revenue.filter((row) => row.status === "pago").reduce((sum, row) => sum + Number(row.amount), 0);
+  const { client, strategy, onboarding, contacts, contracts, tasks, events } = full;
 
   return (
     <main className="mx-auto flex max-w-[1400px] flex-col gap-8 px-6 pt-8 pb-16 lg:px-10">
@@ -105,32 +102,25 @@ export default async function ClienteDetailPage({ params }: { params: Promise<Pa
             </section>
           )}
 
-          <ContractsSection clientId={client.id} contracts={contracts} />
+          {/* `ContractsSection` já mostra o escopo contratado (`scopeItems` — serviço/quantidade/
+           *  frequência) como "entregas planejadas" — não precisa de seção própria repetindo a
+           *  mesma informação. */}
+          <ContractsSection clientId={client.id} contracts={contracts} canManage={canManageContracts} />
 
+          {/* Pedido explícito: nenhum valor em R$ aparece nesta página — pode ser acessada por
+           *  quem não é sócio, e "dado sigiloso" é justamente o número (o Financeiro, gated por
+           *  `canViewFinancials`, continua sendo o lugar certo pra ver valores). A antiga seção
+           *  "Financeiro" (recebido/contratado, lançamento por lançamento) saiu por completo —
+           *  era só número, sem nada de entrega. "Quanto já foi entregue este mês" — pedido
+           *  explícito de foco — ainda não tem dado real conectado por cliente (Produção/
+           *  Entregas do Procreating OS continuam mock, documentado em `docs/roadmap.md`); em
+           *  vez de inventar um número, o gap fica honesto aqui até existir dado de verdade. */}
           <section className="flex flex-col gap-3 rounded-xl border border-border/60 bg-card/40 p-5">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Financeiro</h2>
-              <span className="text-xs text-muted-foreground">
-                {currencyFormatter.format(totalReceived)} recebido de {currencyFormatter.format(totalContracted)} contratado
-              </span>
-            </div>
-            {revenue.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nenhum lançamento ainda.</p>
-            ) : (
-              <ul className="flex flex-col gap-1.5 text-sm">
-                {revenue.map((row) => (
-                  <li key={row.id} className="flex items-center justify-between gap-3">
-                    <span className="text-muted-foreground">
-                      {row.description} · {dateFormatter.format(new Date(row.due_date))}
-                    </span>
-                    <span className="flex items-center gap-2">
-                      {currencyFormatter.format(Number(row.amount))}
-                      <span className="text-xs text-muted-foreground">({REVENUE_STATUS_LABEL[row.status] ?? row.status})</span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
+            <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Entregas do mês</h2>
+            <p className="text-sm text-muted-foreground">
+              Acompanhamento de entregas ainda não conectado a clientes individuais — a área de Produção/Entregas do Procreating OS ainda não tem dado real
+              por trás.
+            </p>
           </section>
 
           <section className="flex flex-col gap-3 rounded-xl border border-border/60 bg-card/40 p-5">

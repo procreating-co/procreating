@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUserId } from "@/lib/supabase/current-user";
+import { requireFinancialAccess } from "@/lib/auth/permissions";
 import type { ContractCategory, ContractStatus, ContractType } from "@/lib/supabase/types/database";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
@@ -68,12 +68,19 @@ function validate(input: ContractFormInput): string | null {
   return null;
 }
 
+/** Achado real ao endurecer a privacidade de `/clientes` (pedido explícito — a tela pode ser
+ *  acessada por quem não é sócio, "não pode ter dados sigilosos"): criar/editar contrato grava
+ *  `monthly_value`/`total_value`, então precisa do MESMO gate financeiro do resto do produto
+ *  (`requireFinancialAccess`, `owner`/`admin`/`finance`) — não existia checagem de papel
+ *  nenhuma aqui antes, só sessão. Sem isto, esconder o valor na LISTAGEM não adiantaria: o
+ *  formulário de editar ainda deixaria qualquer papel ver/mudar o número. */
 export async function createContractAction(clientId: string, input: ContractFormInput): Promise<ActionResult> {
   const validationError = validate(input);
   if (validationError) return { ok: false, error: validationError };
 
-  const userId = await getCurrentUserId();
-  if (!userId) return { ok: false, error: "Sessão expirada — faça login de novo." };
+  const access = await requireFinancialAccess();
+  if (!access.ok) return { ok: false, error: access.error };
+  const userId = access.userId;
 
   const supabase = await createClient();
   const { error } = await supabase.from("contracts").insert({
@@ -103,6 +110,9 @@ export async function createContractAction(clientId: string, input: ContractForm
 export async function updateContractAction(contractId: string, clientId: string, input: ContractFormInput): Promise<ActionResult> {
   const validationError = validate(input);
   if (validationError) return { ok: false, error: validationError };
+
+  const access = await requireFinancialAccess();
+  if (!access.ok) return { ok: false, error: access.error };
 
   const supabase = await createClient();
   const { error } = await supabase
