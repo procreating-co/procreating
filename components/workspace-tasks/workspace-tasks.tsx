@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/dashboard/empty-state";
 import { TaskEditDialog } from "@/components/workspace-tasks/task-edit-dialog";
+import { TaskCheckbox } from "@/components/workspace-tasks/task-checkbox";
 import { createTaskAction, updateTaskStatusAction } from "@/lib/tasks/actions";
 import { parseQuickTask } from "@/lib/tasks/quick-parse";
 import type { Task, User } from "@/lib/supabase/types/database";
@@ -132,13 +133,7 @@ function TaskGroup({
       <ul className="flex flex-col divide-y divide-border/60 rounded-xl border border-border/60 bg-card/40">
         {tasks.map((task) => (
           <li key={task.id} className="group flex items-center gap-3 px-4 py-3">
-            <input
-              type="checkbox"
-              checked={task.status === "done"}
-              disabled={disabled}
-              onChange={() => onToggle(task)}
-              className="size-4 rounded border-input"
-            />
+            <TaskCheckbox checked={task.status === "done"} onToggle={() => onToggle(task)} disabled={disabled} label={`Marcar "${task.title}" como concluída`} />
             <span className={cn("flex-1 text-sm", task.status === "done" && "text-muted-foreground line-through")}>{task.title}</span>
             {task.due_date && (
               <span className="text-xs text-muted-foreground">

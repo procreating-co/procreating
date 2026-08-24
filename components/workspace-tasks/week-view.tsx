@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { createTaskAction, updateTaskAction, updateTaskStatusAction } from "@/lib/tasks/actions";
+import { TaskCheckbox } from "@/components/workspace-tasks/task-checkbox";
 import { addDaysISO, formatDateOnly, todayISO } from "@/lib/date";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -169,14 +170,7 @@ export function WeekView({ tasks, userId, teamMembers }: { tasks: Task[]; userId
                       onDragEnd={() => setDraggingTaskId(null)}
                       className={cn("flex cursor-grab items-start gap-1.5 active:cursor-grabbing", draggingTaskId === task.id && "opacity-30")}
                     >
-                      <input
-                        type="checkbox"
-                        checked={task.status === "done"}
-                        disabled={isPending}
-                        onChange={() => toggle(task)}
-                        aria-label={`Marcar "${task.title}" como concluída`}
-                        className="mt-0.5 size-3.5 shrink-0 rounded border-input"
-                      />
+                      <TaskCheckbox checked={task.status === "done"} onToggle={() => toggle(task)} disabled={isPending} label={`Marcar "${task.title}" como concluída`} size="sm" />
                       <span className={cn("text-xs leading-snug", task.status === "done" && "text-muted-foreground line-through")}>{task.title}</span>
                     </li>
                   ))}
