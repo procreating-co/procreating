@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { ADMIN_LOGIN_PATH, ADMIN_SESSION_COOKIE, ADMIN_SIGNUP_PATH } from "@/lib/admin/auth/constants";
+import { PORTAL_LOGIN_PATH, PORTAL_SESSION_COOKIE, PORTAL_SIGNUP_PATH } from "@/lib/portal/auth/constants";
 
 /**
  * Gate de borda pro ERP interno inteiro — `/admin/*` (painel legado) e todo o grupo protegido
@@ -26,9 +27,25 @@ import { ADMIN_LOGIN_PATH, ADMIN_SESSION_COOKIE, ADMIN_SIGNUP_PATH } from "@/lib
  * cookie, virava ping-pong infinito entre os dois. Middleware não pode validar a sessão de
  * verdade sem I/O (por isso é só um sinal rápido) — então só bloqueia quem claramente não tem
  * nada; deixar alguém com cookie stale ver a tela de login de novo é inofensivo, um loop não é.
+ *
+ * `/portal/*` (Fase B, Portal do Cliente) ganhou o mesmo tratamento, com cookie e páginas
+ * públicas PRÓPRIOS (`PORTAL_SESSION_COOKIE`, nunca `ADMIN_SESSION_COOKIE`) — staff e cliente
+ * nunca compartilham o mesmo sinal de sessão aqui, mesmo sendo os dois, por baixo, uma sessão
+ * Supabase Auth normal (ver `lib/portal/auth/provider.ts`). Continua sem tocar `/clients/*`
+ * (rota pública legada, de outra sessão) nem no Page-Builder.
  */
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  if (pathname.startsWith("/portal")) {
+    const hasPortalSession = request.cookies.has(PORTAL_SESSION_COOKIE);
+    const isPublicPortalAuthPage = pathname === PORTAL_LOGIN_PATH || pathname === PORTAL_SIGNUP_PATH;
+    if (!hasPortalSession && !isPublicPortalAuthPage) {
+      return NextResponse.redirect(new URL(PORTAL_LOGIN_PATH, request.url));
+    }
+    return NextResponse.next();
+  }
+
   const hasSession = request.cookies.has(ADMIN_SESSION_COOKIE);
   // Login e Signup (cadastro do segundo sócio, allowlist em lib/admin/auth/partners.ts) são as
   // únicas páginas de `/admin/*` que precisam funcionar sem sessão.
@@ -53,5 +70,6 @@ export const config = {
     "/workspace/:path*",
     "/configuracoes/:path*",
     "/reports/:path*",
+    "/portal/:path*",
   ],
 };

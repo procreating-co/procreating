@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowUpRight } from "lucide-react";
 import { getClientFull } from "@/lib/clientes/queries";
+import { listClientPortalInvites } from "@/lib/clientes/portal-invite-actions";
 import { getSession } from "@/lib/admin/auth";
 import { canViewFinancials } from "@/lib/auth/permissions";
 import { ClientStatusSelect } from "@/components/clientes/client-status-select";
@@ -10,6 +11,7 @@ import { ClientInfoDialog } from "@/components/clientes/client-info-dialog";
 import { ContractsSection } from "@/components/clientes/contracts-section";
 import { ContactsSection } from "@/components/clientes/contacts-section";
 import { OnboardingTasksList } from "@/components/clientes/onboarding-tasks-list";
+import { PortalAccessSection } from "@/components/clientes/portal-access-section";
 
 type Params = { id: string };
 
@@ -32,7 +34,7 @@ function describeEvent(type: string, metadata: Record<string, unknown>): string 
 
 export default async function ClienteDetailPage({ params }: { params: Promise<Params> }) {
   const { id } = await params;
-  const [full, session] = await Promise.all([getClientFull(id), getSession()]);
+  const [full, session, portalInvites] = await Promise.all([getClientFull(id), getSession(), listClientPortalInvites(id)]);
   if (!full) notFound();
   const canManageContracts = session ? canViewFinancials(session.user.role) : false;
 
@@ -142,6 +144,10 @@ export default async function ClienteDetailPage({ params }: { params: Promise<Pa
 
         <div className="flex flex-col gap-6">
           <ContactsSection clientId={client.id} contacts={contacts} />
+
+          {/* Fase B do Portal do Cliente — convite de acesso ao `/portal/<slug>` (Supabase Auth
+           *  próprio, RLS da Fase A). Ver docs/client-portal-fase-b-plano.md. */}
+          <PortalAccessSection clientId={client.id} invites={portalInvites} />
 
           <section className="flex flex-col gap-3 rounded-xl border border-border/60 bg-card/40 p-5">
             <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Tarefas de onboarding</h2>

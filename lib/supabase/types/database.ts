@@ -562,6 +562,40 @@ export type ProductionItem = {
 };
 
 // ---------------------------------------------------------------------------
+// Client Portal — Fase A (fundação de RLS: `client_portal_users`/`client_portal_config`,
+// `20260824010000_client_portal_foundation.sql`) + Fase B1 (`client_portal_invites`, espelha
+// `TeamInviteRow` abaixo — staff convida por `client_id`, a pessoa se cadastra sozinha em
+// `/portal/signup`). RLS de cada uma documentada nas migrations correspondentes — `clients`
+// nunca tem coluna `client_id` (usa o próprio `id`), então nenhum tipo aqui repete esse erro.
+// ---------------------------------------------------------------------------
+export type ClientPortalUser = {
+  id: string;
+  client_id: string;
+  auth_user_id: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ClientPortalConfig = {
+  id: string;
+  client_id: string;
+  settings: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ClientPortalInviteRow = {
+  id: string;
+  client_id: string;
+  email: string;
+  name: string;
+  invited_by: string;
+  created_at: string;
+  used_at: string | null;
+};
+
+// ---------------------------------------------------------------------------
 // Revenue / Expense — Financeiro. `status` tem 4 valores de propósito (nunca um boolean
 // pago/não-pago) — o que um fluxo de cobrança futuro (fora de escopo agora) vai precisar
 // diferenciar sem migração de dado.
@@ -774,6 +808,9 @@ export type Database = {
       revenue_goals: TableDef<RevenueGoal>;
       production_projects: TableDef<ProductionProject>;
       production_items: TableDef<ProductionItem>;
+      client_portal_users: TableDef<ClientPortalUser>;
+      client_portal_config: TableDef<ClientPortalConfig>;
+      client_portal_invites: TableDef<ClientPortalInviteRow>;
       team_invites: TableDef<TeamInviteRow>;
       service_catalog: TableDef<ServiceCatalogItem>;
       quotes: TableDef<Quote>;
@@ -813,6 +850,53 @@ export type Database = {
       sync_contract_revenue: {
         Args: { p_contract_id: string };
         Returns: undefined;
+      };
+      /** Fase A — `SECURITY DEFINER`, dono `postgres` (BYPASSRLS), usada dentro das policies de
+       *  `clients`/`contracts`/`production_projects`/`production_items`/`client_portal_*`. Chamável
+       *  também via `supabase.rpc()` quando o código de app precisa da mesma checagem (ex.:
+       *  gate de UI antes de mostrar uma ação só-staff). Sem parâmetro — sempre `auth.uid()`. */
+      is_active_staff: {
+        Args: Record<string, never>;
+        Returns: boolean;
+      };
+      /** Fase A — idem, mas pergunta "auth.uid() é membro ativo do Portal do `target_client_id`?". */
+      is_portal_member_of: {
+        Args: { target_client_id: string };
+        Returns: boolean;
+      };
+      /** Fase A — único caminho aprovado pro Portal ler `clients`: resolve slug→cliente e checa
+       *  posse no mesmo `WHERE`, devolve só as colunas não sensíveis (nunca `document`,
+       *  `created_by`, `strategy_id`, `segment`). */
+      get_client_portal_profile: {
+        Args: { p_slug: string };
+        Returns: { id: string; name: string; slug: string; status: string; city: string | null; state: string | null; project_stage: string | null }[];
+      };
+      /** Fase B1 — convite de Portal (`client_portal_invites`), mesmo padrão de `get_team_invite`:
+       *  `SECURITY DEFINER`, devolve no máximo a linha do e-mail pedido, chamável por `anon`
+       *  (checagem no cadastro, antes de existir sessão). */
+      get_client_portal_invite: {
+        Args: { p_email: string };
+        Returns: { client_id: string; name: string; used_at: string | null }[];
+      };
+      mark_client_portal_invite_used: {
+        Args: { p_email: string };
+        Returns: undefined;
+      };
+      /** Fase B1 (correção pós-teste end-to-end) — a sessão recém-criada por `signUp()` não tem
+       *  permissão pra inserir em `client_portal_users` diretamente (só staff, RLS da Fase A).
+       *  Esta função faz o vínculo + baixa o convite atomicamente, mas só depois de confirmar que
+       *  `p_email` é o mesmo e-mail autenticado de `auth.uid()` — nunca reivindica convite de
+       *  outra pessoa. Devolve o `client_id` vinculado, ou `null` se não havia convite pendente
+       *  pra esse e-mail (ou o e-mail não bate com a sessão atual). */
+      claim_client_portal_invite: {
+        Args: { p_email: string };
+        Returns: string | null;
+      };
+      /** Fase B1 — resolve "qual cliente sou eu" a partir só de `auth.uid()` (sem slug ainda
+       *  conhecido, diferente de `get_client_portal_profile`) — usada no login/layout do Portal. */
+      get_my_portal_client: {
+        Args: Record<string, never>;
+        Returns: { id: string; name: string; slug: string; status: string; city: string | null; state: string | null; project_stage: string | null }[];
       };
     };
   };
