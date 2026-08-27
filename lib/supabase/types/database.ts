@@ -569,6 +569,33 @@ export type FocusSession = {
 };
 
 // ---------------------------------------------------------------------------
+// TaskStrategy / TaskStrategyItem — Task Intelligence, parte 2 (migration
+// `20260827010000_task_strategies.sql`). NOME diferente de `Strategy` (acima) de propósito —
+// aquela é posicionamento comercial, esta é um molde de checklist de tarefas. Uma
+// `TaskStrategy` nunca é "aplicada" sozinha: vira `task_group` + `tasks` reais via
+// `applyTaskStrategyAction`, mesma forma final de um lote colado (`parseTaskBatch`).
+// ---------------------------------------------------------------------------
+export type TaskStrategy = {
+  id: string;
+  title: string;
+  description: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type TaskStrategyItem = {
+  id: string;
+  strategy_id: string;
+  title: string;
+  order_index: number;
+  estimated_minutes: number | null;
+  depends_on_item_id: string | null;
+  default_assignee_id: string | null;
+  created_at: string;
+};
+
+// ---------------------------------------------------------------------------
 // ProductionProject — primeiro slice real da Operação (`/operacao/projetos`), substitui o mock
 // `InternalProject` de `lib/dashboard/demo-data.ts`. Nome deliberadamente diferente de `Project`
 // (acima — esse é a entrega de SITE pro cliente, Template→Project→Deployment, conceito
@@ -857,6 +884,8 @@ export type Database = {
       task_groups: TableDef<TaskGroup>;
       time_blocks: TableDef<TimeBlock>;
       focus_sessions: TableDef<FocusSession>;
+      task_strategies: TableDef<TaskStrategy>;
+      task_strategy_items: TableDef<TaskStrategyItem>;
       revenue: TableDef<Revenue>;
       expenses: TableDef<Expense>;
       costs: TableDef<Cost>;

@@ -6,6 +6,9 @@ import { getCurrentUserId } from "@/lib/supabase/current-user";
 import { computeWorkspaceOverview } from "@/lib/workspace/queries";
 import { listTeamUsers } from "@/lib/operacao/queries";
 import { listClientsForTasksAction, listTaskGroupsForTasksAction, getRunningFocusSessionAction } from "@/lib/tasks/actions";
+import { listTaskStrategiesAction } from "@/lib/tasks/strategy-actions";
+import { listTimeBlocksForDayAction } from "@/lib/tasks/time-block-actions";
+import { todayISO } from "@/lib/date";
 import { GreetingHeader } from "@/components/dashboard/greeting-header";
 import { WorkspaceTasks } from "@/components/workspace-tasks/workspace-tasks";
 import { WeekView } from "@/components/workspace-tasks/week-view";
@@ -30,11 +33,13 @@ export default async function WorkspacePage() {
   const userId = await getCurrentUserId();
   if (!userId) redirect(ADMIN_LOGIN_PATH);
 
-  const [overview, teamMembers, clients, runningFocusSession] = await Promise.all([
+  const [overview, teamMembers, clients, runningFocusSession, strategies, todayTimeBlocks] = await Promise.all([
     computeWorkspaceOverview(userId),
     listTeamUsers(),
     listClientsForTasksAction(),
     getRunningFocusSessionAction(),
+    listTaskStrategiesAction(),
+    listTimeBlocksForDayAction(userId, todayISO()),
   ]);
   const taskGroups = await listTaskGroupsForTasksAction(overview.dueTasks.map((t) => t.id));
 
@@ -72,6 +77,8 @@ export default async function WorkspacePage() {
           clients={clients}
           taskGroups={taskGroups}
           initialRunningSession={runningFocusSession}
+          strategies={strategies}
+          todayTimeBlocks={todayTimeBlocks}
         />
       </section>
 

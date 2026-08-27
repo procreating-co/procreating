@@ -8,6 +8,7 @@ import type { FocusSessionMode, TaskStatus } from "@/lib/supabase/types/database
 import type { QuickParseClient } from "@/lib/tasks/quick-parse";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
+export type CreateTaskResult = { ok: true; taskId: string } | { ok: false; error: string };
 
 /** Clientes reais pro parser resolver ("editar vídeo Elenita" → cliente) — mesma tabela que todo
  *  o resto do ERP usa, sem lista paralela nenhuma. Nome só, é tudo que o parser precisa. */
@@ -47,7 +48,7 @@ function revalidateTaskPaths() {
   revalidatePath("/clientes/onboarding");
 }
 
-export async function createTaskAction(input: TaskInput): Promise<ActionResult> {
+export async function createTaskAction(input: TaskInput): Promise<CreateTaskResult> {
   if (!input.title.trim()) return { ok: false, error: "Informe o título da tarefa." };
 
   const userId = await getCurrentUserId();
@@ -78,7 +79,7 @@ export async function createTaskAction(input: TaskInput): Promise<ActionResult> 
   await supabase.from("events").insert({ entity_type: "task", entity_id: data.id, actor_id: userId, type: "task.created", metadata: { assignee_id: input.assigneeId } });
 
   revalidateTaskPaths();
-  return { ok: true };
+  return { ok: true, taskId: data.id };
 }
 
 /** Entrada em lote (Task Intelligence) — cria o grupo (se houver título) e todas as tarefas
@@ -161,6 +162,19 @@ export async function bulkUpdateTaskStatusAction(taskIds: string[], status: Task
       .from("events")
       .insert(taskIds.map((id) => ({ entity_type: "task", entity_id: id, actor_id: userId, type: status === "done" ? "task.completed" : "task.updated", metadata: { status, bulk: true } })));
   }
+
+  revalidateTaskPaths();
+  return { ok: true };
+}
+
+/** "Definir duração" em lote (§10/§11) — UM valor, escolhido explicitamente pela pessoa,
+ *  aplicado a todas as selecionadas. Não é o sistema inventando duração por tarefa — é a pessoa
+ *  decidindo "essas N valem X minutos cada", uma operação legítima de seleção múltipla. */
+export async function bulkSetEstimatedMinutesAction(taskIds: string[], estimatedMinutes: number): Promise<ActionResult> {
+  if (taskIds.length === 0) return { ok: true };
+  const supabase = await createClient();
+  const { error } = await supabase.from("tasks").update({ estimated_minutes: estimatedMinutes, updated_at: new Date().toISOString() }).in("id", taskIds);
+  if (error) return { ok: false, error: error.message };
 
   revalidateTaskPaths();
   return { ok: true };

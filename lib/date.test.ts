@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addDaysISO, currentMonthKey, dayOfMonthOf, formatDateOnly, lastMonthKeys, monthKeyOf, todayISO } from "@/lib/date";
+import { addDaysISO, brasiliaDateTimeToISO, currentMonthKey, dayOfMonthOf, formatDateOnly, lastMonthKeys, minutesOfDayInBrasilia, monthKeyOf, todayISO } from "@/lib/date";
 
 describe("addDaysISO", () => {
   it("soma dias dentro do mesmo mês", () => {
@@ -93,5 +93,26 @@ describe("formatDateOnly", () => {
     const formatted = formatDateOnly("2026-08-31", { day: "2-digit", month: "2-digit", year: "numeric" });
     expect(formatted).toContain("31");
     expect(formatted).toContain("08");
+  });
+});
+
+describe("brasiliaDateTimeToISO / minutesOfDayInBrasilia (Task Intelligence — Time Blocks)", () => {
+  it("gera instante com offset -03:00 explícito, ida e volta bate", () => {
+    const iso = brasiliaDateTimeToISO("2026-08-27", "14:00");
+    expect(iso).toBe("2026-08-27T14:00:00-03:00");
+    expect(minutesOfDayInBrasilia(iso)).toBe(14 * 60);
+  });
+
+  it("não sofre o viés de fuso do servidor — 14:00 Brasília continua 14:00 lido de volta, não 11:00 nem 17:00", () => {
+    const iso = brasiliaDateTimeToISO("2026-08-27", "23:30");
+    // Achado real que este teste existe pra prevenir: sem offset explícito, `new
+    // Date("2026-08-27T23:30:00").getHours()` na Vercel (processo em UTC) leria 23:30 como UTC —
+    // minutesOfDayInBrasilia converteria de volta pra 20:30 de Brasília, não 23:30.
+    expect(minutesOfDayInBrasilia(iso)).toBe(23 * 60 + 30);
+  });
+
+  it("meia-noite de Brasília não vira o dia UTC anterior/seguinte", () => {
+    const iso = brasiliaDateTimeToISO("2026-08-27", "00:00");
+    expect(minutesOfDayInBrasilia(iso)).toBe(0);
   });
 });

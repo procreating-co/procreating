@@ -40,11 +40,40 @@ export function calendarDateOf(isoInstant: string): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: TIMEZONE, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(isoInstant));
 }
 
+/** Hora:minuto de Brasília de um INSTANTE (timestamptz), em minutos desde meia-noite — mesmo
+ *  raciocínio de `calendarDateOf`, só que pra hora em vez de dia (usado pelo TaskPlanner,
+ *  `lib/tasks/planner.ts`, pra ler `time_blocks.start_at`/`end_at` de volta como "minutos do
+ *  dia" sem reintroduzir o viés de fuso do servidor). */
+export function minutesOfDayInBrasilia(isoInstant: string): number {
+  const parts = new Intl.DateTimeFormat("en-GB", { timeZone: TIMEZONE, hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(new Date(isoInstant));
+  const hour = Number(parts.find((p) => p.type === "hour")?.value ?? "0");
+  const minute = Number(parts.find((p) => p.type === "minute")?.value ?? "0");
+  return hour * 60 + minute;
+}
+
+/** "Agora" em Brasília, como minutos desde meia-noite — mesma regra de `todayISO()` (nunca
+ *  `new Date().getHours()` cru, que leria a hora local do SERVIDOR, não de Brasília). */
+export function nowMinutesOfDayInBrasilia(): number {
+  return minutesOfDayInBrasilia(new Date().toISOString());
+}
+
 /** "Agora" como instante completo (timestamptz) — `new Date().toISOString()` já é correto pra
  *  isso (o instante em si não tem fuso "errado", só a LEITURA de volta como dia-de-calendário
  *  tem). Existe aqui só pra todo `updated_at`/`created_at` do projeto vir do mesmo lugar. */
 export function nowISO(): string {
   return new Date().toISOString();
+}
+
+/** Data-calendário (`YYYY-MM-DD`) + hora local de Brasília (`HH:MM`) → instante (timestamptz)
+ *  correto, como string ISO com offset explícito — usada por Time Blocks (`due_date`/`due_time`
+ *  de uma Task viram `start_at`/`end_at` reais). Offset fixo `-03:00`: Brasília não observa
+ *  horário de verão desde 2019, então não existe o caso "mesma hora, dois offsets possíveis"
+ *  que tornaria isto ambíguo. Sem o offset explícito, `new Date("2026-08-27T14:00:00")` seria
+ *  lido como hora LOCAL DO SERVIDOR (UTC na Vercel) — 14h vira 11h de Brasília, o mesmo viés que
+ *  todo o resto deste arquivo existe pra evitar, só que na ESCRITA em vez da leitura. */
+export function brasiliaDateTimeToISO(dateOnlyISO: string, time: string): string {
+  const hhmm = time.length === 5 ? time : time.slice(0, 5);
+  return `${dateOnlyISO}T${hhmm}:00-03:00`;
 }
 
 /** Um `Date` em UTC-midnight representando o dia de hoje em Brasília — só pra quando o chamador

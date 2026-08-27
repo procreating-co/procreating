@@ -11,11 +11,20 @@ import { TaskGroupSection } from "@/components/workspace-tasks/task-group-sectio
 import { BulkActionBar } from "@/components/workspace-tasks/bulk-action-bar";
 import { ClientAmbiguityDialog } from "@/components/workspace-tasks/client-ambiguity-dialog";
 import { FocusTimerBar } from "@/components/workspace-tasks/focus-timer-bar";
+import { StartFocusDialog } from "@/components/workspace-tasks/start-focus-dialog";
+import { PlanDayButton } from "@/components/workspace-tasks/plan-day-dialog";
+import { DayTimeline } from "@/components/workspace-tasks/day-timeline";
+import { StrategiesPanel } from "@/components/workspace-tasks/strategies-panel";
+import { StrategyFormDialog } from "@/components/workspace-tasks/strategy-form-dialog";
+import { ApplyStrategyDialog } from "@/components/workspace-tasks/apply-strategy-dialog";
 import { createTaskAction, createTaskBatchAction, reorderTaskAction, updateTaskStatusAction, type RunningFocusSession } from "@/lib/tasks/actions";
+import { createTimeBlockAction, type TimeBlockWithTask } from "@/lib/tasks/time-block-actions";
 import { parseQuickTask, type ParsedQuickTask, type QuickParseClient } from "@/lib/tasks/quick-parse";
 import { parseTaskBatch, type BatchParsedItem } from "@/lib/tasks/batch-parse";
+import { parseSlashCommand } from "@/lib/tasks/slash-commands";
 import { computePositionBetween } from "@/lib/tasks/position";
-import type { Task, User } from "@/lib/supabase/types/database";
+import { brasiliaDateTimeToISO } from "@/lib/date";
+import type { Task, TaskStrategy, User } from "@/lib/supabase/types/database";
 import type { TaskInput } from "@/lib/tasks/types";
 import { cn } from "@/lib/utils";
 
@@ -32,12 +41,18 @@ function toTaskInput(item: BatchParsedItem | ParsedQuickTask, fallbackAssigneeId
   };
 }
 
+/** Estado do diálogo de estratégia — aplicar uma existente (achada por nome via `/strategy`) ou
+ *  criar uma nova (nome digitado não encontrado — pré-preenche o título, não perde o que a
+ *  pessoa já escreveu). */
+type StrategyDialogState = { mode: "apply"; strategy: TaskStrategy } | { mode: "create"; initialTitle: string } | null;
+
 /**
  * Task Intelligence — evolução de `WorkspaceTasks` (Master prompt §49/§50 original). Continua o
  * MESMO componente/lista/Server Actions de sempre, estendido: entrada aceita texto em várias
  * linhas (`parseTaskBatch`) além da linha única de sempre (`parseQuickTask`), grupos (§14),
- * seleção múltipla + ações em lote (§10), drag & drop com posição persistente (§8/§9), e o
- * gatilho de Timer/Pomodoro por tarefa (§15/§16) embutido em `TaskRow`.
+ * seleção múltipla + ações em lote (§10), drag & drop com posição persistente (§8/§9), Timer/
+ * Pomodoro por tarefa (§15/§16), comandos rápidos `/task /time /pomodoro /plan /strategy` (§20),
+ * Time Blocks/"Planejar meu dia" (§11/§12/§21) e Estratégias (§13).
  */
 export function WorkspaceTasks({
   tasks,
@@ -46,6 +61,8 @@ export function WorkspaceTasks({
   clients,
   taskGroups,
   initialRunningSession,
+  strategies,
+  todayTimeBlocks,
 }: {
   tasks: Task[];
   userId: string;
@@ -53,6 +70,8 @@ export function WorkspaceTasks({
   clients: QuickParseClient[];
   taskGroups: { id: string; title: string }[];
   initialRunningSession: RunningFocusSession | null;
+  strategies: TaskStrategy[];
+  todayTimeBlocks: TimeBlockWithTask[];
 }) {
   const router = useRouter();
   const [text, setText] = useState("");
@@ -63,6 +82,9 @@ export function WorkspaceTasks({
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [localTasks, setLocalTasks] = useState(tasks);
+  const [pomodoroPrompt, setPomodoroPrompt] = useState<{ taskId: string; taskTitle: string } | null>(null);
+  const [planDayOpen, setPlanDayOpen] = useState(false);
+  const [strategyDialog, setStrategyDialog] = useState<StrategyDialogState>(null);
 
   const clientNameById = useMemo(() => new Map(clients.map((c) => [c.id, c.name])), [clients]);
   const groupTitleById = useMemo(() => new Map(taskGroups.map((g) => [g.id, g.title])), [taskGroups]);
@@ -73,7 +95,7 @@ export function WorkspaceTasks({
   // a resposta da Server Action.
   const displayTasks = localTasks === tasks ? tasks : localTasks;
 
-  function createSingle(parsed: ParsedQuickTask, clientIdOverride: string | null | undefined) {
+  function createSingle(parsed: ParsedQuickTask, clientIdOverride: string | null | undefined, afterCreate?: (taskId: string) => void) {
     startTransition(async () => {
       const input = toTaskInput({ ...parsed, clientId: clientIdOverride !== undefined ? clientIdOverride : parsed.clientId }, userId);
       const created = await createTaskAction(input);
@@ -83,6 +105,7 @@ export function WorkspaceTasks({
       }
       setText("");
       setAmbiguity(null);
+      afterCreate?.(created.taskId);
       router.refresh();
     });
   }
@@ -105,18 +128,54 @@ export function WorkspaceTasks({
     });
   }
 
+  /** "/time <texto> <hora> <duração>" (§20) — cria a tarefa e, se a frase tiver data+hora+
+   *  duração, já agenda o Time Block correspondente no mesmo passo. Sem hora/duração, cria só a
+   *  tarefa (degrada bem, não é erro). */
+  function createWithTimeBlock(parsed: ParsedQuickTask) {
+    startTransition(async () => {
+      const input = toTaskInput(parsed, userId);
+      const created = await createTaskAction(input);
+      if (!created.ok) {
+        setError(created.error);
+        return;
+      }
+      if (parsed.dueDate && parsed.dueTime && parsed.estimatedMinutes) {
+        const startAtISO = brasiliaDateTimeToISO(parsed.dueDate, parsed.dueTime);
+        const endMinutes = parsed.estimatedMinutes;
+        const endDate = new Date(startAtISO);
+        endDate.setMinutes(endDate.getMinutes() + endMinutes);
+        // Recalcula com o mesmo helper (nunca `Date` cru pra escrever) — soma minutos primeiro
+        // fora do fuso não importa aqui (é aritmética de instante, sempre correta), só a
+        // CONSTRUÇÃO do instante inicial precisava do offset explícito.
+        await createTimeBlockAction(created.taskId, startAtISO, endDate.toISOString(), false);
+      }
+      setText("");
+      router.refresh();
+    });
+  }
+
   function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     if (!text.trim()) return;
     setError(null);
 
-    const batch = parseTaskBatch(text, teamMembers, clients);
+    const command = parseSlashCommand(text);
+    if (command) {
+      handleCommand(command.type, command.rest);
+      return;
+    }
+
+    createFromFreeText(text);
+  }
+
+  function createFromFreeText(raw: string) {
+    const batch = parseTaskBatch(raw, teamMembers, clients);
     if (batch) {
       createBatch([{ title: null, items: batch.ungrouped }, ...batch.groups]);
       return;
     }
 
-    const parsed = parseQuickTask(text, teamMembers, clients);
+    const parsed = parseQuickTask(raw, teamMembers, clients);
     if (!parsed.title) {
       setError("A tarefa ficou sem título depois de tirar data/hora/responsável — reescreva.");
       return;
@@ -126,6 +185,59 @@ export function WorkspaceTasks({
       return;
     }
     createSingle(parsed, undefined);
+  }
+
+  function handleCommand(type: "task" | "time" | "pomodoro" | "plan" | "strategy", rest: string) {
+    switch (type) {
+      case "task":
+        if (!rest.trim()) {
+          setError("Escreva o que precisa ser feito depois de /task.");
+          return;
+        }
+        createFromFreeText(rest);
+        return;
+
+      case "time": {
+        const parsed = parseQuickTask(rest, teamMembers, clients);
+        if (!parsed.title) {
+          setError("Escreva o que precisa ser feito depois de /time.");
+          return;
+        }
+        createWithTimeBlock(parsed);
+        return;
+      }
+
+      case "pomodoro": {
+        const parsed = parseQuickTask(rest, teamMembers, clients);
+        if (!parsed.title) {
+          setError("Escreva o que precisa ser feito depois de /pomodoro.");
+          return;
+        }
+        if (parsed.clientCandidates.length > 1) {
+          setAmbiguity(parsed);
+          return;
+        }
+        createSingle(parsed, undefined, (taskId) => setPomodoroPrompt({ taskId, taskTitle: parsed.title }));
+        return;
+      }
+
+      case "plan":
+        setText("");
+        setPlanDayOpen(true);
+        return;
+
+      case "strategy": {
+        setText("");
+        const name = rest.trim().toLowerCase();
+        const existing = strategies.find((s) => s.title.trim().toLowerCase() === name);
+        if (existing) {
+          setStrategyDialog({ mode: "apply", strategy: existing });
+        } else {
+          setStrategyDialog({ mode: "create", initialTitle: rest.trim() });
+        }
+        return;
+      }
+    }
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -222,12 +334,13 @@ export function WorkspaceTasks({
         <div className="flex items-start gap-3">
           {/* Textarea (não Input) — aceita colar um bloco de várias linhas ("Operacional:\n
            *  Elenita: ...") sem perder a experiência de linha única de sempre: Enter continua
-           *  criando na hora (Shift+Enter é que quebra linha), igual antes. */}
+           *  criando na hora (Shift+Enter é que quebra linha), igual antes. Comandos `/task
+           *  /time /pomodoro /plan /strategy` (§20) funcionam na mesma caixa, sem UI própria. */}
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Nova tarefa... (ou cole várias linhas: 'Operacional:' + 'Elenita: roteiro, reunião...')"
+            placeholder="Nova tarefa... (ou /plan, /pomodoro, /time — ou cole várias linhas)"
             rows={text.includes("\n") ? Math.min(8, text.split("\n").length + 1) : 1}
             className="flex-1 resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
           />
@@ -236,13 +349,23 @@ export function WorkspaceTasks({
             Adicionar
           </Button>
         </div>
-        {!selectionMode && hasAnyTask && (
-          <button type="button" onClick={() => setSelectionMode(true)} className="w-fit text-xs text-muted-foreground transition-colors hover:text-foreground">
-            Selecionar várias
-          </button>
-        )}
+        <div className="flex items-center justify-between">
+          {!selectionMode && hasAnyTask ? (
+            <button type="button" onClick={() => setSelectionMode(true)} className="text-xs text-muted-foreground transition-colors hover:text-foreground">
+              Selecionar várias
+            </button>
+          ) : (
+            <span />
+          )}
+          <PlanDayButton open={planDayOpen} onOpenChange={setPlanDayOpen} />
+        </div>
       </form>
       {error && <p className="text-sm text-destructive">{error}</p>}
+
+      <div className="flex flex-col gap-3">
+        <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Agenda de hoje</h2>
+        <DayTimeline blocks={todayTimeBlocks} clientNameById={clientNameById} />
+      </div>
 
       {!hasAnyTask ? (
         <EmptyState icon={CalendarCheck} title="Nenhuma tarefa vencendo hoje ou atrasada" description="Adicione uma tarefa acima, ou aproveite o dia livre." fullBleed={false} />
@@ -301,6 +424,8 @@ export function WorkspaceTasks({
         </div>
       )}
 
+      <StrategiesPanel strategies={strategies} teamMembers={teamMembers} clients={clients} />
+
       {editingTask && (
         <TaskEditDialog key={editingTask.id} task={editingTask} teamMembers={teamMembers} clients={clients} open onOpenChange={(open) => !open && setEditingTask(null)} />
       )}
@@ -313,6 +438,33 @@ export function WorkspaceTasks({
           onOpenChange={(open) => !open && setAmbiguity(null)}
           onResolve={(clientId) => createSingle(ambiguity, clientId)}
         />
+      )}
+
+      {pomodoroPrompt && (
+        <StartFocusDialog
+          taskId={pomodoroPrompt.taskId}
+          taskTitle={pomodoroPrompt.taskTitle}
+          mode="pomodoro"
+          open
+          onOpenChange={(open) => !open && setPomodoroPrompt(null)}
+          onStarted={() => {
+            setPomodoroPrompt(null);
+            router.refresh();
+          }}
+        />
+      )}
+
+      {strategyDialog?.mode === "apply" && (
+        <ApplyStrategyDialog
+          strategy={strategyDialog.strategy}
+          teamMembers={teamMembers}
+          clients={clients}
+          open
+          onOpenChange={(open) => !open && setStrategyDialog(null)}
+        />
+      )}
+      {strategyDialog?.mode === "create" && (
+        <StrategyFormDialog open initialTitle={strategyDialog.initialTitle} onOpenChange={(open) => !open && setStrategyDialog(null)} />
       )}
 
       <BulkActionBar selectedIds={[...selectedIds]} onClear={clearSelection} />
