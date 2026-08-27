@@ -497,6 +497,7 @@ export type ClientContact = {
 // `close_lead_and_create_client`) é gravado; `context_type` nulo = tarefa solta (Meu Dia).
 // ---------------------------------------------------------------------------
 export type TaskStatus = "pending" | "in_progress" | "done";
+export type TaskPriority = "low" | "medium" | "high";
 
 export type Task = {
   id: string;
@@ -512,6 +513,59 @@ export type Task = {
   created_by: string;
   created_at: string;
   updated_at: string;
+  /** Task Intelligence (migration `20260827000000_task_intelligence.sql`) — todas opcionais,
+   *  nenhuma tarefa antiga quebra. `client_id` é o cliente identificado pelo parser (ou escolhido
+   *  na edição), nunca inventado quando ambíguo. `position`: `double precision` espaçado de 1000
+   *  no backfill — reordenar recalcula só o item movido (média entre vizinhos), nunca as outras
+   *  linhas. `group_id` liga a tarefa a um `TaskGroup` (entrada em lote, "Operacional: ..."). */
+  client_id: string | null;
+  estimated_minutes: number | null;
+  priority: TaskPriority | null;
+  position: number;
+  group_id: string | null;
+};
+
+// ---------------------------------------------------------------------------
+// TaskGroup / TimeBlock / FocusSession — Task Intelligence (migration
+// `20260827000000_task_intelligence.sql`). Task = o que precisa ser feito; TaskGroup = como
+// tarefas se relacionam (lote); TimeBlock = quando será feito (fundação de schema, sem UI de
+// agendamento ainda); FocusSession = quanto tempo foi de fato gasto executando — Pomodoro é só
+// um `mode` desta última, nunca uma entidade própria.
+// ---------------------------------------------------------------------------
+export type TaskGroup = {
+  id: string;
+  title: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type TimeBlockStatus = "planned" | "done" | "cancelled";
+
+export type TimeBlock = {
+  id: string;
+  task_id: string;
+  start_at: string;
+  end_at: string;
+  status: TimeBlockStatus;
+  created_by: string;
+  created_at: string;
+};
+
+export type FocusSessionMode = "pomodoro" | "free";
+
+export type FocusSession = {
+  id: string;
+  task_id: string;
+  time_block_id: string | null;
+  user_id: string;
+  mode: FocusSessionMode;
+  planned_minutes: number | null;
+  started_at: string;
+  ended_at: string | null;
+  duration_seconds: number | null;
+  completed: boolean;
+  created_at: string;
 };
 
 // ---------------------------------------------------------------------------
@@ -800,6 +854,9 @@ export type Database = {
       client_onboarding: TableDef<ClientOnboarding>;
       client_contacts: TableDef<ClientContact>;
       tasks: TableDef<Task>;
+      task_groups: TableDef<TaskGroup>;
+      time_blocks: TableDef<TimeBlock>;
+      focus_sessions: TableDef<FocusSession>;
       revenue: TableDef<Revenue>;
       expenses: TableDef<Expense>;
       costs: TableDef<Cost>;
