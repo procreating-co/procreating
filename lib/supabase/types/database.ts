@@ -843,6 +843,67 @@ export type QuoteItem = {
 };
 
 // ---------------------------------------------------------------------------
+// Propostas (migration `20260828000000_proposals.sql`, docs/proposal-system-architecture.md) —
+// Lead → Proposal → Client. Não confundir com Quote (acima, mantida intocada e em paralelo) nem
+// com `templates`/`projects`/`project_versions` do Page-Builder (congelado, domínio diferente).
+// `ProposalSection.content` — o shape varia por `section_type`, documentado em
+// `lib/comercial/proposal-content-types.ts`, não aqui (evita este arquivo virar union gigante).
+// ---------------------------------------------------------------------------
+export type ProposalStatus = "draft" | "sent" | "negotiating" | "revision_requested" | "accepted" | "rejected" | "expired" | "archived" | "cancelled";
+export type ProposalSectionType = "hero" | "context" | "diagnosis" | "strategy" | "services" | "deliverables" | "investment" | "conditions" | "testimonial" | "cta" | "footer" | "custom";
+
+export type ProposalTemplate = {
+  id: string;
+  title: string;
+  description: string | null;
+  accent_color: string;
+  section_blueprint: { sectionType: ProposalSectionType; content: Record<string, unknown> }[];
+  version: number;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Proposal = {
+  id: string;
+  lead_id: string | null;
+  client_id: string | null;
+  template_id: string;
+  slug: string;
+  title: string;
+  status: ProposalStatus;
+  accepted_version_id: string | null;
+  current_version_number: number;
+  view_count: number;
+  first_viewed_at: string | null;
+  last_viewed_at: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ProposalVersion = {
+  id: string;
+  proposal_id: string;
+  version_number: number;
+  snapshot: { sectionType: ProposalSectionType; content: Record<string, unknown> }[];
+  sent_at: string;
+  created_by: string;
+  created_at: string;
+};
+
+export type ProposalSection = {
+  id: string;
+  proposal_id: string;
+  section_type: ProposalSectionType;
+  content: Record<string, unknown>;
+  position: number;
+  visible: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+// ---------------------------------------------------------------------------
 // Aproximação do formato gerado por `supabase gen types typescript`. `Insert`/`Update` aqui
 // são só `Partial<Row>` — o gerado de verdade tem nullability exata por coluna. Trocar por esse
 // quando o schema existir num projeto real.
@@ -901,6 +962,10 @@ export type Database = {
       service_catalog: TableDef<ServiceCatalogItem>;
       quotes: TableDef<Quote>;
       quote_items: TableDef<QuoteItem>;
+      proposal_templates: TableDef<ProposalTemplate>;
+      proposals: TableDef<Proposal>;
+      proposal_versions: TableDef<ProposalVersion>;
+      proposal_sections: TableDef<ProposalSection>;
     };
     Views: {
       /** `WHERE status IN ('published', 'archived')` — evita repetir esse filtro em toda
@@ -983,6 +1048,21 @@ export type Database = {
       get_my_portal_client: {
         Args: Record<string, never>;
         Returns: { id: string; name: string; slug: string; status: string; city: string | null; state: string | null; project_stage: string | null }[];
+      };
+      /** Sistema de Propostas — `SECURITY DEFINER`, chamável por `anon` (o lead abrindo o link
+       *  público não tem sessão nenhuma). Resolve slug + checa `status` no mesmo passo — nunca
+       *  devolve uma proposta em draft/archived/cancelled. Devolve `null` se não encontrar. */
+      get_public_proposal: {
+        Args: { p_slug: string };
+        Returns: { id: string; title: string; status: string; accentColor: string; sections: { sectionType: string; content: Record<string, unknown> }[] } | null;
+      };
+      record_proposal_view: {
+        Args: { p_slug: string };
+        Returns: undefined;
+      };
+      respond_public_proposal: {
+        Args: { p_slug: string; p_response: string };
+        Returns: boolean;
       };
     };
   };

@@ -72,8 +72,13 @@ function splitDocument(value: string | null): { cnpj: string; cpf: string } {
 
 /** `lead` já tem tudo que o onboarding pediria de novo — nome, contato, cargo, e-mail, WhatsApp,
  *  CNPJ/CPF, cidade/estado. Pré-preenche pra "não pedir novamente nome, CNPJ, telefone, e-mail
- *  etc." (o próprio pedido do usuário) em vez de abrir o wizard vazio. */
-export function createInitialOnboardingData(lead: LeadWithRelations): OnboardingWizardData {
+ *  etc." (o próprio pedido do usuário) em vez de abrir o wizard vazio.
+ *
+ * `proposalOverrides` (opcional, aditivo) — quando o fechamento vem de uma Proposal aceita
+ * (`docs/proposal-system-architecture.md`, fluxo Proposal→Client), sobrescreve só o que a seção
+ * de Investimento da proposta já definiu (tipo de contrato/valor) — nunca inventa o resto, o
+ * staff sempre revisa e confirma nas etapas seguintes do wizard como já acontecia antes. */
+export function createInitialOnboardingData(lead: LeadWithRelations, proposalOverrides?: Partial<Pick<OnboardingWizardData, "contractType" | "monthlyValue" | "totalValue">>): OnboardingWizardData {
   const { cnpj, cpf } = splitDocument(lead.cnpj_cpf);
   const address = [lead.city, lead.state].filter(Boolean).join(" / ");
   return {
@@ -85,13 +90,13 @@ export function createInitialOnboardingData(lead: LeadWithRelations): Onboarding
     address,
     billingInfo: "",
     contacts: [{ name: lead.contact_name ?? "", roleTitle: lead.role_title ?? "", email: lead.email ?? "", whatsapp: lead.whatsapp ?? "", isPrimary: true }],
-    contractType: "recorrente",
+    contractType: proposalOverrides?.contractType ?? "recorrente",
     startDate: todayISO(),
     endDate: "",
-    monthlyValue: "",
+    monthlyValue: proposalOverrides?.monthlyValue ?? "",
     dueDay: "5",
     autoRenew: false,
-    totalValue: "",
+    totalValue: proposalOverrides?.totalValue ?? "",
     paymentTerms: "",
     specialConditions: "",
     scopeItems: [{ service: "", quantity: "", frequency: "", deadline: "", notes: "" }],

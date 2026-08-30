@@ -23,14 +23,17 @@ export function OnboardingModal({
   open,
   onOpenChange,
   onSuccess,
+  proposalOverrides,
 }: {
   lead: LeadWithRelations;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: (clientId: string) => void;
+  /** Vem de uma Proposal aceita (`ConvertProposalDialog`) — ver `createInitialOnboardingData`. */
+  proposalOverrides?: Partial<Pick<OnboardingWizardData, "contractType" | "monthlyValue" | "totalValue">>;
 }) {
   const [stepIndex, setStepIndex] = useState(0);
-  const [data, setData] = useState<OnboardingWizardData>(() => createInitialOnboardingData(lead));
+  const [data, setData] = useState<OnboardingWizardData>(() => createInitialOnboardingData(lead, proposalOverrides));
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -66,7 +69,7 @@ export function OnboardingModal({
   function handleClose(nextOpen: boolean) {
     if (!nextOpen) {
       setStepIndex(0);
-      setData(createInitialOnboardingData(lead));
+      setData(createInitialOnboardingData(lead, proposalOverrides));
       setError(null);
     }
     onOpenChange(nextOpen);
