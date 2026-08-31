@@ -1,7 +1,8 @@
 "use client";
 
+import { useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, RotateCcw } from "lucide-react";
 import { StatusBadge } from "@/components/dashboard/status-badge";
 import { compareMonthKeys, formatMonthKeyLong, shiftMonthKey } from "@/lib/date";
 
@@ -24,6 +25,7 @@ export function MonthKpiNavigator({ monthKey, todayMonthKey, isFuture }: { month
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
   const isCurrent = monthKey === todayMonthKey;
   const distanceFromToday = compareMonthKeys(monthKey, todayMonthKey);
   const canGoBack = distanceFromToday > -MAX_MONTHS_RANGE;
@@ -34,7 +36,20 @@ export function MonthKpiNavigator({ monthKey, todayMonthKey, isFuture }: { month
     if (nextMonthKey === todayMonthKey) params.delete("month");
     else params.set("month", nextMonthKey);
     const query = params.toString();
-    router.push(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    // BUG REAL corrigido (reportado: "tela não atualiza" ao trocar de mês) — `router.push()`
+    // sozinho pra uma navegação só-de-search-param não garante que o Server Component (`page.tsx`)
+    // busque dado novo: mesmo padrão já usado em TODO OUTRO lugar do produto que precisa de dado
+    // fresco depois de uma ação do cliente (dezenas de componentes, sempre push + refresh juntos)
+    // — `period-select.tsx` era a única exceção (só `push`), copiada aqui por engano na primeira
+    // versão. `refresh()` força buscar de novo e re-renderizar os Server Components da rota
+    // atual, sem perder estado de cliente (posição de scroll, etc.). `startTransition` (não é
+    // sobre corrigir o bug, é sobre não deixar parecer travado) dá `isPending` pra desabilitar os
+    // botões durante a navegação — sem isso, um clique duplo rápido em ▶▶ dispara duas
+    // navegações concorrentes.
+    startTransition(() => {
+      router.push(query ? `${pathname}?${query}` : pathname, { scroll: false });
+      router.refresh();
+    });
   }
 
   return (
@@ -43,17 +58,20 @@ export function MonthKpiNavigator({ monthKey, todayMonthKey, isFuture }: { month
         <button
           type="button"
           onClick={() => navigateTo(shiftMonthKey(monthKey, -1))}
-          disabled={!canGoBack}
+          disabled={!canGoBack || isPending}
           aria-label="Mês anterior"
           className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
         >
           <ChevronLeft className="size-4" />
         </button>
-        <span className="min-w-28 text-center text-sm font-medium tabular-nums">{formatMonthKeyLong(monthKey)}</span>
+        <span className="flex min-w-28 items-center justify-center gap-1.5 text-center text-sm font-medium tabular-nums">
+          {isPending && <Loader2 className="size-3 animate-spin text-muted-foreground" />}
+          {formatMonthKeyLong(monthKey)}
+        </span>
         <button
           type="button"
           onClick={() => navigateTo(shiftMonthKey(monthKey, 1))}
-          disabled={!canGoForward}
+          disabled={!canGoForward || isPending}
           aria-label="Próximo mês"
           className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
         >
@@ -65,7 +83,8 @@ export function MonthKpiNavigator({ monthKey, todayMonthKey, isFuture }: { month
         <button
           type="button"
           onClick={() => navigateTo(todayMonthKey)}
-          className="flex items-center gap-1 rounded-full border border-border/60 px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+          disabled={isPending}
+          className="flex items-center gap-1 rounded-full border border-border/60 px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
         >
           <RotateCcw className="size-3" />
           Hoje
