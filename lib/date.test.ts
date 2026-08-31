@@ -1,5 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { addDaysISO, brasiliaDateTimeToISO, currentMonthKey, dayOfMonthOf, formatDateOnly, lastMonthKeys, minutesOfDayInBrasilia, monthKeyOf, todayISO } from "@/lib/date";
+import {
+  addDaysISO,
+  brasiliaDateTimeToISO,
+  compareMonthKeys,
+  currentMonthKey,
+  dayOfMonthOf,
+  formatDateOnly,
+  lastMonthKeys,
+  minutesOfDayInBrasilia,
+  monthKeyBounds,
+  monthKeyOf,
+  shiftMonthKey,
+  todayISO,
+} from "@/lib/date";
 
 describe("addDaysISO", () => {
   it("soma dias dentro do mesmo mês", () => {
@@ -46,6 +59,69 @@ describe("monthKeyOf", () => {
     // lib/date.ts existe pra evitar. `monthKeyOf` fatia a string direto.
     expect(monthKeyOf("2026-01-01")).toBe("01/2026");
     expect(monthKeyOf("2026-12-31")).toBe("12/2026");
+  });
+});
+
+describe("shiftMonthKey", () => {
+  it("avança um mês dentro do mesmo ano", () => {
+    expect(shiftMonthKey("08/2026", 1)).toBe("09/2026");
+  });
+
+  it("retrocede um mês dentro do mesmo ano", () => {
+    expect(shiftMonthKey("08/2026", -1)).toBe("07/2026");
+  });
+
+  it("vira o ano pra frente — dezembro + 1 = janeiro do ano seguinte", () => {
+    expect(shiftMonthKey("12/2026", 1)).toBe("01/2027");
+  });
+
+  it("vira o ano pra trás — janeiro - 1 = dezembro do ano anterior", () => {
+    expect(shiftMonthKey("01/2026", -1)).toBe("12/2025");
+  });
+
+  it("delta 0 retorna o mesmo mês", () => {
+    expect(shiftMonthKey("08/2026", 0)).toBe("08/2026");
+  });
+
+  it("delta grande atravessa múltiplos anos", () => {
+    expect(shiftMonthKey("08/2026", 24)).toBe("08/2028");
+    expect(shiftMonthKey("08/2026", -24)).toBe("08/2024");
+  });
+});
+
+describe("compareMonthKeys", () => {
+  it("negativo quando o primeiro mês é anterior", () => {
+    expect(compareMonthKeys("07/2026", "08/2026")).toBeLessThan(0);
+  });
+
+  it("positivo quando o primeiro mês é posterior", () => {
+    expect(compareMonthKeys("09/2026", "08/2026")).toBeGreaterThan(0);
+  });
+
+  it("zero quando são o mesmo mês", () => {
+    expect(compareMonthKeys("08/2026", "08/2026")).toBe(0);
+  });
+
+  it("compara corretamente através da virada de ano", () => {
+    expect(compareMonthKeys("01/2027", "12/2026")).toBeGreaterThan(0);
+  });
+});
+
+describe("monthKeyBounds", () => {
+  it("primeiro e último dia de um mês de 31 dias", () => {
+    expect(monthKeyBounds("08/2026")).toEqual({ start: "2026-08-01", end: "2026-08-31" });
+  });
+
+  it("mês de 30 dias", () => {
+    expect(monthKeyBounds("09/2026")).toEqual({ start: "2026-09-01", end: "2026-09-30" });
+  });
+
+  it("fevereiro em ano bissexto (2028)", () => {
+    expect(monthKeyBounds("02/2028")).toEqual({ start: "2028-02-01", end: "2028-02-29" });
+  });
+
+  it("fevereiro em ano não-bissexto", () => {
+    expect(monthKeyBounds("02/2026")).toEqual({ start: "2026-02-01", end: "2026-02-28" });
   });
 });
 

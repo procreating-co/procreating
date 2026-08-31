@@ -1,9 +1,12 @@
 import { AlertTriangle, Banknote, EyeOff, Handshake, PiggyBank, Repeat, TrendingUp, Users, Wallet } from "lucide-react";
 import { computeExecutiveDashboard } from "@/lib/dashboard/executive-metrics";
+import { computeDashboardMonthKpis } from "@/lib/dashboard/month-kpis";
 import { getSession } from "@/lib/admin/auth";
 import { canViewFinancials, canViewFinancialsMasked } from "@/lib/auth/permissions";
 import { formatMaskedCurrency, maskAmount, maskCurrencyText } from "@/lib/financeiro/mask";
+import { compareMonthKeys, currentMonthKey } from "@/lib/date";
 import { DashboardDateHeader } from "@/components/dashboard/dashboard-date-header";
+import { MonthKpiNavigator } from "@/components/dashboard/month-kpi-navigator";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { ChartCard } from "@/components/dashboard/chart-card";
 import { SectionHeader } from "@/components/dashboard/section-header";
@@ -56,10 +59,25 @@ function maskEntries(entries: DetailEntry[], canView: boolean, masked: boolean):
   return entries.map((entry) => (entry.value ? { ...entry, value: MASKED_CURRENCY } : entry));
 }
 
-export default async function Home({ searchParams }: { searchParams: Promise<{ months?: string }> }) {
-  const { months: monthsParam } = await searchParams;
+/** "MM/YYYY" estrito — protege contra um `?month=` malformado/malicioso na URL (nunca confiar
+ *  em query string sem validar); qualquer coisa fora do formato cai no mês corrente, silenciosamente. */
+const MONTH_KEY_PATTERN = /^(0[1-9]|1[0-2])\/\d{4}$/;
+
+export default async function Home({ searchParams }: { searchParams: Promise<{ months?: string; month?: string }> }) {
+  const { months: monthsParam, month: monthParam } = await searchParams;
   const cashFlowMonths = Number(monthsParam) || 6;
-  const [metrics, session] = await Promise.all([computeExecutiveDashboard(cashFlowMonths), getSession()]);
+  const todayMonthKey = currentMonthKey();
+  const viewedMonthKey = monthParam && MONTH_KEY_PATTERN.test(monthParam) ? monthParam : todayMonthKey;
+  const isViewingCurrentMonth = viewedMonthKey === todayMonthKey;
+
+  const [metrics, session, monthKpis] = await Promise.all([
+    computeExecutiveDashboard(cashFlowMonths),
+    getSession(),
+    // Mês corrente reaproveita metrics.kpis/details (já computados acima) — nunca uma segunda
+    // conta em paralelo pro mesmo número (mesmo princípio de executive-metrics.ts). Navegação
+    // (◀▶ — pedido explícito) só recalcula quando o mês visto é DIFERENTE do corrente.
+    isViewingCurrentMonth ? null : computeDashboardMonthKpis(viewedMonthKey),
+  ]);
   const canView = session ? canViewFinancials(session.user.role) : false;
   const masked = session ? canViewFinancialsMasked(session.user.role) : false;
   // Pedido explícito: sempre o valor completo (R$14.640), nunca abreviado (R$14,6 mil) —
@@ -85,6 +103,18 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
     : metrics.financialHealth.monthlyEvolution;
   const d = metrics.details;
 
+  // Linha de KPIs (Receita Mensal/Recorrente/Pró-labore/Caixa Operacional) — mês corrente usa
+  // exatamente os mesmos `metrics.kpis`/`d.*` de sempre (zero mudança de comportamento); qualquer
+  // outro mês (navegado via ◀▶) usa `monthKpis`, computado pra aquele mês específico
+  // (`computeDashboardMonthKpis`). Nunca os dois misturados no mesmo card.
+  const kpiRevenue = isViewingCurrentMonth ? metrics.kpis.revenue.value : monthKpis!.revenue.value;
+  const kpiRecurringRevenue = isViewingCurrentMonth ? metrics.kpis.recurringRevenue.value : monthKpis!.recurringRevenue.value;
+  const kpiPartnerSalary = isViewingCurrentMonth ? metrics.kpis.partnerSalary.value : monthKpis!.partnerSalary.value;
+  const kpiOperationalCash = isViewingCurrentMonth ? metrics.kpis.operationalCash : monthKpis!.operationalCash;
+  const kpiRevenueEntries = isViewingCurrentMonth ? d.revenueEntries : monthKpis!.details.revenueEntries;
+  const kpiRecurringEntries = isViewingCurrentMonth ? d.mrrEntries : monthKpis!.details.recurringEntries;
+  const isViewingFutureMonth = !isViewingCurrentMonth && compareMonthKeys(viewedMonthKey, todayMonthKey) > 0;
+
   return (
     <main className="mx-auto flex max-w-[1400px] flex-col gap-10 px-6 pt-8 pb-16 lg:px-10">
       <DashboardDateHeader goal={metrics.goal} canView={canView} masked={masked} revenueEntries={maskEntries(d.revenueEntries, canView, masked)} />
@@ -94,26 +124,38 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
        *  calculado/usado em Saúde Financeira mais abaixo, não foi apagado). Pró-labore não cita
        *  "cada sócio"/"por sócio" em lugar nenhum (label, descrição ou detalhe) — pedido
        *  explícito, mesma conta de sempre (`kpis.partnerSalary`), só sem atribuir a divisão a
-       *  quem recebe. */}
+       *  quem recebe.
+       *
+       *  Navegação de mês (◀▶, pedido explícito) — só esta linha muda de mês; "Saúde Financeira"
+       *  mais abaixo continua sempre no mês corrente real, de propósito (Lucro Líquido/Fluxo de
+       *  Caixa/gráfico de Evolução não fazem sentido "projetados", são leitura do que já
+       *  aconteceu). Mês futuro mostra só a Receita Recorrente já fechada (contratos assinados),
+       *  nunca receita pontual ainda não faturada nem negócio em negociação — ver
+       *  `computeDashboardMonthKpis`. */}
+      <SectionHeader title="Financeiro do mês" action={<MonthKpiNavigator monthKey={viewedMonthKey} todayMonthKey={todayMonthKey} isFuture={isViewingFutureMonth} />} />
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {/* Pedido explícito — todo bloco no tamanho padrão: `MetricCard` cresce quando recebe
          *  `sparkline` (só Receita/Lucro Líquido tinham); os 4 ficam com a mesma forma simples
          *  agora (ícone + label + valor), nenhum cresce sozinho por ter um extra que os outros
          *  não têm. */}
-        <CardWithDetail title="Receita Mensal" description="Receita deste mês — mesmo número do Financeiro." detail={<DetailList items={maskEntries(d.revenueEntries, canView, masked)} emptyLabel="Nenhuma receita com vencimento este mês ainda." />}>
+        <CardWithDetail
+          title="Receita Mensal"
+          description={isViewingCurrentMonth ? "Receita deste mês — mesmo número do Financeiro." : isViewingFutureMonth ? "Projeção — só receita recorrente já fechada, sem negócios em aberto." : "Receita real daquele mês — mesmo número do Financeiro."}
+          detail={<DetailList items={maskEntries(kpiRevenueEntries, canView, masked)} emptyLabel="Nenhuma receita com vencimento neste mês." />}
+        >
           <MetricCard
             icon={<TrendingUp className="size-3.5" />}
             label="Receita Mensal"
-            value={money(metrics.kpis.revenue.value)}
-            tone={metrics.kpis.revenue.deltaPct == null ? "info" : metrics.kpis.revenue.deltaPct >= 0 ? "success" : "danger"}
+            value={money(kpiRevenue)}
+            tone={!isViewingCurrentMonth || metrics.kpis.revenue.deltaPct == null ? "info" : metrics.kpis.revenue.deltaPct >= 0 ? "success" : "danger"}
           />
         </CardWithDetail>
         <CardWithDetail
           title="Receita Recorrente"
           description="MRR — mesmo número do Financeiro."
-          detail={<DetailList items={maskEntries(d.mrrEntries, canView, masked)} emptyLabel="Nenhum contrato recorrente ativo ainda." />}
+          detail={<DetailList items={maskEntries(kpiRecurringEntries, canView, masked)} emptyLabel="Nenhum contrato recorrente ativo neste mês." />}
         >
-          <MetricCard icon={<Repeat className="size-3.5" />} label="Receita Recorrente" value={money(metrics.kpis.recurringRevenue.value)} tone="brand" />
+          <MetricCard icon={<Repeat className="size-3.5" />} label="Receita Recorrente" value={money(kpiRecurringRevenue)} tone="brand" />
         </CardWithDetail>
         <CardWithDetail
           title="Pró-labore"
@@ -121,30 +163,30 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
           detail={
             <DetailList
               items={[
-                { label: "Receita mensal", value: money(metrics.financialHealth.revenue) },
-                { label: `Taxa operacional (${metrics.kpis.operationalCash.percentage}%)`, value: `− ${money(metrics.kpis.operationalCash.value)}` },
-                { label: "Pró-labore (÷ 2)", value: money(metrics.kpis.partnerSalary.value) },
+                { label: "Receita mensal", value: money(kpiRevenue) },
+                { label: `Taxa operacional (${kpiOperationalCash.percentage}%)`, value: `− ${money(kpiOperationalCash.value)}` },
+                { label: "Pró-labore (÷ 2)", value: money(kpiPartnerSalary) },
               ]}
               emptyLabel="Sem dado suficiente."
             />
           }
         >
-          <MetricCard icon={<Banknote className="size-3.5" />} label="Pró-labore" value={money(metrics.kpis.partnerSalary.value)} tone="success" />
+          <MetricCard icon={<Banknote className="size-3.5" />} label="Pró-labore" value={money(kpiPartnerSalary)} tone="success" />
         </CardWithDetail>
         <CardWithDetail
           title="Caixa Operacional"
-          description={`${metrics.kpis.operationalCash.percentage}% da receita mensal.`}
+          description={`${kpiOperationalCash.percentage}% da receita mensal.`}
           detail={
             <DetailList
               items={[
-                { label: "Receita mensal", value: money(metrics.financialHealth.revenue) },
-                { label: `Caixa Operacional (${metrics.kpis.operationalCash.percentage}%)`, value: money(metrics.kpis.operationalCash.value) },
+                { label: "Receita mensal", value: money(kpiRevenue) },
+                { label: `Caixa Operacional (${kpiOperationalCash.percentage}%)`, value: money(kpiOperationalCash.value) },
               ]}
               emptyLabel="Sem dado suficiente."
             />
           }
         >
-          <MetricCard icon={<PiggyBank className="size-3.5" />} label="Caixa Operacional" value={money(metrics.kpis.operationalCash.value)} tone="info" />
+          <MetricCard icon={<PiggyBank className="size-3.5" />} label="Caixa Operacional" value={money(kpiOperationalCash.value)} tone="info" />
         </CardWithDetail>
       </section>
 
