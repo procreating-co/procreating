@@ -2,16 +2,22 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, ArrowRight } from "lucide-react";
+import { ChevronDown, ArrowRight, Lock } from "lucide-react";
 import { ProposalSectionHeader } from "@/components/proposal/proposal-section-header";
 import type { ProposalPillar } from "@/lib/clients/proposal-types";
+import type { PillarItem, ProposalPillarWithLocks } from "@/lib/comercial/proposal-content-types";
+
+/** `items: PillarItem[]` no lugar de `ProposalPillar["items"]` (string[]) — string plana continua
+ *  funcionando (Elenita, sem mudança nenhuma); item objeto com `locked: true` ganha o ícone de
+ *  cadeado. Tipo local (não toca `lib/clients/proposal-types.ts`, legado/intocado). */
+type PillarWithLockableItems = ProposalPillarWithLocks | ProposalPillar;
 
 /**
  * Expande no hover (desktop) e também por clique/toque (funciona em mobile, onde hover não
  * existe) — os dois gatilhos controlam o mesmo estado `isOpen`, então o comportamento é
  * consistente em qualquer dispositivo.
  */
-function PillarCard({ pillar, accent }: { pillar: ProposalPillar; accent: string }) {
+function PillarCard({ pillar, accent }: { pillar: PillarWithLockableItems; accent: string }) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -41,12 +47,16 @@ function PillarCard({ pillar, accent }: { pillar: ProposalPillar; accent: string
             transition={{ duration: 0.4, ease: "easeInOut" }}
             className="mt-2 flex flex-col gap-2 overflow-hidden"
           >
-            {pillar.items.map((item) => (
-              <li key={item} className="flex items-start gap-2.5 pt-4 text-sm text-white/65 first:pt-6">
-                <span className="mt-1.5 size-1 shrink-0 rounded-full" style={{ backgroundColor: accent }} />
-                {item}
-              </li>
-            ))}
+            {pillar.items.map((item, itemIndex) => {
+              const locked = typeof item === "object" && item.locked;
+              const label = typeof item === "string" ? item : item.label;
+              return (
+                <li key={itemIndex} className={`flex items-start gap-2.5 pt-4 text-sm first:pt-6 ${locked ? "text-white/35" : "text-white/65"}`}>
+                  {locked ? <Lock className="mt-0.5 size-3 shrink-0 text-white/30" /> : <span className="mt-1.5 size-1 shrink-0 rounded-full" style={{ backgroundColor: accent }} />}
+                  {label}
+                </li>
+              );
+            })}
           </motion.ul>
         )}
       </AnimatePresence>
@@ -60,7 +70,7 @@ export function ProposalPillars({
   accent,
 }: {
   intro: { eyebrow: string; heading: string; subtitle: string };
-  pillars: ProposalPillar[];
+  pillars: PillarWithLockableItems[];
   accent: string;
 }) {
   return (

@@ -2,8 +2,10 @@
 
 import { useRef } from "react";
 import { motion, useScroll, useSpring } from "framer-motion";
+import { Camera, Check } from "lucide-react";
 import { ProposalSectionHeader } from "@/components/proposal/proposal-section-header";
 import type { ProposalContent, RoadmapStage } from "@/lib/clients/proposal-types";
+import type { RoadmapFunnel, RoadmapProductionBlock } from "@/lib/comercial/proposal-content-types";
 
 function RoadmapStageRow({ stage, accent, index }: { stage: RoadmapStage; accent: string; index: number }) {
   return (
@@ -35,13 +37,108 @@ function RoadmapStageRow({ stage, accent, index }: { stage: RoadmapStage; accent
   );
 }
 
+/** Bloco "N Diárias de Captação" (opcional) — pedido explícito, não existe na Elenita. Card único,
+ *  composição de equipe + entregável em destaque. */
+function ProductionBlock({ block, accent }: { block: RoadmapProductionBlock; accent: string }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.5 }}
+      transition={{ duration: 0.6, ease: "easeOut" }}
+      className="mx-auto mt-16 flex max-w-2xl flex-col items-center gap-6 border border-white/10 p-8 text-center lg:p-10"
+    >
+      <Camera className="size-5" style={{ color: accent }} />
+      <h3 className="font-display text-2xl text-white sm:text-3xl">{block.heading}</h3>
+      <ul className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+        {block.items.map((item) => (
+          <li key={item} className="flex items-center gap-2 text-sm text-white/60">
+            <Check className="size-3.5 shrink-0" style={{ color: accent }} />
+            {item}
+          </li>
+        ))}
+      </ul>
+      <p className="font-mono text-xs uppercase tracking-wide" style={{ color: accent }}>
+        {block.deliverable}
+      </p>
+    </motion.div>
+  );
+}
+
+/** Bloco "estratégia por trás" (opcional) — matriz perfis × etapas de funil + detalhe de cada
+ *  etapa (objetivo + até 2 vídeos explicativos). Vídeo vazio = espaço reservado, sem placeholder
+ *  visível (pedido: "deixar espaço para eu subir" — a estrutura já existe, o vídeo chega depois
+ *  via editor). */
+function FunnelBlock({ funnel, accent }: { funnel: RoadmapFunnel; accent: string }) {
+  return (
+    <div className="mx-auto mt-24 max-w-4xl">
+      <h3 className="text-center font-display text-2xl text-white sm:text-3xl">{funnel.heading}</h3>
+
+      {/* Matriz perfis × etapas — cada perfil é uma coluna, cada linha é uma etapa de funil */}
+      <div className="mt-10 grid gap-px overflow-hidden rounded-lg border border-white/10 bg-white/10" style={{ gridTemplateColumns: `repeat(${funnel.profiles.length}, 1fr)` }}>
+        {funnel.profiles.map((profile) => (
+          <div key={profile} className="bg-black px-3 py-3 text-center font-mono text-xs uppercase tracking-wide text-white/70">
+            {profile}
+          </div>
+        ))}
+        {funnel.stages.flatMap((stage) =>
+          funnel.profiles.map((profile) => (
+            <div key={`${stage.heading}-${profile}`} className="bg-black px-3 py-3 text-center text-xs text-white/45">
+              {stage.heading}
+            </div>
+          )),
+        )}
+      </div>
+
+      {/* Detalhe de cada etapa — objetivo + vídeos explicativos (quando já enviados) */}
+      <div className="mt-14 flex flex-col gap-12">
+        {funnel.stages.map((stage, index) => (
+          <motion.div
+            key={stage.heading}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.4 }}
+            transition={{ duration: 0.6, delay: index * 0.06, ease: "easeOut" }}
+            className="flex flex-col gap-4"
+          >
+            <div className="flex items-center gap-3">
+              <span className="h-px w-8 shrink-0" style={{ backgroundColor: accent }} />
+              <h4 className="font-display text-xl text-white sm:text-2xl">{stage.heading}</h4>
+            </div>
+            <p className="max-w-xl text-sm leading-relaxed text-white/55 sm:text-base">{stage.objective}</p>
+            {stage.videos.length > 0 && (
+              <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {stage.videos.map((video) => (
+                  // eslint-disable-next-line jsx-a11y/media-has-caption
+                  <video
+                    key={video.url}
+                    src={video.url}
+                    controls
+                    preload="metadata"
+                    className={`w-full overflow-hidden rounded-lg border border-white/10 bg-black object-cover ${video.orientation === "vertical" ? "aspect-[9/16]" : "aspect-video"}`}
+                  />
+                ))}
+              </div>
+            )}
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /**
- * Roadmap Agosto–Dezembro — linha vertical lateral com indicador de progresso próprio (preenche
- * conforme a seção é rolada, `useScroll({ target })` escopado a este container, diferente da
- * barra de progresso global no topo da página). Cada etapa revela com fade + slide sutil ao
- * entrar na tela.
+ * Roadmap — linha vertical lateral com indicador de progresso próprio (preenche conforme a seção
+ * é rolada). Dois blocos NOVOS opcionais (`production`/`funnel`, `proposal-content-types.ts`) —
+ * ausentes = renderiza exatamente como a proposta da Elenita sempre renderizou (só `stages`).
  */
-export function ProposalRoadmap({ content, accent }: { content: ProposalContent["roadmap"]; accent: string }) {
+export function ProposalRoadmap({
+  content,
+  accent,
+}: {
+  content: ProposalContent["roadmap"] & { production?: RoadmapProductionBlock | null; funnel?: RoadmapFunnel | null };
+  accent: string;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: containerRef, offset: ["start 0.7", "end 0.6"] });
   const lineScale = useSpring(scrollYProgress, { stiffness: 200, damping: 40, restDelta: 0.001 });
@@ -53,16 +150,21 @@ export function ProposalRoadmap({ content, accent }: { content: ProposalContent[
         <p className="mx-auto mt-5 max-w-md text-balance text-center text-base leading-relaxed text-white/55">{content.subtitle}</p>
       </div>
 
-      <div ref={containerRef} className="relative mx-auto mt-16 max-w-2xl">
-        <div className="absolute left-5 top-2 bottom-2 w-px bg-white/10" aria-hidden="true" />
-        <motion.div className="absolute left-5 top-2 w-px origin-top" style={{ scaleY: lineScale, height: "calc(100% - 16px)", backgroundColor: accent }} aria-hidden="true" />
+      {content.stages.length > 0 && (
+        <div ref={containerRef} className="relative mx-auto mt-16 max-w-2xl">
+          <div className="absolute left-5 top-2 bottom-2 w-px bg-white/10" aria-hidden="true" />
+          <motion.div className="absolute left-5 top-2 w-px origin-top" style={{ scaleY: lineScale, height: "calc(100% - 16px)", backgroundColor: accent }} aria-hidden="true" />
 
-        <div className="flex flex-col gap-14">
-          {content.stages.map((stage, index) => (
-            <RoadmapStageRow key={stage.number} stage={stage} accent={accent} index={index} />
-          ))}
+          <div className="flex flex-col gap-14">
+            {content.stages.map((stage, index) => (
+              <RoadmapStageRow key={stage.number} stage={stage} accent={accent} index={index} />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
+
+      {content.production && <ProductionBlock block={content.production} accent={accent} />}
+      {content.funnel && <FunnelBlock funnel={content.funnel} accent={accent} />}
     </section>
   );
 }
