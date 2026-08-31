@@ -9,10 +9,12 @@ import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { StatusDot, type StatusTone } from "@/components/dashboard/status-dot";
 import { QuoteBuilderDialog } from "@/components/comercial/quote-builder-dialog";
+import { LeadProposalsSection } from "@/components/comercial/lead-proposals-section";
 import { getLeadEventsAction, logLeadActivityAction, moveLeadStageAction, updateLeadAction } from "@/lib/comercial/actions";
 import { getQuotesForLeadAction } from "@/lib/comercial/quote-actions";
+import { listProposalsForLeadAction } from "@/lib/comercial/proposal-actions";
 import { stageColorClasses } from "@/lib/comercial/stage-colors";
-import type { Event, PipelineStage, QuoteStatus, User } from "@/lib/supabase/types/database";
+import type { Event, PipelineStage, Proposal, QuoteStatus, User } from "@/lib/supabase/types/database";
 import type { QuoteWithItems } from "@/lib/comercial/quotes";
 import type { LeadPatch, LeadWithRelations } from "@/lib/comercial/types";
 import { cn } from "@/lib/utils";
@@ -65,6 +67,7 @@ export function LeadDetailDrawer({
   const [error, setError] = useState<string | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
   const [quotes, setQuotes] = useState<QuoteWithItems[]>([]);
+  const [proposals, setProposals] = useState<Proposal[]>([]);
   const [quoteBuilderOpen, setQuoteBuilderOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -76,8 +79,10 @@ export function LeadDetailDrawer({
     setIsPositiveResponse(false);
     setEvents([]);
     setQuotes([]);
+    setProposals([]);
     getLeadEventsAction(lead.id).then(setEvents);
     getQuotesForLeadAction(lead.id).then(setQuotes);
+    listProposalsForLeadAction(lead.id).then(setProposals);
   }, [lead]);
 
   function refreshQuotes() {
@@ -255,6 +260,8 @@ export function LeadDetailDrawer({
           <Button type="button" onClick={handleSave} disabled={isPending}>
             {isPending ? "Salvando..." : "Salvar alterações"}
           </Button>
+
+          <LeadProposalsSection leadId={lead.id} ownerName={lead.company_name || lead.contact_name || "Lead"} proposals={proposals} />
 
           <div className="flex flex-col gap-3 border-t border-border/60 pt-4">
             <div className="flex items-center justify-between">

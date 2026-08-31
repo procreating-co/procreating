@@ -5,6 +5,10 @@ import { AlertTriangle, ArrowRight, UserRound } from "lucide-react";
 import { getCurrentUserId } from "@/lib/supabase/current-user";
 import { computeWorkspaceOverview } from "@/lib/workspace/queries";
 import { listTeamUsers } from "@/lib/operacao/queries";
+import { listClientsForTasksAction, listTaskGroupsForTasksAction, getRunningFocusSessionAction } from "@/lib/tasks/actions";
+import { listTaskStrategiesAction } from "@/lib/tasks/strategy-actions";
+import { listTimeBlocksForDayAction } from "@/lib/tasks/time-block-actions";
+import { todayISO } from "@/lib/date";
 import { GreetingHeader } from "@/components/dashboard/greeting-header";
 import { WorkspaceTasks } from "@/components/workspace-tasks/workspace-tasks";
 import { WeekView } from "@/components/workspace-tasks/week-view";
@@ -29,7 +33,15 @@ export default async function WorkspacePage() {
   const userId = await getCurrentUserId();
   if (!userId) redirect(ADMIN_LOGIN_PATH);
 
-  const [overview, teamMembers] = await Promise.all([computeWorkspaceOverview(userId), listTeamUsers()]);
+  const [overview, teamMembers, clients, runningFocusSession, strategies, todayTimeBlocks] = await Promise.all([
+    computeWorkspaceOverview(userId),
+    listTeamUsers(),
+    listClientsForTasksAction(),
+    getRunningFocusSessionAction(),
+    listTaskStrategiesAction(),
+    listTimeBlocksForDayAction(userId, todayISO()),
+  ]);
+  const taskGroups = await listTaskGroupsForTasksAction(overview.dueTasks.map((t) => t.id));
 
   return (
     <main className="mx-auto flex max-w-[1400px] flex-col gap-10 px-6 pt-8 pb-16 lg:px-10">
@@ -58,7 +70,16 @@ export default async function WorkspacePage() {
           title="Tarefas de hoje"
           description={overview.todayProgress ? `${overview.todayProgress.done} de ${overview.todayProgress.total} tarefas concluídas hoje` : undefined}
         />
-        <WorkspaceTasks tasks={overview.dueTasks} userId={userId} teamMembers={teamMembers} />
+        <WorkspaceTasks
+          tasks={overview.dueTasks}
+          userId={userId}
+          teamMembers={teamMembers}
+          clients={clients}
+          taskGroups={taskGroups}
+          initialRunningSession={runningFocusSession}
+          strategies={strategies}
+          todayTimeBlocks={todayTimeBlocks}
+        />
       </section>
 
       <section className="flex flex-col gap-4">

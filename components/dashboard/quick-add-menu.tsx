@@ -13,8 +13,9 @@ import { LeadFormDialog } from "@/components/comercial/lead-form-dialog";
 import { ExpenseFormDialog } from "@/components/financeiro/expense-form-dialog";
 import { OnboardingModal } from "@/components/onboarding/onboarding-modal";
 import { createWonLeadForSaleAction, listStrategiesAction } from "@/lib/comercial/actions";
-import { createTaskAction } from "@/lib/tasks/actions";
-import { describeQuickTaskPreview, parseQuickTask } from "@/lib/tasks/quick-parse";
+import { createTaskAction, createTaskBatchAction, listClientsForTasksAction } from "@/lib/tasks/actions";
+import { describeQuickTaskPreview, parseQuickTask, type QuickParseClient } from "@/lib/tasks/quick-parse";
+import { parseTaskBatch } from "@/lib/tasks/batch-parse";
 import { inviteTeamMemberAction } from "@/lib/admin/auth/actions";
 import { listTeamUsersAction } from "@/lib/operacao/actions";
 import { useAdminUser } from "@/lib/admin/auth/auth-context";
@@ -61,6 +62,7 @@ export function QuickAddMenu() {
   const [step, setStep] = useState<Step>("picker");
   const [strategies, setStrategies] = useState<Strategy[]>([]);
   const [teamMembers, setTeamMembers] = useState<User[]>([]);
+  const [clients, setClients] = useState<QuickParseClient[]>([]);
 
   const [saleName, setSaleName] = useState("");
   const [saleValue, setSaleValue] = useState("");
@@ -85,7 +87,10 @@ export function QuickAddMenu() {
     if (step === "tarefa" && teamMembers.length === 0) {
       listTeamUsersAction().then(setTeamMembers);
     }
-  }, [step, strategies.length, teamMembers.length]);
+    if (step === "tarefa" && clients.length === 0) {
+      listClientsForTasksAction().then(setClients);
+    }
+  }, [step, strategies.length, teamMembers.length, clients.length]);
 
   // Atalhos de teclado (§61, `KeyboardShortcuts`) — "N"/"C" abrem este menu já no passo certo,
   // sem duplicar o formulário/Server Action que o picker já delega.
@@ -132,17 +137,52 @@ export function QuickAddMenu() {
     e.preventDefault();
     if (!taskText.trim()) return;
     setTaskError(null);
-    const parsed = parseQuickTask(taskText, teamMembers);
+
+    const batch = parseTaskBatch(taskText, teamMembers, clients);
+    if (batch) {
+      startTransition(async () => {
+        for (const group of [{ title: null as string | null, items: batch.ungrouped }, ...batch.groups]) {
+          if (group.items.length === 0) continue;
+          const result = await createTaskBatchAction(
+            group.title,
+            group.items.map((item) => ({
+              title: item.title,
+              assigneeId: item.assigneeId ?? user.id,
+              dueDate: item.dueDate,
+              dueTime: item.dueTime,
+              clientId: item.clientId,
+              estimatedMinutes: item.estimatedMinutes,
+              contextType: null,
+              contextId: null,
+            })),
+          );
+          if (!result.ok) {
+            setTaskError(result.error);
+            return;
+          }
+        }
+        closeAll();
+        router.refresh();
+      });
+      return;
+    }
+
+    const parsed = parseQuickTask(taskText, teamMembers, clients);
     if (!parsed.title) {
       setTaskError("A tarefa ficou sem título depois de tirar data/hora/responsável — reescreva.");
       return;
     }
+    // Ambiguidade de cliente (2+ batendo) — o picker do "+" é rápido de propósito, sem diálogo de
+    // confirmação próprio aqui: cria sem cliente (nunca escolhe sozinho) e deixa a correção pra
+    // `/workspace` (que tem o diálogo de confirmação) ou pra edição manual da tarefa.
     startTransition(async () => {
       const result = await createTaskAction({
         title: parsed.title,
         assigneeId: parsed.assigneeId ?? user.id,
         dueDate: parsed.dueDate,
         dueTime: parsed.dueTime,
+        clientId: parsed.clientCandidates.length > 1 ? null : parsed.clientId,
+        estimatedMinutes: parsed.estimatedMinutes,
         contextType: null,
         contextId: null,
       });
@@ -302,16 +342,25 @@ export function QuickAddMenu() {
                 <DialogTitle>Nova tarefa</DialogTitle>
               </DialogHeader>
               <div className="flex flex-col gap-2">
-                <Label htmlFor="task-title">O quê, quando, com quem?</Label>
-                <Input
+                <Label htmlFor="task-title">O que precisa ser feito?</Label>
+                <textarea
                   id="task-title"
                   value={taskText}
                   onChange={(e) => setTaskText(e.target.value)}
-                  placeholder='"Editar vídeo amanhã às 15h" ou "@Eduardo ligar pro cliente sexta"'
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleTaskSubmit(e as unknown as FormEvent);
+                    }
+                  }}
+                  placeholder='"@eduardo atualizar CRM amanhã" — ou cole várias linhas ("Operacional:" + "Elenita: roteiro, reunião...")'
+                  rows={taskText.includes("\n") ? Math.min(8, taskText.split("\n").length + 1) : 2}
                   required
                   autoFocus
+                  className="resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                 />
-                {taskText.trim() && <p className="text-xs text-muted-foreground">{describeQuickTaskPreview(taskText, teamMembers)}</p>}
+                {taskText.trim() && !taskText.includes("\n") && <p className="text-xs text-muted-foreground">{describeQuickTaskPreview(taskText, teamMembers, clients)}</p>}
+                {taskText.includes("\n") && <p className="text-xs text-muted-foreground">Várias linhas — cada uma vira uma tarefa ao adicionar.</p>}
               </div>
               {taskError && (
                 <p role="alert" className="text-sm text-destructive">

@@ -497,6 +497,7 @@ export type ClientContact = {
 // `close_lead_and_create_client`) é gravado; `context_type` nulo = tarefa solta (Meu Dia).
 // ---------------------------------------------------------------------------
 export type TaskStatus = "pending" | "in_progress" | "done";
+export type TaskPriority = "low" | "medium" | "high";
 
 export type Task = {
   id: string;
@@ -512,6 +513,86 @@ export type Task = {
   created_by: string;
   created_at: string;
   updated_at: string;
+  /** Task Intelligence (migration `20260827000000_task_intelligence.sql`) — todas opcionais,
+   *  nenhuma tarefa antiga quebra. `client_id` é o cliente identificado pelo parser (ou escolhido
+   *  na edição), nunca inventado quando ambíguo. `position`: `double precision` espaçado de 1000
+   *  no backfill — reordenar recalcula só o item movido (média entre vizinhos), nunca as outras
+   *  linhas. `group_id` liga a tarefa a um `TaskGroup` (entrada em lote, "Operacional: ..."). */
+  client_id: string | null;
+  estimated_minutes: number | null;
+  priority: TaskPriority | null;
+  position: number;
+  group_id: string | null;
+};
+
+// ---------------------------------------------------------------------------
+// TaskGroup / TimeBlock / FocusSession — Task Intelligence (migration
+// `20260827000000_task_intelligence.sql`). Task = o que precisa ser feito; TaskGroup = como
+// tarefas se relacionam (lote); TimeBlock = quando será feito (fundação de schema, sem UI de
+// agendamento ainda); FocusSession = quanto tempo foi de fato gasto executando — Pomodoro é só
+// um `mode` desta última, nunca uma entidade própria.
+// ---------------------------------------------------------------------------
+export type TaskGroup = {
+  id: string;
+  title: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type TimeBlockStatus = "planned" | "done" | "cancelled";
+
+export type TimeBlock = {
+  id: string;
+  task_id: string;
+  start_at: string;
+  end_at: string;
+  status: TimeBlockStatus;
+  created_by: string;
+  created_at: string;
+};
+
+export type FocusSessionMode = "pomodoro" | "free";
+
+export type FocusSession = {
+  id: string;
+  task_id: string;
+  time_block_id: string | null;
+  user_id: string;
+  mode: FocusSessionMode;
+  planned_minutes: number | null;
+  started_at: string;
+  ended_at: string | null;
+  duration_seconds: number | null;
+  completed: boolean;
+  created_at: string;
+};
+
+// ---------------------------------------------------------------------------
+// TaskStrategy / TaskStrategyItem — Task Intelligence, parte 2 (migration
+// `20260827010000_task_strategies.sql`). NOME diferente de `Strategy` (acima) de propósito —
+// aquela é posicionamento comercial, esta é um molde de checklist de tarefas. Uma
+// `TaskStrategy` nunca é "aplicada" sozinha: vira `task_group` + `tasks` reais via
+// `applyTaskStrategyAction`, mesma forma final de um lote colado (`parseTaskBatch`).
+// ---------------------------------------------------------------------------
+export type TaskStrategy = {
+  id: string;
+  title: string;
+  description: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type TaskStrategyItem = {
+  id: string;
+  strategy_id: string;
+  title: string;
+  order_index: number;
+  estimated_minutes: number | null;
+  depends_on_item_id: string | null;
+  default_assignee_id: string | null;
+  created_at: string;
 };
 
 // ---------------------------------------------------------------------------
@@ -762,6 +843,71 @@ export type QuoteItem = {
 };
 
 // ---------------------------------------------------------------------------
+// Propostas (migration `20260828000000_proposals.sql`, docs/proposal-system-architecture.md) —
+// Lead → Proposal → Client. Não confundir com Quote (acima, mantida intocada e em paralelo) nem
+// com `templates`/`projects`/`project_versions` do Page-Builder (congelado, domínio diferente).
+// `ProposalSection.content` — o shape varia por `section_type`, documentado em
+// `lib/comercial/proposal-content-types.ts`, não aqui (evita este arquivo virar union gigante).
+// ---------------------------------------------------------------------------
+export type ProposalStatus = "draft" | "sent" | "negotiating" | "revision_requested" | "accepted" | "rejected" | "expired" | "archived" | "cancelled";
+// 7 tipos = os 7 componentes reais de `components/proposal/**` (a Proposta de Continuidade da
+// Elenita, agora o template padrão — migration `20260901000000_proposal_elenita_template.sql`).
+export type ProposalSectionType = "hero" | "pillars" | "roadmap" | "tv_program" | "acquisition" | "budget" | "closing";
+
+export type ProposalTemplate = {
+  id: string;
+  title: string;
+  description: string | null;
+  accent_color: string;
+  section_blueprint: { sectionType: ProposalSectionType; content: Record<string, unknown> }[];
+  version: number;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Proposal = {
+  id: string;
+  lead_id: string | null;
+  client_id: string | null;
+  template_id: string;
+  slug: string;
+  title: string;
+  brand_name: string;
+  accent_color: string | null;
+  status: ProposalStatus;
+  accepted_version_id: string | null;
+  current_version_number: number;
+  view_count: number;
+  first_viewed_at: string | null;
+  last_viewed_at: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ProposalVersion = {
+  id: string;
+  proposal_id: string;
+  version_number: number;
+  snapshot: { sectionType: ProposalSectionType; content: Record<string, unknown> }[];
+  sent_at: string;
+  created_by: string;
+  created_at: string;
+};
+
+export type ProposalSection = {
+  id: string;
+  proposal_id: string;
+  section_type: ProposalSectionType;
+  content: Record<string, unknown>;
+  position: number;
+  visible: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+// ---------------------------------------------------------------------------
 // Aproximação do formato gerado por `supabase gen types typescript`. `Insert`/`Update` aqui
 // são só `Partial<Row>` — o gerado de verdade tem nullability exata por coluna. Trocar por esse
 // quando o schema existir num projeto real.
@@ -800,6 +946,11 @@ export type Database = {
       client_onboarding: TableDef<ClientOnboarding>;
       client_contacts: TableDef<ClientContact>;
       tasks: TableDef<Task>;
+      task_groups: TableDef<TaskGroup>;
+      time_blocks: TableDef<TimeBlock>;
+      focus_sessions: TableDef<FocusSession>;
+      task_strategies: TableDef<TaskStrategy>;
+      task_strategy_items: TableDef<TaskStrategyItem>;
       revenue: TableDef<Revenue>;
       expenses: TableDef<Expense>;
       costs: TableDef<Cost>;
@@ -815,6 +966,10 @@ export type Database = {
       service_catalog: TableDef<ServiceCatalogItem>;
       quotes: TableDef<Quote>;
       quote_items: TableDef<QuoteItem>;
+      proposal_templates: TableDef<ProposalTemplate>;
+      proposals: TableDef<Proposal>;
+      proposal_versions: TableDef<ProposalVersion>;
+      proposal_sections: TableDef<ProposalSection>;
     };
     Views: {
       /** `WHERE status IN ('published', 'archived')` — evita repetir esse filtro em toda
@@ -897,6 +1052,21 @@ export type Database = {
       get_my_portal_client: {
         Args: Record<string, never>;
         Returns: { id: string; name: string; slug: string; status: string; city: string | null; state: string | null; project_stage: string | null }[];
+      };
+      /** Sistema de Propostas — `SECURITY DEFINER`, chamável por `anon` (o lead abrindo o link
+       *  público não tem sessão nenhuma). Resolve slug + checa `status` no mesmo passo — nunca
+       *  devolve uma proposta em draft/archived/cancelled. Devolve `null` se não encontrar. */
+      get_public_proposal: {
+        Args: { p_slug: string };
+        Returns: { id: string; title: string; status: string; accentColor: string; sections: { sectionType: string; content: Record<string, unknown> }[] } | null;
+      };
+      record_proposal_view: {
+        Args: { p_slug: string };
+        Returns: undefined;
+      };
+      respond_public_proposal: {
+        Args: { p_slug: string; p_response: string };
+        Returns: boolean;
       };
     };
   };

@@ -46,6 +46,19 @@ describe("parseQuickTask — data", () => {
     expect(result.dueDate).toBe(addDaysISO(todayISO(), 2));
   });
 
+  it("abreviação entre parênteses '(sex)' → sexta-feira, parênteses vazios somem do título", () => {
+    const targetIndex = 5; // sexta
+    const expectedOffset = (targetIndex - todayWeekdayIndex() + 7) % 7;
+    const result = parseQuickTask("marcar captação (sex)");
+    expect(result.dueDate).toBe(addDaysISO(todayISO(), expectedOffset));
+    expect(result.title).toBe("marcar captação");
+  });
+
+  it("'ter' (verbo comum) fora de parênteses NÃO é lido como terça — só a abreviação entre parênteses conta", () => {
+    const result = parseQuickTask("preciso ter uma reunião");
+    expect(result.title).toBe("preciso ter uma reunião");
+  });
+
   it("'próxima segunda' (com prefixo) também casa", () => {
     const targetIndex = (todayWeekdayIndex() + 3) % 7;
     const result = parseQuickTask(`ligar próxima ${WEEKDAY_NAMES[targetIndex]}`);
@@ -120,5 +133,91 @@ describe("parseQuickTask — combinação de tudo junto", () => {
   it("título vazio depois de tirar tudo → title vazio (chamador decide o erro)", () => {
     const result = parseQuickTask("@Eduardo amanhã às 15h", TEAM);
     expect(result.title).toBe("");
+  });
+});
+
+describe("parseQuickTask — duração estimada", () => {
+  it("'2h' → 120min", () => {
+    expect(parseQuickTask("editar vídeo 2h").estimatedMinutes).toBe(120);
+  });
+
+  it("'1h30' → 90min", () => {
+    expect(parseQuickTask("editar vídeo 1h30").estimatedMinutes).toBe(90);
+  });
+
+  it("'90min' → 90min", () => {
+    expect(parseQuickTask("editar vídeo 90min").estimatedMinutes).toBe(90);
+  });
+
+  it("'30 min' (com espaço) → 30min", () => {
+    expect(parseQuickTask("editar vídeo 30 min").estimatedMinutes).toBe(30);
+  });
+
+  it("'2 horas' → 120min, palavra removida do título", () => {
+    const result = parseQuickTask("editar vídeo 2 horas");
+    expect(result.estimatedMinutes).toBe(120);
+    expect(result.title).toBe("editar vídeo");
+  });
+
+  it("sem duração nenhuma → null", () => {
+    expect(parseQuickTask("editar vídeo").estimatedMinutes).toBeNull();
+  });
+});
+
+describe("parseQuickTask — pomodoro", () => {
+  it("'pomodoro' sozinho → 1 pomodoro, 25min, executionMode pomodoro", () => {
+    const result = parseQuickTask("escrever roteiro pomodoro");
+    expect(result.executionMode).toBe("pomodoro");
+    expect(result.pomodoros).toBe(1);
+    expect(result.estimatedMinutes).toBe(25);
+  });
+
+  it("'3 pomodoros' → 3, 75min", () => {
+    const result = parseQuickTask("escrever roteiro Pascoal amanhã 3 pomodoros", [], [{ id: "c1", name: "Pascoal Bombas" }]);
+    expect(result.executionMode).toBe("pomodoro");
+    expect(result.pomodoros).toBe(3);
+    expect(result.estimatedMinutes).toBe(75);
+    expect(result.clientId).toBe("c1");
+    expect(result.title).toBe("escrever roteiro");
+  });
+});
+
+describe("parseQuickTask — cliente", () => {
+  const CLIENTS = [
+    { id: "c1", name: "Dra. Elenita Luzardo" },
+    { id: "c2", name: "Pascoal Bombas" },
+    { id: "c3", name: "Maria das Graças" },
+    { id: "c4", name: "Maria Tabarez Harmonização Facial LTDA" },
+  ];
+
+  it("1 cliente bate → resolve direto, palavra some do título", () => {
+    const result = parseQuickTask("editar vídeo Elenita", [], CLIENTS);
+    expect(result.clientId).toBe("c1");
+    expect(result.clientName).toBe("Dra. Elenita Luzardo");
+    expect(result.title).toBe("editar vídeo");
+    expect(result.clientCandidates).toHaveLength(0);
+  });
+
+  it("nome que não bate com nenhum cliente → clientId null, palavra fica no título", () => {
+    const result = parseQuickTask("Arrumar roteador", [], CLIENTS);
+    expect(result.clientId).toBeNull();
+    expect(result.title).toBe("Arrumar roteador");
+  });
+
+  it("2 clientes batem na mesma palavra ('Maria') → não escolhe, devolve candidatos", () => {
+    const result = parseQuickTask("Reprogramar posts Maria", [], CLIENTS);
+    expect(result.clientId).toBeNull();
+    expect(result.clientCandidates).toHaveLength(2);
+    expect(result.clientCandidates.map((c) => c.id).sort()).toEqual(["c3", "c4"]);
+  });
+
+  it("combinação: @responsável + cliente + data + duração, tudo junto", () => {
+    const team = [{ id: "u1", name: "Eduardo Fraresso" }];
+    const result = parseQuickTask("@Eduardo roteiro Pascoal amanhã 2h", team, CLIENTS);
+    expect(result.assigneeId).toBe("u1");
+    expect(result.clientId).toBe("c2");
+    expect(result.dueDate).toBe(addDaysISO(todayISO(), 1));
+    expect(result.estimatedMinutes).toBe(120);
+    expect(result.title).toBe("roteiro");
   });
 });
