@@ -273,6 +273,21 @@
   --kanban-card-hover: hsl(0 0% 22%);
 }
 
+/*
+ * Painel legado `/admin` (`components/admin/shell/admin-shell.tsx`) — pedido explícito: a serif
+ * de exibição (Instrument Serif) nunca deve aparecer em nenhuma área interna/administrativa do
+ * site, só nas páginas públicas voltadas a cliente/lead (proposta da Elenita, landing page,
+ * portfólios), onde ela é identidade visual de propósito. `/admin` já ficava de fora do
+ * redesign de paleta do `.os-shell` (ver comentário ali — cores continuam as de `:root`, de
+ * propósito); esta classe sobrescreve SÓ `--font-family-display`, nunca cor nenhuma — headings
+ * do painel legado passam a usar o mesmo Instrument Sans que o corpo do texto já usa lá, sem
+ * herdar o Geist do `.os-shell` (que é uma mudança de identidade visual maior, fora de escopo
+ * aqui) nem a serif do `:root`.
+ */
+.admin-shell {
+  --font-family-display: var(--font-family-sans);
+}
+
 @theme inline {
   --font-sans: var(--font-family-sans);
   --font-mono: var(--font-family-mono);
