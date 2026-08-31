@@ -25,6 +25,11 @@ export function PeriodSelect({ paramKey = "months", defaultValue = "6" }: { para
     const params = new URLSearchParams(searchParams.toString());
     params.set(paramKey, value);
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    // BUG REAL corrigido (achado revisando o mesmo sintoma em month-kpi-navigator.tsx: "tela não
+    // atualiza" ao trocar de período) — `push()` sozinho numa navegação só-de-search-param não
+    // garante Server Component com dado novo; todo outro lugar do produto que precisa de dado
+    // fresco depois de ação do cliente já pareia push+refresh, este era a única exceção.
+    router.refresh();
   }
 
   return (
