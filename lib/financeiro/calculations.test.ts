@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { computeMargin, computeMrr, computeUpcomingReceivables, groupRevenueByClient, sumAmount, sumAmountForMonth } from "@/lib/financeiro/calculations";
-import { addDaysISO, todayISO } from "@/lib/date";
+import { computeMargin, computeMrr, computeUpcomingReceivables, contractCoversMonth, groupRevenueByClient, sumAmount, sumAmountForMonth } from "@/lib/financeiro/calculations";
+import { addDaysISO, monthKeyBounds, todayISO } from "@/lib/date";
 
 describe("sumAmount", () => {
   it("soma o campo amount de uma lista", () => {
@@ -43,6 +43,46 @@ describe("computeMrr", () => {
 
   it("sem contratos → 0", () => {
     expect(computeMrr([])).toBe(0);
+  });
+});
+
+describe("contractCoversMonth", () => {
+  const { start, end } = monthKeyBounds("09/2026"); // "2026-09-01".."2026-09-30"
+
+  it("contrato em aberto (end_date null) iniciado antes do mês cobre o mês", () => {
+    expect(contractCoversMonth({ start_date: "2026-01-15", end_date: null }, start, end)).toBe(true);
+  });
+
+  it("contrato que começa DEPOIS do mês não cobre", () => {
+    expect(contractCoversMonth({ start_date: "2026-10-01", end_date: null }, start, end)).toBe(false);
+  });
+
+  it("contrato que termina ANTES do mês não cobre", () => {
+    expect(contractCoversMonth({ start_date: "2026-01-01", end_date: "2026-08-31" }, start, end)).toBe(false);
+  });
+
+  it("contrato que termina DENTRO do mês cobre", () => {
+    expect(contractCoversMonth({ start_date: "2026-01-01", end_date: "2026-09-15" }, start, end)).toBe(true);
+  });
+
+  it("borda exata — start_date no último dia do mês cobre", () => {
+    expect(contractCoversMonth({ start_date: "2026-09-30", end_date: null }, start, end)).toBe(true);
+  });
+
+  it("borda exata — end_date no primeiro dia do mês cobre", () => {
+    expect(contractCoversMonth({ start_date: "2026-01-01", end_date: "2026-09-01" }, start, end)).toBe(true);
+  });
+
+  it("borda exata — start_date um dia depois do fim do mês não cobre", () => {
+    expect(contractCoversMonth({ start_date: "2026-10-01", end_date: null }, start, end)).toBe(false);
+  });
+
+  it("borda exata — end_date um dia antes do início do mês não cobre", () => {
+    expect(contractCoversMonth({ start_date: "2026-01-01", end_date: "2026-08-31" }, start, end)).toBe(false);
+  });
+
+  it("contrato inteiramente dentro do mês (começa e termina no mesmo mês) cobre", () => {
+    expect(contractCoversMonth({ start_date: "2026-09-05", end_date: "2026-09-20" }, start, end)).toBe(true);
   });
 });
 

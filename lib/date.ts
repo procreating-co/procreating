@@ -173,3 +173,32 @@ export function formatMonthKeyLong(monthKey: string): string {
   const [mm, yyyy] = monthKey.split("/");
   return `${MONTH_NAMES_PT[Number(mm) - 1] ?? mm}/${yyyy}`;
 }
+
+/** Desloca "MM/YYYY" em N meses (aceita negativo) — mesma aritmética inteira de `lastMonthKeys`
+ *  (total de meses desde o ano 0, sem `Date`/fuso envolvido). Base da navegação de mês do
+ *  Dashboard (◀▶). */
+export function shiftMonthKey(monthKey: string, delta: number): string {
+  const [mm, yyyy] = monthKey.split("/").map(Number);
+  const totalMonths = yyyy * 12 + (mm - 1) + delta;
+  const year = Math.floor(totalMonths / 12);
+  const month = (totalMonths % 12) + 1;
+  return `${String(month).padStart(2, "0")}/${year}`;
+}
+
+/** Compara duas "MM/YYYY" — negativo se `a` é antes de `b`, 0 se iguais, positivo se depois. */
+export function compareMonthKeys(a: string, b: string): number {
+  const [am, ay] = a.split("/").map(Number);
+  const [bm, by] = b.split("/").map(Number);
+  return ay * 12 + am - (by * 12 + bm);
+}
+
+/** Primeiro e último dia de "MM/YYYY" como `YYYY-MM-DD` — comparável por string com
+ *  `due_date`/`start_date`/`end_date` sem nunca construir um `Date` a partir deles (mesma regra
+ *  de sempre: comparação lexicográfica de `YYYY-MM-DD` já é comparação cronológica correta). */
+export function monthKeyBounds(monthKey: string): { start: string; end: string } {
+  const [mm, yyyy] = monthKey.split("/");
+  const year = Number(yyyy);
+  const month = Number(mm);
+  const lastDay = daysInMonth(year, month);
+  return { start: `${yyyy}-${mm}-01`, end: `${yyyy}-${mm}-${String(lastDay).padStart(2, "0")}` };
+}

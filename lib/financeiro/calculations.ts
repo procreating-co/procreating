@@ -26,6 +26,18 @@ export function computeMrr(contracts: { monthly_value: number | null }[]): numbe
   return contracts.reduce((sum, contract) => sum + Number(contract.monthly_value ?? 0), 0);
 }
 
+/** Contrato recorrente "cobre" um mês quando sua vigência (`start_date`..`end_date`, `end_date`
+ *  nulo = em aberto) sobrepõe o intervalo do mês (`monthStart`/`monthEnd`, `YYYY-MM-DD` de
+ *  `monthKeyBounds` em `lib/date.ts`) — comparação puramente por string (lexicográfica =
+ *  cronológica pra `YYYY-MM-DD`), nunca via `Date`. Base da projeção de Receita Recorrente do
+ *  Dashboard pra meses futuros (`lib/dashboard/month-kpis.ts`) — nunca a tabela `revenue`, que
+ *  não tem linhas confiavelmente pré-geradas pra meses futuros de contratos sem `end_date`. */
+export function contractCoversMonth(contract: { start_date: string; end_date: string | null }, monthStart: string, monthEnd: string): boolean {
+  if (contract.start_date > monthEnd) return false;
+  if (contract.end_date && contract.end_date < monthStart) return false;
+  return true;
+}
+
 /** Receita do mês − despesas do mês − custos fixos/variáveis (run-rate). */
 export function computeMargin(revenueThisMonth: number, expensesThisMonth: number, monthlyCostsTotal: number): number {
   return revenueThisMonth - expensesThisMonth - monthlyCostsTotal;
