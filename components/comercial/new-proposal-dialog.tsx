@@ -29,13 +29,13 @@ export function NewProposalDialog({
   const router = useRouter();
   const [templates, setTemplates] = useState<ProposalTemplate[]>([]);
   const [templateId, setTemplateId] = useState("");
-  const [title, setTitle] = useState(`Proposta — ${ownerName}`);
+  const [title, setTitle] = useState(`Proposta para ${ownerName}`);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
     if (!open) return;
-    setTitle(`Proposta — ${ownerName}`);
+    setTitle(`Proposta para ${ownerName}`);
     setError(null);
     listProposalTemplatesAction().then((list) => {
       setTemplates(list);

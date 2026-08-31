@@ -64,39 +64,43 @@ export type AcquisitionContent = { eyebrow: string; heading: string; cards: Acqu
  *  precisam de um configurador completo — mantido pra compatibilidade/casos simples. */
 export type BudgetUpsell = { label: string; unitPrice: number; max: number };
 
-/** Item que SOMA ao total (grupo "Adicionar") — pedido explícito, mockup completo de
- *  configurador. `kind` marca os dois addons especiais que também mudam a "linha de escopo"
- *  dinâmica (nº de locações/vídeos entregues, ex.: "03 captações em 03 locações · 09 vídeos");
- *  `"other"` só soma ao total, sem afetar essas contagens. */
+/** Item que SOMA ao total (grupo "Adicionar"). `unitPrice`/`unitLabel` ficam só no dado (editor
+ *  usa pra calcular certo) — pedido explícito revisado: preço unitário é SEGREDO, nunca aparece
+ *  no público (nem como texto "R$X cada", nem como delta ao lado do stepper, nem em recibo/
+ *  rodapé — só o total muda). `kind` marca os dois addons especiais que também mudam a contagem
+ *  de captações/vídeos mostrada em "O que está incluso"; `"other"` só soma ao total. */
 export type BudgetConfiguratorAddon = { id: string; label: string; sublabel: string; unitPrice: number; unitLabel: string; max: number; kind: "location" | "video" | "other" };
 
-/** Item que SUBTRAI do total via toggle (grupo "Reduzir") — ex.: remover um membro de equipe. */
+/** Item que SUBTRAI do total via toggle (grupo "Reduzir") — ex.: remover um membro de equipe.
+ *  `savings` é interno (editor), nunca renderizado como texto no público. */
 export type BudgetConfiguratorRemovable = { id: string; label: string; sublabel: string; savings: number; defaultOn: boolean };
 
 /** Contador de vídeos entregues no pacote base (reduz o total conforme diminui) — item especial
- *  do grupo "Reduzir", separado de `removables` (é um range, não um toggle binário). */
+ *  do grupo "Reduzir", separado de `removables` (é um range, não um toggle binário). `unitPrice`
+ *  interno, mesma regra de segredo. */
 export type BudgetConfiguratorVideoRange = { label: string; sublabel: string; unitPrice: number; min: number; max: number; initial: number };
 
+/** Um papel de equipe da captação, pra exibição visual (ícone + contagem) em "O que está
+ *  incluso" — pedido explícito: "deixe bem visual e claro que serão captações com videomaker,
+ *  fotógrafo, operador de drone, etc." `role` escolhe o ícone; `label` é o texto (ex.: "2
+ *  Videomakers"). */
+export type BudgetTeamRole = { role: "videomaker" | "fotografo" | "drone" | "editor" | "outro"; label: string };
+
 /**
- * Configurador de investimento completo (opcional) — pedido explícito, baseado num mockup:
- * preço-âncora riscado (opcional), pill de condição de pagamento, linha de escopo dinâmica,
- * 2 cards (Captação/Entrega), grupos "Adicionar"/"Reduzir" com steppers/toggles, recibo ao vivo
- * somando cada ajuste, rodapé "Incluso"/"Adicionais avulsos" com preço unitário visível (design
- * transparente — diferente do `BudgetUpsell` v1, que escondia o preço unitário de propósito;
- * este mockup mostra tudo, é a direção nova). Ausente = `ProposalBudget` renderiza a versão
- * clássica (4 pilares + incluso/adicionais estáticos + cascata) — a Elenita não preenche isso,
- * continua exatamente como sempre.
+ * Configurador de investimento completo (opcional) — pedido explícito, revisado depois do
+ * feedback no mockup original: "Orçamento" aparece primeiro (antes do valor), sem âncora/pill de
+ * pagamento/linha de escopo/preço-por-vídeo na abertura, um bloco "O que está incluso" visual
+ * (equipe por ícone, captações, vídeos, estratégia por perfil, pagamento) e "Personalize seu
+ * pacote" (adicionar E reduzir) sem NENHUM preço unitário visível em lugar nenhum — só o total
+ * muda. Ausente = `ProposalBudget` renderiza a versão clássica (4 pilares + incluso/adicionais
+ * estáticos + cascata) — a Elenita não preenche isso, continua exatamente como sempre.
  */
 export type BudgetConfigurator = {
-  anchorPrice: number | null;
-  anchorLabel: string;
   paymentTerms: string;
   baseLocations: number;
   baseVideos: number;
-  captureLabel: string;
-  teamSummary: string;
-  deliveryLabel: string;
-  deliveryNote: string;
+  teamRoles: BudgetTeamRole[];
+  strategyNote: string;
   addons: BudgetConfiguratorAddon[];
   removables: BudgetConfiguratorRemovable[];
   videoRange: BudgetConfiguratorVideoRange | null;
