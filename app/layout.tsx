@@ -1,18 +1,12 @@
 import React from "react"
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono, Instrument_Sans, Instrument_Serif, JetBrains_Mono } from 'next/font/google'
+import { Geist, Geist_Mono, Instrument_Sans, JetBrains_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
 const instrumentSans = Instrument_Sans({
   subsets: ["latin"],
   variable: '--font-instrument'
-});
-
-const instrumentSerif = Instrument_Serif({
-  subsets: ["latin"],
-  weight: "400",
-  variable: '--font-instrument-serif'
 });
 
 const jetbrainsMono = JetBrains_Mono({
@@ -23,7 +17,7 @@ const jetbrainsMono = JetBrains_Mono({
 // Geist/Geist Mono — só usados dentro do shell interno (`.os-shell`, ver app/globals.css), que
 // redefine --font-sans/--font-mono/--font-display pra apontar pra estes vars. Carregados aqui
 // (junto dos fonts existentes, sem removê-los) porque next/font/google precisa da chamada no
-// nível do módulo — /admin e /clients continuam 100% em Instrument Sans/Serif, intocados.
+// nível do módulo — /admin e /clients continuam 100% em Instrument Sans, intocados.
 const geistSans = Geist({
   subsets: ["latin"],
   variable: '--font-geist-sans',
@@ -56,7 +50,7 @@ export default function RootLayout({
     // do Tailwind (bug encontrado no redesign monocromático/Geist).
     <html
       lang="pt-BR"
-      className={`bg-background ${instrumentSans.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} ${geistSans.variable} ${geistMono.variable}`}
+      className={`bg-background ${instrumentSans.variable} ${jetbrainsMono.variable} ${geistSans.variable} ${geistMono.variable}`}
     >
       <body className="font-sans antialiased">
         {children}

@@ -68,7 +68,14 @@
      igual às cores. */
   --font-family-sans: var(--font-instrument), 'Instrument Sans', system-ui, sans-serif;
   --font-family-mono: var(--font-jetbrains), 'JetBrains Mono', monospace;
-  --font-family-display: var(--font-instrument-serif), 'Instrument Serif', Georgia, serif;
+  /* Pedido explícito (reafirmado depois de aparecer nas Propostas): a serif de exibição
+     (Instrument Serif) nunca deve ser usada em NENHUMA página do site, sem exceção — inclusive
+     a proposta da Elenita, que usava essa fonte de propósito antes deste pedido. `--font-display`
+     agora é só um alias de `--font-family-sans` em toda parte; a fonte em si foi removida do
+     carregamento (`app/layout.tsx`, `Instrument_Serif` não é mais importado). `.os-shell` e
+     `.admin-shell` (abaixo) continuam com suas próprias sobrescritas — hoje redundantes com esta
+     (ambas já eram sans), mantidas por clareza de escopo, não por necessidade. */
+  --font-family-display: var(--font-family-sans);
 
   --radius: 0.75rem;
   --sidebar: oklch(0.06 0.008 260);
