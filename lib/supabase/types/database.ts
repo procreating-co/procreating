@@ -852,7 +852,7 @@ export type QuoteItem = {
 export type ProposalStatus = "draft" | "sent" | "negotiating" | "revision_requested" | "accepted" | "rejected" | "expired" | "archived" | "cancelled";
 // 7 tipos = os 7 componentes reais de `components/proposal/**` (a Proposta de Continuidade da
 // Elenita, agora o template padrão — migration `20260901000000_proposal_elenita_template.sql`).
-export type ProposalSectionType = "hero" | "pillars" | "roadmap" | "tv_program" | "acquisition" | "budget" | "closing";
+export type ProposalSectionType = "hero" | "pillars" | "roadmap" | "tv_program" | "acquisition" | "budget" | "closing" | "portfolio";
 
 export type ProposalTemplate = {
   id: string;

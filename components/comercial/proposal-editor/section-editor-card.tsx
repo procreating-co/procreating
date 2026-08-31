@@ -4,7 +4,8 @@ import { useState } from "react";
 import { ChevronDown, ChevronUp, Copy, Eye, EyeOff, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { SECTION_TYPE_LABEL } from "@/lib/comercial/proposal-content-types";
+import { VideoUploadField } from "@/components/comercial/proposal-editor/video-upload-field";
+import { MAX_PORTFOLIO_VIDEOS, SECTION_TYPE_LABEL, type ProposalVideo } from "@/lib/comercial/proposal-content-types";
 import type { ProposalSection } from "@/lib/supabase/types/database";
 import { cn } from "@/lib/utils";
 
@@ -108,6 +109,19 @@ export function SectionEditorCard({
             </Field>
           )}
 
+          {/* hero — vídeo de fundo (opcional). Ausente = ProposalHero renderiza exatamente como
+              hoje (ProposalHeroAtmosphere) — nunca altera a proposta da Elenita, que não tem
+              esse campo preenchido. */}
+          {section.section_type === "hero" && (
+            <VideoUploadField
+              proposalId={section.proposal_id}
+              pathPrefix="hero-background"
+              label="Vídeo de fundo (opcional)"
+              value={content.backgroundVideoUrl ? { url: content.backgroundVideoUrl, orientation: content.backgroundVideoOrientation } : null}
+              onChange={(video) => set({ backgroundVideoUrl: video?.url ?? null, backgroundVideoOrientation: video?.orientation ?? null })}
+            />
+          )}
+
           {/* pillars — intro + lista de pilares (número/título/descrição/itens) */}
           {section.section_type === "pillars" && (
             <>
@@ -195,7 +209,44 @@ export function SectionEditorCard({
               />
             </div>
           )}
+
+          {/* portfolio — até MAX_PORTFOLIO_VIDEOS vídeos, cada um com upload próprio; orientação
+              detectada automaticamente no upload (video-upload-field.tsx), nunca escolhida à
+              mão. Seção nova, não faz parte do template original da Elenita. */}
+          {section.section_type === "portfolio" && (
+            <PortfolioVideosField proposalId={section.proposal_id} videos={content.videos ?? []} onChange={(videos) => set({ videos })} />
+          )}
         </div>
+      )}
+    </div>
+  );
+}
+
+function PortfolioVideosField({ proposalId, videos, onChange }: { proposalId: string; videos: ProposalVideo[]; onChange: (videos: ProposalVideo[]) => void }) {
+  function updateAt(index: number, video: ProposalVideo | null) {
+    if (video) {
+      onChange(videos.map((v, i) => (i === index ? video : v)));
+    } else {
+      onChange(videos.filter((_, i) => i !== index));
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label>
+        Vídeos ({videos.length}/{MAX_PORTFOLIO_VIDEOS})
+      </Label>
+      {videos.map((video, index) => (
+        <VideoUploadField key={index} proposalId={proposalId} pathPrefix={`portfolio-${index}`} label={`Vídeo ${index + 1}`} value={video} onChange={(v) => updateAt(index, v)} />
+      ))}
+      {videos.length < MAX_PORTFOLIO_VIDEOS && (
+        <VideoUploadField
+          proposalId={proposalId}
+          pathPrefix={`portfolio-${videos.length}`}
+          label={`Vídeo ${videos.length + 1}`}
+          value={null}
+          onChange={(v) => v && onChange([...videos, v])}
+        />
       )}
     </div>
   );

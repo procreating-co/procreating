@@ -9,6 +9,7 @@ import { ProposalRoadmap } from "@/components/proposal/proposal-roadmap";
 import { ProposalTvProgram } from "@/components/proposal/proposal-tv-program";
 import { ProposalAcquisition } from "@/components/proposal/proposal-acquisition";
 import { ProposalBudget } from "@/components/proposal/proposal-budget";
+import { ProposalPortfolio } from "@/components/proposal/proposal-portfolio";
 import { ProposalClosing } from "@/components/proposal/proposal-closing";
 import type {
   HeroContent,
@@ -17,6 +18,7 @@ import type {
   TvProgramContent,
   AcquisitionContent,
   BudgetContent,
+  PortfolioContent,
   ClosingContent,
 } from "@/lib/comercial/proposal-content-types";
 
@@ -61,6 +63,7 @@ export function ProposalPublicView({ slug, proposal }: { slug: string; proposal:
   const tvProgram = content<TvProgramContent>("tv_program");
   const acquisition = content<AcquisitionContent>("acquisition");
   const budget = content<BudgetContent>("budget");
+  const portfolio = content<PortfolioContent>("portfolio");
   const closing = content<ClosingContent>("closing");
 
   return (
@@ -72,6 +75,7 @@ export function ProposalPublicView({ slug, proposal }: { slug: string; proposal:
       {tvProgram && <ProposalTvProgram content={tvProgram} accent={accent} />}
       {acquisition && <ProposalAcquisition content={acquisition} accent={accent} />}
       {budget && <ProposalBudget content={budget} accent={accent} />}
+      {portfolio && <ProposalPortfolio content={portfolio} accent={accent} />}
       {closing && <ProposalClosing content={closing} brandName={proposal.brandName} />}
 
       {/* Resposta pública — aditivo, fora das 7 seções da Elenita (nunca dentro delas). Só
