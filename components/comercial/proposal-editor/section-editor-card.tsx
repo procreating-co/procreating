@@ -12,6 +12,7 @@ import {
   type BudgetConfiguratorAddon,
   type BudgetConfiguratorRemovable,
   type BudgetConfiguratorVideoRange,
+  type BudgetTeamRole,
   type PillarItem,
   type ProposalVideo,
 } from "@/lib/comercial/proposal-content-types";
@@ -462,11 +463,19 @@ function newFieldId(): string {
   return Math.random().toString(36).slice(2, 10);
 }
 
-/** Configurador de investimento completo (opcional, v2) — pedido explícito, baseado num mockup:
- *  âncora + condição de pagamento + escopo dinâmico + addons/removíveis + recibo ao vivo, com
- *  preço unitário sempre visível no público (design transparente, ver
- *  `proposal-budget-configurator.tsx`). Substitui o `upsell` v1 quando presente — os dois nunca
- *  são exibidos juntos (`ProposalBudget` prioriza `configurator`). */
+const TEAM_ROLE_OPTIONS: { value: BudgetTeamRole["role"]; label: string }[] = [
+  { value: "videomaker", label: "Videomaker" },
+  { value: "fotografo", label: "Fotógrafo" },
+  { value: "drone", label: "Operador de drone" },
+  { value: "editor", label: "Editor" },
+  { value: "outro", label: "Outro" },
+];
+
+/** Configurador de investimento completo (opcional, v2) — "Orçamento" aparece primeiro, sem
+ *  âncora/pill de pagamento/linha de escopo na abertura; "O que está incluso" visual (equipe por
+ *  ícone) + "Personalize seu pacote" (adicionar E reduzir) SEM preço unitário visível em lugar
+ *  nenhum no público (`unitPrice`/`savings` abaixo são só pro cálculo interno — ver
+ *  `proposal-budget-configurator.tsx`). Substitui o `upsell` v1 quando presente. */
 function BudgetConfiguratorField({ configurator, onChange }: { configurator: BudgetConfigurator | null; onChange: (configurator: BudgetConfigurator | null) => void }) {
   if (!configurator) {
     return (
@@ -474,15 +483,11 @@ function BudgetConfiguratorField({ configurator, onChange }: { configurator: Bud
         type="button"
         onClick={() =>
           onChange({
-            anchorPrice: null,
-            anchorLabel: "contratado à parte",
             paymentTerms: "",
             baseLocations: 1,
             baseVideos: 1,
-            captureLabel: "Captação",
-            teamSummary: "",
-            deliveryLabel: "Entrega",
-            deliveryNote: "",
+            teamRoles: [],
+            strategyNote: "",
             addons: [],
             removables: [],
             videoRange: null,
@@ -504,25 +509,15 @@ function BudgetConfiguratorField({ configurator, onChange }: { configurator: Bud
   function updateRemovable(index: number, patch: Partial<BudgetConfiguratorRemovable>) {
     update({ removables: configurator!.removables.map((r, i) => (i === index ? { ...r, ...patch } : r)) });
   }
+  function updateTeamRole(index: number, patch: Partial<BudgetTeamRole>) {
+    update({ teamRoles: configurator!.teamRoles.map((t, i) => (i === index ? { ...t, ...patch } : t)) });
+  }
 
   return (
     <div className="flex flex-col gap-3 rounded-md border border-border/60 p-3">
-      <Label>Configurador completo (avançado — preço unitário sempre visível no público)</Label>
+      <Label>Configurador completo (avançado — preço unitário NUNCA aparece no público, só o total)</Label>
 
       <div className="grid grid-cols-2 gap-2">
-        <Field label="Preço-âncora (R$, riscado — opcional)">
-          <Input
-            type="number"
-            min={0}
-            value={configurator.anchorPrice ?? ""}
-            placeholder="vazio = não mostra"
-            onChange={(e) => update({ anchorPrice: e.target.value ? Number(e.target.value) : null })}
-            className="h-8 text-sm"
-          />
-        </Field>
-        <Field label="Legenda da âncora">
-          <Input value={configurator.anchorLabel} onChange={(e) => update({ anchorLabel: e.target.value })} className="h-8 text-sm" />
-        </Field>
         <Field label="Locações no pacote base">
           <Input type="number" min={0} value={configurator.baseLocations} onChange={(e) => update({ baseLocations: Number(e.target.value) || 0 })} className="h-8 text-sm" />
         </Field>
@@ -530,23 +525,39 @@ function BudgetConfiguratorField({ configurator, onChange }: { configurator: Bud
           <Input type="number" min={0} value={configurator.baseVideos} onChange={(e) => update({ baseVideos: Number(e.target.value) || 0 })} className="h-8 text-sm" />
         </Field>
       </div>
-      <Field label="Condição de pagamento">
+      <Field label="Condição de pagamento (aparece em &quot;O que está incluso&quot;)">
         <Input placeholder="Ex.: 50% na aprovação + 50% na entrega" value={configurator.paymentTerms} onChange={(e) => update({ paymentTerms: e.target.value })} className="h-8 text-sm" />
       </Field>
-      <div className="grid grid-cols-2 gap-2">
-        <Field label="Rótulo do card 1">
-          <Input value={configurator.captureLabel} onChange={(e) => update({ captureLabel: e.target.value })} className="h-8 text-sm" />
-        </Field>
-        <Field label="Rótulo do card 2">
-          <Input value={configurator.deliveryLabel} onChange={(e) => update({ deliveryLabel: e.target.value })} className="h-8 text-sm" />
-        </Field>
+      <Field label="Nota de estratégia por perfil">
+        <Input placeholder="Ex.: Estratégia dedicada para cada perfil: Provocateur, 300 e T2 Live" value={configurator.strategyNote} onChange={(e) => update({ strategyNote: e.target.value })} className="h-8 text-sm" />
+      </Field>
+
+      {/* Equipe — ícone + rótulo, "O que está incluso" */}
+      <div className="flex flex-col gap-1.5 pl-2">
+        <span className="text-xs text-muted-foreground">Equipe (ícone + rótulo, em &quot;O que está incluso&quot;)</span>
+        {configurator.teamRoles.map((member, index) => (
+          <div key={index} className="flex items-center gap-1.5">
+            <select
+              value={member.role}
+              onChange={(e) => updateTeamRole(index, { role: e.target.value as BudgetTeamRole["role"] })}
+              className="h-7 rounded-md border border-input bg-transparent px-2 text-xs outline-none focus-visible:border-ring"
+            >
+              {TEAM_ROLE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <Input placeholder="Ex.: 2 Videomakers" value={member.label} onChange={(e) => updateTeamRole(index, { label: e.target.value })} className="h-7 text-xs" />
+            <button type="button" onClick={() => update({ teamRoles: configurator.teamRoles.filter((_, i) => i !== index) })} className="shrink-0 text-muted-foreground hover:text-destructive">
+              <Trash2 className="size-3" />
+            </button>
+          </div>
+        ))}
+        <button type="button" onClick={() => update({ teamRoles: [...configurator.teamRoles, { role: "outro", label: "" }] })} className="w-fit text-xs text-muted-foreground hover:text-foreground">
+          + membro da equipe
+        </button>
       </div>
-      <Field label="Equipe (card 1, linha final)">
-        <Input placeholder="Ex.: 2 videomakers · 1 fotógrafo · 1 operador de drone" value={configurator.teamSummary} onChange={(e) => update({ teamSummary: e.target.value })} className="h-8 text-sm" />
-      </Field>
-      <Field label="Nota do card 2">
-        <Input placeholder="Ex.: Prontos para publicação, formato combinado no briefing" value={configurator.deliveryNote} onChange={(e) => update({ deliveryNote: e.target.value })} className="h-8 text-sm" />
-      </Field>
 
       {/* Adicionar (steppers que somam) */}
       <div className="flex flex-col gap-1.5 pl-2">

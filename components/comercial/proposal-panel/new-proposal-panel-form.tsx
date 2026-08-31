@@ -32,7 +32,7 @@ export function NewProposalPanelForm({ template }: { template: ProposalTemplate 
         leadId: null,
         clientId: null,
         templateId: template.id,
-        title: `Proposta — ${name.trim()}`,
+        title: `Proposta para ${name.trim()}`,
         ownerName: name.trim(),
         brandName: name.trim(),
       });

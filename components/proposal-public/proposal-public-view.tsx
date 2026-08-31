@@ -44,10 +44,13 @@ export function ProposalPublicView({ slug, proposal }: { slug: string; proposal:
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function respond(response: "accepted" | "rejected") {
+  // Pedido explícito: só "Aceitar" — sem botão de recusar na página pública (recusar continua
+  // possível pelo status manual no editor; `respondPublicProposalAction("rejected")` segue
+  // existindo no backend, só não tem gatilho aqui).
+  function acceptProposal() {
     startTransition(async () => {
-      const ok = await respondPublicProposalAction(slug, response);
-      if (ok) setStatus(response);
+      const ok = await respondPublicProposalAction(slug, "accepted");
+      if (ok) setStatus("accepted");
     });
   }
 
@@ -66,6 +69,29 @@ export function ProposalPublicView({ slug, proposal }: { slug: string; proposal:
   const portfolio = content<PortfolioContent>("portfolio");
   const closing = content<ClosingContent>("closing");
 
+  // Ação junto do fechamento (pedido explícito: "junto do Vamos começar?", nunca um bloco à
+  // parte embaixo) — botão só de aceitar, ou a confirmação depois de aceita/recusada. `null`
+  // quando o status não é mais respondível e nunca foi aceito/recusado (ex.: draft — não deveria
+  // chegar até aqui, `get_public_proposal` já filtra, mas defensivo mesmo assim).
+  const closingAction =
+    status === "accepted" ? (
+      <p className="text-sm" style={{ color: accent }}>
+        Proposta aceita. Em breve entraremos em contato.
+      </p>
+    ) : status === "rejected" ? (
+      <p className="text-sm text-white/50">Proposta recusada.</p>
+    ) : RESPONDABLE_STATUSES.has(status) ? (
+      <button
+        type="button"
+        disabled={isPending}
+        onClick={acceptProposal}
+        className="rounded-full px-8 py-3 text-sm font-medium text-black transition-transform hover:scale-[1.02]"
+        style={{ backgroundColor: accent }}
+      >
+        Aceitar proposta
+      </button>
+    ) : null;
+
   return (
     <main className="min-h-screen bg-black">
       <ProposalScrollProgress accent={accent} />
@@ -76,37 +102,7 @@ export function ProposalPublicView({ slug, proposal }: { slug: string; proposal:
       {acquisition && <ProposalAcquisition content={acquisition} accent={accent} />}
       {budget && <ProposalBudget content={budget} accent={accent} />}
       {portfolio && <ProposalPortfolio content={portfolio} accent={accent} />}
-      {closing && <ProposalClosing content={closing} brandName={proposal.brandName} />}
-
-      {/* Resposta pública — aditivo, fora das 7 seções da Elenita (nunca dentro delas). Só
-          aparece quando a proposta ainda pode ser respondida; depois de aceita/recusada, vira
-          uma confirmação simples. */}
-      {(status === "accepted" || status === "rejected" || RESPONDABLE_STATUSES.has(status)) && (
-        <div className="border-t border-white/10 bg-black px-6 py-16 text-center text-white lg:px-12">
-          {status === "accepted" ? (
-            <p className="text-lg" style={{ color: accent }}>
-              Proposta aceita — em breve entraremos em contato.
-            </p>
-          ) : status === "rejected" ? (
-            <p className="text-lg text-white/60">Proposta recusada.</p>
-          ) : (
-            <div className="flex flex-wrap justify-center gap-4">
-              <button
-                type="button"
-                disabled={isPending}
-                onClick={() => respond("accepted")}
-                className="rounded-full px-8 py-3 text-sm font-medium text-black transition-transform hover:scale-[1.02]"
-                style={{ backgroundColor: accent }}
-              >
-                Aceitar proposta
-              </button>
-              <button type="button" disabled={isPending} onClick={() => respond("rejected")} className="rounded-full border border-white/20 px-8 py-3 text-sm text-white/70 hover:text-white">
-                Recusar
-              </button>
-            </div>
-          )}
-        </div>
-      )}
+      {closing && <ProposalClosing content={closing} brandName={proposal.brandName} action={closingAction} />}
     </main>
   );
 }
