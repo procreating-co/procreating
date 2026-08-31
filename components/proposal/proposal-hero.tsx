@@ -6,10 +6,24 @@ import { ProposalTypingHeadline } from "@/components/proposal/proposal-typing-he
 import { ProposalHeroAtmosphere } from "@/components/proposal/proposal-hero-atmosphere";
 import type { ProposalContent } from "@/lib/clients/proposal-types";
 
-export function ProposalHero({ content, accent }: { content: ProposalContent["hero"]; accent: string }) {
+/** `backgroundVideoUrl` opcional — extensão local do tipo, sem tocar `lib/clients/proposal-types.ts`
+ *  (a Elenita/Pascoal legado continua isolada). Ausente = comportamento idêntico ao original
+ *  (`ProposalHeroAtmosphere`); a proposta da Elenita nunca preenche esse campo. */
+type HeroContentWithVideo = ProposalContent["hero"] & { backgroundVideoUrl?: string | null };
+
+export function ProposalHero({ content, accent }: { content: HeroContentWithVideo; accent: string }) {
   return (
     <section className="relative flex min-h-[92vh] flex-col items-center justify-center overflow-hidden bg-black px-6 text-center text-white lg:px-12">
-      <ProposalHeroAtmosphere accent={accent} />
+      {content.backgroundVideoUrl ? (
+        <>
+          {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+          <video src={content.backgroundVideoUrl} autoPlay muted loop playsInline className="absolute inset-0 size-full object-cover" aria-hidden="true" />
+          {/* Overlay escuro — legibilidade do texto por cima de qualquer vídeo, imprevisível por natureza. */}
+          <div className="absolute inset-0 bg-black/55" aria-hidden="true" />
+        </>
+      ) : (
+        <ProposalHeroAtmosphere accent={accent} />
+      )}
 
       <div className="relative z-10 mx-auto flex max-w-4xl flex-col items-center">
         {/* Badge — mesmo componente/medidas da referência (proposal-pascoal-badge.tsx): pill com
