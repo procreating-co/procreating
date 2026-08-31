@@ -4,7 +4,8 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, Check, Compass, LineChart, Minus, Plus, Video, FileText } from "lucide-react";
 import type { ProposalContent } from "@/lib/clients/proposal-types";
-import type { BudgetUpsell } from "@/lib/comercial/proposal-content-types";
+import type { BudgetConfigurator, BudgetContent, BudgetUpsell } from "@/lib/comercial/proposal-content-types";
+import { ProposalBudgetConfigurator } from "@/components/proposal/proposal-budget-configurator";
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
@@ -15,15 +16,23 @@ const PILLAR_ICONS = [Compass, FileText, LineChart, Video];
  * 4 blocos, nesta ordem: (A) número grande, (B) 4 cards mínimos, (C) Incluso vs Adicionais,
  * (D) cascata Estratégia → Planejamento → Direção → Execução. Preço único da proposta — a seção
  * de upsell com total variável que existia depois desta foi removida a pedido do cliente (na
- * Elenita — a Elenita nunca preenche `upsell`, então continua sem ele, intocada).
+ * Elenita — a Elenita nunca preenche `upsell`/`configurator`, então continua sem eles, intocada).
  *
- * `upsell` (opcional, novo, pedido explícito) — contador +/- que soma ao número grande em tempo
- * real, SEM NUNCA mostrar o preço unitário em texto em lugar nenhum: só a contagem e o total.
- * Estado só de exibição (`useState`), não persiste em lugar nenhum — é uma exploração de "e se eu
- * adicionar mais", não uma escolha formal que vira parte do contrato (isso continua acontecendo
- * do jeito de sempre: staff edita o valor final na proposta antes de enviar).
+ * `upsell` (opcional, v1) — contador +/- simples que soma ao número grande, sem mostrar preço
+ * unitário. `configurator` (opcional, v2, pedido explícito — mockup completo) — configurador
+ * transparente inteiro (âncora, condição de pagamento, escopo dinâmico, addons/removíveis,
+ * recibo ao vivo); quando presente, assume o lugar da seção inteira (delega pra
+ * `ProposalBudgetConfigurator`) — os dois nunca coexistem na mesma proposta.
  */
-export function ProposalBudget({ content, accent }: { content: ProposalContent["budget"] & { recurrence?: "mensal" | "unico"; upsell?: BudgetUpsell | null }; accent: string }) {
+export function ProposalBudget({ content, accent }: { content: ProposalContent["budget"] & { recurrence?: "mensal" | "unico"; upsell?: BudgetUpsell | null; configurator?: BudgetConfigurator | null }; accent: string }) {
+  if (content.configurator) {
+    return <ProposalBudgetConfigurator content={content as BudgetContent} configurator={content.configurator} accent={accent} />;
+  }
+
+  return <ProposalBudgetClassic content={content} accent={accent} />;
+}
+
+function ProposalBudgetClassic({ content, accent }: { content: ProposalContent["budget"] & { recurrence?: "mensal" | "unico"; upsell?: BudgetUpsell | null }; accent: string }) {
   const [extraUnits, setExtraUnits] = useState(0);
   const upsell = content.upsell;
   const displayedTotal = content.heroNumber + extraUnits * (upsell?.unitPrice ?? 0);
