@@ -59,11 +59,48 @@ export type RoadmapContent = {
 };
 export type TvProgramContent = { eyebrow: string; heading: string; subtitle: string; steps: string[] };
 export type AcquisitionContent = { eyebrow: string; heading: string; cards: AcquisitionCard[] };
-/** Upsell interativo (opcional) — pedido explícito: "adicione opção de upsell de mais vídeos...
- *  nunca apareça o custo do vídeo, apenas adicione ao valor inicial". `unitPrice` nunca é
- *  renderizado como texto em lugar nenhum de `ProposalBudget` — só usado internamente pra somar
- *  no total exibido conforme o viewer ajusta o contador. */
+/** Upsell interativo simples (opcional, versão 1) — contador +/- que soma ao total sem nunca
+ *  mostrar o preço unitário. Superado por `BudgetConfigurator` (abaixo) pra propostas que
+ *  precisam de um configurador completo — mantido pra compatibilidade/casos simples. */
 export type BudgetUpsell = { label: string; unitPrice: number; max: number };
+
+/** Item que SOMA ao total (grupo "Adicionar") — pedido explícito, mockup completo de
+ *  configurador. `kind` marca os dois addons especiais que também mudam a "linha de escopo"
+ *  dinâmica (nº de locações/vídeos entregues, ex.: "03 captações em 03 locações · 09 vídeos");
+ *  `"other"` só soma ao total, sem afetar essas contagens. */
+export type BudgetConfiguratorAddon = { id: string; label: string; sublabel: string; unitPrice: number; unitLabel: string; max: number; kind: "location" | "video" | "other" };
+
+/** Item que SUBTRAI do total via toggle (grupo "Reduzir") — ex.: remover um membro de equipe. */
+export type BudgetConfiguratorRemovable = { id: string; label: string; sublabel: string; savings: number; defaultOn: boolean };
+
+/** Contador de vídeos entregues no pacote base (reduz o total conforme diminui) — item especial
+ *  do grupo "Reduzir", separado de `removables` (é um range, não um toggle binário). */
+export type BudgetConfiguratorVideoRange = { label: string; sublabel: string; unitPrice: number; min: number; max: number; initial: number };
+
+/**
+ * Configurador de investimento completo (opcional) — pedido explícito, baseado num mockup:
+ * preço-âncora riscado (opcional), pill de condição de pagamento, linha de escopo dinâmica,
+ * 2 cards (Captação/Entrega), grupos "Adicionar"/"Reduzir" com steppers/toggles, recibo ao vivo
+ * somando cada ajuste, rodapé "Incluso"/"Adicionais avulsos" com preço unitário visível (design
+ * transparente — diferente do `BudgetUpsell` v1, que escondia o preço unitário de propósito;
+ * este mockup mostra tudo, é a direção nova). Ausente = `ProposalBudget` renderiza a versão
+ * clássica (4 pilares + incluso/adicionais estáticos + cascata) — a Elenita não preenche isso,
+ * continua exatamente como sempre.
+ */
+export type BudgetConfigurator = {
+  anchorPrice: number | null;
+  anchorLabel: string;
+  paymentTerms: string;
+  baseLocations: number;
+  baseVideos: number;
+  captureLabel: string;
+  teamSummary: string;
+  deliveryLabel: string;
+  deliveryNote: string;
+  addons: BudgetConfiguratorAddon[];
+  removables: BudgetConfiguratorRemovable[];
+  videoRange: BudgetConfiguratorVideoRange | null;
+};
 
 export type BudgetContent = {
   heroNumber: number;
@@ -77,6 +114,7 @@ export type BudgetContent = {
   additionalItems: string[];
   flowSteps: string[];
   upsell: BudgetUpsell | null;
+  configurator: BudgetConfigurator | null;
 };
 export type ClosingContent = { heading: string; paragraph: string };
 
@@ -102,6 +140,7 @@ export const EMPTY_CONTENT_BY_TYPE = {
     additionalItems: [],
     flowSteps: [],
     upsell: null,
+    configurator: null,
   } as BudgetContent,
   closing: { heading: "", paragraph: "" } as ClosingContent,
   portfolio: { eyebrow: "", heading: "", subtitle: "", videos: [] } as PortfolioContent,

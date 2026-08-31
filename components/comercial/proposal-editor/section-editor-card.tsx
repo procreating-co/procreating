@@ -5,7 +5,16 @@ import { ChevronDown, ChevronUp, Copy, Eye, EyeOff, Lock, Trash2 } from "lucide-
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { VideoUploadField } from "@/components/comercial/proposal-editor/video-upload-field";
-import { MAX_PORTFOLIO_VIDEOS, SECTION_TYPE_LABEL, type PillarItem, type ProposalVideo } from "@/lib/comercial/proposal-content-types";
+import {
+  MAX_PORTFOLIO_VIDEOS,
+  SECTION_TYPE_LABEL,
+  type BudgetConfigurator,
+  type BudgetConfiguratorAddon,
+  type BudgetConfiguratorRemovable,
+  type BudgetConfiguratorVideoRange,
+  type PillarItem,
+  type ProposalVideo,
+} from "@/lib/comercial/proposal-content-types";
 import type { ProposalSection } from "@/lib/supabase/types/database";
 import { cn } from "@/lib/utils";
 
@@ -215,6 +224,7 @@ export function SectionEditorCard({
                 onRemove={(i) => removeListItem("flowSteps", i)}
               />
               <BudgetUpsellField upsell={content.upsell ?? null} onChange={(upsell) => set({ upsell })} />
+              <BudgetConfiguratorField configurator={content.configurator ?? null} onChange={(configurator) => set({ configurator })} />
             </div>
           )}
 
@@ -441,6 +451,218 @@ function BudgetUpsellField({ upsell, onChange }: { upsell: Upsell | null; onChan
       </div>
       <button type="button" onClick={() => onChange(null)} className="w-fit text-xs text-muted-foreground hover:text-destructive">
         remover upsell
+      </button>
+    </div>
+  );
+}
+
+/** Gera um id estável e único o bastante pra uma linha do configurador (addon/removível) — só
+ *  precisa ser único dentro da mesma proposta, nunca persiste em outro lugar. */
+function newFieldId(): string {
+  return Math.random().toString(36).slice(2, 10);
+}
+
+/** Configurador de investimento completo (opcional, v2) — pedido explícito, baseado num mockup:
+ *  âncora + condição de pagamento + escopo dinâmico + addons/removíveis + recibo ao vivo, com
+ *  preço unitário sempre visível no público (design transparente, ver
+ *  `proposal-budget-configurator.tsx`). Substitui o `upsell` v1 quando presente — os dois nunca
+ *  são exibidos juntos (`ProposalBudget` prioriza `configurator`). */
+function BudgetConfiguratorField({ configurator, onChange }: { configurator: BudgetConfigurator | null; onChange: (configurator: BudgetConfigurator | null) => void }) {
+  if (!configurator) {
+    return (
+      <button
+        type="button"
+        onClick={() =>
+          onChange({
+            anchorPrice: null,
+            anchorLabel: "contratado à parte",
+            paymentTerms: "",
+            baseLocations: 1,
+            baseVideos: 1,
+            captureLabel: "Captação",
+            teamSummary: "",
+            deliveryLabel: "Entrega",
+            deliveryNote: "",
+            addons: [],
+            removables: [],
+            videoRange: null,
+          })
+        }
+        className="w-fit text-xs text-muted-foreground hover:text-foreground"
+      >
+        + Adicionar configurador completo (avançado)
+      </button>
+    );
+  }
+
+  function update(patch: Partial<BudgetConfigurator>) {
+    onChange({ ...configurator!, ...patch });
+  }
+  function updateAddon(index: number, patch: Partial<BudgetConfiguratorAddon>) {
+    update({ addons: configurator!.addons.map((a, i) => (i === index ? { ...a, ...patch } : a)) });
+  }
+  function updateRemovable(index: number, patch: Partial<BudgetConfiguratorRemovable>) {
+    update({ removables: configurator!.removables.map((r, i) => (i === index ? { ...r, ...patch } : r)) });
+  }
+
+  return (
+    <div className="flex flex-col gap-3 rounded-md border border-border/60 p-3">
+      <Label>Configurador completo (avançado — preço unitário sempre visível no público)</Label>
+
+      <div className="grid grid-cols-2 gap-2">
+        <Field label="Preço-âncora (R$, riscado — opcional)">
+          <Input
+            type="number"
+            min={0}
+            value={configurator.anchorPrice ?? ""}
+            placeholder="vazio = não mostra"
+            onChange={(e) => update({ anchorPrice: e.target.value ? Number(e.target.value) : null })}
+            className="h-8 text-sm"
+          />
+        </Field>
+        <Field label="Legenda da âncora">
+          <Input value={configurator.anchorLabel} onChange={(e) => update({ anchorLabel: e.target.value })} className="h-8 text-sm" />
+        </Field>
+        <Field label="Locações no pacote base">
+          <Input type="number" min={0} value={configurator.baseLocations} onChange={(e) => update({ baseLocations: Number(e.target.value) || 0 })} className="h-8 text-sm" />
+        </Field>
+        <Field label="Vídeos no pacote base">
+          <Input type="number" min={0} value={configurator.baseVideos} onChange={(e) => update({ baseVideos: Number(e.target.value) || 0 })} className="h-8 text-sm" />
+        </Field>
+      </div>
+      <Field label="Condição de pagamento">
+        <Input placeholder="Ex.: 50% na aprovação + 50% na entrega" value={configurator.paymentTerms} onChange={(e) => update({ paymentTerms: e.target.value })} className="h-8 text-sm" />
+      </Field>
+      <div className="grid grid-cols-2 gap-2">
+        <Field label="Rótulo do card 1">
+          <Input value={configurator.captureLabel} onChange={(e) => update({ captureLabel: e.target.value })} className="h-8 text-sm" />
+        </Field>
+        <Field label="Rótulo do card 2">
+          <Input value={configurator.deliveryLabel} onChange={(e) => update({ deliveryLabel: e.target.value })} className="h-8 text-sm" />
+        </Field>
+      </div>
+      <Field label="Equipe (card 1, linha final)">
+        <Input placeholder="Ex.: 2 videomakers · 1 fotógrafo · 1 operador de drone" value={configurator.teamSummary} onChange={(e) => update({ teamSummary: e.target.value })} className="h-8 text-sm" />
+      </Field>
+      <Field label="Nota do card 2">
+        <Input placeholder="Ex.: Prontos para publicação, formato combinado no briefing" value={configurator.deliveryNote} onChange={(e) => update({ deliveryNote: e.target.value })} className="h-8 text-sm" />
+      </Field>
+
+      {/* Adicionar (steppers que somam) */}
+      <div className="flex flex-col gap-1.5 pl-2">
+        <span className="text-xs text-muted-foreground">Grupo "Adicionar" (steppers que somam ao total)</span>
+        {configurator.addons.map((addon, index) => (
+          <div key={addon.id} className="flex flex-col gap-1.5 rounded-md border border-border/60 p-2">
+            <div className="grid grid-cols-2 gap-1.5">
+              <Input placeholder="Título" value={addon.label} onChange={(e) => updateAddon(index, { label: e.target.value })} className="h-7 text-xs" />
+              <Input placeholder="Subtítulo (ex.: diária extra)" value={addon.sublabel} onChange={(e) => updateAddon(index, { sublabel: e.target.value })} className="h-7 text-xs" />
+            </div>
+            <div className="grid grid-cols-3 gap-1.5">
+              <Input type="number" min={0} placeholder="R$ unitário" value={addon.unitPrice} onChange={(e) => updateAddon(index, { unitPrice: Number(e.target.value) || 0 })} className="h-7 text-xs" />
+              <Input placeholder="Ex.: cada" value={addon.unitLabel} onChange={(e) => updateAddon(index, { unitLabel: e.target.value })} className="h-7 text-xs" />
+              <Input type="number" min={1} placeholder="Máx." value={addon.max} onChange={(e) => updateAddon(index, { max: Math.max(1, Number(e.target.value) || 1) })} className="h-7 text-xs" />
+            </div>
+            <select
+              value={addon.kind}
+              onChange={(e) => updateAddon(index, { kind: e.target.value as BudgetConfiguratorAddon["kind"] })}
+              className="h-7 rounded-md border border-input bg-transparent px-2 text-xs outline-none focus-visible:border-ring"
+            >
+              <option value="location">Conta como locação extra (afeta escopo)</option>
+              <option value="video">Conta como vídeo extra (afeta escopo)</option>
+              <option value="other">Não afeta o escopo — só soma ao total</option>
+            </select>
+            <button type="button" onClick={() => update({ addons: configurator.addons.filter((_, i) => i !== index) })} className="w-fit text-xs text-muted-foreground hover:text-destructive">
+              remover
+            </button>
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={() => update({ addons: [...configurator.addons, { id: newFieldId(), label: "", sublabel: "", unitPrice: 0, unitLabel: "cada", max: 10, kind: "other" }] })}
+          className="w-fit text-xs text-muted-foreground hover:text-foreground"
+        >
+          + item pra adicionar
+        </button>
+      </div>
+
+      {/* Reduzir (toggles que subtraem) */}
+      <div className="flex flex-col gap-1.5 pl-2">
+        <span className="text-xs text-muted-foreground">Grupo "Reduzir" (toggles que subtraem do total)</span>
+        {configurator.removables.map((removable, index) => (
+          <div key={removable.id} className="flex flex-col gap-1.5 rounded-md border border-border/60 p-2">
+            <div className="grid grid-cols-2 gap-1.5">
+              <Input placeholder="Título" value={removable.label} onChange={(e) => updateRemovable(index, { label: e.target.value })} className="h-7 text-xs" />
+              <Input placeholder="Subtítulo (ex.: remover da equipe)" value={removable.sublabel} onChange={(e) => updateRemovable(index, { sublabel: e.target.value })} className="h-7 text-xs" />
+            </div>
+            <div className="flex items-center gap-2">
+              <Input type="number" min={0} placeholder="Economia (R$)" value={removable.savings} onChange={(e) => updateRemovable(index, { savings: Number(e.target.value) || 0 })} className="h-7 text-xs" />
+              <label className="flex items-center gap-1.5 whitespace-nowrap text-xs text-muted-foreground">
+                <input type="checkbox" checked={removable.defaultOn} onChange={(e) => updateRemovable(index, { defaultOn: e.target.checked })} />
+                incluído por padrão
+              </label>
+            </div>
+            <button type="button" onClick={() => update({ removables: configurator.removables.filter((_, i) => i !== index) })} className="w-fit text-xs text-muted-foreground hover:text-destructive">
+              remover
+            </button>
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={() => update({ removables: [...configurator.removables, { id: newFieldId(), label: "", sublabel: "", savings: 0, defaultOn: true }] })}
+          className="w-fit text-xs text-muted-foreground hover:text-foreground"
+        >
+          + item pra reduzir
+        </button>
+      </div>
+
+      {/* Range de vídeos (stepper que reduz) */}
+      <div className="flex flex-col gap-1.5 pl-2">
+        <span className="text-xs text-muted-foreground">Reduzir vídeos entregues (stepper, opcional)</span>
+        {configurator.videoRange ? (
+          <div className="flex flex-col gap-1.5 rounded-md border border-border/60 p-2">
+            <Input placeholder="Título" value={configurator.videoRange.label} onChange={(e) => update({ videoRange: { ...configurator.videoRange!, label: e.target.value } })} className="h-7 text-xs" />
+            <Input
+              placeholder="Subtítulo (ex.: cada vídeo a menos)"
+              value={configurator.videoRange.sublabel}
+              onChange={(e) => update({ videoRange: { ...configurator.videoRange!, sublabel: e.target.value } })}
+              className="h-7 text-xs"
+            />
+            <div className="grid grid-cols-3 gap-1.5">
+              <Input
+                type="number"
+                min={0}
+                placeholder="R$ economia/un."
+                value={configurator.videoRange.unitPrice}
+                onChange={(e) => update({ videoRange: { ...configurator.videoRange!, unitPrice: Number(e.target.value) || 0 } })}
+                className="h-7 text-xs"
+              />
+              <Input type="number" min={0} placeholder="Mín." value={configurator.videoRange.min} onChange={(e) => update({ videoRange: { ...configurator.videoRange!, min: Number(e.target.value) || 0 } })} className="h-7 text-xs" />
+              <Input
+                type="number"
+                min={configurator.videoRange.min}
+                placeholder="Inicial"
+                value={configurator.videoRange.initial}
+                onChange={(e) => update({ videoRange: { ...configurator.videoRange!, initial: Number(e.target.value) || 0, max: Math.max(configurator.videoRange!.max, Number(e.target.value) || 0) } })}
+                className="h-7 text-xs"
+              />
+            </div>
+            <button type="button" onClick={() => update({ videoRange: null })} className="w-fit text-xs text-muted-foreground hover:text-destructive">
+              remover
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => update({ videoRange: { label: "", sublabel: "", unitPrice: 0, min: 1, max: configurator.baseVideos, initial: configurator.baseVideos } })}
+            className="w-fit text-xs text-muted-foreground hover:text-foreground"
+          >
+            + adicionar
+          </button>
+        )}
+      </div>
+
+      <button type="button" onClick={() => onChange(null)} className="w-fit text-xs text-muted-foreground hover:text-destructive">
+        remover configurador completo
       </button>
     </div>
   );
