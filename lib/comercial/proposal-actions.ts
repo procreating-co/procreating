@@ -54,7 +54,10 @@ export async function generateUniqueSlug(supabase: SupabaseServerClient, base: s
 
 /** Cria a Proposal a partir de um Template — copia `section_blueprint` pra `proposal_sections`
  *  reais, posição incremental (mesmo espaçamento de 1000 de `lib/tasks/position.ts`). Modal
- *  enxuto (§23 do plano): só o essencial aqui, o resto é editado na página completa depois. */
+ *  enxuto (§23 do plano): só o essencial aqui, o resto é editado na página completa depois.
+ *  `leadId`/`clientId` são ambos opcionais — o painel `/propostas` (staff, fora do fluxo de
+ *  Lead) cria propostas avulsas, sem vínculo nenhum; nada no schema exige um FK (as duas colunas
+ *  já eram nullable), só a validação aqui exigia um dos dois, e foi relaxada de propósito. */
 export async function createProposalFromTemplateAction(input: {
   leadId: string | null;
   clientId: string | null;
@@ -65,7 +68,6 @@ export async function createProposalFromTemplateAction(input: {
   accentColor?: string;
 }): Promise<ActionResult & { proposalId?: string }> {
   if (!input.title.trim()) return { ok: false, error: "Dê um título à proposta." };
-  if (!input.leadId && !input.clientId) return { ok: false, error: "Proposta precisa estar ligada a um lead ou cliente." };
 
   const userId = await getCurrentUserId();
   if (!userId) return { ok: false, error: "Sessão expirada — faça login de novo." };

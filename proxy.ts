@@ -33,6 +33,11 @@ import { PORTAL_LOGIN_PATH, PORTAL_SESSION_COOKIE, PORTAL_SIGNUP_PATH } from "@/
  * nunca compartilham o mesmo sinal de sessão aqui, mesmo sendo os dois, por baixo, uma sessão
  * Supabase Auth normal (ver `lib/portal/auth/provider.ts`). Continua sem tocar `/clients/*`
  * (rota pública legada, de outra sessão) nem no Page-Builder.
+ *
+ * `/propostas` no matcher é o path LITERAL (sem `:path*` de propósito) — é só o painel de
+ * criação (`app/propostas/page.tsx`, staff). `/propostas/[slug]` (proposta pública individual,
+ * sem login) nunca deve passar por aqui; usar `:path*` gatearia ela também, quebrando a rota
+ * pública inteira.
  */
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -71,5 +76,6 @@ export const config = {
     "/configuracoes/:path*",
     "/reports/:path*",
     "/portal/:path*",
+    "/propostas",
   ],
 };

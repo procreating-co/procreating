@@ -18,6 +18,15 @@ export async function listProposalTemplates(): Promise<ProposalTemplate[]> {
   return data ?? [];
 }
 
+/** Todas as propostas, independente de lead/cliente vinculado — painel `/propostas` (staff),
+ *  hub geral fora do drawer do Lead. RLS (`_staff_all`) já garante que só staff ativo chega
+ *  aqui; esta função não faz checagem própria. */
+export async function listAllProposals(): Promise<Proposal[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("proposals").select("*").order("updated_at", { ascending: false });
+  return data ?? [];
+}
+
 /** Proposta completa pro editor (`/comercial/propostas/[id]`) — seções ordenadas + template
  *  (accent color/título do molde). */
 export async function getProposalForEditor(proposalId: string): Promise<ProposalWithSections | null> {
