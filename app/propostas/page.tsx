@@ -46,6 +46,11 @@ const dateFormatter = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: 
  *
  * Cria uma proposta avulsa (sem lead/cliente) a partir do único Template hoje existente e manda
  * pro editor completo — o resto (as 7 seções) é preenchido lá, nunca aqui.
+ *
+ * `admin-shell` (app/globals.css) na raiz — sem `.os-shell` (que só existe dentro de
+ * `(internal)`), este painel herdaria a serif de exibição do `:root` (pensada pra páginas
+ * públicas como a proposta da Elenita); `admin-shell` sobrescreve só `--font-family-display` pra
+ * sans, nunca cor nenhuma — pedido explícito de nunca usar serif em área interna/admin.
  */
 export default async function ProposalsPanelPage() {
   const session = await getSession();
@@ -55,7 +60,7 @@ export default async function ProposalsPanelPage() {
   const template = templates[0];
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-8 px-6 py-16">
+    <main className="admin-shell mx-auto flex min-h-screen max-w-3xl flex-col gap-8 px-6 py-16">
       <div className="flex flex-col gap-1.5">
         <h1 className="font-display text-3xl">Propostas</h1>
         <p className="text-sm text-muted-foreground">Crie uma proposta comercial a partir do template padrão e acompanhe as existentes.</p>
