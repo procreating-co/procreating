@@ -10,7 +10,7 @@ import { createClient } from "@/lib/supabase/server";
  * de verdade, o wrapper só existe porque `"use server"` não pode ficar dentro de um arquivo
  * `server-only` genérico.
  */
-export type PublicProposal = { id: string; title: string; status: string; accentColor: string; sections: { sectionType: string; content: Record<string, unknown> }[] } | null;
+export type PublicProposal = { id: string; title: string; status: string; brandName: string; accentColor: string; sections: { sectionType: string; content: Record<string, unknown> }[] } | null;
 
 export async function getPublicProposalAction(slug: string): Promise<PublicProposal> {
   const supabase = await createClient();

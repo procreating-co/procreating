@@ -397,3 +397,36 @@ flowchart LR
 **Decisão pendente da sua parte, antes de eu implementar**: o botão/fluxo de "Novo orçamento" (`quotes`) desaparece do drawer em favor de "Nova Proposta", ou os dois convivem por enquanto (proposta pra apresentação completa, orçamento pra uma cotação rápida informal)?
 
 Nada foi implementado. Aguardando sua revisão.
+
+---
+
+## Addendum — pivô: Elenita virou o template literal (não mais "inspirado")
+
+A Fase 1 (implementada, commit `fa9ce0c`) criou 12 `section_type` genéricos (hero/context/
+diagnosis/strategy/services/deliverables/investment/conditions/testimonial/cta/footer/custom),
+renderizados por um card escuro genérico "inspirado" na Elenita — nunca os componentes reais
+dela. Pedido do usuário nesta rodada: a proposta da Elenita (`/clients/elenita/public/proposta`,
+`components/proposal/**`) deve ser o template de verdade, não uma reinvenção.
+
+Como os 12 tipos genéricos nunca tiveram proposta real usando-os (0 `proposals` em produção),
+a migration `20260901000000_proposal_elenita_template.sql` trocou o vocabulário por completo por
+7 tipos que espelham 1:1 os componentes reais: `hero`, `pillars`, `roadmap`, `tv_program`,
+`acquisition`, `budget`, `closing`. A página pública (`components/proposal-public/
+proposal-public-view.tsx`) agora importa e renderiza `ProposalHero`/`ProposalPillars`/etc.
+diretamente de `components/proposal/**` — mesmo código, não uma cópia.
+
+`proposals` ganhou `brand_name` (nome curto de exibição, ex. "Dra. Elenita Luzardo") e
+`accent_color` (cor de destaque por proposta, com fallback pro accent do template) — cada
+proposta agora carrega sua própria identidade visual, não só o template.
+
+A Elenita passou a ser uma `Proposal` real no banco (`slug = elenita-luzardo`, `client_id`
+apontando pro cliente dela — ela já é cliente ativa, não lead), preenchida com o conteúdo
+exato que estava hardcoded em `content/clients/elenita/proposal.ts`. A rota antiga
+(`/clients/elenita/public/proposta`) tem redirect 308 permanente pra `/propostas/
+elenita-luzardo` (`next.config.mjs`), checado antes do filesystem — não quebra links antigos.
+
+`content/clients/elenita/proposal.ts`, `lib/clients/proposal-registry.ts` e
+`app/clients/[client]/public/proposta/page.tsx` ficaram sem uso (o redirect intercepta a única
+rota que os alcançava) mas foram deixados intocados — árvore de `/clients/**`, decisão
+conservadora de não deletar código de outra sessão/domínio sem necessidade. Candidato a limpeza
+futura, não feito agora.

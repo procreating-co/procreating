@@ -261,7 +261,7 @@ export function LeadDetailDrawer({
             {isPending ? "Salvando..." : "Salvar alterações"}
           </Button>
 
-          <LeadProposalsSection leadId={lead.id} ownerName={lead.company_name} proposals={proposals} />
+          <LeadProposalsSection leadId={lead.id} ownerName={lead.company_name || lead.contact_name || "Lead"} proposals={proposals} />
 
           <div className="flex flex-col gap-3 border-t border-border/60 pt-4">
             <div className="flex items-center justify-between">

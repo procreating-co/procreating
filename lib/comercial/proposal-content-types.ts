@@ -1,50 +1,62 @@
+import type { ProposalPillar, RoadmapStage, AcquisitionCard, BudgetPillarCard } from "@/lib/clients/proposal-types";
+
 /**
- * Shape de `ProposalSection.content` por `section_type` — não faz parte de `database.ts` (que só
- * conhece `Record<string, unknown>`, ver comentário lá) pra esse arquivo não virar uma union
- * gigante. Cada tipo aqui é o "molde" que tanto o Template (`section_blueprint`) quanto uma
- * Proposal real (`proposal_sections.content`) satisfazem — mesmo shape nos dois, só o conteúdo
- * muda. Ver `docs/proposal-system-architecture.md`, seção 11.3.
+ * Shape de `ProposalSection.content` por `section_type` — espelha 1:1 as sub-partes de
+ * `ProposalContent` (`lib/clients/proposal-types.ts`, sistema da Elenita, intocado), reaproveitando
+ * os mesmos tipos (`ProposalPillar`/`RoadmapStage`/`AcquisitionCard`/`BudgetPillarCard`) em vez de
+ * duplicá-los — os 7 tipos aqui são exatamente o que os componentes reais de
+ * `components/proposal/**` esperam como prop `content`. `recurrence` em `BudgetContent` é a única
+ * adição além do shape original: não existia em `ProposalContent["budget"]`, mas
+ * `getAcceptedProposalPayloadAction` (`lib/comercial/proposal-actions.ts`) precisa saber se o
+ * valor é mensal ou único pra pré-preencher o onboarding na conversão em cliente.
  */
 
 export type HeroContent = { eyebrow: string; title: string; subtitle: string };
-export type ContextContent = { heading: string; body: string };
-export type DiagnosisContent = { heading: string; body: string; points: string[] };
-export type StrategyContent = { heading: string; body: string; pillars: { title: string; description: string }[] };
-export type ServicesContent = { heading: string; items: { title: string; description: string }[] };
-export type DeliverablesContent = { heading: string; items: string[] };
-export type InvestmentContent = { heading: string; value: number; recurrence: "mensal" | "unico"; setupFee: number | null; additionalItems: { label: string; value: number }[]; notes: string };
-export type ConditionsContent = { heading: string; body: string };
-export type TestimonialContent = { quote: string; author: string; role: string };
-export type CtaContent = { heading: string; buttonLabel: string; note: string };
-export type FooterContent = { text: string };
-export type CustomContent = { heading: string; body: string };
+export type PillarsContent = { intro: { eyebrow: string; heading: string; subtitle: string }; pillars: ProposalPillar[] };
+export type RoadmapContent = { heading: string; subtitle: string; stages: RoadmapStage[] };
+export type TvProgramContent = { eyebrow: string; heading: string; subtitle: string; steps: string[] };
+export type AcquisitionContent = { eyebrow: string; heading: string; cards: AcquisitionCard[] };
+export type BudgetContent = {
+  heroNumber: number;
+  heroLabel: string;
+  heroCaption: string;
+  recurrence: "mensal" | "unico";
+  pillars: BudgetPillarCard[];
+  includedLabel: string;
+  includedItems: string[];
+  additionalLabel: string;
+  additionalItems: string[];
+  flowSteps: string[];
+};
+export type ClosingContent = { heading: string; paragraph: string };
 
 export const EMPTY_CONTENT_BY_TYPE = {
   hero: { eyebrow: "", title: "", subtitle: "" } as HeroContent,
-  context: { heading: "", body: "" } as ContextContent,
-  diagnosis: { heading: "", body: "", points: [] } as DiagnosisContent,
-  strategy: { heading: "", body: "", pillars: [] } as StrategyContent,
-  services: { heading: "", items: [] } as ServicesContent,
-  deliverables: { heading: "", items: [] } as DeliverablesContent,
-  investment: { heading: "Investimento", value: 0, recurrence: "mensal", setupFee: null, additionalItems: [], notes: "" } as InvestmentContent,
-  conditions: { heading: "", body: "" } as ConditionsContent,
-  testimonial: { quote: "", author: "", role: "" } as TestimonialContent,
-  cta: { heading: "", buttonLabel: "Aceitar proposta", note: "" } as CtaContent,
-  footer: { text: "" } as FooterContent,
-  custom: { heading: "", body: "" } as CustomContent,
+  pillars: { intro: { eyebrow: "", heading: "", subtitle: "" }, pillars: [] } as PillarsContent,
+  roadmap: { heading: "", subtitle: "", stages: [] } as RoadmapContent,
+  tv_program: { eyebrow: "", heading: "", subtitle: "", steps: [] } as TvProgramContent,
+  acquisition: { eyebrow: "", heading: "", cards: [] } as AcquisitionContent,
+  budget: {
+    heroNumber: 0,
+    heroLabel: "",
+    heroCaption: "",
+    recurrence: "mensal",
+    pillars: [],
+    includedLabel: "Incluso",
+    includedItems: [],
+    additionalLabel: "Adicionais",
+    additionalItems: [],
+    flowSteps: [],
+  } as BudgetContent,
+  closing: { heading: "", paragraph: "" } as ClosingContent,
 } as const;
 
 export const SECTION_TYPE_LABEL: Record<keyof typeof EMPTY_CONTENT_BY_TYPE, string> = {
   hero: "Hero",
-  context: "Contexto",
-  diagnosis: "Diagnóstico",
-  strategy: "Estratégia",
-  services: "Serviços",
-  deliverables: "Entregáveis",
-  investment: "Investimento",
-  conditions: "Condições",
-  testimonial: "Depoimento",
-  cta: "CTA",
-  footer: "Footer",
-  custom: "Seção livre",
+  pillars: "Pilares",
+  roadmap: "Roadmap",
+  tv_program: "Programa de TV",
+  acquisition: "Aquisição",
+  budget: "Investimento",
+  closing: "Fechamento",
 };

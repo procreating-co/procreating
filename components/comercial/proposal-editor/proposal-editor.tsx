@@ -16,6 +16,7 @@ import {
   reorderProposalSectionAction,
   sendProposalAction,
   toggleProposalSectionVisibilityAction,
+  updateProposalBrandingAction,
   updateProposalSectionAction,
   updateProposalStatusAction,
   updateProposalTitleAction,
@@ -53,6 +54,8 @@ const STATUS_TONE: Record<ProposalStatus, StatusTone> = {
 export function ProposalEditor({ proposal, ownerName, versions }: { proposal: ProposalWithSections; ownerName: string | null; versions: ProposalVersion[] }) {
   const router = useRouter();
   const [title, setTitle] = useState(proposal.title);
+  const [brandName, setBrandName] = useState(proposal.brand_name);
+  const [accentColor, setAccentColor] = useState(proposal.accent_color ?? proposal.template.accent_color);
   const [sections, setSections] = useState(proposal.sections);
   const [error, setError] = useState<string | null>(null);
   const [convertOpen, setConvertOpen] = useState(false);
@@ -126,6 +129,12 @@ export function ProposalEditor({ proposal, ownerName, versions }: { proposal: Pr
     });
   }
 
+  function saveBranding() {
+    startTransition(async () => {
+      await updateProposalBrandingAction(proposal.id, brandName, accentColor);
+    });
+  }
+
   function send() {
     setError(null);
     startTransition(async () => {
@@ -156,9 +165,19 @@ export function ProposalEditor({ proposal, ownerName, versions }: { proposal: Pr
       </Link>
 
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1.5">
           <Input value={title} onChange={(e) => setTitle(e.target.value)} onBlur={saveTitle} className="h-auto border-none px-0 font-display text-2xl shadow-none focus-visible:ring-0" />
           {ownerName && <p className="text-sm text-muted-foreground">Para {ownerName}</p>}
+          <div className="flex items-center gap-2 pt-1">
+            <input type="color" value={accentColor} onChange={(e) => setAccentColor(e.target.value)} onBlur={saveBranding} className="size-6 cursor-pointer rounded border border-border/60 bg-transparent p-0.5" aria-label="Cor de destaque" />
+            <Input
+              value={brandName}
+              onChange={(e) => setBrandName(e.target.value)}
+              onBlur={saveBranding}
+              placeholder="Nome de exibição (ex.: Dra. Elenita Luzardo)"
+              className="h-7 max-w-64 border-none bg-transparent px-0 text-xs text-muted-foreground shadow-none focus-visible:ring-0"
+            />
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <StatusDot tone={STATUS_TONE[proposal.status]} label={STATUS_LABEL[proposal.status]} />

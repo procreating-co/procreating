@@ -850,7 +850,9 @@ export type QuoteItem = {
 // `lib/comercial/proposal-content-types.ts`, não aqui (evita este arquivo virar union gigante).
 // ---------------------------------------------------------------------------
 export type ProposalStatus = "draft" | "sent" | "negotiating" | "revision_requested" | "accepted" | "rejected" | "expired" | "archived" | "cancelled";
-export type ProposalSectionType = "hero" | "context" | "diagnosis" | "strategy" | "services" | "deliverables" | "investment" | "conditions" | "testimonial" | "cta" | "footer" | "custom";
+// 7 tipos = os 7 componentes reais de `components/proposal/**` (a Proposta de Continuidade da
+// Elenita, agora o template padrão — migration `20260901000000_proposal_elenita_template.sql`).
+export type ProposalSectionType = "hero" | "pillars" | "roadmap" | "tv_program" | "acquisition" | "budget" | "closing";
 
 export type ProposalTemplate = {
   id: string;
@@ -871,6 +873,8 @@ export type Proposal = {
   template_id: string;
   slug: string;
   title: string;
+  brand_name: string;
+  accent_color: string | null;
   status: ProposalStatus;
   accepted_version_id: string | null;
   current_version_number: number;

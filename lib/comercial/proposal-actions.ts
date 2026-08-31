@@ -31,8 +31,9 @@ type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
 /** Mesmo raciocínio de slug de `close_lead_and_create_client` (RPC, Fase 2), só que em TS —
  *  dedupe consultando a tabela em vez de `while exists` em SQL, porque esta é uma Server Action
- *  comum, não uma função de banco. */
-async function generateUniqueSlug(supabase: SupabaseServerClient, base: string): Promise<string> {
+ *  comum, não uma função de banco. Slug vem só do nome (ex.: "João da Silva" → "joao-da-silva"),
+ *  sem sufixo de ano — se colidir, o dedupe abaixo acrescenta "-2", "-3"... */
+export async function generateUniqueSlug(supabase: SupabaseServerClient, base: string): Promise<string> {
   const baseSlug = base
     .toLowerCase()
     .normalize("NFD")
@@ -60,6 +61,8 @@ export async function createProposalFromTemplateAction(input: {
   templateId: string;
   title: string;
   ownerName: string;
+  brandName?: string;
+  accentColor?: string;
 }): Promise<ActionResult & { proposalId?: string }> {
   if (!input.title.trim()) return { ok: false, error: "Dê um título à proposta." };
   if (!input.leadId && !input.clientId) return { ok: false, error: "Proposta precisa estar ligada a um lead ou cliente." };
@@ -71,11 +74,20 @@ export async function createProposalFromTemplateAction(input: {
   const { data: template } = await supabase.from("proposal_templates").select("*").eq("id", input.templateId).maybeSingle();
   if (!template) return { ok: false, error: "Template não encontrado." };
 
-  const slug = await generateUniqueSlug(supabase, `${input.ownerName}-${new Date().getFullYear()}`);
+  const slug = await generateUniqueSlug(supabase, input.ownerName);
 
   const { data: proposal, error: proposalError } = await supabase
     .from("proposals")
-    .insert({ lead_id: input.leadId, client_id: input.clientId, template_id: input.templateId, slug, title: input.title, created_by: userId })
+    .insert({
+      lead_id: input.leadId,
+      client_id: input.clientId,
+      template_id: input.templateId,
+      slug,
+      title: input.title,
+      brand_name: input.brandName?.trim() || input.ownerName,
+      accent_color: input.accentColor || template.accent_color,
+      created_by: userId,
+    })
     .select("id")
     .single();
   if (proposalError) return { ok: false, error: proposalError.message };
@@ -101,6 +113,18 @@ export async function updateProposalTitleAction(proposalId: string, title: strin
   if (!title.trim()) return { ok: false, error: "Título não pode ficar vazio." };
   const supabase = await createClient();
   const { error } = await supabase.from("proposals").update({ title, updated_at: new Date().toISOString() }).eq("id", proposalId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath(`/comercial/propostas/${proposalId}`);
+  return { ok: true };
+}
+
+/** Nome de exibição ("Dra. Elenita Luzardo") e cor de destaque da proposta — distintos do
+ *  `title` administrativo. Usados por `ProposalClosing`/`ProposalScrollProgress`/etc na página
+ *  pública (§9 do plano — cada proposta pode ter sua própria identidade visual). */
+export async function updateProposalBrandingAction(proposalId: string, brandName: string, accentColor: string): Promise<ActionResult> {
+  if (!brandName.trim()) return { ok: false, error: "Nome da marca não pode ficar vazio." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("proposals").update({ brand_name: brandName, accent_color: accentColor, updated_at: new Date().toISOString() }).eq("id", proposalId);
   if (error) return { ok: false, error: error.message };
   revalidatePath(`/comercial/propostas/${proposalId}`);
   return { ok: true };
@@ -217,7 +241,16 @@ export async function duplicateProposalAction(proposalId: string): Promise<Actio
   const slug = await generateUniqueSlug(supabase, `${original.title}-copia`);
   const { data: copy, error: copyError } = await supabase
     .from("proposals")
-    .insert({ lead_id: original.lead_id, client_id: original.client_id, template_id: original.template_id, slug, title: `${original.title} (cópia)`, created_by: userId })
+    .insert({
+      lead_id: original.lead_id,
+      client_id: original.client_id,
+      template_id: original.template_id,
+      slug,
+      title: `${original.title} (cópia)`,
+      brand_name: original.brand_name,
+      accent_color: original.accent_color,
+      created_by: userId,
+    })
     .select("id")
     .single();
   if (copyError) return { ok: false, error: copyError.message };
@@ -234,9 +267,9 @@ export async function duplicateProposalAction(proposalId: string): Promise<Actio
 }
 
 /** Payload pronto pra pré-preencher o `OnboardingModal` já existente (§10.2 do plano) — extrai
- *  valor/recorrência da seção `investment` da VERSÃO ACEITA (nunca a ao vivo, que pode ter
- *  mudado). Reaproveita `close_lead_and_create_client` via o mesmo fluxo de sempre — esta função
- *  só monta os dados, não cria cliente nenhum sozinha. */
+ *  valor/recorrência da seção `budget` da VERSÃO ACEITA (nunca a ao vivo, que pode ter mudado).
+ *  Reaproveita `close_lead_and_create_client` via o mesmo fluxo de sempre — esta função só monta
+ *  os dados, não cria cliente nenhum sozinha. */
 export type ProposalAcceptedPayload = {
   contractType: "recorrente" | "pontual";
   monthlyValue: string;
@@ -251,14 +284,14 @@ export async function getAcceptedProposalPayloadAction(proposalId: string): Prom
   const { data: version } = await supabase.from("proposal_versions").select("snapshot").eq("id", proposal.accepted_version_id).maybeSingle();
   if (!version) return null;
 
-  const investment = version.snapshot.find((s) => s.sectionType === "investment")?.content as { value?: number; recurrence?: string } | undefined;
-  if (!investment) return null;
+  const budget = version.snapshot.find((s) => s.sectionType === "budget")?.content as { heroNumber?: number; recurrence?: string } | undefined;
+  if (!budget) return null;
 
-  const isRecurring = investment.recurrence !== "unico";
+  const isRecurring = budget.recurrence !== "unico";
   return {
     contractType: isRecurring ? "recorrente" : "pontual",
-    monthlyValue: isRecurring ? String(investment.value ?? "") : "",
-    totalValue: !isRecurring ? String(investment.value ?? "") : "",
+    monthlyValue: isRecurring ? String(budget.heroNumber ?? "") : "",
+    totalValue: !isRecurring ? String(budget.heroNumber ?? "") : "",
   };
 }
 

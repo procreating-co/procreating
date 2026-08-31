@@ -19,6 +19,19 @@ const nextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      // A Proposta de Continuidade da Elenita saiu de `content/clients/elenita/proposal.ts`
+      // (registry hardcoded) e virou uma Proposal de verdade no banco (sistema genérico de
+      // Propostas, `/propostas/[slug]`) — ver migration `20260901000000_proposal_elenita_template.sql`.
+      // Redirect permanente pra não quebrar o link antigo que já circula.
+      {
+        source: "/clients/elenita/public/proposta",
+        destination: "/propostas/elenita-luzardo",
+        permanent: true,
+      },
+    ];
+  },
   async rewrites() {
     return {
       // beforeFiles: precisa rodar ANTES do Next checar arquivos/páginas — inclusive as páginas
