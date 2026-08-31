@@ -27,10 +27,44 @@ export type HeroContent = {
   backgroundVideoUrl: string | null;
   backgroundVideoOrientation: VideoOrientation | null;
 };
-export type PillarsContent = { intro: { eyebrow: string; heading: string; subtitle: string }; pillars: ProposalPillar[] };
-export type RoadmapContent = { heading: string; subtitle: string; stages: RoadmapStage[] };
+/** Item de pilar "trancado" — usado quando um serviço ainda não está disponível pro cliente
+ *  contratar agora (ex.: Prospecção Ativa, Aquisição de Leads — pedido explícito: "colocar um
+ *  cadeado"). String plana continua funcionando (compatível com `ProposalPillar` original, usado
+ *  pela Elenita) — só quando o item é um objeto com `locked: true` que o cadeado aparece. */
+export type PillarItem = string | { label: string; locked: true };
+export type ProposalPillarWithLocks = Omit<ProposalPillar, "items"> & { items: PillarItem[] };
+
+export type PillarsContent = { intro: { eyebrow: string; heading: string; subtitle: string }; pillars: ProposalPillarWithLocks[] };
+
+/** Bloco "captação" do Roadmap (opcional) — dias de captação + composição de equipe + entregável.
+ *  Ausente = `ProposalRoadmap` não renderiza esse bloco (Elenita não tem). */
+export type RoadmapProductionBlock = { heading: string; items: string[]; deliverable: string };
+
+/** Uma etapa de funil (Topo/Meio/Fundo) dentro do bloco "estratégia por trás" do Roadmap —
+ *  objetivo em texto + até 2 vídeos explicativos (mesmo `ProposalVideo` do Portfólio, reaproveitado
+ *  — nunca um tipo de vídeo próprio). Vídeos ficam vazios até o upload real acontecer no editor;
+ *  a seção já existe/renderiza com o "espaço" mesmo sem vídeo nenhum ainda. */
+export type RoadmapFunnelStage = { heading: string; objective: string; videos: ProposalVideo[] };
+
+/** Bloco "estratégia por trás" (opcional) — matriz perfis × etapas de funil + o detalhe de cada
+ *  etapa. Ausente = `ProposalRoadmap` não renderiza esse bloco. */
+export type RoadmapFunnel = { heading: string; profiles: string[]; stages: RoadmapFunnelStage[] };
+
+export type RoadmapContent = {
+  heading: string;
+  subtitle: string;
+  stages: RoadmapStage[];
+  production: RoadmapProductionBlock | null;
+  funnel: RoadmapFunnel | null;
+};
 export type TvProgramContent = { eyebrow: string; heading: string; subtitle: string; steps: string[] };
 export type AcquisitionContent = { eyebrow: string; heading: string; cards: AcquisitionCard[] };
+/** Upsell interativo (opcional) — pedido explícito: "adicione opção de upsell de mais vídeos...
+ *  nunca apareça o custo do vídeo, apenas adicione ao valor inicial". `unitPrice` nunca é
+ *  renderizado como texto em lugar nenhum de `ProposalBudget` — só usado internamente pra somar
+ *  no total exibido conforme o viewer ajusta o contador. */
+export type BudgetUpsell = { label: string; unitPrice: number; max: number };
+
 export type BudgetContent = {
   heroNumber: number;
   heroLabel: string;
@@ -42,6 +76,7 @@ export type BudgetContent = {
   additionalLabel: string;
   additionalItems: string[];
   flowSteps: string[];
+  upsell: BudgetUpsell | null;
 };
 export type ClosingContent = { heading: string; paragraph: string };
 
@@ -52,7 +87,7 @@ export type PortfolioContent = { eyebrow: string; heading: string; subtitle: str
 export const EMPTY_CONTENT_BY_TYPE = {
   hero: { eyebrow: "", title: "", subtitle: "", backgroundVideoUrl: null, backgroundVideoOrientation: null } as HeroContent,
   pillars: { intro: { eyebrow: "", heading: "", subtitle: "" }, pillars: [] } as PillarsContent,
-  roadmap: { heading: "", subtitle: "", stages: [] } as RoadmapContent,
+  roadmap: { heading: "", subtitle: "", stages: [], production: null, funnel: null } as RoadmapContent,
   tv_program: { eyebrow: "", heading: "", subtitle: "", steps: [] } as TvProgramContent,
   acquisition: { eyebrow: "", heading: "", cards: [] } as AcquisitionContent,
   budget: {
@@ -66,6 +101,7 @@ export const EMPTY_CONTENT_BY_TYPE = {
     additionalLabel: "Adicionais",
     additionalItems: [],
     flowSteps: [],
+    upsell: null,
   } as BudgetContent,
   closing: { heading: "", paragraph: "" } as ClosingContent,
   portfolio: { eyebrow: "", heading: "", subtitle: "", videos: [] } as PortfolioContent,
