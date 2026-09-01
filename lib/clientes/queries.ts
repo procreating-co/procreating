@@ -9,6 +9,15 @@ export async function listClients(): Promise<Client[]> {
   return data ?? [];
 }
 
+/** Só a linha de `clients`, sem os 7 joins de `getClientFull` (contratos/onboarding/tarefas/
+ *  eventos) — usada pelo Client Hub (`/clientes/[id]/hub`), que precisa de `name`/`slug`/`status`
+ *  pro header e mais nada da ficha cadastral. */
+export async function getClientBasic(id: string): Promise<Client | null> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("clients").select("*").eq("id", id).maybeSingle();
+  return data ?? null;
+}
+
 export type ClientWithCategories = { client: Client; categories: ContractCategory[] };
 
 /** `/clientes` — cada cliente junto das categorias (deduplicadas) dos seus próprios contratos,

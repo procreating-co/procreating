@@ -65,6 +65,14 @@ export default async function ClienteDetailPage({ params }: { params: Promise<Pa
               Acessar Home
               <ArrowUpRight className="size-3" />
             </a>
+            {/* Central do Cliente (Client Hub) — hub operacional novo, separado desta ficha
+             *  cadastral (contratos/contatos/onboarding). Rota genérica `/clientes/[id]/hub`. */}
+            <Link
+              href={`/clientes/${client.id}/hub`}
+              className="flex items-center gap-1 rounded-full border border-border/60 px-2.5 py-1 text-xs font-medium text-foreground transition-colors hover:bg-accent"
+            >
+              Central do Cliente
+            </Link>
           </div>
           {strategy && <p className="text-sm text-muted-foreground">Veio da estratégia "{strategy.name}"</p>}
         </div>

@@ -36,3 +36,33 @@ export async function getGalleryFolders(clientSlug: string, folderDefs: GalleryF
     return { id, label, photos };
   });
 }
+
+export type RecentGalleryFile = { src: string; fileName: string; folderLabel: string; modifiedAt: string };
+
+/** "Últimos materiais" do Client Hub (`/clientes/[id]/hub`) — mesma leitura de disco de
+ *  `getGalleryFolders`, só ordenada por data de modificação do arquivo em vez de agrupada por
+ *  pasta. Server-only pelo mesmo motivo (usa `fs`). */
+export async function getRecentGalleryFiles(clientSlug: string, folderDefs: GalleryFolderDef[], limit = 6): Promise<RecentGalleryFile[]> {
+  const galleryRoot = path.join(process.cwd(), "public", "gallery", clientSlug);
+  const all: RecentGalleryFile[] = [];
+
+  for (const { id, label } of folderDefs) {
+    let entries: string[] = [];
+    try {
+      entries = fs.readdirSync(path.join(galleryRoot, id)).filter((file) => IMAGE_EXTENSIONS.has(path.extname(file).toLowerCase()));
+    } catch {
+      continue;
+    }
+    for (const file of entries) {
+      try {
+        const stat = fs.statSync(path.join(galleryRoot, id, file));
+        all.push({ src: `/gallery/${clientSlug}/${id}/${file}`, fileName: file, folderLabel: label, modifiedAt: stat.mtime.toISOString() });
+      } catch {
+        continue;
+      }
+    }
+  }
+
+  all.sort((a, b) => b.modifiedAt.localeCompare(a.modifiedAt));
+  return all.slice(0, limit);
+}
