@@ -628,6 +628,9 @@ export type ProductionProject = {
 // ---------------------------------------------------------------------------
 export type ProductionItemKind = "producao" | "entrega" | "conteudo";
 export type ProductionItemStatusTone = "active" | "pending" | "neutral" | "danger";
+/** Só usado por `kind='conteudo'` — discrimina qual seção do Client Hub o item alimenta
+ *  (`20260903000000_production_items_client_hub.sql`). `null` = post comum (Cronograma). */
+export type ProductionItemFormat = "post" | "reels" | "story" | "roteiro" | "outro";
 
 export type ProductionItem = {
   id: string;
@@ -640,6 +643,18 @@ export type ProductionItem = {
   created_by: string;
   created_at: string;
   updated_at: string;
+  // Client Hub (Operação > Clientes > [cliente], migration 20260903000000) — nullable, só
+  // preenchidas por itens criados a partir do Cronograma/Roteiros/Stories do hub. Produção/
+  // Entregas/Recursos (as 3 páginas originais de `kind`) nunca leem essas colunas.
+  format: ProductionItemFormat | null;
+  channel: string | null;
+  scheduled_date: string | null;
+  assigned_to: string | null;
+  notes: string | null;
+  script_body: string | null;
+  story_sequence: number | null;
+  story_objective: string | null;
+  story_direction: string | null;
 };
 
 // ---------------------------------------------------------------------------

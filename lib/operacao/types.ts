@@ -1,4 +1,4 @@
-import type { ProductionItemKind, ProductionProjectStatus } from "@/lib/supabase/types/database";
+import type { ProductionItemFormat, ProductionItemKind, ProductionProjectStatus } from "@/lib/supabase/types/database";
 import type { StatusTone } from "@/components/dashboard/status-dot";
 
 export const PRODUCTION_PROJECT_STATUSES: ProductionProjectStatus[] = [
@@ -52,9 +52,16 @@ export const PRODUCTION_ITEM_STATUS_PRESETS: Record<ProductionItemKind, StatusPr
     { label: "Aprovado", tone: "active" },
     { label: "Entregue", tone: "neutral" },
   ],
+  // Estendido pro Client Hub (Cronograma de postagens/Roteiros/Stories, Operação > Clientes >
+  // [cliente]) — pedido explícito do vocabulário de 6 estados; os 3 originais (Planejado/Em
+  // produção/Publicado) continuam valendo pra quem já usa `/operacao/conteudo`, só ganharam mais
+  // 3 opções no meio do fluxo. Nenhum item existente precisa mudar.
   conteudo: [
     { label: "Planejado", tone: "pending" },
     { label: "Em produção", tone: "active" },
+    { label: "Em revisão", tone: "pending" },
+    { label: "Aprovado", tone: "active" },
+    { label: "Agendado", tone: "active" },
     { label: "Publicado", tone: "neutral" },
   ],
 };
@@ -63,4 +70,13 @@ export const PRODUCTION_ITEM_KIND_LABEL: Record<ProductionItemKind, string> = {
   producao: "Conteúdo",
   entrega: "Entrega",
   conteudo: "Conteúdo",
+};
+
+/** Rótulo de `format` (Client Hub) — `null` mostra como "Post" (valor mais comum do Cronograma). */
+export const PRODUCTION_ITEM_FORMAT_LABEL: Record<ProductionItemFormat, string> = {
+  post: "Post",
+  reels: "Reels",
+  story: "Story",
+  roteiro: "Roteiro",
+  outro: "Outro",
 };
