@@ -34,12 +34,18 @@ pnpm-debug.log*
 # Exceção: hero-background.mp4/elenita-hero-background.mp4 (pequenos, sempre ficaram no git) e
 # os 3 vídeos sociais da Elenita (elenita-social-*.mp4) — decisão explícita de manter direto no
 # git como atalho até o upload real pro R2, mesmo fora do padrão do projeto (ver commit).
+# topo-apresentacao-julia.mp4/meio-a-origem.mp4/fundo-wish-carol.mp4 (proposta da Priscilla, os 3
+# vídeos do bloco de funil no Roadmap) — mesma exceção, arquivos pequenos o bastante (< 51MB cada,
+# bem abaixo do limite de 100MB do GitHub) pra ficar direto no git.
 public/videos/*
 !public/videos/hero-background.mp4
 !public/videos/elenita-hero-background.mp4
 !public/videos/elenita-social-01-protocolo-elleve.mp4
 !public/videos/elenita-social-02-voce-decidiu-se-priorizar.mp4
 !public/videos/elenita-social-03-educativo.mp4
+!public/videos/topo-apresentacao-julia.mp4
+!public/videos/meio-a-origem.mp4
+!public/videos/fundo-wish-carol.mp4
 .vercel
 .env*
 supabase/.temp

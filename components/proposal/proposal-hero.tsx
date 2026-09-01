@@ -33,7 +33,11 @@ export function ProposalHero({ content, accent }: { content: HeroContentWithVide
           {content.eyebrow}
         </span>
 
-        <ProposalTypingHeadline text={content.title} className="font-display text-6xl leading-[0.98] tracking-tight sm:text-7xl md:text-8xl" />
+        {/* Auditoria mobile: text-6xl (60px) na largura mínima deixava um título de 2-3 palavras
+         *  por linha dominando a tela inteira em telas de 320-375px, sem "impacto controlado"
+         *  (pedido explícito). text-4xl (36px) como piso, escalando até text-8xl (96px) em
+         *  telas grandes — mesma progressão, só com um degrau a mais embaixo. */}
+        <ProposalTypingHeadline text={content.title} className="font-display text-4xl leading-[1.05] tracking-tight sm:text-6xl sm:leading-[0.98] md:text-7xl lg:text-8xl" />
 
         <p className="mt-5 max-w-md text-balance text-lg leading-relaxed text-white/70 sm:text-xl">{content.subtitle}</p>
       </div>

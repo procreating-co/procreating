@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { MotionConfig } from "framer-motion";
 import { recordProposalViewAction, respondPublicProposalAction, type PublicProposal } from "@/lib/comercial/public-proposal-actions";
 import { ProposalScrollProgress } from "@/components/proposal/proposal-scroll-progress";
 import { ProposalHero } from "@/components/proposal/proposal-hero";
@@ -85,24 +86,33 @@ export function ProposalPublicView({ slug, proposal }: { slug: string; proposal:
         type="button"
         disabled={isPending}
         onClick={acceptProposal}
-        className="rounded-full px-8 py-3 text-sm font-medium text-black transition-transform hover:scale-[1.02]"
+        className="rounded-full px-8 py-4 text-sm font-medium text-black transition-transform hover:scale-[1.02] active:scale-95 disabled:pointer-events-none disabled:opacity-60"
         style={{ backgroundColor: accent }}
       >
-        Aceitar proposta
+        {isPending ? "Enviando..." : "Aceitar proposta"}
       </button>
     ) : null;
 
   return (
-    <main className="min-h-screen bg-black">
-      <ProposalScrollProgress accent={accent} />
-      {hero && <ProposalHero content={hero} accent={accent} />}
-      {pillars && <ProposalPillars intro={pillars.intro} pillars={pillars.pillars} accent={accent} />}
-      {roadmap && <ProposalRoadmap content={roadmap} accent={accent} />}
-      {tvProgram && <ProposalTvProgram content={tvProgram} accent={accent} />}
-      {acquisition && <ProposalAcquisition content={acquisition} accent={accent} />}
-      {budget && <ProposalBudget content={budget} accent={accent} />}
-      {portfolio && <ProposalPortfolio content={portfolio} accent={accent} />}
-      {closing && <ProposalClosing content={closing} brandName={proposal.brandName} action={closingAction} />}
-    </main>
+    // Auditoria mobile: `MotionConfig reducedMotion="user"` respeita `prefers-reduced-motion` do
+    // sistema pra TODA animação framer-motion da árvore de uma vez (headline, reveals de scroll,
+    // atmosfera do Hero) — CSS `@media (prefers-reduced-motion)` sozinho não bastaria aqui, o
+    // motor de animação do framer-motion não usa `transition:` do CSS. `overflow-x-hidden` é
+    // rede de segurança contra overflow horizontal — nenhuma seção individual deveria vazar
+    // largura, mas isso garante que, se algo vazar no futuro, a PÁGINA nunca ganha barra de
+    // rolagem lateral (o elemento causador só fica cortado ali).
+    <MotionConfig reducedMotion="user">
+      <main className="min-h-screen overflow-x-hidden bg-black">
+        <ProposalScrollProgress accent={accent} />
+        {hero && <ProposalHero content={hero} accent={accent} />}
+        {pillars && <ProposalPillars intro={pillars.intro} pillars={pillars.pillars} accent={accent} />}
+        {roadmap && <ProposalRoadmap content={roadmap} accent={accent} />}
+        {tvProgram && <ProposalTvProgram content={tvProgram} accent={accent} />}
+        {acquisition && <ProposalAcquisition content={acquisition} accent={accent} />}
+        {budget && <ProposalBudget content={budget} accent={accent} />}
+        {portfolio && <ProposalPortfolio content={portfolio} accent={accent} />}
+        {closing && <ProposalClosing content={closing} brandName={proposal.brandName} action={closingAction} />}
+      </main>
+    </MotionConfig>
   );
 }

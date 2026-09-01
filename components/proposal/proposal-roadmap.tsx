@@ -5,7 +5,7 @@ import { motion, useScroll, useSpring } from "framer-motion";
 import { Camera, Check } from "lucide-react";
 import { ProposalSectionHeader } from "@/components/proposal/proposal-section-header";
 import type { ProposalContent, RoadmapStage } from "@/lib/clients/proposal-types";
-import type { RoadmapFunnel, RoadmapProductionBlock } from "@/lib/comercial/proposal-content-types";
+import type { RoadmapFunnel, RoadmapFunnelStage, RoadmapProductionBlock } from "@/lib/comercial/proposal-content-types";
 
 function RoadmapStageRow({ stage, accent, index }: { stage: RoadmapStage; accent: string; index: number }) {
   return (
@@ -74,56 +74,103 @@ function FunnelBlock({ funnel, accent }: { funnel: RoadmapFunnel; accent: string
     <div className="mx-auto mt-24 max-w-4xl">
       <h3 className="text-center font-display text-2xl text-white sm:text-3xl">{funnel.heading}</h3>
 
-      {/* Matriz perfis × etapas — cada perfil é uma coluna, cada linha é uma etapa de funil */}
-      <div className="mt-10 grid gap-px overflow-hidden rounded-lg border border-white/10 bg-white/10" style={{ gridTemplateColumns: `repeat(${funnel.profiles.length}, 1fr)` }}>
-        {funnel.profiles.map((profile) => (
-          <div key={profile} className="bg-black px-3 py-3 text-center font-mono text-xs uppercase tracking-wide text-white/70">
-            {profile}
-          </div>
-        ))}
-        {funnel.stages.flatMap((stage) =>
-          funnel.profiles.map((profile) => (
-            <div key={`${stage.heading}-${profile}`} className="bg-black px-3 py-3 text-center text-xs text-white/45">
-              {stage.heading}
+      {/* Matriz perfis × etapas — cada perfil é uma coluna, cada linha é uma etapa de funil.
+          Auditoria mobile: 3 colunas de texto (nomes de etapa como "Conteúdo de Topo de
+          Funil.") num grid de largura fixa espremia cada coluna a ~90px em telas de 320-375px,
+          ilegível. `overflow-x-auto` no container (nunca na página) + `min-w` no grid — rola só
+          essa matriz quando não cabe, sem gerar overflow horizontal na página inteira. */}
+      <div className="mt-10 overflow-x-auto rounded-lg border border-white/10">
+        <div className="grid min-w-[480px] gap-px bg-white/10" style={{ gridTemplateColumns: `repeat(${funnel.profiles.length}, 1fr)` }}>
+          {funnel.profiles.map((profile) => (
+            <div key={profile} className="bg-black px-3 py-3 text-center font-mono text-xs uppercase tracking-wide text-white/70">
+              {profile}
             </div>
-          )),
-        )}
+          ))}
+          {funnel.stages.flatMap((stage) =>
+            funnel.profiles.map((profile) => (
+              <div key={`${stage.heading}-${profile}`} className="bg-black px-3 py-3 text-center text-xs text-white/45">
+                {stage.heading}
+              </div>
+            )),
+          )}
+        </div>
       </div>
 
-      {/* Detalhe de cada etapa — objetivo + vídeos explicativos (quando já enviados) */}
+      {/* Detalhe de cada etapa — o primeiro vídeo (quando enviado) vira o FUNDO da própria
+          etapa, texto por cima (não "3 players genéricos" — pedido explícito: integrar cada
+          vídeo à narrativa daquela etapa). Sem vídeo, cai no texto plano de sempre. */}
       <div className="mt-14 flex flex-col gap-12">
         {funnel.stages.map((stage, index) => (
-          <motion.div
-            key={stage.heading}
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.4 }}
-            transition={{ duration: 0.6, delay: index * 0.06, ease: "easeOut" }}
-            className="flex flex-col gap-4"
-          >
-            <div className="flex items-center gap-3">
-              <span className="h-px w-8 shrink-0" style={{ backgroundColor: accent }} />
-              <h4 className="font-display text-xl text-white sm:text-2xl">{stage.heading}</h4>
-            </div>
-            <p className="max-w-xl text-sm leading-relaxed text-white/55 sm:text-base">{stage.objective}</p>
-            {stage.videos.length > 0 && (
-              <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                {stage.videos.map((video) => (
-                  // eslint-disable-next-line jsx-a11y/media-has-caption
-                  <video
-                    key={video.url}
-                    src={video.url}
-                    controls
-                    preload="metadata"
-                    className={`w-full overflow-hidden rounded-lg border border-white/10 bg-black object-cover ${video.orientation === "vertical" ? "aspect-[9/16]" : "aspect-video"}`}
-                  />
-                ))}
-              </div>
-            )}
-          </motion.div>
+          <FunnelStageCard key={stage.heading} stage={stage} accent={accent} index={index} />
         ))}
       </div>
     </div>
+  );
+}
+
+function FunnelStageCard({ stage, accent, index }: { stage: RoadmapFunnelStage; accent: string; index: number }) {
+  const [mainVideo, ...extraVideos] = stage.videos;
+
+  const heading = (
+    <div className="flex items-center gap-3">
+      <span className="h-px w-8 shrink-0" style={{ backgroundColor: accent }} />
+      <h4 className="font-display text-xl text-white sm:text-2xl">{stage.heading}</h4>
+    </div>
+  );
+
+  if (!mainVideo) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.4 }}
+        transition={{ duration: 0.6, delay: index * 0.06, ease: "easeOut" }}
+        className="flex flex-col gap-4"
+      >
+        {heading}
+        <p className="max-w-xl text-sm leading-relaxed text-white/55 sm:text-base">{stage.objective}</p>
+      </motion.div>
+    );
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.4 }}
+      transition={{ duration: 0.6, delay: index * 0.06, ease: "easeOut" }}
+      className="flex flex-col gap-4"
+    >
+      {/* Vídeo de fundo — sem controles, ambiente (autoplay/muted/loop/playsInline), texto por
+          cima com gradiente por baixo pra legibilidade. `overflow-hidden` + `object-cover`
+          garantem que nenhuma orientação (horizontal/vertical) deforma ou estoura a largura. */}
+      <div className="relative min-h-[340px] w-full overflow-hidden rounded-2xl border border-white/10 sm:min-h-[420px]">
+        {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+        <video src={mainVideo.url} autoPlay muted loop playsInline className="absolute inset-0 size-full object-cover" aria-hidden="true" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/10" aria-hidden="true" />
+        <div className="relative flex min-h-[340px] flex-col justify-end gap-3 p-6 sm:min-h-[420px] sm:p-8">
+          {heading}
+          <p className="max-w-xl text-sm leading-relaxed text-white/80 sm:text-base">{stage.objective}</p>
+        </div>
+      </div>
+
+      {/* Vídeos adicionais da mesma etapa (raro — hoje cada etapa usa só 1) — tratamento
+          secundário, com controles, não competem com o vídeo de fundo pela atenção. */}
+      {extraVideos.length > 0 && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {extraVideos.map((video) => (
+            // eslint-disable-next-line jsx-a11y/media-has-caption
+            <video
+              key={video.url}
+              src={video.url}
+              controls
+              preload="metadata"
+              className={`w-full overflow-hidden rounded-lg border border-white/10 bg-black object-cover ${video.orientation === "vertical" ? "aspect-[9/16]" : "aspect-video"}`}
+            />
+          ))}
+        </div>
+      )}
+    </motion.div>
   );
 }
 
