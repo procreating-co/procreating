@@ -16,55 +16,56 @@ const TEAM_ROLE_ICON: Record<BudgetTeamRole["role"], typeof Camera> = {
   outro: Check,
 };
 
+/* Alvo de toque — pedido explícito de auditoria mobile: botão de +/- media 28px (`size-7`),
+ * abaixo do mínimo de ~44px recomendado (Apple HIG/Material). `size-11` (44px) resolve sem
+ * distorcer a composição visual (o resto do card já tem espaço de sobra pra isso). */
 function Stepper({ value, min, max, accent, onChange }: { value: number; min: number; max: number; accent: string; onChange: (next: number) => void }) {
   return (
-    <div className="flex shrink-0 items-center gap-3">
+    <div className="flex shrink-0 items-center gap-2">
       <button
         type="button"
         onClick={() => onChange(Math.max(min, value - 1))}
         disabled={value <= min}
         aria-label="Diminuir"
-        className="flex size-7 items-center justify-center rounded-full border text-sm transition-colors disabled:pointer-events-none disabled:opacity-25"
+        className="flex size-11 items-center justify-center rounded-full border text-sm transition-colors active:scale-95 disabled:pointer-events-none disabled:opacity-25"
         style={{ borderColor: accent, color: accent }}
       >
-        <Minus className="size-3" />
+        <Minus className="size-4" />
       </button>
-      <span className="min-w-4 text-center font-mono text-sm tabular-nums text-white">{value}</span>
+      <span className="min-w-5 text-center font-mono text-sm tabular-nums text-white">{value}</span>
       <button
         type="button"
         onClick={() => onChange(Math.min(max, value + 1))}
         disabled={value >= max}
         aria-label="Aumentar"
-        className="flex size-7 items-center justify-center rounded-full border text-sm transition-colors disabled:pointer-events-none disabled:opacity-25"
+        className="flex size-11 items-center justify-center rounded-full border text-sm transition-colors active:scale-95 disabled:pointer-events-none disabled:opacity-25"
         style={{ borderColor: accent, color: accent }}
       >
-        <Plus className="size-3" />
+        <Plus className="size-4" />
       </button>
     </div>
   );
 }
 
+/* Alvo de toque maior que o track visual (44px de altura clicável, track continua fino/compacto
+ * — mesmo truque de área de toque expandida sem alterar a aparência do componente). */
 function Toggle({ on, accent, onChange }: { on: boolean; accent: string; onChange: (next: boolean) => void }) {
   return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={on}
-      onClick={() => onChange(!on)}
-      className="relative h-6 w-[42px] shrink-0 rounded-full transition-colors"
-      style={{ backgroundColor: on ? accent : "rgba(255,255,255,0.15)" }}
-    >
-      <span className="absolute top-0.5 size-5 rounded-full bg-white transition-transform" style={{ transform: on ? "translateX(19px)" : "translateX(3px)" }} />
+    <button type="button" role="switch" aria-checked={on} onClick={() => onChange(!on)} className="flex min-h-11 min-w-11 shrink-0 items-center justify-center">
+      <span className="relative h-6 w-[42px] rounded-full transition-colors" style={{ backgroundColor: on ? accent : "rgba(255,255,255,0.15)" }}>
+        <span className="absolute top-0.5 size-5 rounded-full bg-white transition-transform" style={{ transform: on ? "translateX(19px)" : "translateX(3px)" }} />
+      </span>
     </button>
   );
 }
 
 /**
- * Configurador de investimento — v2, revisado depois do feedback direto no v1 (âncora/pill de
- * pagamento/linha de escopo/preço-por-vídeo na abertura saíram; "Orçamento" aparece primeiro;
- * preço unitário de cada item nunca aparece em lugar nenhum — nem texto, nem delta, nem recibo,
- * nem rodapé, só o total muda ao vivo). Identidade da proposta (`accent`), mesmos tokens de
- * `components/proposal/**` (bg-black, border-white/10).
+ * Configurador de investimento — v3, pedido explícito: o valor sai do topo e vira a ÚLTIMA coisa
+ * da seção, revelado depois de "O que está incluso"/"Personalize seu pacote" — narrativa
+ * "aqui está o que você recebe → personalize → aqui está o investimento", em vez de abrir com um
+ * número. Preço unitário de cada item nunca aparece em lugar nenhum (nem texto, nem delta, nem
+ * recibo, nem rodapé) — só o total final muda ao vivo conforme a personalização. Identidade da
+ * proposta (`accent`), mesmos tokens de `components/proposal/**`.
  */
 export function ProposalBudgetConfigurator({ content, configurator, accent }: { content: BudgetContent; configurator: BudgetConfigurator; accent: string }) {
   const [addonQty, setAddonQty] = useState<Record<string, number>>({});
@@ -86,21 +87,17 @@ export function ProposalBudgetConfigurator({ content, configurator, accent }: { 
   return (
     <section className="border-t border-white/10 bg-black px-6 py-24 text-white lg:px-12 lg:py-32">
       <div className="mx-auto max-w-2xl">
-        {/* A — Orçamento (título primeiro) + total */}
-        <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.6 }} transition={{ duration: 0.6, ease: "easeOut" }} className="flex flex-col items-center text-center">
+        {/* A — só o título "Orçamento", nada mais aqui em cima (pedido explícito) */}
+        <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.6 }} transition={{ duration: 0.6, ease: "easeOut" }} className="text-center">
           <p className="font-mono text-xs uppercase tracking-wide" style={{ color: accent }}>
             Orçamento
           </p>
-          <p className="mt-4 font-mono text-6xl font-medium tabular-nums text-white sm:text-7xl">
-            <span className="mr-1 text-3xl font-normal text-white/50">R$</span>
-            {total.toLocaleString("pt-BR")}
-          </p>
         </motion.div>
 
-        <div className="mx-auto mt-14 border-t border-white/10" />
+        <div className="mx-auto mt-10 border-t border-white/10" />
 
         {/* B — O que está incluso: visual, ícone por papel de equipe */}
-        <div className="mt-14">
+        <div className="mt-10">
           <p className="font-mono text-xs uppercase tracking-wide" style={{ color: accent }}>
             O que está incluso
           </p>
@@ -148,10 +145,10 @@ export function ProposalBudgetConfigurator({ content, configurator, accent }: { 
           </div>
         </div>
 
-        <div className="mx-auto mt-14 border-t border-white/10" />
+        <div className="mx-auto mt-10 border-t border-white/10" />
 
         {/* C — Personalize seu pacote: adicionar/reduzir, preço unitário nunca aparece */}
-        <div className="mt-14">
+        <div className="mt-10">
           <p className="font-mono text-xs uppercase tracking-wide" style={{ color: accent }}>
             Personalize seu pacote
           </p>
@@ -162,7 +159,7 @@ export function ProposalBudgetConfigurator({ content, configurator, accent }: { 
               <p className="mb-2.5 mt-6 text-[11px] uppercase tracking-wide text-white/35">Adicionar</p>
               <div className="flex flex-col gap-2.5">
                 {configurator.addons.map((addon) => (
-                  <div key={addon.id} className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-white/10 px-4.5 py-4">
+                  <div key={addon.id} className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-white/10 px-4 py-4">
                     <div className="flex flex-col gap-0.5">
                       <span className="text-sm font-medium text-white">{addon.label}</span>
                       <span className="text-xs text-white/40">{addon.sublabel}</span>
@@ -179,7 +176,7 @@ export function ProposalBudgetConfigurator({ content, configurator, accent }: { 
               <p className="mb-2.5 mt-7 text-[11px] uppercase tracking-wide text-white/35">Reduzir</p>
               <div className="flex flex-col gap-2.5">
                 {configurator.removables.map((removable) => (
-                  <div key={removable.id} className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-white/10 px-4.5 py-4">
+                  <div key={removable.id} className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-white/10 px-4 py-4">
                     <div className="flex flex-col gap-0.5">
                       <span className="text-sm font-medium text-white">{removable.label}</span>
                       <span className="text-xs text-white/40">{removable.sublabel}</span>
@@ -188,7 +185,7 @@ export function ProposalBudgetConfigurator({ content, configurator, accent }: { 
                   </div>
                 ))}
                 {videoRange && (
-                  <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-white/10 px-4.5 py-4">
+                  <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-white/10 px-4 py-4">
                     <div className="flex flex-col gap-0.5">
                       <span className="text-sm font-medium text-white">{videoRange.label}</span>
                       <span className="text-xs text-white/40">{videoRange.sublabel}</span>
@@ -200,6 +197,19 @@ export function ProposalBudgetConfigurator({ content, configurator, accent }: { 
             </>
           )}
         </div>
+
+        <div className="mx-auto mt-10 border-t border-white/10" />
+
+        {/* D — o valor, por último (pedido explícito: "deve aparecer por último lá embaixo") —
+            revelado depois de mostrar o que está incluso e a chance de personalizar, não como
+            abertura. Atualiza ao vivo com as escolhas de "Personalize seu pacote" acima. */}
+        <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.6 }} transition={{ duration: 0.6, ease: "easeOut" }} className="mt-10 flex flex-col items-center text-center">
+          <p className="font-mono text-xs uppercase tracking-wide text-white/40">Investimento</p>
+          <p className="mt-3 font-mono text-6xl font-medium tabular-nums text-white sm:text-7xl">
+            <span className="mr-1 text-3xl font-normal text-white/50">R$</span>
+            {total.toLocaleString("pt-BR")}
+          </p>
+        </motion.div>
       </div>
     </section>
   );
