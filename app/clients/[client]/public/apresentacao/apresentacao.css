@@ -1,0 +1,143 @@
+/*
+ * Classes customizadas da referência (rsplay.com.br/cara_a_cara_com_a_beleza.html), portadas 1:1
+ * — mesmos valores, mesmas fórmulas. Prefixo `cc-` (Cara a Cara) pra nunca colidir com nenhuma
+ * classe global do resto do projeto (este arquivo só é importado por
+ * `app/clients/[client]/public/apresentacao/page.tsx`, mas CSS do Next não é escopado por
+ * import — o prefixo é a garantia real de isolamento).
+ */
+
+.cc-page {
+  background-color: #fbf8f3;
+  color: #2b2318;
+  overflow-x: hidden;
+}
+
+.cc-font-serif {
+  font-family: var(--cc-font-serif), "Cormorant Garamond", serif;
+}
+.cc-font-editorial {
+  font-family: var(--cc-font-editorial), "Italiana", serif;
+}
+.cc-font-sans {
+  font-family: var(--cc-font-sans), "Mulish", sans-serif;
+}
+
+/* --- MÁRMORE BRANCO COM VEIOS DOURADOS (CSS puro) --- */
+.cc-marble {
+  background-color: #fbf8f3;
+  background-image:
+    radial-gradient(ellipse 60% 40% at 18% 22%, rgba(212, 175, 55, 0.1), transparent 60%),
+    radial-gradient(ellipse 50% 35% at 82% 72%, rgba(176, 141, 79, 0.1), transparent 60%),
+    radial-gradient(ellipse 40% 30% at 60% 12%, rgba(0, 0, 0, 0.035), transparent 65%),
+    radial-gradient(ellipse 45% 35% at 25% 85%, rgba(0, 0, 0, 0.03), transparent 65%),
+    repeating-linear-gradient(112deg, transparent 0 58px, rgba(212, 175, 55, 0.16) 58px 59px, transparent 59px 120px),
+    repeating-linear-gradient(74deg, transparent 0 92px, rgba(176, 141, 79, 0.1) 92px 93px, transparent 93px 190px),
+    repeating-linear-gradient(148deg, transparent 0 140px, rgba(43, 35, 24, 0.05) 140px 141px, transparent 141px 300px),
+    linear-gradient(160deg, #ffffff 0%, #fbf8f3 45%, #f3ede2 100%);
+}
+.cc-marble-dark {
+  background-color: #2b2318;
+  background-image:
+    radial-gradient(ellipse 60% 45% at 20% 20%, rgba(212, 175, 55, 0.16), transparent 62%),
+    radial-gradient(ellipse 55% 40% at 85% 80%, rgba(176, 141, 79, 0.14), transparent 62%),
+    repeating-linear-gradient(112deg, transparent 0 70px, rgba(212, 175, 55, 0.1) 70px 71px, transparent 71px 150px),
+    repeating-linear-gradient(66deg, transparent 0 110px, rgba(235, 217, 168, 0.06) 110px 111px, transparent 111px 220px),
+    linear-gradient(150deg, #3a3021 0%, #2b2318 55%, #1c170f 100%);
+}
+
+.cc-text-gold {
+  background: linear-gradient(100deg, #8a6c33 0%, #d4af37 35%, #f2e4bc 50%, #d4af37 65%, #8a6c33 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.cc-rule-gold {
+  height: 1px;
+  background: linear-gradient(to right, transparent, #d4af37, transparent);
+}
+
+.cc-slide-in {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: all 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.cc-slide-in.cc-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.cc-glass-card {
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(176, 141, 79, 0.28);
+  box-shadow: 0 12px 40px rgba(43, 35, 24, 0.06);
+}
+.cc-gold-frame {
+  border: 1px solid rgba(212, 175, 55, 0.45);
+}
+
+@keyframes cc-marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+.cc-animate-marquee {
+  animation: cc-marquee 95s linear infinite;
+  width: max-content;
+}
+
+.cc-ornament {
+  color: #b08d4f;
+  letter-spacing: 0.4em;
+}
+
+.cc-bg-gradient-gold {
+  background-image: linear-gradient(135deg, #ebd9a8 0%, #d4af37 35%, #b08d4f 65%, #8a6c33 100%);
+}
+
+/* Tailwind v4 (este projeto) não traz mais os breakpoints automáticos de largura máxima que a
+ * classe `container` tinha por padrão no v3 — a referência depende exatamente desse
+ * comportamento. Replicado aqui (mesmos valores-padrão do v3) em vez de mexer no `container`
+ * global do projeto (`app/globals.css`), que nenhuma outra página usa hoje. */
+.cc-container {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+@media (min-width: 640px) {
+  .cc-container {
+    max-width: 640px;
+  }
+}
+@media (min-width: 768px) {
+  .cc-container {
+    max-width: 768px;
+  }
+}
+@media (min-width: 1024px) {
+  .cc-container {
+    max-width: 1024px;
+  }
+}
+@media (min-width: 1280px) {
+  .cc-container {
+    max-width: 1280px;
+  }
+}
+@media (min-width: 1536px) {
+  .cc-container {
+    max-width: 1536px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cc-slide-in {
+    transition: none;
+  }
+  .cc-animate-marquee {
+    animation: none;
+  }
+}
