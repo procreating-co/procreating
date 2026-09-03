@@ -45,16 +45,6 @@ export function ProposalPublicView({ slug, proposal }: { slug: string; proposal:
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Pedido explícito: só "Aceitar" — sem botão de recusar na página pública (recusar continua
-  // possível pelo status manual no editor; `respondPublicProposalAction("rejected")` segue
-  // existindo no backend, só não tem gatilho aqui).
-  function acceptProposal() {
-    startTransition(async () => {
-      const ok = await respondPublicProposalAction(slug, "accepted");
-      if (ok) setStatus("accepted");
-    });
-  }
-
   const accent = proposal.accentColor || "#D4AF37";
 
   function content<T>(type: string): T | null {
@@ -69,6 +59,24 @@ export function ProposalPublicView({ slug, proposal }: { slug: string; proposal:
   const budget = content<BudgetContent>("budget");
   const portfolio = content<PortfolioContent>("portfolio");
   const closing = content<ClosingContent>("closing");
+
+  // Pedido explícito: só "Aceitar" — sem botão de recusar na página pública (recusar continua
+  // possível pelo status manual no editor; `respondPublicProposalAction("rejected")` segue
+  // existindo no backend, só não tem gatilho aqui). `whatsappOnAccept` (opcional, hoje só a
+  // Priscilla preenche) abre o WhatsApp do visitante já endereçado à equipe com uma mensagem
+  // pronta — o aceite continua sempre gravado no banco, isso é só um aviso adicional mais rápido.
+  function acceptProposal() {
+    startTransition(async () => {
+      const ok = await respondPublicProposalAction(slug, "accepted");
+      if (!ok) return;
+      setStatus("accepted");
+      if (closing?.whatsappOnAccept) {
+        const { phone, message } = closing.whatsappOnAccept;
+        const digits = phone.replace(/\D/g, "");
+        window.open(`https://wa.me/${digits}?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
+      }
+    });
+  }
 
   // Ação junto do fechamento (pedido explícito: "junto do Vamos começar?", nunca um bloco à
   // parte embaixo) — botão só de aceitar, ou a confirmação depois de aceita/recusada. `null`

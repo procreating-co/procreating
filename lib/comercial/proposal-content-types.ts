@@ -120,7 +120,14 @@ export type BudgetContent = {
   upsell: BudgetUpsell | null;
   configurator: BudgetConfigurator | null;
 };
-export type ClosingContent = { heading: string; paragraph: string };
+/** Disparo opcional de WhatsApp ao aceitar — pedido explícito, só na proposta da Priscilla por
+ *  enquanto: além de gravar o aceite no banco (sempre acontece), abre o WhatsApp do visitante já
+ *  endereçado a `phone` com `message` pré-preenchida, avisando a equipe na hora em vez de depender
+ *  de alguém checar o CRM. Ausente/null (padrão) = comportamento de sempre, só grava o aceite —
+ *  nenhuma outra proposta (Elenita incluída) preenche isso. */
+export type WhatsappOnAccept = { phone: string; message: string };
+
+export type ClosingContent = { heading: string; paragraph: string; whatsappOnAccept?: WhatsappOnAccept | null };
 
 /** Até 5 vídeos (limite aplicado no editor — `section-editor-card.tsx` —, não em RLS/DB), mistura
  *  livre de horizontal/vertical — cada um leva seu próprio enquadramento no grid público. */
@@ -146,7 +153,7 @@ export const EMPTY_CONTENT_BY_TYPE = {
     upsell: null,
     configurator: null,
   } as BudgetContent,
-  closing: { heading: "", paragraph: "" } as ClosingContent,
+  closing: { heading: "", paragraph: "", whatsappOnAccept: null } as ClosingContent,
   portfolio: { eyebrow: "", heading: "", subtitle: "", videos: [] } as PortfolioContent,
 } as const;
 
