@@ -154,35 +154,31 @@ function FunnelStageCard({ stage, accent, index }: { stage: RoadmapFunnelStage; 
       {/* Vídeo de fundo — ambiente (autoplay/muted/loop/playsInline), texto por cima com gradiente
           por baixo pra legibilidade. `overflow-hidden` + `object-cover` garantem que nenhuma
           orientação (horizontal/vertical) deforma ou estoura a largura. Clicável pra tela cheia
-          (pedido explícito) — deixou de ser puramente decorativo, por isso ganhou `aria-label` em
-          vez de `aria-hidden`, e um ícone de affordance (some por padrão, aparece no hover/toque). */}
-      <div className="group/video relative min-h-[340px] w-full overflow-hidden rounded-2xl border border-white/10 sm:min-h-[420px]">
+          (pedido explícito) — o clique fica no CARD inteiro (não só no `<video>`): o gradiente e o
+          bloco de texto são `<div>`s empilhados por cima dele no DOM, então um `onClick` só no
+          vídeo nunca disparava (o clique sempre acertava a camada de cima primeiro). `aria-label`
+          em vez de `aria-hidden` porque deixou de ser puramente decorativo; ícone de affordance
+          some por padrão, aparece no hover/toque. */}
+      <button
+        type="button"
+        onClick={() => videoRef.current && requestVideoFullscreen(videoRef.current)}
+        aria-label={`Assistir "${stage.heading}" em tela cheia`}
+        className="group/video relative flex min-h-[340px] w-full cursor-pointer overflow-hidden rounded-2xl border border-white/10 text-left sm:min-h-[420px]"
+      >
         {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-        <video
-          ref={videoRef}
-          src={mainVideo.url}
-          autoPlay
-          muted
-          loop
-          playsInline
-          className="absolute inset-0 size-full cursor-pointer object-cover"
-          aria-label={`Assistir "${stage.heading}" em tela cheia`}
-          onClick={() => videoRef.current && requestVideoFullscreen(videoRef.current)}
-        />
+        <video ref={videoRef} src={mainVideo.url} autoPlay muted loop playsInline className="absolute inset-0 size-full object-cover" aria-hidden="true" />
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/10" aria-hidden="true" />
-        <button
-          type="button"
-          onClick={() => videoRef.current && requestVideoFullscreen(videoRef.current)}
-          aria-label="Assistir em tela cheia"
-          className="absolute right-4 top-4 flex size-10 items-center justify-center rounded-full bg-black/50 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover/video:opacity-100 focus-visible:opacity-100"
+        <span
+          aria-hidden="true"
+          className="absolute right-4 top-4 flex size-10 items-center justify-center rounded-full bg-black/50 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover/video:opacity-100 group-focus-visible/video:opacity-100"
         >
           <Maximize2 className="size-4" />
-        </button>
+        </span>
         <div className="relative flex min-h-[340px] flex-col justify-end gap-3 p-6 sm:min-h-[420px] sm:p-8">
           {heading}
           <p className="max-w-xl text-sm leading-relaxed text-white/80 sm:text-base">{stage.objective}</p>
         </div>
-      </div>
+      </button>
 
       {/* Vídeos adicionais da mesma etapa (raro — hoje cada etapa usa só 1) — tratamento
           secundário, com controles, não competem com o vídeo de fundo pela atenção. */}
