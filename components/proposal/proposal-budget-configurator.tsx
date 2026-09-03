@@ -1,13 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { Camera, Check, Clapperboard, Minus, Plus, Sparkles, Video } from "lucide-react";
 import { ProposalSectionHeader } from "@/components/proposal/proposal-section-header";
 import type { BudgetConfigurator, BudgetContent, BudgetTeamRole } from "@/lib/comercial/proposal-content-types";
-
-const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
-const pad2 = (n: number) => String(n).padStart(2, "0");
 
 const TEAM_ROLE_ICON: Record<BudgetTeamRole["role"], typeof Camera> = {
   videomaker: Video,
@@ -48,42 +45,21 @@ function Stepper({ value, min, max, accent, onChange }: { value: number; min: nu
   );
 }
 
-/* Alvo de toque maior que o track visual (44px de altura clicável, track continua fino/compacto
- * — mesmo truque de área de toque expandida sem alterar a aparência do componente). */
-function Toggle({ on, accent, onChange }: { on: boolean; accent: string; onChange: (next: boolean) => void }) {
-  return (
-    <button type="button" role="switch" aria-checked={on} onClick={() => onChange(!on)} className="flex min-h-11 min-w-11 shrink-0 items-center justify-center">
-      <span className="relative h-6 w-[42px] rounded-full transition-colors" style={{ backgroundColor: on ? accent : "rgba(255,255,255,0.15)" }}>
-        <span className="absolute top-0.5 size-5 rounded-full bg-white transition-transform" style={{ transform: on ? "translateX(19px)" : "translateX(3px)" }} />
-      </span>
-    </button>
-  );
-}
-
 /**
- * Configurador de investimento — v3, pedido explícito: o valor sai do topo e vira a ÚLTIMA coisa
- * da seção, revelado depois de "O que está incluso"/"Personalize seu pacote" — narrativa
- * "aqui está o que você recebe → personalize → aqui está o investimento", em vez de abrir com um
- * número. Preço unitário de cada item nunca aparece em lugar nenhum (nem texto, nem delta, nem
- * recibo, nem rodapé) — só o total final muda ao vivo conforme a personalização. Identidade da
- * proposta (`accent`), mesmos tokens de `components/proposal/**`.
+ * Configurador de investimento — v4, pedido explícito: modelo virou "monte do zero" em vez de
+ * "âncora alta que você reduz". `content.heroNumber` agora é o PISO mínimo de investimento (nunca
+ * o total exibido fica abaixo disso, mesmo sem nenhum item adicionado) — não mais um valor
+ * plausível pra mostrar de cara. `configurator.addons` são os itens que a pessoa soma (captação/
+ * vídeo editado) — preço unitário nunca aparece em lugar nenhum (regra de sempre), só o total
+ * final muda ao vivo. Nada disso é visível até o clique em "Personalizar orçamento": nem os
+ * steppers, nem o total — pedido explícito ("só pode aparecer depois que eu clicar").
  */
 export function ProposalBudgetConfigurator({ content, configurator, accent }: { content: BudgetContent; configurator: BudgetConfigurator; accent: string }) {
+  const [revealed, setRevealed] = useState(false);
   const [addonQty, setAddonQty] = useState<Record<string, number>>({});
-  const [removableOn, setRemovableOn] = useState<Record<string, boolean>>(() => Object.fromEntries(configurator.removables.map((r) => [r.id, r.defaultOn])));
-  const [videoCount, setVideoCount] = useState(configurator.videoRange?.initial ?? configurator.baseVideos);
-
-  const videoRange = configurator.videoRange;
-  const extraLocations = configurator.addons.filter((a) => a.kind === "location").reduce((sum, a) => sum + (addonQty[a.id] ?? 0), 0);
-  const extraVideosFromAddons = configurator.addons.filter((a) => a.kind === "video").reduce((sum, a) => sum + (addonQty[a.id] ?? 0), 0);
-
-  const locations = configurator.baseLocations + extraLocations;
-  const videosDelivered = (videoRange ? videoCount : configurator.baseVideos) + extraVideosFromAddons;
 
   const additionsTotal = configurator.addons.reduce((sum, a) => sum + (addonQty[a.id] ?? 0) * a.unitPrice, 0);
-  const removableSavings = configurator.removables.reduce((sum, r) => sum + (removableOn[r.id] ? 0 : r.savings), 0);
-  const videoRangeSavings = videoRange ? (videoRange.initial - videoCount) * videoRange.unitPrice : 0;
-  const total = content.heroNumber + additionsTotal - removableSavings - videoRangeSavings;
+  const total = Math.max(content.heroNumber, additionsTotal);
 
   return (
     <section className="border-t border-white/10 bg-black px-6 py-24 text-white lg:px-12 lg:py-32">
@@ -97,7 +73,8 @@ export function ProposalBudgetConfigurator({ content, configurator, accent }: { 
 
         <div className="mx-auto mt-10 border-t border-white/10" />
 
-        {/* B — O que está incluso: visual, ícone por papel de equipe */}
+        {/* B — O que está incluso: só a composição de equipe, visual (sem lista de texto — pedido
+            explícito removeu as linhas de captações/vídeos/estratégia/pagamento). */}
         <div className="mt-10">
           <p className="font-mono text-xs uppercase tracking-wide" style={{ color: accent }}>
             O que está incluso
@@ -121,102 +98,53 @@ export function ProposalBudgetConfigurator({ content, configurator, accent }: { 
               );
             })}
           </div>
-
-          <div className="mt-4 flex flex-col gap-3 rounded-xl border border-white/10 p-5">
-            <div className="flex items-start gap-2.5 text-sm text-white/75">
-              <Check className="mt-0.5 size-4 shrink-0" style={{ color: accent }} />
-              {pad2(locations)} captações
-            </div>
-            <div className="flex items-start gap-2.5 text-sm text-white/75">
-              <Check className="mt-0.5 size-4 shrink-0" style={{ color: accent }} />
-              {pad2(videosDelivered)} vídeos estratégicos entregues
-            </div>
-            {configurator.strategyNote && (
-              <div className="flex items-start gap-2.5 text-sm text-white/75">
-                <Check className="mt-0.5 size-4 shrink-0" style={{ color: accent }} />
-                {configurator.strategyNote}
-              </div>
-            )}
-            {configurator.paymentTerms && (
-              <div className="flex items-start gap-2.5 text-sm text-white/75">
-                <Check className="mt-0.5 size-4 shrink-0" style={{ color: accent }} />
-                {configurator.paymentTerms}
-              </div>
-            )}
-          </div>
         </div>
 
         <div className="mx-auto mt-10 border-t border-white/10" />
 
-        {/* C — Personalize seu pacote: adicionar/reduzir, preço unitário nunca aparece. Mesma
-            fonte/tamanho de "Roadmap do Projeto."/"Orçamento" (pedido explícito) — só a
-            tipografia, mantém o alinhamento à esquerda já existente do bloco (a `ProposalSectionHeader`
-            centraliza por padrão, por isso um `<h3>` com as mesmas classes em vez do componente). */}
-        <div className="mt-10">
-          <h3 className="text-balance font-display text-3xl leading-[1.05] tracking-tight text-white sm:text-4xl md:text-5xl">Personalize seu pacote</h3>
-          <p className="mt-3 text-[13px] text-white/40">Ajuste o escopo do jeito que fizer mais sentido pro seu momento.</p>
-
-          {configurator.addons.length > 0 && (
-            <>
-              <p className="mb-2.5 mt-6 text-[11px] uppercase tracking-wide text-white/35">Adicionar</p>
-              <div className="flex flex-col gap-2.5">
-                {configurator.addons.map((addon) => (
-                  <div key={addon.id} className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-white/10 px-4 py-4">
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-sm font-medium text-white">{addon.label}</span>
-                      <span className="text-xs text-white/40">{addon.sublabel}</span>
+        {/* C — Personalizar: escondido até o clique (pedido explícito) — nem os itens pra somar
+            nem o total aparecem antes disso. Preço unitário nunca aparece (regra de sempre), só o
+            total final. */}
+        <div className="mt-10 flex min-h-[70vh] flex-col items-center justify-center text-center">
+          <AnimatePresence mode="wait" initial={false}>
+            {!revealed ? (
+              <motion.button
+                key="reveal"
+                type="button"
+                onClick={() => setRevealed(true)}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+                className="rounded-full px-8 py-4 text-sm font-medium transition-transform hover:scale-[1.02] active:scale-95"
+                style={{ backgroundColor: accent, color: "black" }}
+              >
+                Personalizar orçamento
+              </motion.button>
+            ) : (
+              <motion.div key="builder" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: "easeOut" }} className="w-full text-left">
+                <div className="flex flex-col gap-2.5">
+                  {configurator.addons.map((addon) => (
+                    <div key={addon.id} className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-white/10 px-4 py-4">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-sm font-medium text-white">{addon.label}</span>
+                        <span className="text-xs text-white/40">{addon.sublabel}</span>
+                      </div>
+                      <Stepper value={addonQty[addon.id] ?? 0} min={0} max={addon.max} accent={accent} onChange={(next) => setAddonQty((prev) => ({ ...prev, [addon.id]: next }))} />
                     </div>
-                    <Stepper value={addonQty[addon.id] ?? 0} min={0} max={addon.max} accent={accent} onChange={(next) => setAddonQty((prev) => ({ ...prev, [addon.id]: next }))} />
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
+                  ))}
+                </div>
 
-          {(configurator.removables.length > 0 || videoRange) && (
-            <>
-              <p className="mb-2.5 mt-7 text-[11px] uppercase tracking-wide text-white/35">Reduzir</p>
-              <div className="flex flex-col gap-2.5">
-                {configurator.removables.map((removable) => (
-                  <div key={removable.id} className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-white/10 px-4 py-4">
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-sm font-medium text-white">{removable.label}</span>
-                      <span className="text-xs text-white/40">{removable.sublabel}</span>
-                    </div>
-                    <Toggle on={removableOn[removable.id] ?? removable.defaultOn} accent={accent} onChange={(next) => setRemovableOn((prev) => ({ ...prev, [removable.id]: next }))} />
-                  </div>
-                ))}
-                {videoRange && (
-                  <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-white/10 px-4 py-4">
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-sm font-medium text-white">{videoRange.label}</span>
-                      <span className="text-xs text-white/40">{videoRange.sublabel}</span>
-                    </div>
-                    <Stepper value={videoCount} min={videoRange.min} max={videoRange.max} accent={accent} onChange={setVideoCount} />
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-
-        <div className="mx-auto mt-10 border-t border-white/10" />
-
-        {/* D — o valor, por último (pedido explícito: "deve aparecer por último lá embaixo") —
-            revelado depois de mostrar o que está incluso e a chance de personalizar, não como
-            abertura. Atualiza ao vivo com as escolhas de "Personalize seu pacote" acima.
-            `min-h-[85vh]` + `items-center justify-center` — pedido explícito: o valor só entra em
-            cena depois que a pessoa rola até aqui (viewport 0.5, não dispara no load mesmo em
-            telas altas) e aparece centralizado verticalmente no bloco, um momento de revelação
-            próprio em vez de só mais uma linha no fim do fluxo. */}
-        <div className="flex min-h-[85vh] flex-col items-center justify-center text-center">
-          <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.5 }} transition={{ duration: 0.8, ease: "easeOut" }}>
-            <p className="font-mono text-xs uppercase tracking-wide text-white/40">Investimento</p>
-            <p className="mt-3 font-mono text-6xl font-medium tabular-nums text-white sm:text-7xl">
-              <span className="mr-1 text-3xl font-normal text-white/50">R$</span>
-              {total.toLocaleString("pt-BR")}
-            </p>
-          </motion.div>
+                <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.15, ease: "easeOut" }} className="mt-14 flex flex-col items-center text-center">
+                  <p className="font-mono text-xs uppercase tracking-wide text-white/40">Investimento</p>
+                  <p className="mt-3 font-mono text-6xl font-medium tabular-nums text-white sm:text-7xl">
+                    <span className="mr-1 text-3xl font-normal text-white/50">R$</span>
+                    {total.toLocaleString("pt-BR")}
+                  </p>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </section>
