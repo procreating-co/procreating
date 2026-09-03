@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import { motion, useScroll, useSpring } from "framer-motion";
-import { Camera, Check } from "lucide-react";
+import { Camera, Check, Maximize2 } from "lucide-react";
 import { ProposalSectionHeader } from "@/components/proposal/proposal-section-header";
 import type { ProposalContent, RoadmapStage } from "@/lib/clients/proposal-types";
 import type { RoadmapFunnel, RoadmapFunnelStage, RoadmapProductionBlock } from "@/lib/comercial/proposal-content-types";
@@ -108,8 +108,18 @@ function FunnelBlock({ funnel, accent }: { funnel: RoadmapFunnel; accent: string
   );
 }
 
+/** Aciona o fullscreen nativo do elemento — Safari só expõe `webkitRequestFullscreen`, os demais
+ *  seguem a API padrão. Chamado a partir de um clique real (exigência da própria API do browser). */
+function requestVideoFullscreen(video: HTMLVideoElement) {
+  const el = video as HTMLVideoElement & { webkitRequestFullscreen?: () => void; webkitEnterFullscreen?: () => void };
+  if (el.requestFullscreen) el.requestFullscreen();
+  else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+  else if (el.webkitEnterFullscreen) el.webkitEnterFullscreen(); // iOS Safari (vídeo, não elemento genérico)
+}
+
 function FunnelStageCard({ stage, accent, index }: { stage: RoadmapFunnelStage; accent: string; index: number }) {
   const [mainVideo, ...extraVideos] = stage.videos;
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   const heading = (
     <div className="flex items-center gap-3">
@@ -141,13 +151,33 @@ function FunnelStageCard({ stage, accent, index }: { stage: RoadmapFunnelStage; 
       transition={{ duration: 0.6, delay: index * 0.06, ease: "easeOut" }}
       className="flex flex-col gap-4"
     >
-      {/* Vídeo de fundo — sem controles, ambiente (autoplay/muted/loop/playsInline), texto por
-          cima com gradiente por baixo pra legibilidade. `overflow-hidden` + `object-cover`
-          garantem que nenhuma orientação (horizontal/vertical) deforma ou estoura a largura. */}
-      <div className="relative min-h-[340px] w-full overflow-hidden rounded-2xl border border-white/10 sm:min-h-[420px]">
+      {/* Vídeo de fundo — ambiente (autoplay/muted/loop/playsInline), texto por cima com gradiente
+          por baixo pra legibilidade. `overflow-hidden` + `object-cover` garantem que nenhuma
+          orientação (horizontal/vertical) deforma ou estoura a largura. Clicável pra tela cheia
+          (pedido explícito) — deixou de ser puramente decorativo, por isso ganhou `aria-label` em
+          vez de `aria-hidden`, e um ícone de affordance (some por padrão, aparece no hover/toque). */}
+      <div className="group/video relative min-h-[340px] w-full overflow-hidden rounded-2xl border border-white/10 sm:min-h-[420px]">
         {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-        <video src={mainVideo.url} autoPlay muted loop playsInline className="absolute inset-0 size-full object-cover" aria-hidden="true" />
+        <video
+          ref={videoRef}
+          src={mainVideo.url}
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="absolute inset-0 size-full cursor-pointer object-cover"
+          aria-label={`Assistir "${stage.heading}" em tela cheia`}
+          onClick={() => videoRef.current && requestVideoFullscreen(videoRef.current)}
+        />
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/10" aria-hidden="true" />
+        <button
+          type="button"
+          onClick={() => videoRef.current && requestVideoFullscreen(videoRef.current)}
+          aria-label="Assistir em tela cheia"
+          className="absolute right-4 top-4 flex size-10 items-center justify-center rounded-full bg-black/50 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover/video:opacity-100 focus-visible:opacity-100"
+        >
+          <Maximize2 className="size-4" />
+        </button>
         <div className="relative flex min-h-[340px] flex-col justify-end gap-3 p-6 sm:min-h-[420px] sm:p-8">
           {heading}
           <p className="max-w-xl text-sm leading-relaxed text-white/80 sm:text-base">{stage.objective}</p>

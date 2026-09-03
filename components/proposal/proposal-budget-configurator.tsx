@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Camera, Check, Clapperboard, Minus, Plus, Sparkles, Video } from "lucide-react";
+import { ProposalSectionHeader } from "@/components/proposal/proposal-section-header";
 import type { BudgetConfigurator, BudgetContent, BudgetTeamRole } from "@/lib/comercial/proposal-content-types";
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
@@ -87,11 +88,11 @@ export function ProposalBudgetConfigurator({ content, configurator, accent }: { 
   return (
     <section className="border-t border-white/10 bg-black px-6 py-24 text-white lg:px-12 lg:py-32">
       <div className="mx-auto max-w-2xl">
-        {/* A — só o título "Orçamento", nada mais aqui em cima (pedido explícito) */}
-        <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.6 }} transition={{ duration: 0.6, ease: "easeOut" }} className="text-center">
-          <p className="font-mono text-xs uppercase tracking-wide" style={{ color: accent }}>
-            Orçamento
-          </p>
+        {/* A — só o título "Orçamento", nada mais aqui em cima (pedido explícito). Mesma fonte/
+            tamanho de "Roadmap do Projeto." (pedido explícito) — reaproveita o próprio
+            `ProposalSectionHeader` usado por Roadmap, em vez de duplicar as classes. */}
+        <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.6 }} transition={{ duration: 0.6, ease: "easeOut" }}>
+          <ProposalSectionHeader eyebrow="" heading="Orçamento" accent={accent} />
         </motion.div>
 
         <div className="mx-auto mt-10 border-t border-white/10" />
@@ -124,7 +125,7 @@ export function ProposalBudgetConfigurator({ content, configurator, accent }: { 
           <div className="mt-4 flex flex-col gap-3 rounded-xl border border-white/10 p-5">
             <div className="flex items-start gap-2.5 text-sm text-white/75">
               <Check className="mt-0.5 size-4 shrink-0" style={{ color: accent }} />
-              {pad2(locations)} captações estratégicas em {pad2(locations)} locações
+              {pad2(locations)} captações
             </div>
             <div className="flex items-start gap-2.5 text-sm text-white/75">
               <Check className="mt-0.5 size-4 shrink-0" style={{ color: accent }} />
@@ -147,12 +148,13 @@ export function ProposalBudgetConfigurator({ content, configurator, accent }: { 
 
         <div className="mx-auto mt-10 border-t border-white/10" />
 
-        {/* C — Personalize seu pacote: adicionar/reduzir, preço unitário nunca aparece */}
+        {/* C — Personalize seu pacote: adicionar/reduzir, preço unitário nunca aparece. Mesma
+            fonte/tamanho de "Roadmap do Projeto."/"Orçamento" (pedido explícito) — só a
+            tipografia, mantém o alinhamento à esquerda já existente do bloco (a `ProposalSectionHeader`
+            centraliza por padrão, por isso um `<h3>` com as mesmas classes em vez do componente). */}
         <div className="mt-10">
-          <p className="font-mono text-xs uppercase tracking-wide" style={{ color: accent }}>
-            Personalize seu pacote
-          </p>
-          <p className="mt-1 text-[13px] text-white/40">Ajuste o escopo do jeito que fizer mais sentido pro seu momento.</p>
+          <h3 className="text-balance font-display text-3xl leading-[1.05] tracking-tight text-white sm:text-4xl md:text-5xl">Personalize seu pacote</h3>
+          <p className="mt-3 text-[13px] text-white/40">Ajuste o escopo do jeito que fizer mais sentido pro seu momento.</p>
 
           {configurator.addons.length > 0 && (
             <>
@@ -202,14 +204,20 @@ export function ProposalBudgetConfigurator({ content, configurator, accent }: { 
 
         {/* D — o valor, por último (pedido explícito: "deve aparecer por último lá embaixo") —
             revelado depois de mostrar o que está incluso e a chance de personalizar, não como
-            abertura. Atualiza ao vivo com as escolhas de "Personalize seu pacote" acima. */}
-        <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.6 }} transition={{ duration: 0.6, ease: "easeOut" }} className="mt-10 flex flex-col items-center text-center">
-          <p className="font-mono text-xs uppercase tracking-wide text-white/40">Investimento</p>
-          <p className="mt-3 font-mono text-6xl font-medium tabular-nums text-white sm:text-7xl">
-            <span className="mr-1 text-3xl font-normal text-white/50">R$</span>
-            {total.toLocaleString("pt-BR")}
-          </p>
-        </motion.div>
+            abertura. Atualiza ao vivo com as escolhas de "Personalize seu pacote" acima.
+            `min-h-[85vh]` + `items-center justify-center` — pedido explícito: o valor só entra em
+            cena depois que a pessoa rola até aqui (viewport 0.5, não dispara no load mesmo em
+            telas altas) e aparece centralizado verticalmente no bloco, um momento de revelação
+            próprio em vez de só mais uma linha no fim do fluxo. */}
+        <div className="flex min-h-[85vh] flex-col items-center justify-center text-center">
+          <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.5 }} transition={{ duration: 0.8, ease: "easeOut" }}>
+            <p className="font-mono text-xs uppercase tracking-wide text-white/40">Investimento</p>
+            <p className="mt-3 font-mono text-6xl font-medium tabular-nums text-white sm:text-7xl">
+              <span className="mr-1 text-3xl font-normal text-white/50">R$</span>
+              {total.toLocaleString("pt-BR")}
+            </p>
+          </motion.div>
+        </div>
       </div>
     </section>
   );
