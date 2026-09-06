@@ -3,6 +3,8 @@
 import { useEffect, useState, useTransition } from "react";
 import { MotionConfig } from "framer-motion";
 import { recordProposalViewAction, respondPublicProposalAction, type PublicProposal } from "@/lib/comercial/public-proposal-actions";
+import { ProposalTrackingProvider, useProposalTracking } from "@/components/proposal-public/proposal-tracking-context";
+import { SectionViewObserver } from "@/components/proposal-public/section-view-observer";
 import { ProposalScrollProgress } from "@/components/proposal/proposal-scroll-progress";
 import { ProposalHero } from "@/components/proposal/proposal-hero";
 import { ProposalPillars } from "@/components/proposal/proposal-pillars";
@@ -32,13 +34,28 @@ const RESPONDABLE_STATUSES = new Set(["sent", "negotiating", "revision_requested
  * template (`/propostas/elenita-luzardo`); qualquer outro slug renderiza a mesma árvore de
  * componentes com dados diferentes.
  *
+ * Casca fininha por fora do conteúdo real (`ProposalPublicViewInner`, abaixo) só pra poder
+ * envolver tudo em `ProposalTrackingProvider` (brief "Procreating Experiences", §9) — o conteúdo
+ * real precisa estar DENTRO do Provider pra `useProposalTracking()` funcionar (CTA/vídeos), então
+ * não dá pra ficar no mesmo componente que declara o Provider como filho da própria árvore.
+ */
+export function ProposalPublicView({ slug, proposal }: { slug: string; proposal: NonNullable<PublicProposal> }) {
+  return (
+    <ProposalTrackingProvider slug={slug}>
+      <ProposalPublicViewInner slug={slug} proposal={proposal} />
+    </ProposalTrackingProvider>
+  );
+}
+
+/**
  * `sectionContent` busca cada seção pelo `sectionType` no array vindo de `get_public_proposal` —
  * uma proposta sempre tem as 7 (o template as inclui no blueprint), mas o lookup é defensivo:
  * uma seção ausente/oculta simplesmente não renderiza, em vez de quebrar a página inteira.
  */
-export function ProposalPublicView({ slug, proposal }: { slug: string; proposal: NonNullable<PublicProposal> }) {
+function ProposalPublicViewInner({ slug, proposal }: { slug: string; proposal: NonNullable<PublicProposal> }) {
   const [status, setStatus] = useState(proposal.status);
   const [isPending, startTransition] = useTransition();
+  const track = useProposalTracking();
 
   useEffect(() => {
     recordProposalViewAction(slug);
@@ -65,7 +82,10 @@ export function ProposalPublicView({ slug, proposal }: { slug: string; proposal:
   // existindo no backend, só não tem gatilho aqui). `whatsappOnAccept` (opcional, hoje só a
   // Priscilla preenche) abre o WhatsApp do visitante já endereçado à equipe com uma mensagem
   // pronta — o aceite continua sempre gravado no banco, isso é só um aviso adicional mais rápido.
+  // `cta_click` (brief "Procreating Experiences") dispara sempre que clica, aceite bem-sucedido
+  // ou não — é o clique em si que interessa rastrear, não só o resultado.
   function acceptProposal() {
+    track("cta_click", "closing");
     startTransition(async () => {
       const ok = await respondPublicProposalAction(slug, "accepted");
       if (!ok) return;
@@ -112,14 +132,46 @@ export function ProposalPublicView({ slug, proposal }: { slug: string; proposal:
     <MotionConfig reducedMotion="user">
       <main className="min-h-screen overflow-x-hidden bg-black">
         <ProposalScrollProgress accent={accent} />
-        {hero && <ProposalHero content={hero} accent={accent} />}
-        {pillars && <ProposalPillars intro={pillars.intro} pillars={pillars.pillars} accent={accent} />}
-        {roadmap && <ProposalRoadmap content={roadmap} accent={accent} />}
-        {tvProgram && <ProposalTvProgram content={tvProgram} accent={accent} />}
-        {acquisition && <ProposalAcquisition content={acquisition} accent={accent} />}
-        {budget && <ProposalBudget content={budget} accent={accent} />}
-        {portfolio && <ProposalPortfolio content={portfolio} accent={accent} />}
-        {closing && <ProposalClosing content={closing} brandName={proposal.brandName} action={closingAction} />}
+        {hero && (
+          <SectionViewObserver sectionType="hero">
+            <ProposalHero content={hero} accent={accent} />
+          </SectionViewObserver>
+        )}
+        {pillars && (
+          <SectionViewObserver sectionType="pillars">
+            <ProposalPillars intro={pillars.intro} pillars={pillars.pillars} accent={accent} />
+          </SectionViewObserver>
+        )}
+        {roadmap && (
+          <SectionViewObserver sectionType="roadmap">
+            <ProposalRoadmap content={roadmap} accent={accent} />
+          </SectionViewObserver>
+        )}
+        {tvProgram && (
+          <SectionViewObserver sectionType="tv_program">
+            <ProposalTvProgram content={tvProgram} accent={accent} />
+          </SectionViewObserver>
+        )}
+        {acquisition && (
+          <SectionViewObserver sectionType="acquisition">
+            <ProposalAcquisition content={acquisition} accent={accent} />
+          </SectionViewObserver>
+        )}
+        {budget && (
+          <SectionViewObserver sectionType="budget">
+            <ProposalBudget content={budget} accent={accent} />
+          </SectionViewObserver>
+        )}
+        {portfolio && (
+          <SectionViewObserver sectionType="portfolio">
+            <ProposalPortfolio content={portfolio} accent={accent} />
+          </SectionViewObserver>
+        )}
+        {closing && (
+          <SectionViewObserver sectionType="closing">
+            <ProposalClosing content={closing} brandName={proposal.brandName} action={closingAction} />
+          </SectionViewObserver>
+        )}
       </main>
     </MotionConfig>
   );

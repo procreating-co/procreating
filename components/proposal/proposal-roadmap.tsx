@@ -4,6 +4,7 @@ import { useRef } from "react";
 import { motion, useScroll, useSpring } from "framer-motion";
 import { Camera, Check, Maximize2 } from "lucide-react";
 import { ProposalSectionHeader } from "@/components/proposal/proposal-section-header";
+import { useVideoTracking } from "@/components/proposal-public/use-video-tracking";
 import type { ProposalContent, RoadmapStage } from "@/lib/clients/proposal-types";
 import type { RoadmapFunnel, RoadmapFunnelStage, RoadmapProductionBlock } from "@/lib/comercial/proposal-content-types";
 
@@ -120,6 +121,7 @@ function requestVideoFullscreen(video: HTMLVideoElement) {
 function FunnelStageCard({ stage, accent, index }: { stage: RoadmapFunnelStage; accent: string; index: number }) {
   const [mainVideo, ...extraVideos] = stage.videos;
   const videoRef = useRef<HTMLVideoElement>(null);
+  const videoTracking = useVideoTracking("roadmap");
 
   const heading = (
     <div className="flex items-center gap-3">
@@ -166,7 +168,19 @@ function FunnelStageCard({ stage, accent, index }: { stage: RoadmapFunnelStage; 
         className="group/video relative flex min-h-[340px] w-full cursor-pointer overflow-hidden rounded-2xl border border-white/10 text-left sm:min-h-[420px]"
       >
         {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-        <video ref={videoRef} src={mainVideo.url} autoPlay muted loop playsInline className="absolute inset-0 size-full object-cover" aria-hidden="true" />
+        <video
+          ref={videoRef}
+          src={mainVideo.url}
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="absolute inset-0 size-full object-cover"
+          aria-hidden="true"
+          onPlay={videoTracking.onPlay}
+          onTimeUpdate={videoTracking.onTimeUpdate}
+          onEnded={videoTracking.onEnded}
+        />
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/10" aria-hidden="true" />
         <span
           aria-hidden="true"

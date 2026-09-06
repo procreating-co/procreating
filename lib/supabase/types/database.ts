@@ -928,6 +928,22 @@ export type ProposalSection = {
   updated_at: string;
 };
 
+// Tracking granular (brief "Procreating Experiences", migration `20260906010000_proposal_events.sql`)
+// — única estrutura genuinamente nova do brief; tudo mais foi extensão aditiva do que já existia.
+export type ProposalEventType = "section_view" | "scroll_depth" | "cta_click" | "video_play" | "video_progress" | "video_complete";
+
+export type ProposalEvent = {
+  id: string;
+  proposal_id: string;
+  visitor_id: string;
+  session_id: string;
+  event_type: ProposalEventType;
+  section_type: ProposalSectionType | null;
+  value: number | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+};
+
 // ---------------------------------------------------------------------------
 // Aproximação do formato gerado por `supabase gen types typescript`. `Insert`/`Update` aqui
 // são só `Partial<Row>` — o gerado de verdade tem nullability exata por coluna. Trocar por esse
@@ -991,6 +1007,7 @@ export type Database = {
       proposals: TableDef<Proposal>;
       proposal_versions: TableDef<ProposalVersion>;
       proposal_sections: TableDef<ProposalSection>;
+      proposal_events: TableDef<ProposalEvent>;
     };
     Views: {
       /** `WHERE status IN ('published', 'archived')` — evita repetir esse filtro em toda
@@ -1091,6 +1108,12 @@ export type Database = {
       respond_public_proposal: {
         Args: { p_slug: string; p_response: string };
         Returns: boolean;
+      };
+      /** Tracking granular (brief "Procreating Experiences") — mesmo padrão `SECURITY DEFINER` das
+       *  3 funções acima, no-op silencioso se o slug não existir/estiver draft/archived/cancelled. */
+      record_proposal_event: {
+        Args: { p_slug: string; p_visitor_id: string; p_session_id: string; p_event_type: string; p_section_type?: string; p_value?: number; p_metadata?: Record<string, unknown> };
+        Returns: undefined;
       };
     };
   };

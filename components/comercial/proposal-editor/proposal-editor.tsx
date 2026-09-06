@@ -7,8 +7,10 @@ import { ArrowLeft, ArrowUpRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StatusDot, type StatusTone } from "@/components/dashboard/status-dot";
+import { PageTabs } from "@/components/dashboard/page-tabs";
 import { SectionEditorCard } from "@/components/comercial/proposal-editor/section-editor-card";
 import { ConvertProposalDialog } from "@/components/comercial/proposal-editor/convert-proposal-dialog";
+import { ProposalAnalyticsPanel } from "@/components/comercial/proposal-editor/proposal-analytics-panel";
 import {
   addProposalSectionAction,
   duplicateProposalSectionAction,
@@ -25,6 +27,12 @@ import { SECTION_TYPE_LABEL } from "@/lib/comercial/proposal-content-types";
 import { computePositionBetween } from "@/lib/tasks/position";
 import type { ProposalSection, ProposalSectionType, ProposalStatus, ProposalVersion } from "@/lib/supabase/types/database";
 import type { ProposalWithSections } from "@/lib/comercial/proposal-queries";
+import type { ProposalAnalyticsSummary } from "@/lib/comercial/proposal-analytics-queries";
+
+const EDITOR_TABS = [
+  { key: "editor", label: "Editor" },
+  { key: "analytics", label: "Analytics" },
+];
 
 const STATUS_LABEL: Record<ProposalStatus, string> = {
   draft: "Rascunho",
@@ -50,8 +58,23 @@ const STATUS_TONE: Record<ProposalStatus, StatusTone> = {
 };
 
 /** Editor completo (§24/§8 do plano) — Admin UI, design do Procreating OS. Título + status +
- *  link público (quando existe) no topo; seções abaixo, cada uma um `SectionEditorCard`. */
-export function ProposalEditor({ proposal, ownerName, versions }: { proposal: ProposalWithSections; ownerName: string | null; versions: ProposalVersion[] }) {
+ *  link público (quando existe) no topo; seções abaixo, cada uma um `SectionEditorCard`.
+ *  `activeTab`/`analytics` (brief "Procreating Experiences", Fase 6) — aba nova na MESMA página
+ *  (`PageTabs`, `?tab=`) em vez de rota separada, pra não duplicar este header/breadcrumb/ações
+ *  numa segunda tela. */
+export function ProposalEditor({
+  proposal,
+  ownerName,
+  versions,
+  activeTab,
+  analytics,
+}: {
+  proposal: ProposalWithSections;
+  ownerName: string | null;
+  versions: ProposalVersion[];
+  activeTab: "editor" | "analytics";
+  analytics: ProposalAnalyticsSummary | null;
+}) {
   const router = useRouter();
   const [title, setTitle] = useState(proposal.title);
   const [brandName, setBrandName] = useState(proposal.brand_name);
@@ -195,77 +218,85 @@ export function ProposalEditor({ proposal, ownerName, versions }: { proposal: Pr
         </p>
       )}
 
-      <div className="flex flex-wrap items-center gap-2">
-        <Button type="button" onClick={send} disabled={isPending || proposal.status === "accepted"}>
-          {proposal.status === "draft" ? "Enviar" : "Enviar nova versão"}
-        </Button>
-        {proposal.status === "sent" && (
-          <Button type="button" variant="outline" size="sm" disabled={isPending} onClick={() => setStatus("negotiating")}>
-            Marcar em negociação
-          </Button>
-        )}
-        {(proposal.status === "sent" || proposal.status === "negotiating") && (
-          <Button type="button" variant="outline" size="sm" disabled={isPending} onClick={() => setStatus("revision_requested")}>
-            Pedir revisão
-          </Button>
-        )}
-        {proposal.status !== "accepted" && proposal.status !== "archived" && (
-          <Button type="button" variant="ghost" size="sm" disabled={isPending} onClick={() => setStatus("archived")}>
-            Arquivar
-          </Button>
-        )}
-        {proposal.status === "accepted" && (
-          <Button type="button" variant="outline" onClick={() => setConvertOpen(true)}>
-            Converter em cliente
-          </Button>
-        )}
-      </div>
+      <PageTabs tabs={EDITOR_TABS} activeKey={activeTab} />
 
-      {error && (
-        <p role="alert" className="text-sm text-destructive">
-          {error}
-        </p>
-      )}
-
-      <div className="flex flex-col gap-3">
-        {sortedSections.map((section, index) => (
-          <SectionEditorCard
-            key={section.id}
-            section={section}
-            isFirst={index === 0}
-            isLast={index === sortedSections.length - 1}
-            onChange={(content) => updateSectionContent(section.id, content)}
-            onMove={(direction) => moveSection(section.id, direction)}
-            onToggleVisible={() => toggleVisible(section.id, section.visible)}
-            onDuplicate={() => duplicateSection(section.id)}
-            onRemove={() => removeSection(section.id)}
-          />
-        ))}
-      </div>
-
-      {missingSectionTypes.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {missingSectionTypes.map((type) => (
-            <Button key={type} type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => addSection(type)}>
-              <Plus className="size-3.5" />
-              {SECTION_TYPE_LABEL[type]}
+      {activeTab === "analytics" ? (
+        analytics && <ProposalAnalyticsPanel data={analytics} />
+      ) : (
+        <>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button type="button" onClick={send} disabled={isPending || proposal.status === "accepted"}>
+              {proposal.status === "draft" ? "Enviar" : "Enviar nova versão"}
             </Button>
-          ))}
-        </div>
-      )}
+            {proposal.status === "sent" && (
+              <Button type="button" variant="outline" size="sm" disabled={isPending} onClick={() => setStatus("negotiating")}>
+                Marcar em negociação
+              </Button>
+            )}
+            {(proposal.status === "sent" || proposal.status === "negotiating") && (
+              <Button type="button" variant="outline" size="sm" disabled={isPending} onClick={() => setStatus("revision_requested")}>
+                Pedir revisão
+              </Button>
+            )}
+            {proposal.status !== "accepted" && proposal.status !== "archived" && (
+              <Button type="button" variant="ghost" size="sm" disabled={isPending} onClick={() => setStatus("archived")}>
+                Arquivar
+              </Button>
+            )}
+            {proposal.status === "accepted" && (
+              <Button type="button" variant="outline" onClick={() => setConvertOpen(true)}>
+                Converter em cliente
+              </Button>
+            )}
+          </div>
 
-      {versions.length > 0 && (
-        <div className="flex flex-col gap-2 border-t border-border/60 pt-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Versões enviadas</p>
-          <ul className="flex flex-col gap-1 text-sm text-muted-foreground">
-            {versions.map((version) => (
-              <li key={version.id}>
-                v{version.version_number} — {new Date(version.sent_at).toLocaleString("pt-BR")}
-                {proposal.accepted_version_id === version.id && " · aceita"}
-              </li>
+          {error && (
+            <p role="alert" className="text-sm text-destructive">
+              {error}
+            </p>
+          )}
+
+          <div className="flex flex-col gap-3">
+            {sortedSections.map((section, index) => (
+              <SectionEditorCard
+                key={section.id}
+                section={section}
+                isFirst={index === 0}
+                isLast={index === sortedSections.length - 1}
+                onChange={(content) => updateSectionContent(section.id, content)}
+                onMove={(direction) => moveSection(section.id, direction)}
+                onToggleVisible={() => toggleVisible(section.id, section.visible)}
+                onDuplicate={() => duplicateSection(section.id)}
+                onRemove={() => removeSection(section.id)}
+              />
             ))}
-          </ul>
-        </div>
+          </div>
+
+          {missingSectionTypes.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {missingSectionTypes.map((type) => (
+                <Button key={type} type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => addSection(type)}>
+                  <Plus className="size-3.5" />
+                  {SECTION_TYPE_LABEL[type]}
+                </Button>
+              ))}
+            </div>
+          )}
+
+          {versions.length > 0 && (
+            <div className="flex flex-col gap-2 border-t border-border/60 pt-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Versões enviadas</p>
+              <ul className="flex flex-col gap-1 text-sm text-muted-foreground">
+                {versions.map((version) => (
+                  <li key={version.id}>
+                    v{version.version_number} — {new Date(version.sent_at).toLocaleString("pt-BR")}
+                    {proposal.accepted_version_id === version.id && " · aceita"}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </>
       )}
 
       <ConvertProposalDialog proposalId={proposal.id} leadId={proposal.lead_id} open={convertOpen} onOpenChange={setConvertOpen} />
