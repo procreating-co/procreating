@@ -1,8 +1,10 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { AnimatePresence } from "framer-motion";
 import { CalendarCheck, ListChecks, Plus } from "lucide-react";
+import { PriorityFilterBar, type PriorityFilterValue } from "@/components/workspace-tasks/priority-filter";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/dashboard/empty-state";
 import { TaskEditDialog } from "@/components/workspace-tasks/task-edit-dialog";
@@ -26,7 +28,6 @@ import { computePositionBetween } from "@/lib/tasks/position";
 import { brasiliaDateTimeToISO } from "@/lib/date";
 import type { Task, TaskStrategy, User } from "@/lib/supabase/types/database";
 import type { TaskInput } from "@/lib/tasks/types";
-import { cn } from "@/lib/utils";
 
 function toTaskInput(item: BatchParsedItem | ParsedQuickTask, fallbackAssigneeId: string): TaskInput {
   return {
@@ -85,9 +86,21 @@ export function WorkspaceTasks({
   const [pomodoroPrompt, setPomodoroPrompt] = useState<{ taskId: string; taskTitle: string } | null>(null);
   const [planDayOpen, setPlanDayOpen] = useState(false);
   const [strategyDialog, setStrategyDialog] = useState<StrategyDialogState>(null);
+  // Fade ao concluir (pedido explícito) — some da lista de Pendentes assim que marcada, sem
+  // esperar o round-trip do servidor. `AnimatePresence` só anima a saída se o item realmente sair
+  // do array renderizado; isto é o que faz ele sair na hora, antes da resposta chegar.
+  const [completingIds, setCompletingIds] = useState<Set<string>>(new Set());
+  const [priorityFilter, setPriorityFilter] = useState<PriorityFilterValue>("all");
 
   const clientNameById = useMemo(() => new Map(clients.map((c) => [c.id, c.name])), [clients]);
   const groupTitleById = useMemo(() => new Map(taskGroups.map((g) => [g.id, g.title])), [taskGroups]);
+
+  // Dado novo do servidor já reflete a realidade (a tarefa marcada feita agora TEM status "done"
+  // de verdade) — o estado otimista de `completingIds` fica órfão nesse momento, sem função;
+  // limpa pra não crescer pra sempre numa sessão longa.
+  useEffect(() => {
+    setCompletingIds(new Set());
+  }, [tasks]);
 
   // `localTasks` só diverge de `tasks` durante um drag otimista — qualquer criação/toggle passa
   // por `router.refresh()` de qualquer forma, então re-sincroniza sozinho na próxima render com
@@ -249,9 +262,23 @@ export function WorkspaceTasks({
 
   function toggle(task: Task) {
     setError(null);
+    const nextStatus = task.status === "done" ? "pending" : "done";
+    // Pedido explícito — "ao clicar que foi feita, ela deve sumir com fade": tira da vista ANTES
+    // da resposta do servidor. Só a direção "marcar como feita" precisa disto (a lista de
+    // Pendentes que perde o item); desmarcar já reaparece sozinho quando o refresh trouxer o
+    // status real, sem precisar de estado otimista pra essa direção.
+    if (nextStatus === "done") setCompletingIds((prev) => new Set(prev).add(task.id));
     startTransition(async () => {
-      const result = await updateTaskStatusAction(task.id, task.status === "done" ? "pending" : "done");
-      if (!result.ok) setError(result.error);
+      const result = await updateTaskStatusAction(task.id, nextStatus);
+      if (!result.ok) {
+        setError(result.error);
+        setCompletingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(task.id);
+          return next;
+        });
+        return;
+      }
       router.refresh();
     });
   }
@@ -318,13 +345,16 @@ export function WorkspaceTasks({
     groupedByGroupId.set(task.group_id, arr);
   }
 
-  const pending = ungroupedTasks.filter((t) => t.status !== "done");
+  const matchesPriority = (t: Task) => priorityFilter === "all" || t.priority === priorityFilter;
+
+  const pending = ungroupedTasks.filter((t) => t.status !== "done" && !completingIds.has(t.id) && matchesPriority(t));
   // Pedido explícito — "Concluídas" mostra no máximo 3, o resto some da lista (a tarefa continua
   // existindo/contando em qualquer relatório, só não ocupa espaço aqui depois das 3 mais
   // recentes).
-  const done = ungroupedTasks.filter((t) => t.status === "done").slice(0, 3);
+  const done = ungroupedTasks.filter((t) => t.status === "done" && matchesPriority(t)).slice(0, 3);
 
   const hasAnyTask = sortedTasks.length > 0;
+  const hasAnyPriority = sortedTasks.some((t) => t.priority != null);
 
   return (
     <div className="flex flex-col gap-6">
@@ -366,6 +396,11 @@ export function WorkspaceTasks({
         <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Agenda de hoje</h2>
         <DayTimeline blocks={todayTimeBlocks} clientNameById={clientNameById} />
       </div>
+
+      {/* Filtro por cor (pedido explícito) — só aparece quando existe alguma tarefa com
+       *  prioridade definida (via "Editar"); minimalismo, sem controle vazio pra uma dimensão
+       *  que ninguém usou ainda. */}
+      {hasAnyPriority && <PriorityFilterBar value={priorityFilter} onChange={setPriorityFilter} />}
 
       {!hasAnyTask ? (
         <EmptyState icon={CalendarCheck} title="Nenhuma tarefa vencendo hoje ou atrasada" description="Adicione uma tarefa acima, ou aproveite o dia livre." fullBleed={false} />
@@ -514,20 +549,10 @@ function TaskListSection({
         <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{title}</h2>
       </div>
       <ul className="flex flex-col divide-y divide-border/60 rounded-xl border border-border/60 bg-card/40">
-        {tasks.map((task) => (
-          <div
-            key={task.id}
-            draggable
-            onDragStart={() => setDragId(task.id)}
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => {
-              e.preventDefault();
-              if (dragId && dragId !== task.id) onDrop(dragId, task.id);
-              setDragId(null);
-            }}
-            className={cn(dragId === task.id && "opacity-40")}
-          >
+        <AnimatePresence initial={false}>
+          {tasks.map((task) => (
             <TaskRow
+              key={task.id}
               task={task}
               clientName={task.client_id ? (clientNameById.get(task.client_id) ?? null) : null}
               selected={selectedIds.has(task.id)}
@@ -538,10 +563,18 @@ function TaskListSection({
               onMove={(direction) => onMove(task, direction)}
               onFocusStarted={onFocusStarted}
               disabled={disabled}
-              dragHandleProps={{}}
+              draggable
+              dragging={dragId === task.id}
+              onDragStart={() => setDragId(task.id)}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                if (dragId && dragId !== task.id) onDrop(dragId, task.id);
+                setDragId(null);
+              }}
             />
-          </div>
-        ))}
+          ))}
+        </AnimatePresence>
       </ul>
     </div>
   );
