@@ -1,4 +1,5 @@
 import type { GoalProgress } from "@/lib/dashboard/goals";
+import type { FinancialEntryStatus } from "@/lib/supabase/types/database";
 
 /** Mesmo formato de `DetailEntry` (`lib/dashboard/executive-metrics.ts`) — duplicado aqui de
  *  propósito em vez de importado: `lib/financeiro` não deveria depender de `lib/dashboard`
@@ -10,6 +11,12 @@ import type { GoalProgress } from "@/lib/dashboard/goals";
  *  `lib/dashboard/goals.ts` não depende de `lib/financeiro` (zero risco de import circular,
  *  diferente de `executive-metrics.ts`, que já importa `lib/financeiro/queries.ts`). */
 export type FinancialDetailEntry = { label: string; value?: string; meta?: string };
+
+/** "Receita Esperada" (pedido explícito, renomeado de "Receita Recorrente Mensal") — uma linha por
+ *  lançamento de `revenue` com vencimento este mês (recorrente OU projeto pontual, a mesma
+ *  tabela não distingue), com o clique de marcar pago (`updateRevenueStatusAction`, já existia).
+ *  Só entra em "Receita do Mês" quando `status === "pago"` — enquanto isso, é só "esperado". */
+export type RevenueExpectedEntry = { id: string; clientName: string; description: string; amount: number; status: FinancialEntryStatus };
 
 export type ExpenseInput = {
   category: string;
@@ -54,7 +61,16 @@ export type UpcomingReceivablesSummary = { total: number; windowDays: number; en
 
 export type FinanceiroMetrics = {
   mrr: number;
+  /** Pedido explícito (rodada "Receita Esperada") — só soma lançamentos com `status === "pago"`.
+   *  Antes somava tudo que vencia no mês, pago ou não; esse total "sem filtrar" virou
+   *  `revenueExpectedThisMonth`. Mudança de significado propagada de propósito pra todo
+   *  consumidor (Home, Meta do mês, assistente de IA, Pró-labore) — decisão confirmada
+   *  explicitamente. */
   revenueThisMonth: number;
+  /** "Receita Esperada" — todo lançamento (recorrente ou projeto pontual) com vencimento este
+   *  mês, pago ou não. É o `revenueThisMonth` de antes desta rodada. */
+  revenueExpectedThisMonth: number;
+  revenueExpectedEntries: RevenueExpectedEntry[];
   expensesThisMonth: number;
   /** Soma de `costs` (estrutura fixa/variável) — pra "variável" é uma estimativa de run-rate
    *  mensal, não um lançamento real do mês (não existe geração automática de `expenses` a partir
