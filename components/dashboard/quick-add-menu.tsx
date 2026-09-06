@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, CheckSquare2, Handshake, Plus, Presentation, Receipt, UserPlus } from "lucide-react";
+import { Building2, CheckSquare2, FolderPlus, Handshake, Plus, Presentation, Receipt, UserPlus } from "lucide-react";
 import { QUICK_ADD_SHORTCUT_EVENT } from "@/components/dashboard/keyboard-shortcuts";
 import { Command, CommandDialog, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 import { Button } from "@/components/ui/button";
@@ -277,6 +277,18 @@ export function QuickAddMenu() {
                 <div className="flex flex-col">
                   <span>Novo membro da equipe</span>
                   <span className="text-xs text-muted-foreground">Convida pra criar conta no ERP</span>
+                </div>
+              </CommandItem>
+              <CommandItem
+                onSelect={() => {
+                  setOpen(false);
+                  router.push("/propostas");
+                }}
+              >
+                <FolderPlus className="size-4 text-muted-foreground" />
+                <div className="flex flex-col">
+                  <span>Criar Projeto</span>
+                  <span className="text-xs text-muted-foreground">Página de prospecção — abre o hub de Projetos/Propostas</span>
                 </div>
               </CommandItem>
               <CommandItem onSelect={() => setStep("apresentacao")}>

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { AlertTriangle, ArrowRight, UserRound } from "lucide-react";
+import { AlertTriangle, ArrowRight, FolderPlus, UserRound } from "lucide-react";
 import { getCurrentUserId } from "@/lib/supabase/current-user";
 import { computeWorkspaceOverview } from "@/lib/workspace/queries";
 import { listTeamUsers } from "@/lib/operacao/queries";
@@ -10,6 +10,7 @@ import { listTaskStrategiesAction } from "@/lib/tasks/strategy-actions";
 import { listTimeBlocksForDayAction } from "@/lib/tasks/time-block-actions";
 import { todayISO } from "@/lib/date";
 import { GreetingHeader } from "@/components/dashboard/greeting-header";
+import { Button } from "@/components/ui/button";
 import { WorkspaceTasks } from "@/components/workspace-tasks/workspace-tasks";
 import { WeekView } from "@/components/workspace-tasks/week-view";
 import { SectionHeader } from "@/components/dashboard/section-header";
@@ -45,7 +46,17 @@ export default async function WorkspacePage() {
 
   return (
     <main className="mx-auto flex max-w-[1400px] flex-col gap-10 px-6 pt-8 pb-16 lg:px-10">
-      <GreetingHeader />
+      {/* "Criar Projeto" — pedido explícito, atalho pro hub de Projetos/Propostas (`/propostas`),
+       *  mesmo link do item novo no menu `+` (`quick-add-menu.tsx`). */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <GreetingHeader />
+        <Button asChild variant="outline" size="sm" className="gap-1.5">
+          <Link href="/propostas">
+            <FolderPlus className="size-3.5" />
+            Criar Projeto
+          </Link>
+        </Button>
+      </div>
 
       <section className="flex flex-col gap-4">
         <SectionHeader title="Atenção agora" />
