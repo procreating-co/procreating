@@ -4,7 +4,7 @@ import { addDaysISO, currentMonthKey, daysInMonth, diffDaysISO, formatDateOnly, 
 import { computeMargin, computeMrr, computeTopClientConcentration, computeUpcomingReceivables, groupRevenueByClient, sumAmount, sumAmountForMonth } from "@/lib/financeiro/calculations";
 import { getCurrentMonthGoal, type GoalProgress } from "@/lib/dashboard/goals";
 import type { Cost, Expense, FinancialEntryStatus, Revenue } from "@/lib/supabase/types/database";
-import type { FinanceiroMetrics, FinancialDetailEntry, MonthlyEvolutionPoint, PipelineOpportunity } from "@/lib/financeiro/types";
+import type { FinanceiroMetrics, FinancialDetailEntry, MonthlyEvolutionPoint, PipelineOpportunity, RevenueExpectedEntry } from "@/lib/financeiro/types";
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 const STATUS_LABEL: Record<FinancialEntryStatus, string> = { pendente: "Pendente", pago: "Pago", atrasado: "Atrasado", cancelado: "Cancelado" };
@@ -171,7 +171,15 @@ export async function computeFinanceiroMetrics(evolutionMonths = 6): Promise<Fin
   const revenue = revenueRaw.filter((row) => row.status !== "cancelado");
 
   const thisMonthKey = currentMonthKey();
-  const revenueThisMonth = sumAmountForMonth(revenue, thisMonthKey);
+  const revenueRowsThisMonth = revenue.filter((row) => monthKeyOf(row.due_date) === thisMonthKey);
+  // Pedido explícito (rodada "Receita Esperada"): "Receita do Mês" só conta o que já foi marcado
+  // como pago — antes somava todo lançamento com vencimento no mês, pago ou não (era isso que
+  // "Receita Esperada", o valor de TUDO que se espera receber independente de status, mostra
+  // agora). Mudança de propósito, não local: todo consumidor de `revenueThisMonth` (Home, Meta do
+  // mês, assistente de IA, Pró-labore) passa a refletir só o que já entrou de verdade — decisão
+  // confirmada explicitamente, ciente do alcance.
+  const revenueExpectedThisMonth = sumAmountForMonth(revenue, thisMonthKey);
+  const revenueThisMonth = sumAmount(revenueRowsThisMonth.filter((row) => row.status === "pago"));
   const monthlyCostsTotal = sumAmount(costs);
 
   // BUG REAL corrigido (reportado: "Despesas consta 0 sendo que já tem despesa fixa conectada,
@@ -272,13 +280,28 @@ export async function computeFinanceiroMetrics(evolutionMonths = 6): Promise<Fin
     .sort((a, b) => Number(b.monthly_value ?? 0) - Number(a.monthly_value ?? 0))
     .map((contract) => ({ label: clientNameById.get(contract.client_id) ?? "Cliente removido", value: `${currency.format(Number(contract.monthly_value ?? 0))}/mês` }));
 
-  const revenueRowsThisMonth = revenue.filter((row) => monthKeyOf(row.due_date) === thisMonthKey);
   const revenueThisMonthEntries: FinancialDetailEntry[] = [...revenueRowsThisMonth]
     .sort((a, b) => Number(b.amount) - Number(a.amount))
     .map((row) => ({
       label: (row.client_id && clientNameById.get(row.client_id)) || "Sem cliente vinculado",
       value: currency.format(Number(row.amount)),
       meta: `${row.description} · ${STATUS_LABEL[row.status]}`,
+    }));
+
+  // "Receita Esperada" (pedido explícito) — substitui `mrrEntries` (só contrato recorrente, sem
+  // clique) como o detalhe do card renomeado: uma linha por LANÇAMENTO real com vencimento este
+  // mês (recorrente ou projeto pontual — mesma tabela, "vale pros projetos também"), com `id` de
+  // verdade pra o toggle de pago chamar `updateRevenueStatusAction` direto. Inclui automaticamente
+  // qualquer parcela de projeto pontual vencendo este mês (ex.: a parcela restante da Pascoal),
+  // sem precisar de lógica própria — é a mesma linha que já existe em `revenue`.
+  const revenueExpectedEntries: RevenueExpectedEntry[] = [...revenueRowsThisMonth]
+    .sort((a, b) => Number(b.amount) - Number(a.amount))
+    .map((row) => ({
+      id: row.id,
+      clientName: (row.client_id && clientNameById.get(row.client_id)) || "Sem cliente vinculado",
+      description: row.description,
+      amount: Number(row.amount),
+      status: row.status,
     }));
 
   const expenseRowsThisMonth = expenses.filter((row) => monthKeyOf(row.due_date) === thisMonthKey);
@@ -397,6 +420,8 @@ export async function computeFinanceiroMetrics(evolutionMonths = 6): Promise<Fin
   return {
     mrr,
     revenueThisMonth,
+    revenueExpectedThisMonth,
+    revenueExpectedEntries,
     expensesThisMonth,
     monthlyCostsTotal,
     margin,
