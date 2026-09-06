@@ -10,11 +10,25 @@ import { createClient } from "@/lib/supabase/server";
  * de verdade, o wrapper só existe porque `"use server"` não pode ficar dentro de um arquivo
  * `server-only` genérico.
  */
-export type PublicProposal = { id: string; title: string; status: string; brandName: string; accentColor: string; sections: { sectionType: string; content: Record<string, unknown> }[] } | null;
+export type PublicProposal = {
+  id: string;
+  title: string;
+  status: string;
+  /** Momento da jornada comercial (`prospecting|strategy|presentation`, brief "Procreating
+   *  Experiences") — usado pelas rotas públicas por tipo pra validar o slug contra o prefixo. */
+  type: string;
+  brandName: string;
+  accentColor: string;
+  sections: { sectionType: string; content: Record<string, unknown> }[];
+} | null;
 
-export async function getPublicProposalAction(slug: string): Promise<PublicProposal> {
+/** `expectedType` (opcional) — quando informado, `get_public_proposal` só devolve a proposta se
+ *  `type` bater (senão `null`, mesmo 404 de sempre pra slug inexistente). Rotas por tipo
+ *  (`/prospecting`, `/strategy`, `/propostas`) passam o tipo esperado; nenhuma outra chamada
+ *  precisa mudar. */
+export async function getPublicProposalAction(slug: string, expectedType?: string): Promise<PublicProposal> {
   const supabase = await createClient();
-  const { data } = await supabase.rpc("get_public_proposal", { p_slug: slug });
+  const { data } = await supabase.rpc("get_public_proposal", { p_slug: slug, p_expected_type: expectedType });
   return (data as PublicProposal) ?? null;
 }
 

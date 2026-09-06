@@ -88,6 +88,10 @@ export async function createProposalFromTemplateAction(input: {
       title: input.title,
       brand_name: input.brandName?.trim() || input.ownerName,
       accent_color: input.accentColor || template.accent_color,
+      // Copiado do template na criação (brief "Procreating Experiences", §5) — denormalizado,
+      // permite filtrar/validar por tipo sem join (inclusive checar o slug contra o prefixo da
+      // URL pública, `get_public_proposal(p_slug, p_expected_type)`).
+      type: template.type,
       created_by: userId,
     })
     .select("id")
