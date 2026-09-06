@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AnimatePresence } from "framer-motion";
 import { ChevronRight } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { TaskRow } from "@/components/workspace-tasks/task-row";
@@ -54,20 +55,10 @@ export function TaskGroupSection({
 
       {!collapsed && (
         <ul className="flex flex-col divide-y divide-border/60 rounded-xl border border-border/60 bg-card/40">
-          {tasks.map((task) => (
-            <div
-              key={task.id}
-              draggable
-              onDragStart={() => setDragId(task.id)}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => {
-                e.preventDefault();
-                if (dragId && dragId !== task.id) onDrop(dragId, task.id);
-                setDragId(null);
-              }}
-              className={cn(dragId === task.id && "opacity-40")}
-            >
+          <AnimatePresence initial={false}>
+            {tasks.map((task) => (
               <TaskRow
+                key={task.id}
                 task={task}
                 clientName={task.client_id ? (clientNameById.get(task.client_id) ?? null) : null}
                 selected={selectedIds.has(task.id)}
@@ -78,10 +69,18 @@ export function TaskGroupSection({
                 onMove={(direction) => onMove(task, direction)}
                 onFocusStarted={onFocusStarted}
                 disabled={disabled}
-                dragHandleProps={{}}
+                draggable
+                dragging={dragId === task.id}
+                onDragStart={() => setDragId(task.id)}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (dragId && dragId !== task.id) onDrop(dragId, task.id);
+                  setDragId(null);
+                }}
               />
-            </div>
-          ))}
+            ))}
+          </AnimatePresence>
         </ul>
       )}
     </div>

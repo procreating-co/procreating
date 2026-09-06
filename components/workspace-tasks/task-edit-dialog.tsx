@@ -8,9 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { PRIORITY_DOT_CLASS, PRIORITY_OPTIONS } from "@/components/workspace-tasks/priority-filter";
 import { deleteTaskAction, updateTaskAction } from "@/lib/tasks/actions";
 import { formatEstimatedMinutes, type QuickParseClient } from "@/lib/tasks/quick-parse";
-import type { Task, User } from "@/lib/supabase/types/database";
+import { cn } from "@/lib/utils";
+import type { Task, TaskPriority, User } from "@/lib/supabase/types/database";
 
 /** Edição precisa (campos explícitos) — diferente da criação por linha única (`parseQuickTask`),
  *  que é pra capturar rápido, não corrigir. Editar é o momento de "quero mudar exatamente isto",
@@ -38,6 +40,7 @@ export function TaskEditDialog({
   const [assigneeId, setAssigneeId] = useState(task.assignee_id ?? "");
   const [clientId, setClientId] = useState(task.client_id ?? "");
   const [estimatedMinutes, setEstimatedMinutes] = useState(task.estimated_minutes?.toString() ?? "");
+  const [priority, setPriority] = useState<TaskPriority | null>(task.priority);
   const [error, setError] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -54,6 +57,7 @@ export function TaskEditDialog({
         dueTime: dueTime || null,
         clientId: clientId || null,
         estimatedMinutes: estimatedMinutes ? Number(estimatedMinutes) : null,
+        priority,
       });
       if (!result.ok) {
         setError(result.error);
@@ -148,6 +152,29 @@ export function TaskEditDialog({
                   onChange={(e) => setEstimatedMinutes(e.target.value)}
                   placeholder={task.estimated_minutes ? formatEstimatedMinutes(task.estimated_minutes) : "ex.: 60"}
                 />
+              </div>
+            </div>
+
+            {/* Filtro por cor (pedido explícito) — `priority` já existia no schema, só nunca
+             *  tinha UI pra definir. Botão de novo clica no que já está selecionado pra limpar
+             *  (nem toda tarefa precisa de prioridade). */}
+            <div className="flex flex-col gap-2">
+              <Label>Prioridade</Label>
+              <div className="flex gap-2">
+                {PRIORITY_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setPriority(priority === option.value ? null : option.value)}
+                    className={cn(
+                      "flex flex-1 items-center justify-center gap-1.5 rounded-md border px-3 py-2 text-sm transition-colors",
+                      priority === option.value ? "border-foreground/30 bg-foreground/[0.06] text-foreground" : "border-input text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    <span className={cn("size-1.5 shrink-0 rounded-full", PRIORITY_DOT_CLASS[option.value])} aria-hidden="true" />
+                    {option.label}
+                  </button>
+                ))}
               </div>
             </div>
 
