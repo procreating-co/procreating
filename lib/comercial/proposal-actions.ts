@@ -7,7 +7,7 @@ import { todayISO } from "@/lib/date";
 import { EMPTY_CONTENT_BY_TYPE } from "@/lib/comercial/proposal-content-types";
 import { listProposalTemplates, listProposalsForLead } from "@/lib/comercial/proposal-queries";
 import { getLead } from "@/lib/comercial/queries";
-import type { ProposalSectionType, ProposalStatus } from "@/lib/supabase/types/database";
+import type { ProposalSectionType, ProposalStatus, ProposalTemplate, ProposalType } from "@/lib/supabase/types/database";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -15,6 +15,41 @@ export type ActionResult = { ok: true } | { ok: false; error: string };
  *  Component; os diálogos do lead rodam no client. Mesmo padrão de `quote-actions.ts`. */
 export async function listProposalTemplatesAction() {
   return listProposalTemplates();
+}
+
+/** "Criar Nicho" (pedido explícito, hub de Projetos — `/propostas`) — um Nicho É um
+ *  `proposal_template` de `type='prospecting'` a mais; a tabela já suportava vários templates
+ *  por tipo, só não existia UI pra criar um novo (só o seed inicial via migration). Clona o
+ *  `section_blueprint` de um template existente do mesmo tipo (o "Projeto de Prospecção" base,
+ *  hero + closing) — cada nicho nasce com a mesma estrutura de partida, só o título/cor mudam;
+ *  o conteúdo específico do nicho (arquitetos, advogados...) é escrito depois, por proposta, no
+ *  editor normal — não há "conteúdo de nicho" armazenado à parte disso. */
+export async function createProposalTemplateAction(input: { title: string; type: ProposalType; cloneFromTemplateId: string }): Promise<ActionResult & { template?: ProposalTemplate }> {
+  if (!input.title.trim()) return { ok: false, error: "Dê um nome ao nicho." };
+
+  const userId = await getCurrentUserId();
+  if (!userId) return { ok: false, error: "Sessão expirada — faça login de novo." };
+
+  const supabase = await createClient();
+  const { data: base } = await supabase.from("proposal_templates").select("*").eq("id", input.cloneFromTemplateId).maybeSingle();
+  if (!base) return { ok: false, error: "Molde base não encontrado." };
+
+  const { data: template, error } = await supabase
+    .from("proposal_templates")
+    .insert({
+      title: input.title.trim(),
+      description: `Nicho: ${input.title.trim()}`,
+      accent_color: base.accent_color,
+      section_blueprint: base.section_blueprint,
+      type: input.type,
+      created_by: userId,
+    })
+    .select("*")
+    .single();
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/propostas");
+  return { ok: true, template };
 }
 
 export async function listProposalsForLeadAction(leadId: string) {
