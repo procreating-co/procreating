@@ -868,6 +868,10 @@ export type ProposalStatus = "draft" | "sent" | "negotiating" | "revision_reques
 // 7 tipos = os 7 componentes reais de `components/proposal/**` (a Proposta de Continuidade da
 // Elenita, agora o template padrão — migration `20260901000000_proposal_elenita_template.sql`).
 export type ProposalSectionType = "hero" | "pillars" | "roadmap" | "tv_program" | "acquisition" | "budget" | "closing" | "portfolio";
+/** Momento da jornada comercial que a proposta representa (brief "Procreating Experiences",
+ *  migration `20260906000000_proposal_type.sql`) — aditivo, `not null default 'presentation'`,
+ *  então toda proposta anterior a esta coluna já nasceu marcada como o que sempre foi. */
+export type ProposalType = "prospecting" | "strategy" | "presentation";
 
 export type ProposalTemplate = {
   id: string;
@@ -875,6 +879,7 @@ export type ProposalTemplate = {
   description: string | null;
   accent_color: string;
   section_blueprint: { sectionType: ProposalSectionType; content: Record<string, unknown> }[];
+  type: ProposalType;
   version: number;
   created_by: string;
   created_at: string;
@@ -891,6 +896,7 @@ export type Proposal = {
   brand_name: string;
   accent_color: string | null;
   status: ProposalStatus;
+  type: ProposalType;
   accepted_version_id: string | null;
   current_version_number: number;
   view_count: number;
@@ -1072,8 +1078,11 @@ export type Database = {
        *  público não tem sessão nenhuma). Resolve slug + checa `status` no mesmo passo — nunca
        *  devolve uma proposta em draft/archived/cancelled. Devolve `null` se não encontrar. */
       get_public_proposal: {
-        Args: { p_slug: string };
-        Returns: { id: string; title: string; status: string; accentColor: string; sections: { sectionType: string; content: Record<string, unknown> }[] } | null;
+        // `p_expected_type` (opcional, brief "Procreating Experiences") — filtra por `type` quando
+        // informado, usado pelas rotas públicas por tipo (/prospecting, /strategy, /propostas)
+        // pra recusar (404) um slug do tipo errado sob o prefixo errado.
+        Args: { p_slug: string; p_expected_type?: string };
+        Returns: { id: string; title: string; status: string; type: string; brandName: string; accentColor: string; sections: { sectionType: string; content: Record<string, unknown> }[] } | null;
       };
       record_proposal_view: {
         Args: { p_slug: string };

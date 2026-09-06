@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, CheckSquare2, Handshake, Plus, Receipt, UserPlus } from "lucide-react";
+import { Building2, CheckSquare2, Handshake, Plus, Presentation, Receipt, UserPlus } from "lucide-react";
 import { QUICK_ADD_SHORTCUT_EVENT } from "@/components/dashboard/keyboard-shortcuts";
 import { Command, CommandDialog, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { LeadFormDialog } from "@/components/comercial/lead-form-dialog";
 import { ExpenseFormDialog } from "@/components/financeiro/expense-form-dialog";
 import { OnboardingModal } from "@/components/onboarding/onboarding-modal";
+import { NewProposalPanelForm } from "@/components/comercial/proposal-panel/new-proposal-panel-form";
 import { createWonLeadForSaleAction, listStrategiesAction } from "@/lib/comercial/actions";
+import { listProposalTemplatesAction } from "@/lib/comercial/proposal-actions";
 import { createTaskAction, createTaskBatchAction, listClientsForTasksAction } from "@/lib/tasks/actions";
 import { describeQuickTaskPreview, parseQuickTask, type QuickParseClient } from "@/lib/tasks/quick-parse";
 import { parseTaskBatch } from "@/lib/tasks/batch-parse";
@@ -20,9 +22,9 @@ import { inviteTeamMemberAction } from "@/lib/admin/auth/actions";
 import { listTeamUsersAction } from "@/lib/operacao/actions";
 import { useAdminUser } from "@/lib/admin/auth/auth-context";
 import type { LeadWithRelations } from "@/lib/comercial/types";
-import type { Strategy, User, UserRole } from "@/lib/supabase/types/database";
+import type { ProposalTemplate, Strategy, User, UserRole } from "@/lib/supabase/types/database";
 
-type Step = "picker" | "lead" | "venda" | "despesa" | "tarefa" | "equipe";
+type Step = "picker" | "lead" | "venda" | "despesa" | "tarefa" | "equipe" | "apresentacao";
 
 const TEAM_ROLE_LABEL: Record<Exclude<UserRole, "client">, string> = {
   owner: "Sócio",
@@ -78,6 +80,8 @@ export function QuickAddMenu() {
   const [teamError, setTeamError] = useState<string | null>(null);
   const [teamInvited, setTeamInvited] = useState(false);
 
+  const [presentationTemplates, setPresentationTemplates] = useState<ProposalTemplate[] | null>(null);
+
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -90,7 +94,14 @@ export function QuickAddMenu() {
     if (step === "tarefa" && clients.length === 0) {
       listClientsForTasksAction().then(setClients);
     }
-  }, [step, strategies.length, teamMembers.length, clients.length]);
+    // "Criar Apresentação" (brief "Procreating Experiences", §8/§14 Fase 4) — reaproveita o MESMO
+    // fluxo do painel avulso `/propostas` (`NewProposalPanelForm`), só filtrando por
+    // `type='presentation'` (o único tipo com fluxo de criação por enquanto — Prospecting/
+    // Strategy ficam pra uma extensão futura do mesmo padrão, só trocando esse filtro).
+    if (step === "apresentacao" && presentationTemplates === null) {
+      listProposalTemplatesAction().then((all) => setPresentationTemplates(all.filter((t) => t.type === "presentation")));
+    }
+  }, [step, strategies.length, teamMembers.length, clients.length, presentationTemplates]);
 
   // Atalhos de teclado (§61, `KeyboardShortcuts`) — "N"/"C" abrem este menu já no passo certo,
   // sem duplicar o formulário/Server Action que o picker já delega.
@@ -117,6 +128,7 @@ export function QuickAddMenu() {
     setTeamRole("production");
     setTeamError(null);
     setTeamInvited(false);
+    setPresentationTemplates(null);
   }
 
   function handleSaleSubmit(e: FormEvent) {
@@ -265,6 +277,13 @@ export function QuickAddMenu() {
                 <div className="flex flex-col">
                   <span>Novo membro da equipe</span>
                   <span className="text-xs text-muted-foreground">Convida pra criar conta no ERP</span>
+                </div>
+              </CommandItem>
+              <CommandItem onSelect={() => setStep("apresentacao")}>
+                <Presentation className="size-4 text-muted-foreground" />
+                <div className="flex flex-col">
+                  <span>Criar Apresentação</span>
+                  <span className="text-xs text-muted-foreground">Proposta pública, editada e enviada depois</span>
                 </div>
               </CommandItem>
             </CommandGroup>
@@ -442,6 +461,24 @@ export function QuickAddMenu() {
                   </Button>
                 </DialogFooter>
               </form>
+            )}
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {step === "apresentacao" && (
+        <Dialog open={open} onOpenChange={(next) => !next && closeAll()}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Criar Apresentação</DialogTitle>
+              <DialogDescription>Cria a partir do molde e leva direto pro editor completo — o link público só fica ativo depois de enviar.</DialogDescription>
+            </DialogHeader>
+            {presentationTemplates === null ? (
+              <p className="text-sm text-muted-foreground">Carregando...</p>
+            ) : presentationTemplates[0] ? (
+              <NewProposalPanelForm template={presentationTemplates[0]} />
+            ) : (
+              <p className="text-sm text-muted-foreground">Nenhum molde de Apresentação cadastrado ainda.</p>
             )}
           </DialogContent>
         </Dialog>

@@ -7,7 +7,7 @@ type Params = { slug: string };
 
 export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
   const { slug } = await params;
-  const proposal = await getPublicProposalAction(slug);
+  const proposal = await getPublicProposalAction(slug, "presentation");
   if (!proposal) return {};
   return { title: proposal.title, robots: { index: false, follow: false } };
 }
@@ -18,10 +18,16 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
  * o lead não tem conta no ERP. Segurança é o filtro de `status` já embutido em
  * `get_public_proposal()` (nunca dois passos separados): uma Proposal em draft/archived/
  * cancelled nunca chega até aqui, sempre 404.
+ *
+ * Continua sendo a rota pública do tipo "presentation" (brief "Procreating Experiences", §6,
+ * decisão explícita: um slug já real e aberto de verdade — ex.: `priscilla-nunes`, 28 views —
+ * não troca de URL só por padronização de nome). `/prospecting/[slug]` e `/strategy/[slug]` são
+ * as rotas irmãs pros outros dois tipos, mesmo renderer. `p_expected_type="presentation"`
+ * garante que um slug de outro tipo nunca renderiza sob este prefixo, mesmo que exista.
  */
 export default async function PublicProposalPage({ params }: { params: Promise<Params> }) {
   const { slug } = await params;
-  const proposal = await getPublicProposalAction(slug);
+  const proposal = await getPublicProposalAction(slug, "presentation");
   if (!proposal) notFound();
 
   return <ProposalPublicView slug={slug} proposal={proposal} />;
