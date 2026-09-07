@@ -10,17 +10,26 @@ import type { Task } from "@/lib/supabase/types/database";
 
 /** Bloco de tarefas (§14 — "Operacional: Elenita, Kawhen...") — expansível/recolhível,
  *  progresso "N/M concluídas". Reordenar/drag funciona dentro do grupo (entre grupos fica pra
- *  uma rodada futura — ver relatório). */
+ *  uma rodada futura — ver relatório).
+ *
+ *  "Deve sumir ao concluir" (pedido explícito, mesma regra do resto do Workspace) — `tasks` (a
+ *  lista completa, com concluídas) só alimenta o cálculo de progresso; o que é RENDERIZADO é
+ *  `visibleTasks` (sem concluídas, sem o que está saindo/sendo excluído agora via `hiddenIds`,
+ *  otimista). O grupo não vira uma lista "Concluídas" própria — a contagem já mostra isso na
+ *  barra de progresso.
+ */
 export function TaskGroupSection({
   title,
   tasks,
   clientNameById,
   assigneeNameById,
+  hiddenIds,
   selectedIds,
   selectionMode,
   onToggleDone,
   onToggleSelect,
   onEdit,
+  onDelete,
   onMove,
   onDrop,
   onFocusStarted,
@@ -30,11 +39,13 @@ export function TaskGroupSection({
   tasks: Task[];
   clientNameById: Map<string, string>;
   assigneeNameById: Map<string, string>;
+  hiddenIds: Set<string>;
   selectedIds: Set<string>;
   selectionMode: boolean;
   onToggleDone: (task: Task) => void;
   onToggleSelect: (taskId: string) => void;
   onEdit: (task: Task) => void;
+  onDelete: (task: Task) => void;
   onMove: (task: Task, direction: "up" | "down") => void;
   onDrop: (draggedId: string, targetId: string) => void;
   onFocusStarted: () => void;
@@ -43,6 +54,7 @@ export function TaskGroupSection({
   const [collapsed, setCollapsed] = useState(false);
   const [dragId, setDragId] = useState<string | null>(null);
   const done = tasks.filter((t) => t.status === "done").length;
+  const visibleTasks = tasks.filter((t) => t.status !== "done" && !hiddenIds.has(t.id));
 
   return (
     <div className="flex flex-col gap-2">
@@ -55,37 +67,41 @@ export function TaskGroupSection({
         <Progress value={tasks.length === 0 ? 0 : (done / tasks.length) * 100} className="h-1 max-w-[80px] flex-1" />
       </button>
 
-      {!collapsed && (
-        <ul className="flex flex-col divide-y divide-border/60 rounded-xl border border-border/60 bg-card/40">
-          <AnimatePresence initial={false}>
-            {tasks.map((task) => (
-              <TaskRow
-                key={task.id}
-                task={task}
-                clientName={task.client_id ? (clientNameById.get(task.client_id) ?? null) : null}
-                assigneeName={task.assignee_id ? (assigneeNameById.get(task.assignee_id) ?? null) : null}
-                selected={selectedIds.has(task.id)}
-                selectionMode={selectionMode}
-                onToggleDone={() => onToggleDone(task)}
-                onToggleSelect={() => onToggleSelect(task.id)}
-                onEdit={() => onEdit(task)}
-                onMove={(direction) => onMove(task, direction)}
-                onFocusStarted={onFocusStarted}
-                disabled={disabled}
-                draggable
-                dragging={dragId === task.id}
-                onDragStart={() => setDragId(task.id)}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  if (dragId && dragId !== task.id) onDrop(dragId, task.id);
-                  setDragId(null);
-                }}
-              />
-            ))}
-          </AnimatePresence>
-        </ul>
-      )}
+      {!collapsed &&
+        (visibleTasks.length === 0 ? (
+          <p className="px-1 text-sm text-muted-foreground">Tudo concluído neste grupo.</p>
+        ) : (
+          <ul className="flex flex-col divide-y divide-border/60 rounded-xl border border-border/60 bg-card/40">
+            <AnimatePresence initial={false}>
+              {visibleTasks.map((task) => (
+                <TaskRow
+                  key={task.id}
+                  task={task}
+                  clientName={task.client_id ? (clientNameById.get(task.client_id) ?? null) : null}
+                  assigneeName={task.assignee_id ? (assigneeNameById.get(task.assignee_id) ?? null) : null}
+                  selected={selectedIds.has(task.id)}
+                  selectionMode={selectionMode}
+                  onToggleDone={() => onToggleDone(task)}
+                  onToggleSelect={() => onToggleSelect(task.id)}
+                  onEdit={() => onEdit(task)}
+                  onDelete={() => onDelete(task)}
+                  onMove={(direction) => onMove(task, direction)}
+                  onFocusStarted={onFocusStarted}
+                  disabled={disabled}
+                  draggable
+                  dragging={dragId === task.id}
+                  onDragStart={() => setDragId(task.id)}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    if (dragId && dragId !== task.id) onDrop(dragId, task.id);
+                    setDragId(null);
+                  }}
+                />
+              ))}
+            </AnimatePresence>
+          </ul>
+        ))}
     </div>
   );
 }
