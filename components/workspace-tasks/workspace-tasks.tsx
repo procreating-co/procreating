@@ -19,7 +19,7 @@ import { PlanDayButton } from "@/components/workspace-tasks/plan-day-dialog";
 import { StrategiesPanel } from "@/components/workspace-tasks/strategies-panel";
 import { StrategyFormDialog } from "@/components/workspace-tasks/strategy-form-dialog";
 import { ApplyStrategyDialog } from "@/components/workspace-tasks/apply-strategy-dialog";
-import { createTaskAction, createTaskBatchAction, reorderTaskAction, updateTaskStatusAction } from "@/lib/tasks/actions";
+import { createTaskAction, createTaskBatchAction, deleteTaskAction, reorderTaskAction, updateTaskStatusAction } from "@/lib/tasks/actions";
 import { createTimeBlockAction } from "@/lib/tasks/time-block-actions";
 import { parseQuickTask, type ParsedQuickTask, type QuickParseClient } from "@/lib/tasks/quick-parse";
 import { parseTaskBatch, type BatchParsedItem } from "@/lib/tasks/batch-parse";
@@ -84,10 +84,13 @@ export function WorkspaceTasks({
   const [pomodoroPrompt, setPomodoroPrompt] = useState<{ taskId: string; taskTitle: string } | null>(null);
   const [planDayOpen, setPlanDayOpen] = useState(false);
   const [strategyDialog, setStrategyDialog] = useState<StrategyDialogState>(null);
-  // Fade ao concluir (pedido explícito) — some da lista de Pendentes assim que marcada, sem
-  // esperar o round-trip do servidor. `AnimatePresence` só anima a saída se o item realmente sair
-  // do array renderizado; isto é o que faz ele sair na hora, antes da resposta chegar.
+  // Fade ao concluir (pedido explícito) — some da lista assim que marcada, sem esperar o
+  // round-trip do servidor. `AnimatePresence` só anima a saída se o item realmente sair do array
+  // renderizado; isto é o que faz ele sair na hora, antes da resposta chegar. `deletingIds`
+  // mesmo mecanismo pra exclusão (pedido explícito — "1 clique, o mais rápido possível", sem
+  // diálogo de confirmação).
   const [completingIds, setCompletingIds] = useState<Set<string>>(new Set());
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilterValue>("all");
   // Busca + responsável (pedido explícito, redesign "clareza operacional") — client-side, a
   // lista já está toda carregada, sem round-trip, mesmo raciocínio do filtro de prioridade.
@@ -103,12 +106,16 @@ export function WorkspaceTasks({
     () => (teamMembers.length > 1 ? new Map(teamMembers.map((u) => [u.id, u.name.split(" ")[0]])) : new Map<string, string>()),
     [teamMembers],
   );
+  // União dos dois estados otimistas (concluir + excluir) — um único filtro pra "isto não deve
+  // mais aparecer", usado em toda lista/grupo abaixo.
+  const hiddenIds = useMemo(() => new Set([...completingIds, ...deletingIds]), [completingIds, deletingIds]);
 
   // Dado novo do servidor já reflete a realidade (a tarefa marcada feita agora TEM status "done"
-  // de verdade) — o estado otimista de `completingIds` fica órfão nesse momento, sem função;
-  // limpa pra não crescer pra sempre numa sessão longa.
+  // de verdade, ou já não existe mais) — os estados otimistas ficam órfãos nesse momento, sem
+  // função; limpa pra não crescer pra sempre numa sessão longa.
   useEffect(() => {
     setCompletingIds(new Set());
+    setDeletingIds(new Set());
   }, [tasks]);
 
   // `localTasks` só diverge de `tasks` durante um drag otimista — qualquer criação/toggle passa
@@ -292,6 +299,27 @@ export function WorkspaceTasks({
     });
   }
 
+  /** Excluir — 1 clique, sem confirmação (pedido explícito: "o mais rápido possível"). Some da
+   *  vista na hora (mesmo mecanismo otimista do `toggle` acima); se a exclusão falhar de verdade
+   *  (raro), volta a aparecer com o erro visível, nunca finge sucesso. */
+  function removeTask(task: Task) {
+    setError(null);
+    setDeletingIds((prev) => new Set(prev).add(task.id));
+    startTransition(async () => {
+      const result = await deleteTaskAction(task.id);
+      if (!result.ok) {
+        setError(result.error);
+        setDeletingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(task.id);
+          return next;
+        });
+        return;
+      }
+      router.refresh();
+    });
+  }
+
   function toggleSelect(taskId: string) {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -359,11 +387,11 @@ export function WorkspaceTasks({
   const matchesSearch = (t: Task) => !searchQuery.trim() || t.title.toLowerCase().includes(searchQuery.trim().toLowerCase());
   const matchesFilters = (t: Task) => matchesPriority(t) && matchesAssignee(t) && matchesSearch(t);
 
-  const filteredPending = ungroupedTasks.filter((t) => t.status !== "done" && !completingIds.has(t.id) && matchesFilters(t));
+  const filteredPending = ungroupedTasks.filter((t) => t.status !== "done" && !hiddenIds.has(t.id) && matchesFilters(t));
   // Pedido explícito — "Concluídas" mostra no máximo 3, o resto some da lista (a tarefa continua
   // existindo/contando em qualquer relatório, só não ocupa espaço aqui depois das 3 mais
   // recentes).
-  const done = ungroupedTasks.filter((t) => t.status === "done" && matchesFilters(t)).slice(0, 3);
+  const done = ungroupedTasks.filter((t) => t.status === "done" && !hiddenIds.has(t.id) && matchesFilters(t)).slice(0, 3);
 
   // Agora / Próximas / Mais tarde (pedido explícito, redesign "clareza operacional") — regra
   // determinística sobre campos que já existem, nunca um relógio ao vivo (evitaria mismatch de
@@ -497,11 +525,13 @@ export function WorkspaceTasks({
                 tasks={groupTasks}
                 clientNameById={clientNameById}
                 assigneeNameById={assigneeNameById}
+                hiddenIds={hiddenIds}
                 selectedIds={selectedIds}
                 selectionMode={selectionMode}
                 onToggleDone={toggle}
                 onToggleSelect={toggleSelect}
                 onEdit={setEditingTask}
+                onDelete={removeTask}
                 onMove={(task, direction) => moveOneStep(groupTasks, task, direction)}
                 onDrop={(draggedId, targetId) => reorder(groupTasks, draggedId, targetId)}
                 onFocusStarted={() => router.refresh()}
@@ -523,6 +553,7 @@ export function WorkspaceTasks({
               onToggleDone={toggle}
               onToggleSelect={toggleSelect}
               onEdit={setEditingTask}
+              onDelete={removeTask}
               onMove={(task, direction) => moveOneStep(agora, task, direction)}
               onDrop={(draggedId, targetId) => reorder(agora, draggedId, targetId)}
               onFocusStarted={() => router.refresh()}
@@ -539,6 +570,7 @@ export function WorkspaceTasks({
               onToggleDone={toggle}
               onToggleSelect={toggleSelect}
               onEdit={setEditingTask}
+              onDelete={removeTask}
               onMove={(task, direction) => moveOneStep(proximas, task, direction)}
               onDrop={(draggedId, targetId) => reorder(proximas, draggedId, targetId)}
               onFocusStarted={() => router.refresh()}
@@ -555,6 +587,7 @@ export function WorkspaceTasks({
               onToggleDone={toggle}
               onToggleSelect={toggleSelect}
               onEdit={setEditingTask}
+              onDelete={removeTask}
               onMove={(task, direction) => moveOneStep(maisTarde, task, direction)}
               onDrop={(draggedId, targetId) => reorder(maisTarde, draggedId, targetId)}
               onFocusStarted={() => router.refresh()}
@@ -575,6 +608,7 @@ export function WorkspaceTasks({
                 onToggleDone={toggle}
                 onToggleSelect={toggleSelect}
                 onEdit={setEditingTask}
+                onDelete={removeTask}
                 onMove={(task, direction) => moveOneStep(done, task, direction)}
                 onDrop={(draggedId, targetId) => reorder(done, draggedId, targetId)}
                 onFocusStarted={() => router.refresh()}
@@ -644,6 +678,7 @@ function TaskListSection({
   onToggleDone,
   onToggleSelect,
   onEdit,
+  onDelete,
   onMove,
   onDrop,
   onFocusStarted,
@@ -659,6 +694,7 @@ function TaskListSection({
   onToggleDone: (task: Task) => void;
   onToggleSelect: (taskId: string) => void;
   onEdit: (task: Task) => void;
+  onDelete: (task: Task) => void;
   onMove: (task: Task, direction: "up" | "down") => void;
   onDrop: (draggedId: string, targetId: string) => void;
   onFocusStarted: () => void;
@@ -690,6 +726,7 @@ function TaskListSection({
               onToggleDone={() => onToggleDone(task)}
               onToggleSelect={() => onToggleSelect(task.id)}
               onEdit={() => onEdit(task)}
+              onDelete={() => onDelete(task)}
               onMove={(direction) => onMove(task, direction)}
               onFocusStarted={onFocusStarted}
               disabled={disabled}
