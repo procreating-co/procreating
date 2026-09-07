@@ -15,6 +15,7 @@ export function TaskGroupSection({
   title,
   tasks,
   clientNameById,
+  assigneeNameById,
   selectedIds,
   selectionMode,
   onToggleDone,
@@ -28,6 +29,7 @@ export function TaskGroupSection({
   title: string;
   tasks: Task[];
   clientNameById: Map<string, string>;
+  assigneeNameById: Map<string, string>;
   selectedIds: Set<string>;
   selectionMode: boolean;
   onToggleDone: (task: Task) => void;
@@ -61,6 +63,7 @@ export function TaskGroupSection({
                 key={task.id}
                 task={task}
                 clientName={task.client_id ? (clientNameById.get(task.client_id) ?? null) : null}
+                assigneeName={task.assignee_id ? (assigneeNameById.get(task.assignee_id) ?? null) : null}
                 selected={selectedIds.has(task.id)}
                 selectionMode={selectionMode}
                 onToggleDone={() => onToggleDone(task)}

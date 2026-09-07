@@ -32,6 +32,7 @@ const dateFormatter = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: 
 export function TaskRow({
   task,
   clientName,
+  assigneeName,
   selected,
   selectionMode,
   onToggleDone,
@@ -48,6 +49,9 @@ export function TaskRow({
 }: {
   task: Task;
   clientName: string | null;
+  /** Primeiro nome do responsável — só passado quando há mais de 1 pessoa na conta (ver
+   *  `assigneeNameById` em `workspace-tasks.tsx`); `null`/undefined não renderiza nada. */
+  assigneeName?: string | null;
   selected: boolean;
   selectionMode: boolean;
   onToggleDone: () => void;
@@ -121,6 +125,7 @@ export function TaskRow({
           {clientName}
         </Badge>
       )}
+      {assigneeName && <span className="shrink-0 text-xs text-muted-foreground">{assigneeName}</span>}
       {task.estimated_minutes && (
         <Badge variant="default" className="shrink-0">
           {formatEstimatedMinutes(task.estimated_minutes)}
