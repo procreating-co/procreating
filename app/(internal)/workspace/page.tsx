@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { AlertTriangle, ArrowRight, FolderPlus, UserRound } from "lucide-react";
+import { FolderPlus, UserRound } from "lucide-react";
 import { getCurrentUserId } from "@/lib/supabase/current-user";
-import { computeWorkspaceOverview } from "@/lib/workspace/queries";
+import { computeWorkspaceOverview, pickRecommendedTask } from "@/lib/workspace/queries";
 import { listTeamUsers } from "@/lib/operacao/queries";
 import { listClientsForTasksAction, listTaskGroupsForTasksAction, getRunningFocusSessionAction } from "@/lib/tasks/actions";
 import { listTaskStrategiesAction } from "@/lib/tasks/strategy-actions";
@@ -12,6 +12,8 @@ import { todayISO } from "@/lib/date";
 import { GreetingHeader } from "@/components/dashboard/greeting-header";
 import { Button } from "@/components/ui/button";
 import { WorkspaceTasks } from "@/components/workspace-tasks/workspace-tasks";
+import { AttentionPanel } from "@/components/workspace-tasks/attention-panel";
+import { FocusPanel } from "@/components/workspace-tasks/focus-panel";
 import { WeekView } from "@/components/workspace-tasks/week-view";
 import { SectionHeader } from "@/components/dashboard/section-header";
 import { EmptyInline } from "@/components/dashboard/empty-inline";
@@ -23,12 +25,13 @@ export const metadata: Metadata = {
 };
 
 /**
- * Workspace (era `/meu-dia`, renomeado — mesma página) — página única (revertido de 5 abas com
- * gamificação: XP/streak/timer/conquistas nunca foram pedidos de verdade, contrariam o roadmap
- * real, onde isso é Fase 6 futura). Cockpit real: o que precisa de atenção agora, tarefas de hoje
- * com criação inline, próximos prazos, progresso simples do dia (sem badge/fogo/nível),
- * visibilidade do outro sócio — tudo dado real (`lib/workspace/queries.ts`), nunca inventado;
- * fonte vazia = seção/linha omitida, nunca "0 encontrados" forçado.
+ * Workspace — redesign "clareza operacional" (pedido explícito): a mesma página/dado real de
+ * sempre (`lib/workspace/queries.ts`, nunca mockado), reorganizada em duas colunas — execução
+ * (captura + Agora/Próximas/Mais tarde/Concluídas, `WorkspaceTasks`) e um painel lateral "Foco de
+ * hoje" (`FocusPanel`: timer, próxima tarefa recomendada, progresso, agenda, leads parados).
+ * "Atenção agora" virou cards clicáveis e dispensáveis (`AttentionPanel`). Sidebar/header/tema
+ * seguem sendo os mesmos do resto do ERP (`app/(internal)/layout.tsx`) — fora do escopo deste
+ * pedido, que era só esta página.
  */
 export default async function WorkspacePage() {
   const userId = await getCurrentUserId();
@@ -43,55 +46,81 @@ export default async function WorkspacePage() {
     listTimeBlocksForDayAction(userId, todayISO()),
   ]);
   const taskGroups = await listTaskGroupsForTasksAction(overview.dueTasks.map((t) => t.id));
+  const clientNameById = new Map(clients.map((c) => [c.id, c.name]));
+  const recommendedTask = pickRecommendedTask(overview.dueTasks);
+
+  const openTasksCount = overview.dueTasks.filter((t) => t.status !== "done").length;
+  const donePct = overview.todayProgress && overview.todayProgress.total > 0 ? Math.round((overview.todayProgress.done / overview.todayProgress.total) * 100) : null;
+  const subtitle =
+    overview.attention.length > 0
+      ? `${overview.attention.length} ${overview.attention.length === 1 ? "área pede" : "áreas pedem"} atenção hoje.`
+      : "Tudo em dia — nada urgente agora.";
 
   return (
-    <main className="mx-auto flex max-w-[1400px] flex-col gap-10 px-6 pt-8 pb-16 lg:px-10">
-      {/* "Criar Projeto" — pedido explícito, atalho pro hub de Projetos/Propostas (`/propostas`),
-       *  mesmo link do item novo no menu `+` (`quick-add-menu.tsx`). */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <GreetingHeader />
-        <Button asChild variant="outline" size="sm" className="gap-1.5">
-          <Link href="/propostas">
-            <FolderPlus className="size-3.5" />
-            Criar Projeto
-          </Link>
-        </Button>
+    <main className="mx-auto flex max-w-[1400px] flex-col gap-8 px-6 pt-8 pb-16 lg:px-10">
+      {/* Topo enxuto (pedido explícito: "evitar que a saudação ocupe espaço excessivo") —
+       *  saudação + contexto do dia numa linha, resumo compacto na outra, sem cards grandes. */}
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-col gap-0.5">
+            <GreetingHeader />
+            <p className="text-sm text-muted-foreground">{subtitle}</p>
+          </div>
+          <Button asChild variant="outline" size="sm" className="gap-1.5">
+            <Link href="/propostas">
+              <FolderPlus className="size-3.5" />
+              Criar Projeto
+            </Link>
+          </Button>
+        </div>
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-muted-foreground">
+          <span>
+            <span className="font-medium text-foreground">{openTasksCount}</span> tarefa{openTasksCount === 1 ? "" : "s"} aberta{openTasksCount === 1 ? "" : "s"}
+          </span>
+          {overview.todayProgress && (
+            <span>
+              <span className="font-medium text-foreground">{overview.todayProgress.total}</span> vencendo hoje
+            </span>
+          )}
+          {donePct !== null && (
+            <span>
+              <span className="font-medium text-foreground">{donePct}%</span> concluído hoje
+            </span>
+          )}
+        </div>
       </div>
 
       <section className="flex flex-col gap-4">
         <SectionHeader title="Atenção agora" />
-        {overview.attention.length === 0 ? (
-          <EmptyInline icon={AlertTriangle} label="Nada precisa de atenção agora." />
-        ) : (
-          <ul className="flex flex-col divide-y divide-border/60 rounded-xl border border-border/60 bg-card">
-            {overview.attention.map((item) => (
-              <li key={item.label}>
-                <Link href={item.href} className="flex items-center justify-between gap-3 px-5 py-3.5 text-sm transition-colors hover:bg-foreground/[0.03]">
-                  {item.label}
-                  <ArrowRight className="size-4 shrink-0 text-muted-foreground" />
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
+        <AttentionPanel items={overview.attention} />
       </section>
 
-      <section id="tarefas-de-hoje" className="flex scroll-mt-20 flex-col gap-4">
-        <SectionHeader
-          title="Tarefas de hoje"
-          description={overview.todayProgress ? `${overview.todayProgress.done} de ${overview.todayProgress.total} tarefas concluídas hoje` : undefined}
-        />
-        <WorkspaceTasks
-          tasks={overview.dueTasks}
-          userId={userId}
-          teamMembers={teamMembers}
-          clients={clients}
-          taskGroups={taskGroups}
-          initialRunningSession={runningFocusSession}
-          strategies={strategies}
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_320px]">
+        <section id="tarefas-de-hoje" className="flex scroll-mt-20 flex-col gap-4">
+          <SectionHeader
+            title="Hoje"
+            description={overview.todayProgress ? `${overview.todayProgress.done} de ${overview.todayProgress.total} tarefas concluídas hoje` : undefined}
+          />
+          <WorkspaceTasks
+            tasks={overview.dueTasks}
+            userId={userId}
+            teamMembers={teamMembers}
+            clients={clients}
+            taskGroups={taskGroups}
+            strategies={strategies}
+            todayDate={todayISO()}
+          />
+        </section>
+
+        <FocusPanel
+          recommendedTask={recommendedTask}
+          todayProgress={overview.todayProgress}
           todayTimeBlocks={todayTimeBlocks}
+          clientNameById={clientNameById}
+          staleLeads={overview.staleLeads}
+          runningSession={runningFocusSession}
         />
-      </section>
+      </div>
 
       <section className="flex flex-col gap-4">
         {/* Minimalismo — "clique pra marcar concluída" era instrução de uso de um checkbox, um

@@ -2,25 +2,25 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { AnimatePresence } from "framer-motion";
-import { CalendarCheck, ListChecks, Plus } from "lucide-react";
+import { AnimatePresence, MotionConfig } from "framer-motion";
+import { CalendarCheck, ListChecks, Search, X } from "lucide-react";
+import { Plus } from "lucide-react";
 import { PriorityFilterBar, type PriorityFilterValue } from "@/components/workspace-tasks/priority-filter";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/dashboard/empty-state";
 import { TaskEditDialog } from "@/components/workspace-tasks/task-edit-dialog";
 import { TaskRow } from "@/components/workspace-tasks/task-row";
 import { TaskGroupSection } from "@/components/workspace-tasks/task-group-section";
 import { BulkActionBar } from "@/components/workspace-tasks/bulk-action-bar";
 import { ClientAmbiguityDialog } from "@/components/workspace-tasks/client-ambiguity-dialog";
-import { FocusTimerBar } from "@/components/workspace-tasks/focus-timer-bar";
 import { StartFocusDialog } from "@/components/workspace-tasks/start-focus-dialog";
 import { PlanDayButton } from "@/components/workspace-tasks/plan-day-dialog";
-import { DayTimeline } from "@/components/workspace-tasks/day-timeline";
 import { StrategiesPanel } from "@/components/workspace-tasks/strategies-panel";
 import { StrategyFormDialog } from "@/components/workspace-tasks/strategy-form-dialog";
 import { ApplyStrategyDialog } from "@/components/workspace-tasks/apply-strategy-dialog";
-import { createTaskAction, createTaskBatchAction, reorderTaskAction, updateTaskStatusAction, type RunningFocusSession } from "@/lib/tasks/actions";
-import { createTimeBlockAction, type TimeBlockWithTask } from "@/lib/tasks/time-block-actions";
+import { createTaskAction, createTaskBatchAction, reorderTaskAction, updateTaskStatusAction } from "@/lib/tasks/actions";
+import { createTimeBlockAction } from "@/lib/tasks/time-block-actions";
 import { parseQuickTask, type ParsedQuickTask, type QuickParseClient } from "@/lib/tasks/quick-parse";
 import { parseTaskBatch, type BatchParsedItem } from "@/lib/tasks/batch-parse";
 import { parseSlashCommand } from "@/lib/tasks/slash-commands";
@@ -61,18 +61,16 @@ export function WorkspaceTasks({
   teamMembers,
   clients,
   taskGroups,
-  initialRunningSession,
   strategies,
-  todayTimeBlocks,
+  todayDate,
 }: {
   tasks: Task[];
   userId: string;
   teamMembers: User[];
   clients: QuickParseClient[];
   taskGroups: { id: string; title: string }[];
-  initialRunningSession: RunningFocusSession | null;
   strategies: TaskStrategy[];
-  todayTimeBlocks: TimeBlockWithTask[];
+  todayDate: string;
 }) {
   const router = useRouter();
   const [text, setText] = useState("");
@@ -91,9 +89,20 @@ export function WorkspaceTasks({
   // do array renderizado; isto é o que faz ele sair na hora, antes da resposta chegar.
   const [completingIds, setCompletingIds] = useState<Set<string>>(new Set());
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilterValue>("all");
+  // Busca + responsável (pedido explícito, redesign "clareza operacional") — client-side, a
+  // lista já está toda carregada, sem round-trip, mesmo raciocínio do filtro de prioridade.
+  const [searchQuery, setSearchQuery] = useState("");
+  const [assigneeFilter, setAssigneeFilter] = useState<string>("all");
 
   const clientNameById = useMemo(() => new Map(clients.map((c) => [c.id, c.name])), [clients]);
   const groupTitleById = useMemo(() => new Map(taskGroups.map((g) => [g.id, g.title])), [taskGroups]);
+  // Só carrega o mapa quando há mais de 1 pessoa — em conta de 1 pessoa só, mostrar "Santiago" em
+  // toda tarefa seria ruído redundante (mesma regra de "só aparece quando faz diferença" do
+  // filtro de prioridade, `hasAnyPriority` abaixo).
+  const assigneeNameById = useMemo(
+    () => (teamMembers.length > 1 ? new Map(teamMembers.map((u) => [u.id, u.name.split(" ")[0]])) : new Map<string, string>()),
+    [teamMembers],
+  );
 
   // Dado novo do servidor já reflete a realidade (a tarefa marcada feita agora TEM status "done"
   // de verdade) — o estado otimista de `completingIds` fica órfão nesse momento, sem função;
@@ -346,164 +355,281 @@ export function WorkspaceTasks({
   }
 
   const matchesPriority = (t: Task) => priorityFilter === "all" || t.priority === priorityFilter;
+  const matchesAssignee = (t: Task) => assigneeFilter === "all" || t.assignee_id === assigneeFilter;
+  const matchesSearch = (t: Task) => !searchQuery.trim() || t.title.toLowerCase().includes(searchQuery.trim().toLowerCase());
+  const matchesFilters = (t: Task) => matchesPriority(t) && matchesAssignee(t) && matchesSearch(t);
 
-  const pending = ungroupedTasks.filter((t) => t.status !== "done" && !completingIds.has(t.id) && matchesPriority(t));
+  const filteredPending = ungroupedTasks.filter((t) => t.status !== "done" && !completingIds.has(t.id) && matchesFilters(t));
   // Pedido explícito — "Concluídas" mostra no máximo 3, o resto some da lista (a tarefa continua
   // existindo/contando em qualquer relatório, só não ocupa espaço aqui depois das 3 mais
   // recentes).
-  const done = ungroupedTasks.filter((t) => t.status === "done" && matchesPriority(t)).slice(0, 3);
+  const done = ungroupedTasks.filter((t) => t.status === "done" && matchesFilters(t)).slice(0, 3);
+
+  // Agora / Próximas / Mais tarde (pedido explícito, redesign "clareza operacional") — regra
+  // determinística sobre campos que já existem, nunca um relógio ao vivo (evitaria mismatch de
+  // hidratação SSR/cliente): atrasada (venceu antes de hoje) ou prioridade alta = Agora;
+  // prioridade baixa = Mais tarde; o resto (média, sem prioridade, vencendo hoje) = Próximas.
+  function taskBucket(task: Task): "agora" | "proximas" | "maisTarde" {
+    const overdue = task.due_date !== null && task.due_date < todayDate;
+    if (overdue || task.priority === "high") return "agora";
+    if (task.priority === "low") return "maisTarde";
+    return "proximas";
+  }
+  const agora = filteredPending.filter((t) => taskBucket(t) === "agora");
+  const proximas = filteredPending.filter((t) => taskBucket(t) === "proximas");
+  const maisTarde = filteredPending.filter((t) => taskBucket(t) === "maisTarde");
 
   const hasAnyTask = sortedTasks.length > 0;
   const hasAnyPriority = sortedTasks.some((t) => t.priority != null);
+  const hasActiveFilters = priorityFilter !== "all" || assigneeFilter !== "all" || searchQuery.trim().length > 0;
+  const hasFilteredResults = filteredPending.length > 0 || done.length > 0;
+
+  function clearFilters() {
+    setPriorityFilter("all");
+    setAssigneeFilter("all");
+    setSearchQuery("");
+  }
 
   return (
-    <div className="flex flex-col gap-6">
-      <FocusTimerBar initialSession={initialRunningSession} />
-
-      <form onSubmit={handleCreate} className="flex flex-col gap-2 rounded-xl border border-border/60 bg-card/40 p-5">
-        <div className="flex items-start gap-3">
-          {/* Textarea (não Input) — aceita colar um bloco de várias linhas ("Operacional:\n
-           *  Elenita: ...") sem perder a experiência de linha única de sempre: Enter continua
-           *  criando na hora (Shift+Enter é que quebra linha), igual antes. Comandos `/task
-           *  /time /pomodoro /plan /strategy` (§20) funcionam na mesma caixa, sem UI própria. */}
-          <textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Nova tarefa... (ou /plan, /pomodoro, /time — ou cole várias linhas)"
-            rows={text.includes("\n") ? Math.min(8, text.split("\n").length + 1) : 1}
-            className="flex-1 resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-          />
-          <Button type="submit" disabled={isPending || !text.trim()} className="shrink-0 gap-2">
-            <Plus className="size-4" />
-            Adicionar
-          </Button>
-        </div>
-        <div className="flex items-center justify-between">
-          {!selectionMode && hasAnyTask ? (
-            <button type="button" onClick={() => setSelectionMode(true)} className="text-xs text-muted-foreground transition-colors hover:text-foreground">
-              Selecionar várias
-            </button>
-          ) : (
-            <span />
-          )}
-          <PlanDayButton open={planDayOpen} onOpenChange={setPlanDayOpen} />
-        </div>
-      </form>
-      {error && <p className="text-sm text-destructive">{error}</p>}
-
-      <div className="flex flex-col gap-3">
-        <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Agenda de hoje</h2>
-        <DayTimeline blocks={todayTimeBlocks} clientNameById={clientNameById} />
-      </div>
-
-      {/* Filtro por cor (pedido explícito) — só aparece quando existe alguma tarefa com
-       *  prioridade definida (via "Editar"); minimalismo, sem controle vazio pra uma dimensão
-       *  que ninguém usou ainda. */}
-      {hasAnyPriority && <PriorityFilterBar value={priorityFilter} onChange={setPriorityFilter} />}
-
-      {!hasAnyTask ? (
-        <EmptyState icon={CalendarCheck} title="Nenhuma tarefa vencendo hoje ou atrasada" description="Adicione uma tarefa acima, ou aproveite o dia livre." fullBleed={false} />
-      ) : (
-        <div className="flex flex-col gap-6">
-          {[...groupedByGroupId.entries()].map(([groupId, groupTasks]) => (
-            <TaskGroupSection
-              key={groupId}
-              title={groupTitleById.get(groupId) ?? "Grupo"}
-              tasks={groupTasks}
-              clientNameById={clientNameById}
-              selectedIds={selectedIds}
-              selectionMode={selectionMode}
-              onToggleDone={toggle}
-              onToggleSelect={toggleSelect}
-              onEdit={setEditingTask}
-              onMove={(task, direction) => moveOneStep(groupTasks, task, direction)}
-              onDrop={(draggedId, targetId) => reorder(groupTasks, draggedId, targetId)}
-              onFocusStarted={() => router.refresh()}
-              disabled={isPending}
+    // Reduced motion (pedido explícito de acessibilidade) — mesmo mecanismo já usado na proposta
+    // pública (`proposal-public-view.tsx`): respeita `prefers-reduced-motion` do sistema pra
+    // todas as animações Framer Motion desta árvore (fade ao concluir, entrada/saída dos cards).
+    <MotionConfig reducedMotion="user">
+      <div className="flex flex-col gap-6">
+        <form onSubmit={handleCreate} className="flex flex-col gap-2 rounded-xl border border-border/60 bg-card/40 p-5">
+          <div className="flex items-start gap-3">
+            {/* Textarea (não Input) — aceita colar um bloco de várias linhas ("Operacional:\n
+             *  Elenita: ...") sem perder a experiência de linha única de sempre: Enter continua
+             *  criando na hora (Shift+Enter é que quebra linha), igual antes. Comandos `/task
+             *  /time /pomodoro /plan /strategy` (§20) funcionam na mesma caixa, sem UI própria. */}
+            <textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Adicione uma tarefa, use / para comandos ou cole várias linhas"
+              rows={text.includes("\n") ? Math.min(8, text.split("\n").length + 1) : 1}
+              className="flex-1 resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
             />
-          ))}
+            <Button type="submit" disabled={isPending || !text.trim()} className="shrink-0 gap-2">
+              <Plus className="size-4" />
+              Adicionar
+            </Button>
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {!selectionMode && hasAnyTask ? (
+                <button type="button" onClick={() => setSelectionMode(true)} className="text-xs text-muted-foreground transition-colors hover:text-foreground">
+                  Selecionar várias
+                </button>
+              ) : (
+                <span />
+              )}
+              {/* Atalhos discretos (pedido explícito) — só lembrete de texto, os comandos já
+               *  funcionam sem isto; fica de fora quando a caixa está vazia por padrão? Não —
+               *  sempre visível, é o "discreto" que pede, não escondido. */}
+              <span className="hidden text-xs text-muted-foreground/70 sm:inline">/plan · /pomodoro · /time · /strategy</span>
+            </div>
+            <PlanDayButton open={planDayOpen} onOpenChange={setPlanDayOpen} />
+          </div>
+        </form>
+        {error && <p className="text-sm text-destructive">{error}</p>}
 
-          <TaskListSection
-            title="Pendentes"
-            tasks={pending}
-            emptyLabel="Nenhuma tarefa pendente — dia livre."
-            clientNameById={clientNameById}
-            selectedIds={selectedIds}
-            selectionMode={selectionMode}
-            onToggleDone={toggle}
-            onToggleSelect={toggleSelect}
-            onEdit={setEditingTask}
-            onMove={(task, direction) => moveOneStep(pending, task, direction)}
-            onDrop={(draggedId, targetId) => reorder(pending, draggedId, targetId)}
-            onFocusStarted={() => router.refresh()}
-            disabled={isPending}
-          />
-          {done.length > 0 && (
+        {/* Busca + filtros (pedido explícito) — client-side, mesmo raciocínio do filtro de
+         *  prioridade que já existia. Responsável só aparece com >1 pessoa na conta
+         *  (`assigneeNameById` fica vazio nesse caso, ver acima). */}
+        {hasAnyTask && (
+          <div className="flex flex-col gap-2.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative min-w-[180px] flex-1">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Buscar tarefa..."
+                  aria-label="Buscar tarefa por título"
+                  className="h-8 pl-8 text-sm"
+                />
+              </div>
+              {assigneeNameById.size > 0 && (
+                <select
+                  value={assigneeFilter}
+                  onChange={(e) => setAssigneeFilter(e.target.value)}
+                  aria-label="Filtrar por responsável"
+                  className="h-8 rounded-md border border-input bg-input-background px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                >
+                  <option value="all">Todos os responsáveis</option>
+                  {teamMembers.map((member) => (
+                    <option key={member.id} value={member.id}>
+                      {member.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+              {hasActiveFilters && (
+                <button type="button" onClick={clearFilters} className="flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground">
+                  <X className="size-3" />
+                  Limpar filtros
+                </button>
+              )}
+            </div>
+            {/* Filtro por cor (pedido explícito) — só aparece quando existe alguma tarefa com
+             *  prioridade definida (via "Editar"); minimalismo, sem controle vazio pra uma
+             *  dimensão que ninguém usou ainda. */}
+            {hasAnyPriority && <PriorityFilterBar value={priorityFilter} onChange={setPriorityFilter} />}
+          </div>
+        )}
+
+        {!hasAnyTask ? (
+          <EmptyState icon={CalendarCheck} title="Nenhuma tarefa vencendo hoje ou atrasada" description="Adicione uma tarefa acima, ou aproveite o dia livre." fullBleed={false} />
+        ) : !hasFilteredResults && hasActiveFilters ? (
+          <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border/60 py-10 text-center">
+            <p className="text-sm text-muted-foreground">Nenhuma tarefa encontrada com esses filtros.</p>
+            <button type="button" onClick={clearFilters} className="text-sm text-foreground underline-offset-2 hover:underline">
+              Limpar filtros
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-6">
+            {[...groupedByGroupId.entries()].map(([groupId, groupTasks]) => (
+              <TaskGroupSection
+                key={groupId}
+                title={groupTitleById.get(groupId) ?? "Grupo"}
+                tasks={groupTasks}
+                clientNameById={clientNameById}
+                assigneeNameById={assigneeNameById}
+                selectedIds={selectedIds}
+                selectionMode={selectionMode}
+                onToggleDone={toggle}
+                onToggleSelect={toggleSelect}
+                onEdit={setEditingTask}
+                onMove={(task, direction) => moveOneStep(groupTasks, task, direction)}
+                onDrop={(draggedId, targetId) => reorder(groupTasks, draggedId, targetId)}
+                onFocusStarted={() => router.refresh()}
+                disabled={isPending}
+              />
+            ))}
+
+            {/* "Agora / Próximas / Mais tarde / Concluídas" (pedido explícito) — no lugar da
+             *  lista única "Pendentes" de antes; regra de cada balde documentada em
+             *  `taskBucket` acima. */}
             <TaskListSection
-              title="Concluídas"
-              tasks={done}
+              title="Agora"
+              tasks={agora}
               emptyLabel={null}
               clientNameById={clientNameById}
+              assigneeNameById={assigneeNameById}
               selectedIds={selectedIds}
               selectionMode={selectionMode}
               onToggleDone={toggle}
               onToggleSelect={toggleSelect}
               onEdit={setEditingTask}
-              onMove={(task, direction) => moveOneStep(done, task, direction)}
-              onDrop={(draggedId, targetId) => reorder(done, draggedId, targetId)}
+              onMove={(task, direction) => moveOneStep(agora, task, direction)}
+              onDrop={(draggedId, targetId) => reorder(agora, draggedId, targetId)}
               onFocusStarted={() => router.refresh()}
               disabled={isPending}
             />
-          )}
-        </div>
-      )}
+            <TaskListSection
+              title="Próximas"
+              tasks={proximas}
+              emptyLabel={null}
+              clientNameById={clientNameById}
+              assigneeNameById={assigneeNameById}
+              selectedIds={selectedIds}
+              selectionMode={selectionMode}
+              onToggleDone={toggle}
+              onToggleSelect={toggleSelect}
+              onEdit={setEditingTask}
+              onMove={(task, direction) => moveOneStep(proximas, task, direction)}
+              onDrop={(draggedId, targetId) => reorder(proximas, draggedId, targetId)}
+              onFocusStarted={() => router.refresh()}
+              disabled={isPending}
+            />
+            <TaskListSection
+              title="Mais tarde"
+              tasks={maisTarde}
+              emptyLabel={null}
+              clientNameById={clientNameById}
+              assigneeNameById={assigneeNameById}
+              selectedIds={selectedIds}
+              selectionMode={selectionMode}
+              onToggleDone={toggle}
+              onToggleSelect={toggleSelect}
+              onEdit={setEditingTask}
+              onMove={(task, direction) => moveOneStep(maisTarde, task, direction)}
+              onDrop={(draggedId, targetId) => reorder(maisTarde, draggedId, targetId)}
+              onFocusStarted={() => router.refresh()}
+              disabled={isPending}
+            />
+            {agora.length === 0 && proximas.length === 0 && maisTarde.length === 0 && (
+              <p className="text-sm text-muted-foreground">Nenhuma tarefa pendente — dia livre.</p>
+            )}
+            {done.length > 0 && (
+              <TaskListSection
+                title="Concluídas"
+                tasks={done}
+                emptyLabel={null}
+                clientNameById={clientNameById}
+                assigneeNameById={assigneeNameById}
+                selectedIds={selectedIds}
+                selectionMode={selectionMode}
+                onToggleDone={toggle}
+                onToggleSelect={toggleSelect}
+                onEdit={setEditingTask}
+                onMove={(task, direction) => moveOneStep(done, task, direction)}
+                onDrop={(draggedId, targetId) => reorder(done, draggedId, targetId)}
+                onFocusStarted={() => router.refresh()}
+                disabled={isPending}
+              />
+            )}
+          </div>
+        )}
 
-      <StrategiesPanel strategies={strategies} teamMembers={teamMembers} clients={clients} />
+        <StrategiesPanel strategies={strategies} teamMembers={teamMembers} clients={clients} />
 
-      {editingTask && (
-        <TaskEditDialog key={editingTask.id} task={editingTask} teamMembers={teamMembers} clients={clients} open onOpenChange={(open) => !open && setEditingTask(null)} />
-      )}
+        {editingTask && (
+          <TaskEditDialog key={editingTask.id} task={editingTask} teamMembers={teamMembers} clients={clients} open onOpenChange={(open) => !open && setEditingTask(null)} />
+        )}
 
-      {ambiguity && (
-        <ClientAmbiguityDialog
-          candidates={ambiguity.clientCandidates}
-          taskTitle={ambiguity.title}
-          open
-          onOpenChange={(open) => !open && setAmbiguity(null)}
-          onResolve={(clientId) => createSingle(ambiguity, clientId)}
-        />
-      )}
+        {ambiguity && (
+          <ClientAmbiguityDialog
+            candidates={ambiguity.clientCandidates}
+            taskTitle={ambiguity.title}
+            open
+            onOpenChange={(open) => !open && setAmbiguity(null)}
+            onResolve={(clientId) => createSingle(ambiguity, clientId)}
+          />
+        )}
 
-      {pomodoroPrompt && (
-        <StartFocusDialog
-          taskId={pomodoroPrompt.taskId}
-          taskTitle={pomodoroPrompt.taskTitle}
-          mode="pomodoro"
-          open
-          onOpenChange={(open) => !open && setPomodoroPrompt(null)}
-          onStarted={() => {
-            setPomodoroPrompt(null);
-            router.refresh();
-          }}
-        />
-      )}
+        {pomodoroPrompt && (
+          <StartFocusDialog
+            taskId={pomodoroPrompt.taskId}
+            taskTitle={pomodoroPrompt.taskTitle}
+            mode="pomodoro"
+            open
+            onOpenChange={(open) => !open && setPomodoroPrompt(null)}
+            onStarted={() => {
+              setPomodoroPrompt(null);
+              router.refresh();
+            }}
+          />
+        )}
 
-      {strategyDialog?.mode === "apply" && (
-        <ApplyStrategyDialog
-          strategy={strategyDialog.strategy}
-          teamMembers={teamMembers}
-          clients={clients}
-          open
-          onOpenChange={(open) => !open && setStrategyDialog(null)}
-        />
-      )}
-      {strategyDialog?.mode === "create" && (
-        <StrategyFormDialog open initialTitle={strategyDialog.initialTitle} onOpenChange={(open) => !open && setStrategyDialog(null)} />
-      )}
+        {strategyDialog?.mode === "apply" && (
+          <ApplyStrategyDialog
+            strategy={strategyDialog.strategy}
+            teamMembers={teamMembers}
+            clients={clients}
+            open
+            onOpenChange={(open) => !open && setStrategyDialog(null)}
+          />
+        )}
+        {strategyDialog?.mode === "create" && (
+          <StrategyFormDialog open initialTitle={strategyDialog.initialTitle} onOpenChange={(open) => !open && setStrategyDialog(null)} />
+        )}
 
-      <BulkActionBar selectedIds={[...selectedIds]} onClear={clearSelection} />
-    </div>
+        <BulkActionBar selectedIds={[...selectedIds]} onClear={clearSelection} />
+      </div>
+    </MotionConfig>
   );
 }
 
@@ -512,6 +638,7 @@ function TaskListSection({
   tasks,
   emptyLabel,
   clientNameById,
+  assigneeNameById,
   selectedIds,
   selectionMode,
   onToggleDone,
@@ -526,6 +653,7 @@ function TaskListSection({
   tasks: Task[];
   emptyLabel: string | null;
   clientNameById: Map<string, string>;
+  assigneeNameById: Map<string, string>;
   selectedIds: Set<string>;
   selectionMode: boolean;
   onToggleDone: (task: Task) => void;
@@ -547,6 +675,7 @@ function TaskListSection({
       <div className="flex items-center gap-2">
         <ListChecks className="size-3.5 text-muted-foreground" />
         <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{title}</h2>
+        <span className="text-xs text-muted-foreground/70">{tasks.length}</span>
       </div>
       <ul className="flex flex-col divide-y divide-border/60 rounded-xl border border-border/60 bg-card/40">
         <AnimatePresence initial={false}>
@@ -555,6 +684,7 @@ function TaskListSection({
               key={task.id}
               task={task}
               clientName={task.client_id ? (clientNameById.get(task.client_id) ?? null) : null}
+              assigneeName={task.assignee_id ? (assigneeNameById.get(task.assignee_id) ?? null) : null}
               selected={selectedIds.has(task.id)}
               selectionMode={selectionMode}
               onToggleDone={() => onToggleDone(task)}
