@@ -374,11 +374,24 @@
   * {
     @apply border-border outline-ring/50;
   }
-  body {
-    @apply bg-background text-foreground;
-  }
+  /* Correção de overscroll/rubber-band (pedido explícito, "toda a ERP") — arrastar a página além
+     do limite superior/inferior deixava o navegador revelar o fundo de <html>/<body>, que só
+     enxerga --background de :root (o tema escuro compartilhado por /admin e /clients) mesmo em
+     páginas de tema claro (.os-shell light, .admin-shell — a classe que redefine --background
+     fica num wrapper DENTRO do body, invisível pra html/body via cascata) — daí a faixa preta
+     por cima de conteúdo claro. `overscroll-behavior: none` no documento corta esse rubber-band
+     na raiz, então o fundo nunca chega a ficar visível, em qualquer tema; `background-color`
+     explícito é só reforço pros poucos casos (Safari) onde ainda sobra um resquício. Escopado só
+     em html/body — nenhum container de scroll interno, modal, drawer ou o `scroll-behavior`
+     existente foi tocado. */
   html {
     scroll-behavior: smooth;
+    overscroll-behavior: none;
+    background-color: var(--background);
+  }
+  body {
+    @apply bg-background text-foreground;
+    overscroll-behavior: none;
   }
 }
 
