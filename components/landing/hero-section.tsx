@@ -102,7 +102,10 @@ export type HeroSectionProps = {
   welcomeLines: [string, string];
   backgroundVideo: string;
   paragraph: string;
-  stats: { videos: Metric; photos: Metric };
+  /** `photos` é opcional — a Home da Pascoal passa os dois (comportamento de sempre); a versão
+   *  de setembro (`/setembro-26`) passa só `videos`, e a métrica de fotos some sem deixar buraco
+   *  no layout (a grade de stats passa de 2 colunas pra 1). */
+  stats: { videos: Metric; photos?: Metric };
 };
 
 export function HeroSection({ welcomeLines, backgroundVideo, paragraph, stats }: HeroSectionProps) {
@@ -155,7 +158,7 @@ export function HeroSection({ welcomeLines, backgroundVideo, paragraph, stats }:
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 z-[5] h-44 bg-gradient-to-b from-transparent via-black/55 to-background" />
       <div ref={statsRef} className={`absolute bottom-10 left-0 right-0 z-10 transition-all delay-500 duration-1000 sm:bottom-[57px] ${isVisible ? "translate-y-0 opacity-100" : "translate-y-5 opacity-0"}`}>
         <div
-          className={`mx-auto flex max-w-[1400px] flex-col gap-4 px-6 transition-all ease-out sm:grid sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-baseline sm:gap-x-8 sm:gap-y-0 lg:gap-x-12 lg:pl-12 lg:pr-[88px] ${statsVisible ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"}`}
+          className={`mx-auto flex max-w-[1400px] flex-col gap-4 px-6 transition-all ease-out sm:grid ${stats.photos ? "sm:grid-cols-[minmax(0,1fr)_auto_auto]" : "sm:grid-cols-[minmax(0,1fr)_auto]"} sm:items-baseline sm:gap-x-8 sm:gap-y-0 lg:gap-x-12 lg:pl-12 lg:pr-[88px] ${statsVisible ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"}`}
           style={{ transitionDuration: `${STATS_REVEAL_MS}ms` }}
         >
           <p className="text-balance text-center font-display text-2xl font-light leading-snug tracking-tight sm:truncate sm:text-left sm:text-3xl sm:leading-none md:text-4xl">{paragraph}</p>
@@ -164,10 +167,12 @@ export function HeroSection({ welcomeLines, backgroundVideo, paragraph, stats }:
               <span className="font-display text-3xl leading-none text-[var(--client-accent)] sm:text-4xl"><AnimatedNumber value={stats.videos.count} pad={2} start={statsVisible} /></span>
               <span className="whitespace-nowrap text-xs leading-none text-white/50 sm:text-sm">{stats.videos.label}</span>
             </div>
-            <div className="flex shrink-0 flex-col items-center gap-1 text-center sm:flex-row sm:items-baseline sm:gap-2 sm:text-left">
-              <span className="font-display text-3xl leading-none text-[var(--client-accent)] sm:text-4xl"><AnimatedNumber value={stats.photos.count} start={statsVisible} /></span>
-              <span className="whitespace-nowrap text-xs leading-none text-white/50 sm:text-sm">{stats.photos.label}</span>
-            </div>
+            {stats.photos && (
+              <div className="flex shrink-0 flex-col items-center gap-1 text-center sm:flex-row sm:items-baseline sm:gap-2 sm:text-left">
+                <span className="font-display text-3xl leading-none text-[var(--client-accent)] sm:text-4xl"><AnimatedNumber value={stats.photos.count} start={statsVisible} /></span>
+                <span className="whitespace-nowrap text-xs leading-none text-white/50 sm:text-sm">{stats.photos.label}</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
