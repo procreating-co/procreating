@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { FileText, Handshake, Images, Menu, X } from "lucide-react";
+import { FileText, FolderOpen, Handshake, Images, Menu, X } from "lucide-react";
 
 export type NavigationProps = {
   brandName: string;
@@ -11,11 +11,16 @@ export type NavigationProps = {
   galleryLabel: string;
   prospeccaoCtaLabel: string;
   showProspeccaoCta: boolean;
+  /** Ícone do CTA principal. `"gallery"` (padrão) = ícone de galeria de sempre; `"project"` = a
+   *  versão de setembro, cujo botão aponta pro "Projeto Inicial", não pra galeria. String (não o
+   *  componente) porque a prop cruza a fronteira server→client. */
+  galleryIcon?: "gallery" | "project";
   /** Opcional — item extra no menu (ex.: link pra uma proposta comercial). Ausente = menu igual a sempre foi. */
   extraLink?: { label: string; href: string; delayMs?: number };
 };
 
-export function Navigation({ brandName, homeHref, galleryHref, galleryLabel, prospeccaoCtaLabel, showProspeccaoCta, extraLink }: NavigationProps) {
+export function Navigation({ brandName, homeHref, galleryHref, galleryLabel, prospeccaoCtaLabel, showProspeccaoCta, galleryIcon = "gallery", extraLink }: NavigationProps) {
+  const GalleryIcon = galleryIcon === "project" ? FolderOpen : Images;
   const [isScrolled, setIsScrolled] = useState(false);
   const [isHidden, setIsHidden] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -99,7 +104,7 @@ export function Navigation({ brandName, homeHref, galleryHref, galleryLabel, pro
                 className={`rounded-full transition-all duration-500 ${isScrolled ? "bg-foreground hover:bg-foreground/90 text-background px-4 h-8 text-xs" : "bg-white hover:bg-white/90 text-black px-6"}`}
               >
                 <a href={galleryHref} className="inline-flex items-center gap-2">
-                  <Images className="size-3.5" />
+                  <GalleryIcon className="size-3.5" />
                   {galleryLabel}
                 </a>
               </Button>
@@ -161,7 +166,7 @@ export function Navigation({ brandName, homeHref, galleryHref, galleryLabel, pro
               className="bg-foreground text-background rounded-full h-14 text-base"
             >
               <a href={galleryHref} onClick={() => setIsMobileMenuOpen(false)} className="inline-flex items-center justify-center gap-2">
-                <Images className="size-4" />
+                <GalleryIcon className="size-4" />
                 {galleryLabel}
               </a>
             </Button>
