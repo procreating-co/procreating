@@ -2,6 +2,7 @@ import { Navigation } from "@/components/landing/navigation";
 import { HeroSection } from "@/components/landing/hero-section";
 import { VideosPlaceholderSection } from "@/components/landing/videos-placeholder-section";
 import { FooterSection } from "@/components/landing/footer-section";
+import { SETEMBRO_VIDEOS_READY, setembroHorizontalVideos, setembroVerticalVideos } from "@/data/pascoal/setembro-videos";
 import type { ClientConfig } from "@/lib/clients";
 
 /**
@@ -33,7 +34,10 @@ export function PascoalSetembroTemplate({ slug, config }: { slug: string; config
         paragraph="Os novos materiais estão aqui..."
         stats={{ videos: { count: 8, label: "vídeos produzidos" } }}
       />
-      <VideosPlaceholderSection />
+      <VideosPlaceholderSection
+        verticalSrcs={SETEMBRO_VIDEOS_READY ? setembroVerticalVideos : []}
+        horizontalSrcs={SETEMBRO_VIDEOS_READY ? setembroHorizontalVideos : []}
+      />
       <FooterSection brandName={config.brandName} legalLine={config.footer.legalLine} backgroundImage={config.footer.backgroundImage} />
     </main>
   );
