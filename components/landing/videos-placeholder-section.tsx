@@ -45,8 +45,14 @@ export function VideosPlaceholderSection() {
     <section id="videos" className="relative overflow-hidden bg-[oklch(0.09_0.01_260)] pb-16 pt-8 text-white lg:pb-20 lg:pt-10">
       <div className="mx-auto max-w-[1400px] px-6 lg:px-12">
         <header className="mx-auto mb-14 max-w-4xl text-center sm:mb-16 lg:mb-20">
-          <h2 className="text-balance font-display text-4xl leading-[0.95] tracking-tight sm:text-5xl md:text-7xl lg:text-[96px]">Vídeos</h2>
-          <p className="mt-4 text-base text-white/55 sm:mt-6 sm:text-lg">Conteúdos para as redes da Julia e Pascoal</p>
+          <span className="mb-3 inline-flex items-center gap-3 font-mono text-sm text-white/45">
+            <span className="h-px w-12 bg-[var(--client-accent)]" />
+            Vídeos
+            <span className="h-px w-12 bg-[var(--client-accent)]" />
+          </span>
+          <h2 className="text-balance font-display text-3xl leading-[1.02] tracking-tight sm:text-4xl md:text-6xl lg:text-7xl">
+            Conteúdos para redes <span className="block text-white/40">da Julia e Pascoal</span>
+          </h2>
         </header>
 
         <div className="flex flex-col gap-14 lg:gap-16">
