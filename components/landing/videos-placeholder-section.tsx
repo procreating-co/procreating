@@ -1,14 +1,15 @@
 import { Video } from "lucide-react";
 
 /**
- * Seção "Vídeos" da apresentação de setembro (`/clients/pascoal/public/setembro-26`) — mesma
- * linguagem visual das seções de vídeo da Home (`how-it-works-section.tsx`): fundo
- * `oklch(0.09 0.01 260)`, header centralizado com eyebrow de linha + `font-display`, número em
- * `--client-accent`, containers com o aspect-ratio REAL de cada formato (9/16 e 16/9).
+ * Seção "Vídeos" da Home da Pascoal (setembro/26) — mesma linguagem visual das seções de vídeo
+ * da apresentação original (`how-it-works-section.tsx`): fundo `oklch(0.09 0.01 260)`, header
+ * centralizado com eyebrow de linha + `font-display`, número em `--client-accent`, containers
+ * com o aspect-ratio REAL de cada formato (9/16 e 16/9).
  *
- * São placeholders — 02 verticais + 10 horizontais — prontos pra receber a mídia depois; não há
- * vídeo/thumbnail inventado, só o espaço reservado com o rótulo "Em produção" (mesma convenção
- * do `video-card.tsx`).
+ * São placeholders — 02 verticais primeiro, 10 horizontais depois, numerados 01–12 de forma
+ * contínua e SEM rótulo de grupo ("Vídeos verticais"/"Vídeos horizontais" foram removidos a
+ * pedido). Prontos pra receber a mídia depois; nada de vídeo/thumbnail inventado, só o espaço
+ * reservado com o rótulo "Em produção" (mesma convenção do `video-card.tsx`).
  */
 
 function PlaceholderTile({ index, orientation }: { index: number; orientation: "vertical" | "horizontal" }) {
@@ -44,31 +45,19 @@ export function VideosPlaceholderSection() {
           <p className="mt-5 text-base text-white/55 sm:mt-6 sm:text-lg">Conteúdos para as redes da Julia e Pascoal</p>
         </header>
 
-        <div className="flex flex-col gap-16 lg:gap-20">
-          <div>
-            <div className="mb-6 flex items-baseline gap-3 sm:gap-4 lg:mb-8">
-              <span className="font-mono text-sm text-white/40">01.</span>
-              <h3 className="font-display text-2xl sm:text-3xl">Vídeos verticais</h3>
-            </div>
-            <div className="mx-auto flex max-w-2xl flex-col gap-5 sm:flex-row sm:justify-center">
-              {[1, 2].map((n) => (
-                <div key={n} className="w-full sm:max-w-[320px]">
-                  <PlaceholderTile index={n} orientation="vertical" />
-                </div>
-              ))}
-            </div>
+        <div className="flex flex-col gap-14 lg:gap-16">
+          <div className="mx-auto flex max-w-2xl flex-col gap-5 sm:flex-row sm:justify-center">
+            {[1, 2].map((n) => (
+              <div key={n} className="w-full sm:max-w-[320px]">
+                <PlaceholderTile index={n} orientation="vertical" />
+              </div>
+            ))}
           </div>
 
-          <div>
-            <div className="mb-6 flex items-baseline gap-3 sm:gap-4 lg:mb-8">
-              <span className="font-mono text-sm text-white/40">02.</span>
-              <h3 className="font-display text-2xl sm:text-3xl">Vídeos horizontais</h3>
-            </div>
-            <div className="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-2 lg:gap-x-8 lg:gap-y-10">
-              {Array.from({ length: 10 }, (_, i) => (
-                <PlaceholderTile key={i} index={i + 1} orientation="horizontal" />
-              ))}
-            </div>
+          <div className="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-2 lg:gap-x-8 lg:gap-y-10">
+            {Array.from({ length: 10 }, (_, i) => (
+              <PlaceholderTile key={i} index={i + 3} orientation="horizontal" />
+            ))}
           </div>
         </div>
       </div>

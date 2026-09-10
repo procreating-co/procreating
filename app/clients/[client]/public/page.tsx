@@ -3,15 +3,20 @@ import { getClientConfig, getClientVideos } from "@/lib/clients";
 import { getClientPresentation } from "@/lib/clients/presentation-registry";
 import { PresentationTemplate } from "@/components/templates/presentation-template";
 import { PosicionamentoProTemplate } from "@/components/templates/posicionamento-pro-template";
+import { PascoalSetembroTemplate } from "@/components/templates/pascoal-setembro-template";
 import { SiteLockGate } from "@/components/presentation/site-lock-gate";
 import { getSession } from "@/lib/admin/auth";
 
 /**
  * Único ponto de entrada pra todo cliente público — passa sempre pelo `presentation-registry`
- * primeiro, nunca mais um caminho hardcoded/default. "posicionamento-pro" (hoje só Pascoal)
- * delega pro pipeline legado (`data/pascoal/**`, `lib/clients/registry.ts`,
- * `components/landing/**`) — nenhum desses arquivos foi tocado nesta migração, só passou a ser
- * chamado a partir daqui em vez de ser o `if` padrão da rota.
+ * primeiro, nunca mais um caminho hardcoded/default. "posicionamento-pro" (hoje Pascoal e
+ * Elenita) delega pro pipeline legado (`data/<slug>/**`, `lib/clients/registry.ts`,
+ * `components/landing/**`) — nenhum desses arquivos foi tocado, só passou a ser chamado a partir
+ * daqui.
+ *
+ * Pascoal: desde setembro/26 a Home é a apresentação de setembro (`PascoalSetembroTemplate`); a
+ * antiga foi movida pra `/clients/pascoal/public/past` (`past/page.tsx`), com o conteúdo
+ * idêntico ao que esta rota renderizava antes.
  */
 export default async function ClientHome({ params }: { params: Promise<{ client: string }> }) {
   const { client } = await params;
@@ -20,6 +25,12 @@ export default async function ClientHome({ params }: { params: Promise<{ client:
 
   if (entry.template === "presentation") {
     return <PresentationTemplate content={entry.content} />;
+  }
+
+  if (entry.slug === "pascoal") {
+    const config = await getClientConfig(entry.slug);
+    if (!config) notFound();
+    return <PascoalSetembroTemplate slug={entry.slug} config={config} />;
   }
 
   const [config, videos] = await Promise.all([getClientConfig(entry.slug), getClientVideos(entry.slug)]);
