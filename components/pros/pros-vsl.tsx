@@ -33,7 +33,7 @@ export function ProsVsl({ videoSrc, label }: { videoSrc?: string; label: string 
   }, [videoSrc]);
 
   return (
-    <section className="bg-black py-16 lg:py-24">
+    <section aria-label="Vídeo de apresentação" className="bg-black py-16 lg:py-24">
       <Reveal className="mx-auto w-full max-w-[1600px] px-3 sm:px-6">
         <div ref={wrapperRef} className="relative aspect-video w-full overflow-hidden bg-white/[0.03]">
           {videoSrc ? (
@@ -45,7 +45,7 @@ export function ProsVsl({ videoSrc, label }: { videoSrc?: string; label: string 
                 type="button"
                 onClick={() => setUnmuted((v) => !v)}
                 aria-label={unmuted ? "Silenciar vídeo" : "Ativar som"}
-                className="absolute bottom-4 right-4 flex size-10 items-center justify-center rounded-full border border-white/30 bg-black/40 text-white backdrop-blur-sm transition-colors hover:border-white/60 sm:bottom-6 sm:right-6"
+                className="absolute bottom-4 right-4 flex size-10 items-center justify-center rounded-full border border-white/30 bg-black/40 text-white backdrop-blur-sm transition-colors hover:border-white/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black sm:bottom-6 sm:right-6"
               >
                 {unmuted ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />}
               </button>
