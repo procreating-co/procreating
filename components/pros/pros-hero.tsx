@@ -21,7 +21,7 @@ import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion
  */
 export function ProsHero({ videoSrc, headline }: { videoSrc: string; headline: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const wrapperRef = useRef<HTMLDivElement>(null);
+  const wrapperRef = useRef<HTMLElement>(null);
   const [mounted, setMounted] = useState(false);
   const prefersReducedMotion = useReducedMotion();
 
@@ -53,7 +53,7 @@ export function ProsHero({ videoSrc, headline }: { videoSrc: string; headline: s
   const headlineY = useTransform(scrollYProgress, [0, 0.4], [0, prefersReducedMotion ? 0 : -48]);
 
   return (
-    <div ref={wrapperRef} className="relative h-[180svh] bg-black">
+    <section ref={wrapperRef} aria-labelledby="pros-hero-heading" className="relative h-[180svh] bg-black">
       <div className="sticky top-0 h-[100svh] w-full overflow-hidden">
         <motion.video
           ref={videoRef}
@@ -82,6 +82,7 @@ export function ProsHero({ videoSrc, headline }: { videoSrc: string; headline: s
             transition={{ duration: prefersReducedMotion ? 0.4 : 1.8, ease: [0.16, 1, 0.3, 1] }}
           >
             <motion.h1
+              id="pros-hero-heading"
               style={{ opacity: headlineOpacity, y: headlineY }}
               className="max-w-3xl text-balance font-display text-[clamp(1.75rem,4.6vw,3.75rem)] font-light leading-[1.15] tracking-wide text-white"
             >
@@ -90,6 +91,6 @@ export function ProsHero({ videoSrc, headline }: { videoSrc: string; headline: s
           </motion.div>
         </div>
       </div>
-    </div>
+    </section>
   );
 }

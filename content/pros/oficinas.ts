@@ -33,6 +33,9 @@ export const oficinasProsContent = {
   slug: "01",
   metaTitle: "Procreating — presença digital para oficinas e negócios técnicos",
   metaDescription: "A Procreating transformou a Pascoal Bombas em referência digital do próprio mercado.",
+  /** Reaproveitada de `data/pascoal/config.ts` (mesma foto já usada como OG da Home da Pascoal) —
+   *  nenhum asset novo. */
+  ogImage: "/images/pascoal-equipe-oficina.jpg",
 
   // O número abaixo veio assim do pedido do usuário — é IDÊNTICO ao placeholder que eu mesmo
   // inventei na rodada anterior (mesmos dígitos, mesma mensagem), o que sugere que ainda não é o

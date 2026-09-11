@@ -49,11 +49,13 @@ function GalleryVideo({ video }: { video: ProsGalleryVideo }) {
  */
 export function ProsVideoGallery({ label, items }: { label: string; items: ProsGalleryVideo[] }) {
   return (
-    <section className="bg-black px-3 py-20 sm:px-6 lg:px-8 lg:py-28">
+    <section aria-label={`Vídeos produzidos para ${label}`} className="bg-black px-3 py-20 sm:px-6 lg:px-8 lg:py-28">
       <Reveal className="mb-8 lg:mb-10">
         <p className="text-center font-mono text-xs uppercase tracking-[0.25em] text-white/35">{label}</p>
       </Reveal>
-      <div className="mx-auto grid max-w-[1800px] grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-6 lg:gap-5">
+      {/* Breakpoint em `md` (não `lg`) — tablet já recebe a composição assimétrica em vez de
+       *  ficar preso em 1 coluna até desktop. */}
+      <div className="mx-auto grid max-w-[1800px] grid-cols-1 gap-3 sm:gap-4 md:grid-cols-6 md:gap-5">
         {items.map((video, i) => (
           <Reveal key={i} delayMs={(i % 3) * 100} className="overflow-hidden bg-white/[0.03]" style={{ gridColumn: `span ${video.span} / span ${video.span}` }}>
             <GalleryVideo video={video} />
