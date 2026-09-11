@@ -1,4 +1,11 @@
-import { Video } from "lucide-react";
+"use client";
+
+import { useState } from "react";
+import dynamic from "next/dynamic";
+import { Play, Video } from "lucide-react";
+import type { ActiveVideo } from "@/components/landing/video-lightbox";
+
+const VideoLightbox = dynamic(() => import("@/components/landing/video-lightbox"));
 
 /**
  * Seção "Vídeos" da Home da Pascoal (setembro/26) — mesma linguagem visual das seções de vídeo
@@ -7,15 +14,19 @@ import { Video } from "lucide-react";
  * REAL de cada formato (9/16 e 16/9).
  *
  * 12 espaços numerados de forma contínua (01–12: os 02 verticais primeiro, os 10 horizontais em
- * seguida — pedido explícito, nunca reinicia a contagem por grupo). Cada slot é independente:
- * com URL (`data/pascoal/setembro-videos.ts`) vira um `<video controls>` de verdade; sem URL
- * (`null` — arquivo ainda não subido), continua o placeholder "Em produção". `object-contain`
- * garante que o vídeo nunca é esticado nem cortado, seja qual for a dimensão real do arquivo.
+ * seguida — nunca reinicia a contagem por grupo). Cada slot é independente: com URL
+ * (`data/pascoal/setembro-videos.ts`) vira um card clicável; sem URL (`null` — arquivo ainda não
+ * subido), continua o placeholder "Em produção".
  *
- * Verticais: 1 coluna larga até `md`, 2 por linha em cards grandes a partir de `md`.
+ * Card com vídeo: o próprio `<video>` (mudo, sem controles) serve de "thumbnail" real — mostra o
+ * primeiro frame do arquivo de verdade, nunca uma imagem inventada — com um ícone de play
+ * centralizado por cima (pedido explícito). Nada de barra de tempo/linha do tempo na moldura: os
+ * controles nativos (tempo, scrubber, tela cheia) só aparecem ao abrir o vídeo em tela cheia
+ * (`VideoLightbox`, o MESMO componente que `how-it-works-section.tsx` já usa em toda a Home —
+ * nenhum player novo).
  */
 
-function VideoTile({ index, orientation, src }: { index: number; orientation: "vertical" | "horizontal"; src?: string | null }) {
+function VideoTile({ index, orientation, src, onOpen }: { index: number; orientation: "vertical" | "horizontal"; src?: string | null; onOpen: () => void }) {
   const isVertical = orientation === "vertical";
   const aspectClass = isVertical ? "aspect-[9/16]" : "aspect-video";
   const number = String(index).padStart(2, "0");
@@ -26,18 +37,27 @@ function VideoTile({ index, orientation, src }: { index: number; orientation: "v
         <span className="h-px min-w-6 flex-1 bg-white/15" />
         {!src && <span className="shrink-0 font-mono text-[10px] uppercase tracking-wide text-white/35">Em produção</span>}
       </div>
-      <div className={`relative ${aspectClass} w-full overflow-hidden rounded-lg border border-white/10 bg-black`}>
-        {src ? (
-          <video
-            controls
-            preload="metadata"
-            playsInline
-            className="absolute inset-0 h-full w-full object-contain"
-            aria-label={`Vídeo ${orientation === "vertical" ? "vertical" : "horizontal"} ${number}`}
-          >
+      {src ? (
+        <button
+          type="button"
+          onClick={onOpen}
+          aria-label={`Abrir vídeo ${orientation === "vertical" ? "vertical" : "horizontal"} ${number} em tela cheia`}
+          className={`group relative block ${aspectClass} w-full overflow-hidden rounded-lg border border-white/10 bg-black text-left`}
+        >
+          <video muted playsInline preload="metadata" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover">
             <source src={src} type="video/mp4" />
           </video>
-        ) : (
+          <span className="absolute inset-0 bg-black/20 transition-colors group-hover:bg-black/35" />
+          <span
+            className={`absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/50 bg-black/35 text-white backdrop-blur-sm transition-all group-hover:scale-110 group-hover:border-[var(--client-accent)] group-hover:text-[var(--client-accent)] ${
+              isVertical ? "size-14 sm:size-16" : "size-14"
+            }`}
+          >
+            <Play className="ml-1 size-5 fill-current" />
+          </span>
+        </button>
+      ) : (
+        <div className={`relative ${aspectClass} w-full overflow-hidden rounded-lg border border-white/10 bg-black`}>
           <span
             className={`absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/25 text-white/30 ${
               isVertical ? "size-14 sm:size-16" : "size-14"
@@ -45,8 +65,8 @@ function VideoTile({ index, orientation, src }: { index: number; orientation: "v
           >
             <Video className={isVertical ? "size-5 sm:size-6" : "size-5"} />
           </span>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -60,6 +80,8 @@ export function VideosPlaceholderSection({
   /** URLs dos 10 vídeos horizontais, em ordem (03–12, numeração contínua com os verticais). */
   horizontalSrcs?: (string | null)[];
 } = {}) {
+  const [activeVideo, setActiveVideo] = useState<ActiveVideo | null>(null);
+
   return (
     <section id="videos" className="relative overflow-hidden bg-[oklch(0.09_0.01_260)] pb-16 pt-8 text-white lg:pb-20 lg:pt-10">
       <div className="mx-auto max-w-[1400px] px-6 lg:px-12">
@@ -77,19 +99,39 @@ export function VideosPlaceholderSection({
         <div className="flex flex-col gap-14 lg:gap-16">
           {/* Verticais (01–02) — 1 coluna larga no mobile/tablet, 2 cards grandes por linha no desktop. */}
           <div className="mx-auto grid w-full max-w-4xl grid-cols-1 gap-8 md:grid-cols-2 md:gap-6 lg:gap-8">
-            {[0, 1].map((i) => (
-              <VideoTile key={i} index={i + 1} orientation="vertical" src={verticalSrcs[i]} />
-            ))}
+            {[0, 1].map((i) => {
+              const src = verticalSrcs[i];
+              return (
+                <VideoTile
+                  key={i}
+                  index={i + 1}
+                  orientation="vertical"
+                  src={src}
+                  onOpen={() => src && setActiveVideo({ poster: "", title: `Vídeo ${String(i + 1).padStart(2, "0")}`, videoSrc: src })}
+                />
+              );
+            })}
           </div>
 
           {/* Horizontais (03–12) — 1 coluna no mobile, 2 por linha a partir de `sm`. */}
           <div className="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-2 lg:gap-x-8 lg:gap-y-10">
-            {Array.from({ length: 10 }, (_, i) => (
-              <VideoTile key={i} index={i + 3} orientation="horizontal" src={horizontalSrcs[i]} />
-            ))}
+            {Array.from({ length: 10 }, (_, i) => {
+              const src = horizontalSrcs[i];
+              return (
+                <VideoTile
+                  key={i}
+                  index={i + 3}
+                  orientation="horizontal"
+                  src={src}
+                  onOpen={() => src && setActiveVideo({ poster: "", title: `Vídeo ${String(i + 3).padStart(2, "0")}`, videoSrc: src })}
+                />
+              );
+            })}
           </div>
         </div>
       </div>
+
+      {activeVideo && <VideoLightbox item={activeVideo} onClose={() => setActiveVideo(null)} />}
     </section>
   );
 }

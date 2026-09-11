@@ -21,13 +21,14 @@ export const setembroVerticalVideos: (string | null)[] = [
   r2Url(R2_BASE, "V2Erro de diagnóstico - Zona Sul.mp4"),
 ];
 
-/** H01–H10 — H02 a H05 ainda não foram enviados (permanecem "Em produção"). */
+/** H01–H10 — todos confirmados no bucket (`curl -I`, 200 + Content-Length batendo com o arquivo
+ *  original, ver commit). */
 export const setembroHorizontalVideos: (string | null)[] = [
   r2Url(R2_BASE, "H1 vídeo “vlog um dia na Pascoal” -_1.mp4"),
-  null,
-  null,
-  null,
-  null,
+  r2Url(R2_BASE, "H2 vídeo “quem eu sou” da Júlia -.mp4"),
+  r2Url(R2_BASE, "H3 vídeo sobre a discriminação- conselho para mulheres no mundo automotivo_1.mp4"),
+  r2Url(R2_BASE, "H4 vídeo sobre como ela tomou a gerência da Pascoal -_1 (1).mp4"),
+  r2Url(R2_BASE, "H5 - É bico ou bomba.mp4"),
   r2Url(R2_BASE, "H6 vídeo situação mais engraçada que aconteceu na Pascoal-_1.mp4"),
   r2Url(R2_BASE, "H7  vídeo de um mecânico explicando sobre o que ele tá fazendo parte 1 -_1 - cópia.mp4"),
   // H08 — vídeo NOVO do mecânico (~79MB), substitui o antigo "Dia a dia" que estava neste slot.
