@@ -6,17 +6,16 @@ import { Video } from "lucide-react";
  * centralizado com `font-display`, número em `--client-accent`, containers com o aspect-ratio
  * REAL de cada formato (9/16 e 16/9).
  *
- * 02 verticais primeiro, 10 horizontais depois, numerados 01–02 / 01–10. Enquanto os arquivos
- * não estão no bucket (`ready = false`), cada card é um placeholder "Em produção"; com `ready`,
- * cada card vira um `<video controls>` apontando pra URL do R2 (mesma origem/infra dos outros
- * vídeos do projeto — ver `data/pascoal/setembro-videos.ts` e `docs/r2.md`).
+ * 12 espaços numerados de forma contínua (01–12: os 02 verticais primeiro, os 10 horizontais em
+ * seguida — pedido explícito, nunca reinicia a contagem por grupo). Cada slot é independente:
+ * com URL (`data/pascoal/setembro-videos.ts`) vira um `<video controls>` de verdade; sem URL
+ * (`null` — arquivo ainda não subido), continua o placeholder "Em produção". `object-contain`
+ * garante que o vídeo nunca é esticado nem cortado, seja qual for a dimensão real do arquivo.
  *
- * Verticais: 1 coluna larga até `md`, 2 por linha em cards grandes a partir de `md`. O
- * aspect-ratio é sempre preservado; `object-contain` garante que o vídeo nunca é esticado nem
- * cortado, seja qual for a dimensão real do arquivo.
+ * Verticais: 1 coluna larga até `md`, 2 por linha em cards grandes a partir de `md`.
  */
 
-function VideoTile({ index, orientation, src }: { index: number; orientation: "vertical" | "horizontal"; src?: string }) {
+function VideoTile({ index, orientation, src }: { index: number; orientation: "vertical" | "horizontal"; src?: string | null }) {
   const isVertical = orientation === "vertical";
   const aspectClass = isVertical ? "aspect-[9/16]" : "aspect-video";
   const number = String(index).padStart(2, "0");
@@ -56,10 +55,10 @@ export function VideosPlaceholderSection({
   verticalSrcs = [],
   horizontalSrcs = [],
 }: {
-  /** URLs dos 02 vídeos verticais, em ordem. Vazio (ou `ready = false` na origem) = placeholders. */
-  verticalSrcs?: string[];
-  /** URLs dos 10 vídeos horizontais, em ordem. */
-  horizontalSrcs?: string[];
+  /** URLs dos 02 vídeos verticais, em ordem (01–02). `null`/posição ausente = placeholder. */
+  verticalSrcs?: (string | null)[];
+  /** URLs dos 10 vídeos horizontais, em ordem (03–12, numeração contínua com os verticais). */
+  horizontalSrcs?: (string | null)[];
 } = {}) {
   return (
     <section id="videos" className="relative overflow-hidden bg-[oklch(0.09_0.01_260)] pb-16 pt-8 text-white lg:pb-20 lg:pt-10">
@@ -76,17 +75,17 @@ export function VideosPlaceholderSection({
         </header>
 
         <div className="flex flex-col gap-14 lg:gap-16">
-          {/* Verticais — 1 coluna larga no mobile/tablet, 2 cards grandes por linha no desktop. */}
+          {/* Verticais (01–02) — 1 coluna larga no mobile/tablet, 2 cards grandes por linha no desktop. */}
           <div className="mx-auto grid w-full max-w-4xl grid-cols-1 gap-8 md:grid-cols-2 md:gap-6 lg:gap-8">
             {[0, 1].map((i) => (
               <VideoTile key={i} index={i + 1} orientation="vertical" src={verticalSrcs[i]} />
             ))}
           </div>
 
-          {/* Horizontais — 1 coluna no mobile, 2 por linha a partir de `sm`. */}
+          {/* Horizontais (03–12) — 1 coluna no mobile, 2 por linha a partir de `sm`. */}
           <div className="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-2 lg:gap-x-8 lg:gap-y-10">
             {Array.from({ length: 10 }, (_, i) => (
-              <VideoTile key={i} index={i + 1} orientation="horizontal" src={horizontalSrcs[i]} />
+              <VideoTile key={i} index={i + 3} orientation="horizontal" src={horizontalSrcs[i]} />
             ))}
           </div>
         </div>
