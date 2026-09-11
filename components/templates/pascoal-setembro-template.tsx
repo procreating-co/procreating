@@ -26,7 +26,9 @@ export function PascoalSetembroTemplate({ slug, config }: { slug: string; config
         galleryIcon="project"
         prospeccaoCtaLabel={config.nav.prospeccaoCtaLabel}
         showProspeccaoCta={false}
-        extraLink={config.nav.extraLink}
+        // Pedido explícito: sem o botão "Proposta de Continuidade" nesta Home — `extraLink` fica
+        // de fora só aqui (prop opcional, `Navigation` já lida com ausência). `/past` continua
+        // com ele, sem mudança nenhuma em `data/pascoal/config.ts`.
       />
       <HeroSection
         welcomeLines={config.hero.welcomeLines}
