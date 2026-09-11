@@ -4,6 +4,7 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import { Play, Video } from "lucide-react";
 import type { ActiveVideo } from "@/components/landing/video-lightbox";
+import type { SetembroVideoSlot } from "@/data/pascoal/setembro-videos";
 
 const VideoLightbox = dynamic(() => import("@/components/landing/video-lightbox"));
 
@@ -18,26 +19,29 @@ const VideoLightbox = dynamic(() => import("@/components/landing/video-lightbox"
  * (`data/pascoal/setembro-videos.ts`) vira um card clicável; sem URL (`null` — arquivo ainda não
  * subido), continua o placeholder "Em produção".
  *
- * Card com vídeo: o próprio `<video>` (mudo, sem controles) serve de "thumbnail" real — mostra o
- * primeiro frame do arquivo de verdade, nunca uma imagem inventada — com um ícone de play
- * centralizado por cima (pedido explícito). Nada de barra de tempo/linha do tempo na moldura: os
- * controles nativos (tempo, scrubber, tela cheia) só aparecem ao abrir o vídeo em tela cheia
- * (`VideoLightbox`, o MESMO componente que `how-it-works-section.tsx` já usa em toda a Home —
- * nenhum player novo).
+ * Card com vídeo: o próprio `<video>` (mudo, sem controles) serve de "thumbnail" real — mostra
+ * um frame do arquivo de verdade, nunca uma imagem inventada — com um ícone de play centralizado
+ * por cima. A capa é o frame 0 por padrão; quando `slot.posterSeconds` existe (pedido explícito —
+ * frame 0 "feio" em alguns vídeos), a capa usa esse segundo em vez do início, via Media Fragment
+ * (`#t=<segundos>`) — só na `<video>` do card, a reprodução real (lightbox) sempre começa do
+ * zero. Nada de barra de tempo/linha do tempo na moldura: os controles nativos (tempo, scrubber,
+ * tela cheia) só aparecem ao abrir o vídeo em tela cheia (`VideoLightbox`, o MESMO componente
+ * que `how-it-works-section.tsx` já usa em toda a Home — nenhum player novo).
  */
 
-function VideoTile({ index, orientation, src, onOpen }: { index: number; orientation: "vertical" | "horizontal"; src?: string | null; onOpen: () => void }) {
+function VideoTile({ index, orientation, slot, onOpen }: { index: number; orientation: "vertical" | "horizontal"; slot?: SetembroVideoSlot | null; onOpen: () => void }) {
   const isVertical = orientation === "vertical";
   const aspectClass = isVertical ? "aspect-[9/16]" : "aspect-video";
   const number = String(index).padStart(2, "0");
+  const thumbnailSrc = slot ? (slot.posterSeconds ? `${slot.src}#t=${slot.posterSeconds}` : slot.src) : undefined;
   return (
     <div className="w-full">
       <div className="mb-4 flex h-10 shrink-0 items-center gap-4 lg:mb-5">
         <span className="shrink-0 font-display text-3xl text-[var(--client-accent)]">{number}.</span>
         <span className="h-px min-w-6 flex-1 bg-white/15" />
-        {!src && <span className="shrink-0 font-mono text-[10px] uppercase tracking-wide text-white/35">Em produção</span>}
+        {!slot && <span className="shrink-0 font-mono text-[10px] uppercase tracking-wide text-white/35">Em produção</span>}
       </div>
-      {src ? (
+      {slot ? (
         <button
           type="button"
           onClick={onOpen}
@@ -45,7 +49,7 @@ function VideoTile({ index, orientation, src, onOpen }: { index: number; orienta
           className={`group relative block ${aspectClass} w-full overflow-hidden rounded-lg border border-white/10 bg-black text-left`}
         >
           <video muted playsInline preload="metadata" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover">
-            <source src={src} type="video/mp4" />
+            <source src={thumbnailSrc} type="video/mp4" />
           </video>
           <span className="absolute inset-0 bg-black/20 transition-colors group-hover:bg-black/35" />
           <span
@@ -72,13 +76,13 @@ function VideoTile({ index, orientation, src, onOpen }: { index: number; orienta
 }
 
 export function VideosPlaceholderSection({
-  verticalSrcs = [],
-  horizontalSrcs = [],
+  verticalSlots = [],
+  horizontalSlots = [],
 }: {
-  /** URLs dos 02 vídeos verticais, em ordem (01–02). `null`/posição ausente = placeholder. */
-  verticalSrcs?: (string | null)[];
-  /** URLs dos 10 vídeos horizontais, em ordem (03–12, numeração contínua com os verticais). */
-  horizontalSrcs?: (string | null)[];
+  /** Os 02 vídeos verticais, em ordem (01–02). `null`/posição ausente = placeholder. */
+  verticalSlots?: (SetembroVideoSlot | null)[];
+  /** Os 10 vídeos horizontais, em ordem (03–12, numeração contínua com os verticais). */
+  horizontalSlots?: (SetembroVideoSlot | null)[];
 } = {}) {
   const [activeVideo, setActiveVideo] = useState<ActiveVideo | null>(null);
 
@@ -100,14 +104,14 @@ export function VideosPlaceholderSection({
           {/* Verticais (01–02) — 1 coluna larga no mobile/tablet, 2 cards grandes por linha no desktop. */}
           <div className="mx-auto grid w-full max-w-4xl grid-cols-1 gap-8 md:grid-cols-2 md:gap-6 lg:gap-8">
             {[0, 1].map((i) => {
-              const src = verticalSrcs[i];
+              const slot = verticalSlots[i];
               return (
                 <VideoTile
                   key={i}
                   index={i + 1}
                   orientation="vertical"
-                  src={src}
-                  onOpen={() => src && setActiveVideo({ poster: "", title: `Vídeo ${String(i + 1).padStart(2, "0")}`, videoSrc: src })}
+                  slot={slot}
+                  onOpen={() => slot && setActiveVideo({ poster: "", title: `Vídeo ${String(i + 1).padStart(2, "0")}`, videoSrc: slot.src })}
                 />
               );
             })}
@@ -116,14 +120,14 @@ export function VideosPlaceholderSection({
           {/* Horizontais (03–12) — 1 coluna no mobile, 2 por linha a partir de `sm`. */}
           <div className="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-2 lg:gap-x-8 lg:gap-y-10">
             {Array.from({ length: 10 }, (_, i) => {
-              const src = horizontalSrcs[i];
+              const slot = horizontalSlots[i];
               return (
                 <VideoTile
                   key={i}
                   index={i + 3}
                   orientation="horizontal"
-                  src={src}
-                  onOpen={() => src && setActiveVideo({ poster: "", title: `Vídeo ${String(i + 3).padStart(2, "0")}`, videoSrc: src })}
+                  slot={slot}
+                  onOpen={() => slot && setActiveVideo({ poster: "", title: `Vídeo ${String(i + 3).padStart(2, "0")}`, videoSrc: slot.src })}
                 />
               );
             })}
