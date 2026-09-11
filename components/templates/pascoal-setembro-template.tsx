@@ -34,7 +34,7 @@ export function PascoalSetembroTemplate({ slug, config }: { slug: string; config
         paragraph="Os novos materiais estão aqui..."
         stats={{ videos: { count: 12, label: "vídeos produzidos" } }}
       />
-      <VideosPlaceholderSection verticalSrcs={setembroVerticalVideos} horizontalSrcs={setembroHorizontalVideos} />
+      <VideosPlaceholderSection verticalSlots={setembroVerticalVideos} horizontalSlots={setembroHorizontalVideos} />
       <FooterSection brandName={config.brandName} legalLine={config.footer.legalLine} backgroundImage={config.footer.backgroundImage} />
     </main>
   );
