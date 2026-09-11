@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { Play, Video } from "lucide-react";
 import type { ActiveVideo } from "@/components/landing/video-lightbox";
@@ -22,18 +22,45 @@ const VideoLightbox = dynamic(() => import("@/components/landing/video-lightbox"
  * Card com vídeo: o próprio `<video>` (mudo, sem controles) serve de "thumbnail" real — mostra
  * um frame do arquivo de verdade, nunca uma imagem inventada — com um ícone de play centralizado
  * por cima. A capa é o frame 0 por padrão; quando `slot.posterSeconds` existe (pedido explícito —
- * frame 0 "feio" em alguns vídeos), a capa usa esse segundo em vez do início, via Media Fragment
- * (`#t=<segundos>`) — só na `<video>` do card, a reprodução real (lightbox) sempre começa do
- * zero. Nada de barra de tempo/linha do tempo na moldura: os controles nativos (tempo, scrubber,
- * tela cheia) só aparecem ao abrir o vídeo em tela cheia (`VideoLightbox`, o MESMO componente
- * que `how-it-works-section.tsx` já usa em toda a Home — nenhum player novo).
+ * frame 0 "feio" em alguns vídeos), a capa usa esse segundo em vez do início.
+ *
+ * Mobile (achado — pedido explícito "verifique por que não aparece a thumbnail no celular"):
+ * `preload="metadata"` sozinho não pinta frame nenhum no Safari/iOS sem gesto do usuário — sem
+ * `poster` nem reprodução real, o card fica preto. Fix: cada `VideoTile` dá `.play()` (mudo,
+ * `playsInline`) assim que entra na tela (`IntersectionObserver`, mesmo padrão já usado em
+ * `hero-section.tsx`/`how-it-works-section.tsx`) e pausa 1 frame depois — isso força o navegador
+ * (inclusive iOS) a decodificar e pintar o frame real, sem tocar o vídeo pra valer. Lazy por
+ * card evita os 12 vídeos grandes carregando ao mesmo tempo no load da página.
+ *
+ * Nada de barra de tempo/linha do tempo na moldura: os controles nativos (tempo, scrubber, tela
+ * cheia) só aparecem ao abrir o vídeo em tela cheia (`VideoLightbox`, o MESMO componente que
+ * `how-it-works-section.tsx` já usa em toda a Home — nenhum player novo).
  */
 
 function VideoTile({ index, orientation, slot, onOpen }: { index: number; orientation: "vertical" | "horizontal"; slot?: SetembroVideoSlot | null; onOpen: () => void }) {
   const isVertical = orientation === "vertical";
   const aspectClass = isVertical ? "aspect-[9/16]" : "aspect-video";
   const number = String(index).padStart(2, "0");
-  const thumbnailSrc = slot ? (slot.posterSeconds ? `${slot.src}#t=${slot.posterSeconds}` : slot.src) : undefined;
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (!slot) return;
+    const trigger = buttonRef.current;
+    const video = videoRef.current;
+    if (!trigger || !video) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        video.play().catch(() => {});
+        observer.disconnect();
+      },
+      { rootMargin: "200px" },
+    );
+    observer.observe(trigger);
+    return () => observer.disconnect();
+  }, [slot]);
+
   return (
     <div className="w-full">
       <div className="mb-4 flex h-10 shrink-0 items-center gap-4 lg:mb-5">
@@ -43,13 +70,25 @@ function VideoTile({ index, orientation, slot, onOpen }: { index: number; orient
       </div>
       {slot ? (
         <button
+          ref={buttonRef}
           type="button"
           onClick={onOpen}
           aria-label={`Abrir vídeo ${orientation === "vertical" ? "vertical" : "horizontal"} ${number} em tela cheia`}
           className={`group relative block ${aspectClass} w-full overflow-hidden rounded-lg border border-white/10 bg-black text-left`}
         >
-          <video muted playsInline preload="metadata" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover">
-            <source src={thumbnailSrc} type="video/mp4" />
+          <video
+            ref={videoRef}
+            muted
+            playsInline
+            preload="metadata"
+            onLoadedMetadata={(e) => {
+              if (slot.posterSeconds) e.currentTarget.currentTime = slot.posterSeconds;
+            }}
+            onLoadedData={(e) => e.currentTarget.pause()}
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full object-cover"
+          >
+            <source src={slot.src} type="video/mp4" />
           </video>
           <span className="absolute inset-0 bg-black/20 transition-colors group-hover:bg-black/35" />
           <span
