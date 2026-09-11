@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 /** Mesmo mecanismo de entrada-ao-rolar já usado em `components/landing/*` (IntersectionObserver
@@ -21,12 +21,24 @@ export function useScrollReveal<T extends HTMLElement>(threshold = 0.2) {
   return { ref, isVisible };
 }
 
-export function Reveal({ children, className, delayMs = 0, threshold }: { children: ReactNode; className?: string; delayMs?: number; threshold?: number }) {
+export function Reveal({
+  children,
+  className,
+  style,
+  delayMs = 0,
+  threshold,
+}: {
+  children: ReactNode;
+  className?: string;
+  style?: CSSProperties;
+  delayMs?: number;
+  threshold?: number;
+}) {
   const { ref, isVisible } = useScrollReveal<HTMLDivElement>(threshold);
   return (
     <div
       ref={ref}
-      style={{ transitionDelay: isVisible ? `${delayMs}ms` : "0ms" }}
+      style={{ ...style, transitionDelay: isVisible ? `${delayMs}ms` : "0ms" }}
       className={cn("transition-all duration-1000 ease-out motion-reduce:transition-none", isVisible ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0", className)}
     >
       {children}
