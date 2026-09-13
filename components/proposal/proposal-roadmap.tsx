@@ -59,9 +59,11 @@ function ProductionBlock({ block, accent }: { block: RoadmapProductionBlock; acc
           </li>
         ))}
       </ul>
-      <p className="font-mono text-xs uppercase tracking-wide" style={{ color: accent }}>
-        {block.deliverable}
-      </p>
+      {block.deliverable && (
+        <p className="font-mono text-xs uppercase tracking-wide" style={{ color: accent }}>
+          {block.deliverable}
+        </p>
+      )}
     </motion.div>
   );
 }
