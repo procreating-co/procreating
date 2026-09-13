@@ -37,8 +37,11 @@ export type ProposalPillarWithLocks = Omit<ProposalPillar, "items"> & { items: P
 export type PillarsContent = { intro: { eyebrow: string; heading: string; subtitle: string }; pillars: ProposalPillarWithLocks[] };
 
 /** Bloco "captação" do Roadmap (opcional) — dias de captação + composição de equipe + entregável.
- *  Ausente = `ProposalRoadmap` não renderiza esse bloco (Elenita não tem). */
-export type RoadmapProductionBlock = { heading: string; items: string[]; deliverable: string };
+ *  Ausente = `ProposalRoadmap` não renderiza esse bloco (Elenita não tem). `deliverable` também é
+ *  opcional (pedido explícito, Priscilla — "exclua: + Entrega de 09 vídeos estratégicos."): a
+ *  linha some sem deixar espaço vazio quando ausente, mesma convenção de "fonte vazia = item
+ *  omitido" usada no resto do projeto. */
+export type RoadmapProductionBlock = { heading: string; items: string[]; deliverable?: string };
 
 /** Uma etapa de funil (Topo/Meio/Fundo) dentro do bloco "estratégia por trás" do Roadmap —
  *  objetivo em texto + até 2 vídeos explicativos (mesmo `ProposalVideo` do Portfólio, reaproveitado
