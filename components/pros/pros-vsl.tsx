@@ -1,64 +1,66 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { motion, useMotionValueEvent, useReducedMotion, useScroll, useTransform } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { Play, Volume2, VolumeX } from "lucide-react";
 
 const LOCK_DURATION_MS = 3000;
+const OPEN_DURATION_S = 0.9;
+const CLOSE_DURATION_S = 0.7;
+const EASE = [0.16, 1, 0.3, 1] as const;
 
-function easeOutCubic(t: number) {
-  return 1 - Math.pow(1 - t, 3);
+function computeBoxSizes() {
+  const vw = typeof window !== "undefined" ? window.innerWidth : 1280;
+  const vh = typeof window !== "undefined" ? window.innerHeight : 800;
+  const smallWidth = Math.min(640, vw * 0.92);
+  const largeWidth = Math.min(vw * 0.95, 1600);
+  return {
+    small: { width: smallWidth, height: (smallWidth * 9) / 16, borderRadius: 32 },
+    large: { width: largeWidth, height: Math.min(vh * 0.88, 900), borderRadius: 12 },
+  };
 }
 
-// Tamanho inicial (progresso 0, anexo 02): "faixa" central, largura fixa de referência, cai pra
-// 92vw em telas estreitas pra nunca estourar a viewport. Altura segue 16:9 dessa largura.
-const WIDTH_START = "min(640px, 92vw)";
-const HEIGHT_START = `calc(${WIDTH_START} * 9 / 16)`;
-const RADIUS_START = "32px";
-
-// Tamanho final (progresso 1, anexo 01): quase full-bleed do container principal do site (mesmo
-// teto de 1600px usado no fallback de reduced-motion abaixo), bem mais alto (até 88% da altura
-// da viewport). object-cover no vídeo garante que nada distorce nesse crescimento.
-const WIDTH_END = "min(95vw, 1600px)";
-const HEIGHT_END = "min(88vh, 900px)";
-const RADIUS_END = "12px";
-
 /**
- * Bloco 2 — "scroll/drag reveal de vídeo" no estilo Cosmos.so. Sem texto nenhum — só o vídeo e
- * os dois controles funcionais (play/tela cheia, mudo/som).
+ * Bloco 2 — pedido explícito (ajuste desta rodada, substitui o scrub contínuo por scroll que
+ * existia antes): não é mais "acompanha o progresso do scroll pixel a pixel". Agora é um gatilho
+ * — o vídeo começa pequeno (pill, ~640px), e o PRIMEIRO gesto de rolar pra baixo enquanto essa
+ * seção está em foco já abre ele no tamanho grande (animação de tamanho fixo, não presa ao
+ * scroll). Rolar pra baixo durante a animação/trava é absorvido (não deixa a página passar);
+ * rolar pra CIMA a qualquer momento antes ou durante a trava fecha e devolve o controle.
  *
- * `position: sticky` numa wrapper mais alta que a viewport (`h-[220svh]`) produz o "pin" com
- * scroll 100% nativo (mouse/trackpad/touch-drag idênticos). `useScroll({ target })` só LÊ o
- * progresso de 0 a 1.
+ * Depois de aberto, trava o scroll pra baixo por `LOCK_DURATION_MS` (~3s de visualização mínima
+ * no tamanho grande) antes de liberar a página pra continuar. Timeout de segurança garante que
+ * nunca fica preso pra sempre. Tudo desativado com `prefers-reduced-motion` (mostra só um botão
+ * de assistir, sem nenhum scroll-jacking).
  *
- * Crescimento (largura/altura/raio) via `--growth`, uma CSS custom property escrita direto pelo
- * framer-motion a cada frame (sem re-render React), combinada com `calc()` puro em CSS pra
- * interpolar entre o tamanho inicial e final — evita ficar lendo `window.innerWidth/Height` em
- * JS a cada scroll (mais barato, e responde a resize de graça, já que os valores em vw/vh do
- * `calc()` são recalculados pelo navegador sozinhos).
- *
- * TRAVA DE SCROLL: ao progresso chegar em ~1 (vídeo no tamanho máximo), intercepta wheel/touch
- * pra baixo por `LOCK_DURATION_MS` (~3s) — obrigando a visualização mínima do vídeo no tamanho
- * cheio antes de liberar o resto da página. Scroll pra cima continua livre a qualquer momento
- * (desistir e encolher de volta nunca trava). Timeout de segurança garante que o lock nunca
- * prende a página pra sempre mesmo se algo falhar. Desativado inteiro quando
- * `prefers-reduced-motion` está ativo — forçar alguém a esperar 3s parado numa animação que essa
- * pessoa pediu pra não ver seria o oposto do que a preferência pede.
+ * Vídeo deslocado 3cm pra cima (pedido explícito) via `translateY(-3cm)` — ajuste fino de
+ * posição, não interfere na animação de tamanho.
  */
 export function ProsVsl({ videoSrc, onOpenVideo }: { videoSrc: string; onOpenVideo: (src: string) => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const wrapperRef = useRef<HTMLElement>(null);
-  const [expanded, setExpanded] = useState(false);
-  const [unmuted, setUnmuted] = useState(false);
-  const [locked, setLocked] = useState(false);
-  const [lockCycle, setLockCycle] = useState(0); // muda a cada lock novo, só pra reiniciar a barra de progresso
-  const hasLockedOnceRef = useRef(false);
+  const sectionRef = useRef<HTMLElement>(null);
   const prefersReducedMotion = useReducedMotion();
 
+  const [boxSizes, setBoxSizes] = useState(computeBoxSizes);
+  const [stage, setStage] = useState<"small" | "large">("small");
+  const [transitioning, setTransitioning] = useState(false);
+  const [locked, setLocked] = useState(false);
+  const [unmuted, setUnmuted] = useState(false);
+  const [isActive, setIsActive] = useState(false);
+  const releasedRef = useRef(false);
+
   useEffect(() => {
-    const trigger = wrapperRef.current;
+    const onResize = () => setBoxSizes(computeBoxSizes());
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  // Loop mudo do "pill" inicial só começa perto da viewport (carregamento rápido), não assim que
+  // a página carrega.
+  useEffect(() => {
+    const section = sectionRef.current;
     const video = videoRef.current;
-    if (!trigger || !video) return;
+    if (!section || !video) return;
     video.muted = true;
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -68,88 +70,145 @@ export function ProsVsl({ videoSrc, onOpenVideo }: { videoSrc: string; onOpenVid
       },
       { rootMargin: "400px" },
     );
-    observer.observe(trigger);
+    observer.observe(section);
     return () => observer.disconnect();
   }, []);
 
-  const { scrollYProgress } = useScroll({ target: wrapperRef, offset: ["start start", "end start"] });
-  const playButtonOpacity = useTransform(scrollYProgress, [0, 0.12], [1, 0]);
-  const overlayOpacity = useTransform(scrollYProgress, [0, 1], [0.05, 0.45]);
-  const growth = useTransform(scrollYProgress, (raw) => easeOutCubic(Math.min(Math.max(raw, 0), 1)));
+  // Detecta quando a seção está "em foco" (dominando a viewport) — só aí o primeiro scroll pra
+  // baixo abre o vídeo. Ao sair de vista rolando de volta pra cima (retirada), reseta pra small,
+  // permitindo a experiência de novo numa próxima passagem.
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsActive(entry.isIntersecting);
+        if (!entry.isIntersecting && entry.boundingClientRect.top > 0) {
+          releasedRef.current = false;
+          setStage("small");
+          setLocked(false);
+          setTransitioning(false);
+        }
+      },
+      { threshold: 0.6 },
+    );
+    observer.observe(section);
+    return () => observer.disconnect();
+  }, []);
 
-  useMotionValueEvent(scrollYProgress, "change", (v) => {
+  const openVideo = () => {
+    setTransitioning(true);
+    setStage("large");
     const video = videoRef.current;
-    if (!video) return;
-
-    if (v >= 0.97 && !expanded) {
-      setExpanded(true);
+    if (video) {
       video.currentTime = 0;
       video.play().catch(() => {});
-    } else if (v < 0.9 && expanded) {
-      setExpanded(false);
-      setUnmuted(false);
-      video.muted = true;
     }
+  };
 
-    // Trava só uma vez por "chegada" ao topo — scrollar de volta abaixo de 0.9 e voltar dispara
-    // um novo ciclo de 3s (evita tanto travar a cada tick de scroll perto de 1 quanto nunca mais
-    // travar de novo depois da primeira vez).
-    if (v >= 0.995 && !prefersReducedMotion && !hasLockedOnceRef.current) {
-      hasLockedOnceRef.current = true;
-      setLocked(true);
-      setLockCycle((c) => c + 1);
-    }
-    if (v < 0.9) {
-      hasLockedOnceRef.current = false;
-    }
-  });
+  const closeVideo = () => {
+    setTransitioning(true);
+    setStage("small");
+    setUnmuted(false);
+    const video = videoRef.current;
+    if (video) video.muted = true;
+  };
 
-  // Libera a trava sozinha após LOCK_DURATION_MS. Timeout duplicado (o "safety") só por garantia
-  // extra caso o principal falhe por algum motivo (ex. o componente recebeu um novo `locked` no
-  // meio do caminho) — nunca deixa a página presa indefinidamente.
+  // Libera a trava sozinha após LOCK_DURATION_MS. Timeout de segurança extra por garantia — nunca
+  // deixa a página presa indefinidamente mesmo se algo falhar.
   useEffect(() => {
     if (!locked) return;
-    const release = setTimeout(() => setLocked(false), LOCK_DURATION_MS);
-    const safetyRelease = setTimeout(() => setLocked(false), LOCK_DURATION_MS + 1500);
+    const release = setTimeout(() => {
+      setLocked(false);
+      releasedRef.current = true;
+    }, LOCK_DURATION_MS);
+    const safety = setTimeout(() => {
+      setLocked(false);
+      releasedRef.current = true;
+    }, LOCK_DURATION_MS + 1500);
     return () => {
       clearTimeout(release);
-      clearTimeout(safetyRelease);
+      clearTimeout(safety);
     };
-  }, [locked, lockCycle]);
+  }, [locked]);
 
-  // Intercepta wheel/touchmove só enquanto travado, e só o gesto que rolaria pra BAIXO — rolar
-  // pra cima (desistir, encolher o vídeo de volta) nunca é bloqueado.
+  // Intercepta wheel/touch: "small" + em foco → primeiro gesto pra baixo abre (em vez de rolar a
+  // página). Durante a animação de abrir/fechar, absorve tudo. Travado (grande, dwell de 3s), só
+  // intercepta pra baixo — pra cima sempre cancela a trava e fecha, devolvendo o scroll.
   useEffect(() => {
-    if (!locked) return;
+    if (prefersReducedMotion || releasedRef.current) return;
+    if (!isActive && stage === "small" && !transitioning && !locked) return;
 
-    const blockWheelDown = (e: WheelEvent) => {
-      if (e.deltaY > 0) e.preventDefault();
+    const handleWheel = (e: WheelEvent) => {
+      if (releasedRef.current) return;
+      if (transitioning) {
+        e.preventDefault();
+        return;
+      }
+      if (stage === "small") {
+        if (e.deltaY > 0 && isActive) {
+          e.preventDefault();
+          openVideo();
+        }
+        return;
+      }
+      if (locked) {
+        if (e.deltaY > 0) {
+          e.preventDefault();
+        } else if (e.deltaY < 0) {
+          e.preventDefault();
+          setLocked(false);
+          closeVideo();
+        }
+      }
     };
 
     let touchStartY = 0;
-    const onTouchStart = (e: TouchEvent) => {
+    const handleTouchStart = (e: TouchEvent) => {
       touchStartY = e.touches[0]?.clientY ?? 0;
     };
-    const blockTouchDown = (e: TouchEvent) => {
+    const handleTouchMove = (e: TouchEvent) => {
+      if (releasedRef.current) return;
       const currentY = e.touches[0]?.clientY ?? touchStartY;
-      const draggingUp = touchStartY - currentY; // positivo = dedo subindo = página rolando pra baixo
-      if (draggingUp > 0) e.preventDefault();
+      const draggingDown = touchStartY - currentY; // positivo = dedo subindo = página rolando pra baixo
+      if (transitioning) {
+        e.preventDefault();
+        return;
+      }
+      if (stage === "small") {
+        if (draggingDown > 8 && isActive) {
+          e.preventDefault();
+          openVideo();
+        }
+        return;
+      }
+      if (locked) {
+        if (draggingDown > 0) {
+          e.preventDefault();
+        } else if (draggingDown < -8) {
+          e.preventDefault();
+          setLocked(false);
+          closeVideo();
+        }
+      }
     };
 
-    window.addEventListener("wheel", blockWheelDown, { passive: false });
-    window.addEventListener("touchstart", onTouchStart, { passive: true });
-    window.addEventListener("touchmove", blockTouchDown, { passive: false });
+    window.addEventListener("wheel", handleWheel, { passive: false });
+    window.addEventListener("touchstart", handleTouchStart, { passive: true });
+    window.addEventListener("touchmove", handleTouchMove, { passive: false });
     return () => {
-      window.removeEventListener("wheel", blockWheelDown);
-      window.removeEventListener("touchstart", onTouchStart);
-      window.removeEventListener("touchmove", blockTouchDown);
+      window.removeEventListener("wheel", handleWheel);
+      window.removeEventListener("touchstart", handleTouchStart);
+      window.removeEventListener("touchmove", handleTouchMove);
     };
-  }, [locked]);
+  }, [isActive, stage, transitioning, locked, prefersReducedMotion]);
 
   useEffect(() => {
     const video = videoRef.current;
     if (video) video.muted = !unmuted;
   }, [unmuted]);
+
+  const expanded = stage === "large";
 
   if (prefersReducedMotion) {
     return (
@@ -170,59 +229,60 @@ export function ProsVsl({ videoSrc, onOpenVideo }: { videoSrc: string; onOpenVid
     );
   }
 
-  return (
-    <section ref={wrapperRef} aria-label="Vídeo" className="relative h-[220svh] bg-black">
-      <div className="sticky top-0 flex h-[100svh] w-full items-center justify-center overflow-hidden">
-        <motion.div
-          style={{
-            ["--growth" as string]: growth,
-            width: `calc(${WIDTH_START} + var(--growth) * (${WIDTH_END} - ${WIDTH_START}))`,
-            height: `calc(${HEIGHT_START} + var(--growth) * (${HEIGHT_END} - ${HEIGHT_START}))`,
-            borderRadius: `calc(${RADIUS_START} + var(--growth) * (${RADIUS_END} - ${RADIUS_START}))`,
-          }}
-          className="relative overflow-hidden bg-white/[0.03]"
-        >
-          <video ref={videoRef} loop playsInline preload="metadata" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover">
-            <source src={videoSrc} type="video/mp4" />
-          </video>
-          <motion.div style={{ opacity: overlayOpacity }} aria-hidden="true" className="absolute inset-0 bg-black" />
+  const box = boxSizes[stage];
 
-          <motion.button
+  return (
+    <section ref={sectionRef} aria-label="Vídeo" className="relative flex h-[100svh] w-full items-center justify-center overflow-hidden bg-black">
+      <motion.div
+        animate={{ width: box.width, height: box.height, borderRadius: box.borderRadius }}
+        transition={{ duration: stage === "large" ? OPEN_DURATION_S : CLOSE_DURATION_S, ease: EASE }}
+        onAnimationComplete={() => {
+          setTransitioning(false);
+          if (stage === "large") setLocked(true);
+        }}
+        style={{ transform: "translateY(-3cm)" }}
+        className="relative overflow-hidden bg-white/[0.03]"
+      >
+        <video ref={videoRef} loop playsInline preload="metadata" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover">
+          <source src={videoSrc} type="video/mp4" />
+        </video>
+        <div aria-hidden="true" className="absolute inset-0 bg-black transition-opacity duration-700" style={{ opacity: expanded ? 0.35 : 0.05 }} />
+
+        {stage === "small" && (
+          <button
             type="button"
             onClick={() => onOpenVideo(videoSrc)}
-            style={{ opacity: playButtonOpacity }}
             aria-label="Assistir vídeo em tela cheia"
             className="absolute left-1/2 top-1/2 z-10 flex size-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/60 bg-black/40 text-white backdrop-blur-sm transition-transform hover:scale-110"
           >
             <Play className="ml-1 size-5 fill-current" />
-          </motion.button>
+          </button>
+        )}
 
-          {expanded && (
-            <button
-              type="button"
-              onClick={() => setUnmuted((v) => !v)}
-              aria-label={unmuted ? "Silenciar vídeo" : "Ativar som"}
-              className="absolute bottom-6 right-6 z-10 flex size-11 items-center justify-center rounded-full border border-white/30 bg-black/40 text-white backdrop-blur-sm transition-colors hover:border-white/60"
-            >
-              {unmuted ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />}
-            </button>
-          )}
+        {expanded && (
+          <button
+            type="button"
+            onClick={() => setUnmuted((v) => !v)}
+            aria-label={unmuted ? "Silenciar vídeo" : "Ativar som"}
+            className="absolute bottom-6 right-6 z-10 flex size-11 items-center justify-center rounded-full border border-white/30 bg-black/40 text-white backdrop-blur-sm transition-colors hover:border-white/60"
+          >
+            {unmuted ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />}
+          </button>
+        )}
 
-          {/* Indicador discreto da trava: barra fininha no rodapé, enche em 3s. Não é clicável,
-              não tem texto — só um sinal visual sutil de que "está prestes a liberar". */}
-          {locked && (
-            <motion.div
-              key={lockCycle}
-              initial={{ scaleX: 0 }}
-              animate={{ scaleX: 1 }}
-              transition={{ duration: LOCK_DURATION_MS / 1000, ease: "linear" }}
-              style={{ transformOrigin: "left" }}
-              aria-hidden="true"
-              className="absolute inset-x-0 bottom-0 h-[2px] bg-white/50"
-            />
-          )}
-        </motion.div>
-      </div>
+        {/* Indicador discreto da trava: barra fininha no rodapé, enche em 3s. */}
+        {locked && (
+          <motion.div
+            key="lock-bar"
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            transition={{ duration: LOCK_DURATION_MS / 1000, ease: "linear" }}
+            style={{ transformOrigin: "left" }}
+            aria-hidden="true"
+            className="absolute inset-x-0 bottom-0 h-[2px] bg-white/50"
+          />
+        )}
+      </motion.div>
     </section>
   );
 }
