@@ -3,15 +3,12 @@ import { clientVideos as pascoalLegacyVideos } from "@/data/pascoal/videos";
 
 /**
  * Conteúdo da página de prospecção `/pros/01` — nicho "oficinas, mecânicas e negócios técnicos".
- * Pedido explícito (redesenho radical desta rodada): SÓ vídeo, zero texto/copy visível na
- * página, zero bloco vazio/preto sem vídeo dentro. Por isso este arquivo não tem mais headline,
- * subheadline, eyebrow, pilares, FAQ, etc. — só as URLs de vídeo + o WhatsApp (necessário pro
- * único contato que sobrou: o botão flutuante de ícone, sem texto visível, ver
- * `pros-mobile-sticky-cta.tsx`).
+ * A página é majoritariamente vídeo (pedido explícito de rodada anterior: zero copy fora do
+ * Hero, zero bloco vazio/preto sem vídeo dentro). O Hero é a única exceção — pedido explícito
+ * desta rodada: volta a ter um headline (com efeito de digitação numa das linhas) + subheadline.
  *
  * `metaTitle`/`metaDescription`/`ogImage` continuam existindo — são metadata de `<head>`
- * (título da aba, preview ao compartilhar o link), nunca aparecem NA página, então não
- * contrariam o pedido de "zero texto visível".
+ * (título da aba, preview ao compartilhar o link), nunca aparecem NA página em si.
  *
  * Toda mídia é real — vídeos hospedados nos MESMOS buckets R2 já em produção
  * (`data/pascoal/videos.ts`, legado; `data/pascoal/setembro-videos.ts`, os 12 novos).
@@ -49,10 +46,14 @@ export const oficinasProsContent = {
     message: "Olá, gostaria de conversar sobre o posicionamento e a comunicação digital da minha empresa.",
   },
 
-  // Bloco 1 — só o vídeo, sem texto, sem botão de assistir (pedido explícito: "o único vídeo que
-  // não pode ser assistido é o vídeo do hero").
+  // Bloco 1 — vídeo de fundo + headline/subheadline. Sem botão de assistir (pedido explícito:
+  // "o único vídeo que não pode ser assistido é o vídeo do hero" — segue valendo).
   hero: {
     videoSrc: "/videos/hero-background.mp4",
+    headlineLine1: "Seu negócio merece",
+    // Linha 2 — digitada/apagada em loop (ver `hooks/use-typewriter.ts`), uma frase por vez.
+    rotatingWords: ["ser visto", "ser referência", "ser notado", "ser lembrado", "ser reconhecido"],
+    subheadline: "Transformamos sua experiência e resultados em presença digital.",
   },
 
   // Bloco 2 — scroll/drag reveal (clip-path + pin, framer-motion). Clicável em tela cheia.
