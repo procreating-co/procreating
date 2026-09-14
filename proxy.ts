@@ -7,8 +7,9 @@ import { PORTAL_LOGIN_PATH, PORTAL_SESSION_COOKIE, PORTAL_SIGNUP_PATH } from "@/
  * Gate de borda pro ERP interno inteiro — `/admin/*` (painel legado) e todo o grupo protegido
  * `app/(internal)/**` (`/`, `/operacao/*` desde a Fase 1; `/comercial/*`, `/clientes/*`,
  * `/financeiro/*` desde a Fase 2-5; `/marketing/*`, `/workspace/*` (era `/meu-dia`), `/configuracoes/*` desde a fase
- * de navegação completa; `/reports` desde a reestruturação de sidebar/tema — ver `matcher`
- * abaixo; `/administracao` saiu, rota removida). Nunca toca em rota pública
+ * de navegação completa; `/reports` desde a reestruturação de sidebar/tema; `/links` desde o
+ * centralizador de links — ver `matcher` abaixo; `/administracao` saiu, rota removida). Nunca
+ * toca em rota pública
  * (`/clients/[client]/...`). Checa só a presença do cookie de sessão (rápido, sem I/O);
  * a validação "de verdade" acontece nos layouts protegidos (`app/admin/(protected)/layout.tsx`,
  * `app/(internal)/layout.tsx`), que rodam no servidor e consultam o Supabase Auth de fato via
@@ -77,5 +78,6 @@ export const config = {
     "/reports/:path*",
     "/portal/:path*",
     "/propostas",
+    "/links",
   ],
 };
