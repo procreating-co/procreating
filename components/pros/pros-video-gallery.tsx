@@ -3,7 +3,6 @@
 import { useEffect, useRef } from "react";
 import { Play } from "lucide-react";
 import type { ProsGalleryVideo } from "@/content/pros/oficinas";
-import { Reveal } from "@/components/pros/reveal";
 
 const ORIENTATION_ASPECT: Record<ProsGalleryVideo["orientation"], string> = {
   horizontal: "aspect-video",
@@ -12,11 +11,9 @@ const ORIENTATION_ASPECT: Record<ProsGalleryVideo["orientation"], string> = {
 
 /**
  * Um vídeo da galeria — autoplay mudo em loop assim que entra na viewport, pausa ao sair (pedido
- * explícito, performance) e retoma ao voltar. `preload="none"` — só começa a baixar de verdade
- * quando o IntersectionObserver dispara o primeiro `.play()`, nunca todos de uma vez.
- *
- * Clicável em tela cheia (pedido explícito — "TODOS os vídeos devem ser possível assistir em
- * fullscreen"): abre o MESMO `VideoLightbox` que o Hero/VSL usam, via `onOpenVideo`.
+ * explícito, performance/carregamento rápido) e retoma ao voltar. `preload="none"` — só começa a
+ * baixar de verdade quando o IntersectionObserver dispara o primeiro `.play()`, nunca todos de
+ * uma vez. Clicável em tela cheia (mesmo `VideoLightbox` do resto da página).
  */
 function GalleryVideo({ video, onOpenVideo }: { video: ProsGalleryVideo; onOpenVideo: (src: string) => void }) {
   const ref = useRef<HTMLVideoElement>(null);
@@ -49,34 +46,26 @@ function GalleryVideo({ video, onOpenVideo }: { video: ProsGalleryVideo; onOpenV
 }
 
 /**
- * Grade de vídeos — CSS grid de 6 colunas no desktop com `span` curado à mão por vídeo
- * (`content/pros/oficinas.ts`) — verticais ocupam menos largura mas, na proporção 9:16, saem
- * naturalmente bem mais altos que os horizontais ao lado, dando presença sem cortar/distorcer
- * nada. Mobile: 1 coluna, cada vídeo na largura cheia.
+ * Bloco 3 — grade de vídeos reais da Pascoal Bombas. Pedido explícito (simplificação desta
+ * rodada): sem rótulo/texto nenhum, sem seção "Case" ao redor — só a grade, full-bleed (sem
+ * padding/max-width com respiro) pra ficar alinhada com o Hero/bloco 2, que também são full-bleed.
+ * `gap-1` — separação mínima só pra cada vídeo ficar visualmente distinto do vizinho, não pra
+ * criar respiro.
  *
- * `bare` (pedido implícito ao encaixar isto dentro do Case, §5) — quando `true`, não renderiza a
- * própria `<section>`/rótulo repetido; usado assim por `ProsCaseStudy`, que já tem seu próprio
- * título "Case Pascoal Bombas" por cima.
+ * Grid de 6 colunas no desktop com `span` curado à mão por vídeo (`content/pros/oficinas.ts`) —
+ * verticais ocupam menos largura mas, na proporção 9:16, saem naturalmente bem mais altos que os
+ * horizontais ao lado, dando presença sem cortar/distorcer nada.
  */
-export function ProsVideoGallery({ label, items, onOpenVideo, bare = false }: { label: string; items: ProsGalleryVideo[]; onOpenVideo: (src: string) => void; bare?: boolean }) {
-  const grid = (
-    <div className="mx-auto grid max-w-[1800px] grid-cols-1 gap-3 sm:gap-4 md:grid-cols-6 md:gap-5">
-      {items.map((video, i) => (
-        <Reveal key={i} delayMs={(i % 3) * 100} className="overflow-hidden bg-white/[0.03]" style={{ gridColumn: `span ${video.span} / span ${video.span}` }}>
-          <GalleryVideo video={video} onOpenVideo={onOpenVideo} />
-        </Reveal>
-      ))}
-    </div>
-  );
-
-  if (bare) return grid;
-
+export function ProsVideoGallery({ items, onOpenVideo }: { items: ProsGalleryVideo[]; onOpenVideo: (src: string) => void }) {
   return (
-    <section aria-label={`Vídeos produzidos para ${label}`} className="bg-black px-3 py-20 sm:px-6 lg:px-8 lg:py-28">
-      <Reveal className="mb-8 lg:mb-10">
-        <p className="text-center font-mono text-xs uppercase tracking-[0.25em] text-white/35">{label}</p>
-      </Reveal>
-      {grid}
+    <section aria-label="Vídeos" className="bg-black">
+      <div className="grid grid-cols-1 gap-1 md:grid-cols-6">
+        {items.map((video, i) => (
+          <div key={i} style={{ gridColumn: `span ${video.span} / span ${video.span}` }}>
+            <GalleryVideo video={video} onOpenVideo={onOpenVideo} />
+          </div>
+        ))}
+      </div>
     </section>
   );
 }

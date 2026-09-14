@@ -7,12 +7,12 @@ import { track } from "@vercel/analytics";
 type WhatsappConfig = { phoneDigits: string; message: string };
 
 /**
- * CTA fixa no mobile (pedido explícito) — só um ícone, sem texto/copy comercial, pra não competir
- * com "o CTA deve ser o único momento explicitamente comercial da página" (regra da rodada
- * anterior): isto é um atalho de contato sempre disponível, não uma seção de venda nova. Some
- * enquanto o Hero ocupa a tela (mesma lógica limpa do Hero — "sem botão"), aparece só depois que o
- * usuário rola além dele. `lg:hidden` — desktop não precisa, o CTA final já está sempre a um
- * scroll de distância numa tela maior.
+ * Botão de contato flutuante — só um ícone, sem texto visível (pedido explícito desta rodada:
+ * "exclua todos os textos"). Depois que a página virou só vídeo (sem header, sem CTA final, sem
+ * footer), este é o ÚNICO jeito de alguém que assistiu aos vídeos falar com a Procreating — por
+ * isso aparece em qualquer tamanho de tela agora (antes era só mobile, quando ainda existia um
+ * CTA final visível no desktop). Some enquanto o Hero ocupa a tela (mesma lógica "sem elemento
+ * clicável" do Hero), aparece só depois que o usuário rola além dele.
  */
 export function ProsMobileStickyCta({ whatsapp, slug }: { whatsapp: WhatsappConfig; slug: string }) {
   const [visible, setVisible] = useState(false);
@@ -41,7 +41,7 @@ export function ProsMobileStickyCta({ whatsapp, slug }: { whatsapp: WhatsappConf
       rel="noopener noreferrer"
       onClick={() => track("pros_cta_click", { slug, location: "mobile_sticky" })}
       aria-label="Falar no WhatsApp"
-      className={`fixed bottom-5 right-5 z-40 flex size-14 items-center justify-center rounded-full bg-white text-black shadow-lg shadow-black/40 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black motion-reduce:transition-none lg:hidden ${
+      className={`fixed bottom-5 right-5 z-40 flex size-14 items-center justify-center rounded-full bg-white text-black shadow-lg shadow-black/40 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black motion-reduce:transition-none ${
         visible ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-4 opacity-0"
       }`}
     >
