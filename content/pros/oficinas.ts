@@ -47,7 +47,10 @@ export const oficinasProsContent = {
   instagramUrl: "https://instagram.com/procreating.co",
 
   hero: {
-    videoSrc: "/videos/hero-background.mp4",
+    // Pedido explícito desta rodada — vídeo real do bucket R2 legado da Pascoal (mesmo asset de
+    // `pascoalLegacyVideos.presentationVideo`), URL verificada (curl -I -> 200) antes de usar.
+    videoSrc:
+      "https://pub-925b76414c3f40558af2fc11a5d46fb4.r2.dev/compress%20Vi%CC%81deo%20de%20Aquisic%CC%A7a%CC%83o%2002%20(Vi%CC%81deo%20de%20Apresentac%CC%A7a%CC%83o%20-%20Reunia%CC%83o%20Horizontal).mp4",
     headline: "Seu negócio merece ser memorável.",
   },
 

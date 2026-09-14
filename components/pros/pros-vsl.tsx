@@ -10,8 +10,12 @@ import { Reveal } from "@/components/pros/reveal";
  * de ativar o som. O arquivo real "será enviado posteriormente" — enquanto `videoSrc` não existe,
  * fica um placeholder honesto (mesma convenção "Em produção" já usada no resto do projeto), já no
  * tamanho/proporção que o vídeo real vai ocupar.
+ *
+ * Clicável em tela cheia (pedido explícito — "todos os vídeos devem ser possível assistir em
+ * fullscreen"): o quadro inteiro é um botão que abre o mesmo `VideoLightbox` do Hero/Galeria; o
+ * botão de mudo tem `stopPropagation` pra não disparar o fullscreen sem querer.
  */
-export function ProsVsl({ videoSrc, label }: { videoSrc?: string; label: string }) {
+export function ProsVsl({ videoSrc, label, onOpenVideo }: { videoSrc?: string; label: string; onOpenVideo: (src: string) => void }) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [unmuted, setUnmuted] = useState(false);
@@ -38,12 +42,17 @@ export function ProsVsl({ videoSrc, label }: { videoSrc?: string; label: string 
         <div ref={wrapperRef} className="relative aspect-video w-full overflow-hidden bg-white/[0.03]">
           {videoSrc ? (
             <>
-              <video ref={videoRef} muted={!unmuted} loop playsInline preload="none" className="absolute inset-0 h-full w-full object-cover">
-                <source src={videoSrc} type="video/mp4" />
-              </video>
+              <button type="button" onClick={() => onOpenVideo(videoSrc)} aria-label="Assistir vídeo em tela cheia" className="absolute inset-0 block h-full w-full">
+                <video ref={videoRef} muted={!unmuted} loop playsInline preload="none" aria-hidden="true" className="h-full w-full object-cover">
+                  <source src={videoSrc} type="video/mp4" />
+                </video>
+              </button>
               <button
                 type="button"
-                onClick={() => setUnmuted((v) => !v)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setUnmuted((v) => !v);
+                }}
                 aria-label={unmuted ? "Silenciar vídeo" : "Ativar som"}
                 className="absolute bottom-4 right-4 flex size-10 items-center justify-center rounded-full border border-white/30 bg-black/40 text-white backdrop-blur-sm transition-colors hover:border-white/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black sm:bottom-6 sm:right-6"
               >
