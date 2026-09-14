@@ -8,13 +8,12 @@ import { useTypewriter } from "@/hooks/use-typewriter";
  * subheadline. Sem botão de assistir (pedido explícito, ainda vale: é o único vídeo da página
  * que não abre em tela cheia).
  *
- * Tipografia replica a referência (print do hero do cosmos.so — "Your space for inspiration"):
- * sans-serif grande, peso forte, duas linhas com line-height bem compacto (quase coladas),
- * tracking neutro/levemente negativo, centralizado. Fonte: `font-display` (Instrument Sans, já
- * carregada no projeto — ver app/layout.tsx) é o grotesco mais próximo do original que já temos,
- * sem precisar adicionar uma fonte nova só pra isso. Cor: a referência é preta sobre fundo claro,
- * mas nosso Hero tem vídeo escuro atrás — mantemos peso/tamanho/line-height/tracking idênticos,
- * só a cor vira branco (senão o texto fica ilegível sobre o vídeo).
+ * Tipografia: duas linhas com line-height bem compacto (quase coladas), tracking neutro/
+ * levemente negativo, centralizado. Fonte Sora (pedido explícito, peso mais fino — `font-light`)
+ * carregada em `pros-page.tsx` e aplicada na página inteira via `<main>`; este componente não
+ * declara font-family nenhuma, só herda. Cor branca — a referência original (cosmos.so) era
+ * preta sobre fundo claro, mas nosso Hero tem vídeo escuro atrás, então a cor foi adaptada pra
+ * manter legibilidade.
  */
 export function ProsHero({
   videoSrc,
@@ -62,7 +61,7 @@ export function ProsHero({
       <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-black/60" />
 
       <div className="relative z-10 mx-auto flex max-w-4xl flex-col items-center gap-5 px-6">
-        <h1 aria-hidden="true" className="text-balance font-display text-[clamp(2.25rem,6.5vw,5.5rem)] font-bold leading-[0.95] tracking-tight text-white">
+        <h1 aria-hidden="true" className="text-balance text-[clamp(2.25rem,6.5vw,5.5rem)] font-light leading-[0.95] tracking-tight text-white">
           <span className="block">{headlineLine1}</span>
           <span className="relative mt-1 inline-block align-top">
             {/* Ghost invisível — define a largura pela maior frase, sem afetar layout. */}

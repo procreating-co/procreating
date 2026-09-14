@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import dynamic from "next/dynamic";
+import { Sora } from "next/font/google";
 import type { ActiveVideo } from "@/components/landing/video-lightbox";
 import type { ProsContent } from "@/content/pros/oficinas";
 import { ProsHero } from "@/components/pros/pros-hero";
@@ -10,6 +11,13 @@ import { ProsVideoGallery } from "@/components/pros/pros-video-gallery";
 import { ProsMobileStickyCta } from "@/components/pros/pros-mobile-sticky-cta";
 
 const VideoLightbox = dynamic(() => import("@/components/landing/video-lightbox"));
+
+// Fonte carregada só aqui — pedido explícito: Sora pra QUALQUER texto que a página /pros/01 tenha
+// (hoje só o Hero, mas vale pro que vier depois). Escopo isolado deste arquivo/componente, não
+// toca em app/layout.tsx nem na variável --font-family-display global do resto da plataforma.
+// Google Font variável (100–800), então dá pra usar qualquer peso Tailwind (font-light etc.) sem
+// precisar declarar `weight` explícito.
+const sora = Sora({ subsets: ["latin"], variable: "--font-pros-sora" });
 
 /**
  * Página de prospecção `/pros/[slug]` — maioria da página é só vídeo e blocos com vídeo (pedido
@@ -29,7 +37,7 @@ export function ProsPage({ content }: { content: ProsContent }) {
   const openVideo = (src: string) => setActiveVideo({ poster: "", title: "Vídeo", videoSrc: src });
 
   return (
-    <main className="relative min-h-screen overflow-x-hidden bg-black text-white">
+    <main className={`relative min-h-screen overflow-x-hidden bg-black text-white ${sora.className}`}>
       <ProsHero
         videoSrc={content.hero.videoSrc}
         headlineLine1={content.hero.headlineLine1}
