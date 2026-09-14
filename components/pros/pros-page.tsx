@@ -12,14 +12,14 @@ import { ProsMobileStickyCta } from "@/components/pros/pros-mobile-sticky-cta";
 const VideoLightbox = dynamic(() => import("@/components/landing/video-lightbox"));
 
 /**
- * Página de prospecção `/pros/[slug]` — pedido explícito (simplificação radical): SÓ vídeo e
- * blocos com vídeo. Sem header, sem nenhum texto/copy visível, sem bloco vazio/preto. Header,
- * headlines, pilares, case em texto, "como funciona", diferencial, FAQ, CTA final e footer foram
- * REMOVIDOS (arquivos deletados, não só desligados) — nenhum deles continha vídeo.
+ * Página de prospecção `/pros/[slug]` — maioria da página é só vídeo e blocos com vídeo (pedido
+ * explícito de rodada anterior). Header, pilares, case em texto, "como funciona", diferencial,
+ * FAQ, CTA final e footer foram REMOVIDOS (arquivos deletados, não só desligados) — nenhum deles
+ * continha vídeo. O Hero é a única exceção: tem headline + subheadline (pedido explícito desta
+ * rodada) mas nenhum CTA/botão.
  *
  * Único contato que sobra: `ProsMobileStickyCta`, um botão flutuante só de ícone (sem texto
- * visível) — não é um "bloco" nem "copy", é a única forma de alguém que assistiu aos vídeos
- * conseguir falar com a Procreating. Se nem isso for desejado, é uma linha pra remover.
+ * visível) — a única forma de alguém que assistiu aos vídeos conseguir falar com a Procreating.
  *
  * Estado do lightbox fica aqui: bloco 2 (scroll reveal) e a grade do bloco 3 abrem o mesmo player
  * em tela cheia. O Hero é a ÚNICA exceção — pedido explícito, não é clicável.
@@ -30,7 +30,12 @@ export function ProsPage({ content }: { content: ProsContent }) {
 
   return (
     <main className="relative min-h-screen overflow-x-hidden bg-black text-white">
-      <ProsHero videoSrc={content.hero.videoSrc} />
+      <ProsHero
+        videoSrc={content.hero.videoSrc}
+        headlineLine1={content.hero.headlineLine1}
+        rotatingWords={content.hero.rotatingWords}
+        subheadline={content.hero.subheadline}
+      />
       <ProsVsl videoSrc={content.vsl.videoSrc} onOpenVideo={openVideo} />
       <ProsVideoGallery items={content.gallery} onOpenVideo={openVideo} />
       <ProsMobileStickyCta whatsapp={content.whatsapp} slug={content.slug} />
