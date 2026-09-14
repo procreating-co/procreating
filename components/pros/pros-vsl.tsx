@@ -5,22 +5,17 @@ import { motion, useMotionValueEvent, useReducedMotion, useScroll, useTransform 
 import { Play, Volume2, VolumeX } from "lucide-react";
 
 /**
- * Bloco 2 — "scroll/drag reveal de vídeo" no estilo Cosmos.so (pedido explícito, movido do Hero
- * nesta rodada — "o efeito de useScroll/useTransform deve ser no bloco 2"). Sem texto/headline ao
- * redor (pedido original do bloco: o vídeo é o protagonista, nada antes dele).
+ * Bloco 2 — "scroll/drag reveal de vídeo" no estilo Cosmos.so. Sem texto nenhum (pedido
+ * explícito) — só o vídeo e os dois controles funcionais (play/tela cheia, mudo/som).
  *
- * Abordagem técnica (mesma já usada e aprovada quando isto vivia no Hero): SEM GSAP — o projeto
- * já tem `framer-motion`; `position: sticky` numa wrapper mais alta que a viewport (`h-[220svh]`)
- * produz o "pin" com scroll 100% nativo (mouse/trackpad/touch-drag idênticos, sem código
- * separado pra touch, sem os riscos de overscroll do iOS Safari que interceptar wheel/touchmove
- * manualmente teria). `useScroll({ target })` só LÊ o progresso de 0 a 1.
+ * `position: sticky` numa wrapper mais alta que a viewport (`h-[220svh]`) produz o "pin" com
+ * scroll 100% nativo (mouse/trackpad/touch-drag idênticos, sem código separado pra touch, sem
+ * riscos de overscroll do iOS Safari). `useScroll({ target })` só LÊ o progresso de 0 a 1.
+ * Vídeo expande via `clip-path` (não width/height) — só propriedades leves.
  *
- * Progresso:
- *  - 0 → 0.15: play button do "pill" visível (clicável, abre em tela cheia sem precisar rolar).
- *  - 0 → 0.85: vídeo expande do "pill" pequeno até cobrir a tela via `clip-path` (não width/
- *    height — só propriedades leves: `clip-path` composto + `opacity`).
- *  - >= 0.92: vídeo "trava" expandido e toca de verdade (mudo, botão de unmute); abaixo de 0.85
- *    volta a pausar/mutar — reversível (pedido explícito).
+ * Carregamento rápido (pedido explícito): `preload="metadata"` (não "auto") + o loop mudo do
+ * "pill" inicial só começa quando a seção realmente entra perto da viewport (IntersectionObserver
+ * com `rootMargin`), em vez de baixar o vídeo inteiro assim que a página carrega.
  */
 export function ProsVsl({ videoSrc, onOpenVideo }: { videoSrc: string; onOpenVideo: (src: string) => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -30,21 +25,31 @@ export function ProsVsl({ videoSrc, onOpenVideo }: { videoSrc: string; onOpenVid
   const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
+    const trigger = wrapperRef.current;
     const video = videoRef.current;
-    if (!video) return;
+    if (!trigger || !video) return;
     video.muted = true;
-    video.play().catch(() => {});
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        video.play().catch(() => {});
+        observer.disconnect();
+      },
+      { rootMargin: "400px" },
+    );
+    observer.observe(trigger);
+    return () => observer.disconnect();
   }, []);
 
   const { scrollYProgress } = useScroll({ target: wrapperRef, offset: ["start start", "end start"] });
   const playButtonOpacity = useTransform(scrollYProgress, [0, 0.15], [1, 0]);
   const overlayOpacity = useTransform(scrollYProgress, [0, 1], [0.05, 0.5]);
 
-  // Clip-path funcional (não from/to automático) — mais fácil de reajustar curva/tamanho do
-  // "pill" inicial sem depender da interpolação de string do framer-motion.
+  // Clip-path funcional — expansão real até 0.85, o resto é folga de scroll antes de soltar pro
+  // próximo bloco. Ease-out cúbico: rápido no início, suave no fim.
   const clipPath = useTransform(scrollYProgress, (raw) => {
     const p = Math.min(raw / 0.85, 1);
-    const eased = 1 - Math.pow(1 - p, 3); // ease-out cúbico — expansão rápida no início, suave no fim
+    const eased = 1 - Math.pow(1 - p, 3);
     const insetX = 34 * (1 - eased);
     const insetY = 42 * (1 - eased);
     const radius = 180 * (1 - eased);
@@ -72,7 +77,7 @@ export function ProsVsl({ videoSrc, onOpenVideo }: { videoSrc: string; onOpenVid
 
   if (prefersReducedMotion) {
     return (
-      <section aria-label="Vídeo de apresentação" className="relative bg-black py-16 lg:py-24">
+      <section aria-label="Vídeo" className="relative bg-black py-16 lg:py-24">
         <div className="mx-auto w-full max-w-[1600px] px-3 sm:px-6">
           <button type="button" onClick={() => onOpenVideo(videoSrc)} aria-label="Assistir vídeo em tela cheia" className="relative block aspect-video w-full overflow-hidden bg-white/[0.03]">
             <video muted playsInline preload="metadata" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover">
@@ -90,9 +95,9 @@ export function ProsVsl({ videoSrc, onOpenVideo }: { videoSrc: string; onOpenVid
   }
 
   return (
-    <section ref={wrapperRef} aria-label="Vídeo de apresentação" className="relative h-[220svh] bg-black">
+    <section ref={wrapperRef} aria-label="Vídeo" className="relative h-[220svh] bg-black">
       <div className="sticky top-0 h-[100svh] w-full overflow-hidden">
-        <motion.video ref={videoRef} style={{ clipPath }} loop playsInline preload="auto" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover">
+        <motion.video ref={videoRef} style={{ clipPath }} loop playsInline preload="metadata" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover">
           <source src={videoSrc} type="video/mp4" />
         </motion.video>
         <motion.div style={{ opacity: overlayOpacity }} aria-hidden="true" className="absolute inset-0 bg-black" />
