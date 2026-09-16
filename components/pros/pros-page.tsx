@@ -1,53 +1,28 @@
-"use client";
-
-import { useState } from "react";
-import dynamic from "next/dynamic";
-import { Sora } from "next/font/google";
-import type { ActiveVideo } from "@/components/landing/video-lightbox";
-import type { ProsContent } from "@/content/pros/oficinas";
+import { ProsHeader } from "@/components/pros/pros-header";
 import { ProsHero } from "@/components/pros/pros-hero";
-import { ProsVsl } from "@/components/pros/pros-vsl";
-import { ProsVideoGallery } from "@/components/pros/pros-video-gallery";
+import { ProsVideoShowcase } from "@/components/pros/pros-video-showcase";
+import { ProsFooter } from "@/components/pros/pros-footer";
 import { ProsMobileStickyCta } from "@/components/pros/pros-mobile-sticky-cta";
-
-const VideoLightbox = dynamic(() => import("@/components/landing/video-lightbox"));
-
-// Fonte carregada só aqui — pedido explícito: Sora pra QUALQUER texto que a página /pros/01 tenha
-// (hoje só o Hero, mas vale pro que vier depois). Escopo isolado deste arquivo/componente, não
-// toca em app/layout.tsx nem na variável --font-family-display global do resto da plataforma.
-// Google Font variável (100–800), então dá pra usar qualquer peso Tailwind (font-light etc.) sem
-// precisar declarar `weight` explícito.
-const sora = Sora({ subsets: ["latin"], variable: "--font-pros-sora" });
+import type { ProsContent } from "@/content/pros/oficinas";
 
 /**
- * Página de prospecção `/pros/[slug]` — maioria da página é só vídeo e blocos com vídeo (pedido
- * explícito de rodada anterior). Header, pilares, case em texto, "como funciona", diferencial,
- * FAQ, CTA final e footer foram REMOVIDOS (arquivos deletados, não só desligados) — nenhum deles
- * continha vídeo. O Hero é a única exceção: tem headline + subheadline (pedido explícito desta
- * rodada) mas nenhum CTA/botão.
+ * Página de prospecção `/pros/[slug]` — pedido explícito (reconstrução completa desta rodada):
+ * "não quero aproveitar nada do que está aqui" + "quero replicar exatamente" a estrutura de
+ * `/clients/pascoal/public` (Header, Hero, seção "Vídeos", Footer — as mesmas 4 seções de
+ * `PascoalSetembroTemplate`), com copy própria da Procreating Co. Todo o design anterior desta
+ * página (scroll/drag reveal, grid de 6 colunas, tipografia Sora) foi descartado.
  *
- * Único contato que sobra: `ProsMobileStickyCta`, um botão flutuante só de ícone (sem texto
- * visível) — a única forma de alguém que assistiu aos vídeos conseguir falar com a Procreating.
- *
- * Estado do lightbox fica aqui: bloco 2 (scroll reveal) e a grade do bloco 3 abrem o mesmo player
- * em tela cheia. O Hero é a ÚNICA exceção — pedido explícito, não é clicável.
+ * `ProsMobileStickyCta` (botão flutuante de WhatsApp, só ícone) mantido como contato persistente
+ * além do que o Footer já oferece — não fazia parte do que precisava mudar nesta rodada.
  */
 export function ProsPage({ content }: { content: ProsContent }) {
-  const [activeVideo, setActiveVideo] = useState<ActiveVideo | null>(null);
-  const openVideo = (src: string) => setActiveVideo({ poster: "", title: "Vídeo", videoSrc: src });
-
   return (
-    <main className={`relative min-h-screen overflow-x-hidden bg-black text-white ${sora.className}`}>
-      <ProsHero
-        videoSrc={content.hero.videoSrc}
-        headlineLine1={content.hero.headlineLine1}
-        rotatingWords={content.hero.rotatingWords}
-        subheadline={content.hero.subheadline}
-      />
-      <ProsVsl videoSrc={content.vsl.videoSrc} onOpenVideo={openVideo} />
-      <ProsVideoGallery items={content.gallery} onOpenVideo={openVideo} />
+    <main className="relative min-h-screen overflow-x-hidden bg-black text-white">
+      <ProsHeader brandName={content.header.brandName} />
+      <ProsHero videoSrc={content.hero.videoSrc} welcomeLines={content.hero.welcomeLines} />
+      <ProsVideoShowcase eyebrow={content.videos.eyebrow} heading={content.videos.heading} rows={content.videos.rows} />
+      <ProsFooter brandName={content.footer.brandName} />
       <ProsMobileStickyCta whatsapp={content.whatsapp} slug={content.slug} />
-      {activeVideo && <VideoLightbox item={activeVideo} onClose={() => setActiveVideo(null)} />}
     </main>
   );
 }

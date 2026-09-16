@@ -9,9 +9,8 @@ import { ProsPage } from "@/components/pros/pros-page";
  * + uma linha em `content/pros/registry.ts`, nunca uma rota nova (mesmo padrão de
  * `lib/clients/presentation-registry.ts`) — já era assim antes desta rodada, mantido.
  *
- * Sem header/nav — a própria página (`ProsPage`) já começa no Hero. Estrutura continua travada em
- * 4 blocos (pedido explícito, reafirmado nesta rodada) — esta rodada só poliu SEO/acessibilidade/
- * analytics dentro do que já existe, sem adicionar seção nova.
+ * Estrutura replica `/clients/pascoal/public` (Header, Hero, "Vídeos", Footer), com copy própria
+ * da Procreating Co. — ver `components/pros/pros-page.tsx` e `content/pros/oficinas.ts`.
  */
 export async function generateStaticParams() {
   return getAllProsSlugs().map((slug) => ({ slug }));
