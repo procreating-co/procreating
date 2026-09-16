@@ -8,6 +8,39 @@ import type { ProsVideo, ProsVideoRow } from "@/content/pros/oficinas";
 
 const VideoLightbox = dynamic(() => import("@/components/landing/video-lightbox"));
 
+/** Fade + slide-up ao entrar na viewport — item aprovado da proposta ("scroll-reveal leve nos
+ *  vídeos"). Um observer por linha (mesmo padrão granular já usado no resto do arquivo), dispara
+ *  uma vez só. Respeita `prefers-reduced-motion`: aparece direto, sem animação. */
+function Reveal({ children }: { children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setVisible(true);
+      return;
+    }
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        setVisible(true);
+        observer.disconnect();
+      },
+      { threshold: 0.15, rootMargin: "-40px" },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={ref} className={`transition-all duration-700 ease-out ${visible ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"}`}>
+      {children}
+    </div>
+  );
+}
+
 /** Um card de vídeo — o próprio `<video>` (mudo, sem controles) serve de thumbnail real, com
  *  `IntersectionObserver` pra tocar/pausar 1 frame assim que entra na tela (mesma técnica de
  *  `videos-placeholder-section.tsx`, corrige o card preto no Safari/iOS sem gesto do usuário).
@@ -62,7 +95,8 @@ function VideoTile({ video, orientation, onOpen }: { video: ProsVideo; orientati
  * (`videos-placeholder-section.tsx`: fundo `oklch(0.09 0.01 260)`, header centralizado em
  * `font-display`, cards com aspect-ratio real). Ordem própria pedida pra essa página (não o grid
  * de 12 do cliente): horizontal, horizontal, um par de verticais lado a lado, horizontal — sem
- * nenhuma numeração nos cards.
+ * nenhuma numeração nos cards. Cada linha entra com scroll-reveal (`Reveal`, item aprovado da
+ * proposta de melhorias).
  */
 export function ProsVideoShowcase({ eyebrow, heading, rows }: { eyebrow: string; heading: [string, string]; rows: ProsVideoRow[] }) {
   const [activeVideo, setActiveVideo] = useState<ActiveVideo | null>(null);
@@ -83,19 +117,21 @@ export function ProsVideoShowcase({ eyebrow, heading, rows }: { eyebrow: string;
         </header>
 
         <div className="flex flex-col gap-8 lg:gap-10">
-          {rows.map((row, i) =>
-            row.kind === "horizontal" ? (
-              <div key={i} className="mx-auto w-full max-w-4xl">
-                <VideoTile video={row.video} orientation="horizontal" onOpen={() => open(row.video.src)} />
-              </div>
-            ) : (
-              <div key={i} className="mx-auto grid w-full max-w-4xl grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-6 lg:gap-8">
-                {row.videos.map((video, j) => (
-                  <VideoTile key={j} video={video} orientation="vertical" onOpen={() => open(video.src)} />
-                ))}
-              </div>
-            ),
-          )}
+          {rows.map((row, i) => (
+            <Reveal key={i}>
+              {row.kind === "horizontal" ? (
+                <div className="mx-auto w-full max-w-4xl">
+                  <VideoTile video={row.video} orientation="horizontal" onOpen={() => open(row.video.src)} />
+                </div>
+              ) : (
+                <div className="mx-auto grid w-full max-w-4xl grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-6 lg:gap-8">
+                  {row.videos.map((video, j) => (
+                    <VideoTile key={j} video={video} orientation="vertical" onOpen={() => open(video.src)} />
+                  ))}
+                </div>
+              )}
+            </Reveal>
+          ))}
         </div>
       </div>
 
