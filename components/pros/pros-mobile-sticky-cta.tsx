@@ -7,12 +7,11 @@ import { track } from "@vercel/analytics";
 type WhatsappConfig = { phoneDigits: string; message: string };
 
 /**
- * Botão de contato flutuante — só um ícone, sem texto visível (pedido explícito desta rodada:
- * "exclua todos os textos"). Depois que a página virou só vídeo (sem header, sem CTA final, sem
- * footer), este é o ÚNICO jeito de alguém que assistiu aos vídeos falar com a Procreating — por
- * isso aparece em qualquer tamanho de tela agora (antes era só mobile, quando ainda existia um
- * CTA final visível no desktop). Some enquanto o Hero ocupa a tela (mesma lógica "sem elemento
- * clicável" do Hero), aparece só depois que o usuário rola além dele.
+ * Botão de contato flutuante — só um ícone, sem texto visível. O Header e o Footer da página não
+ * têm nenhum CTA/link de contato (réplica do site do cliente, que também não tem), então este
+ * continua sendo o único jeito direto de falar com a Procreating — por isso aparece em qualquer
+ * tamanho de tela. Some enquanto o Hero ocupa a tela, aparece só depois que o usuário rola além
+ * dele.
  */
 export function ProsMobileStickyCta({ whatsapp, slug }: { whatsapp: WhatsappConfig; slug: string }) {
   const [visible, setVisible] = useState(false);

@@ -1,41 +1,32 @@
-import { r2Url } from "@/lib/r2";
 import { clientVideos as pascoalLegacyVideos } from "@/data/pascoal/videos";
+import { setembroHorizontalVideos } from "@/data/pascoal/setembro-videos";
 
 /**
  * Conteúdo da página de prospecção `/pros/01` — nicho "oficinas, mecânicas e negócios técnicos".
- * A página é majoritariamente vídeo (pedido explícito de rodada anterior: zero copy fora do
- * Hero, zero bloco vazio/preto sem vídeo dentro). O Hero é a única exceção — pedido explícito
- * desta rodada: volta a ter um headline (com efeito de digitação numa das linhas) + subheadline.
+ * Pedido explícito (reconstrução completa desta rodada — "não quero aproveitar nada do que está
+ * aqui"): replicar a estrutura/estilo de `/clients/pascoal/public` (Header, Hero com welcome
+ * digitado, seção "Vídeos", Footer — as MESMAS 4 seções de `PascoalSetembroTemplate`), com copy
+ * própria da Procreating Co. em vez da Pascoal. Os componentes compartilhados usados pelo site do
+ * cliente (`components/landing/navigation.tsx`, `hero-section.tsx`, `videos-placeholder-section.tsx`,
+ * `footer-section.tsx`) não foram tocados — `components/pros/**` tem sua própria versão de cada
+ * seção, só clonando o estilo visual, pra não arriscar nada no site real do cliente.
  *
- * `metaTitle`/`metaDescription`/`ogImage` continuam existindo — são metadata de `<head>`
- * (título da aba, preview ao compartilhar o link), nunca aparecem NA página em si.
+ * `metaTitle`/`metaDescription`/`ogImage` são metadata de `<head>`, nunca aparecem na página.
  *
- * Toda mídia é real — vídeos hospedados nos MESMOS buckets R2 já em produção
- * (`data/pascoal/videos.ts`, legado; `data/pascoal/setembro-videos.ts`, os 12 novos).
+ * Toda mídia é real — mesmos vídeos já em produção nos buckets R2 da Pascoal (legado,
+ * `data/pascoal/videos.ts`; setembro/26, `data/pascoal/setembro-videos.ts`).
  */
 
-const SETEMBRO_R2_BASE = "https://pub-42560a6ade7e4e5994d209ebe8c409c9.r2.dev";
+export type ProsVideo = { src: string };
 
-export type ProsGalleryVideo = {
-  src: string;
-  orientation: "vertical" | "horizontal";
-  /** Colunas ocupadas num grid de 6 no desktop — curadoria manual (verticais precisam ter
-   *  presença, não parecer miniatura ao lado dos horizontais). */
-  span: number;
-};
-
-const setembro = (filename: string, orientation: ProsGalleryVideo["orientation"], span: number): ProsGalleryVideo => ({
-  src: r2Url(SETEMBRO_R2_BASE, filename),
-  orientation,
-  span,
-});
-
-const legacy = (src: string, orientation: ProsGalleryVideo["orientation"], span: number): ProsGalleryVideo => ({ src, orientation, span });
+export type ProsVideoRow =
+  | { kind: "horizontal"; video: ProsVideo }
+  | { kind: "vertical-pair"; videos: [ProsVideo, ProsVideo] };
 
 export const oficinasProsContent = {
   slug: "01",
-  metaTitle: "Procreating | Pascoal Bombas",
-  metaDescription: "Vídeos produzidos pela Procreating para a Pascoal Bombas.",
+  metaTitle: "Procreating Co. | Estratégia, Audiovisual e Autoridade Digital",
+  metaDescription: "Vídeos produzidos pela Procreating Co.",
   ogImage: "/images/pascoal-equipe-oficina.jpg",
 
   // O número abaixo veio assim do pedido do usuário — é IDÊNTICO ao placeholder que eu mesmo
@@ -46,30 +37,45 @@ export const oficinasProsContent = {
     message: "Olá, gostaria de conversar sobre o posicionamento e a comunicação digital da minha empresa.",
   },
 
-  // Bloco 1 — vídeo de fundo + headline/subheadline. Sem botão de assistir (pedido explícito:
-  // "o único vídeo que não pode ser assistido é o vídeo do hero" — segue valendo).
+  header: {
+    // Pedido explícito: "Pascoal Bombas > Procreating Co." + excluir o botão "Acessar o Projeto
+    // Inicial" (não existe equivalente aqui — não há "projeto anterior" pra essa página apontar).
+    brandName: "Procreating Co.",
+  },
+
   hero: {
     videoSrc: "/videos/hero-background.mp4",
-    headlineLine1: "Seu negócio merece",
-    // Linha 2 — digitada/apagada em loop (ver `hooks/use-typewriter.ts`), uma frase por vez.
-    rotatingWords: ["ser visto", "ser referência", "ser notado", "ser lembrado", "ser reconhecido"],
-    subheadline: "Transformamos sua experiência e resultados em presença digital.",
+    // Pedido explícito: "Sejam bem-vindos, Pascoal e equipe." -> "Seu negócio merece ser visto /
+    // da forma certa." — mesmas duas linhas digitadas ao carregar (réplica do welcome do cliente).
+    // Sem parágrafo nem estatística numérica embaixo (pedido explícito: excluir "Os novos
+    // materiais estão aqui..." e qualquer número, incluindo "12 vídeos produzidos").
+    welcomeLines: ["Seu negócio merece ser visto", "da forma certa."] as [string, string],
   },
 
-  // Bloco 2 — scroll/drag reveal (clip-path + pin, framer-motion). Clicável em tela cheia.
-  vsl: {
-    videoSrc: pascoalLegacyVideos.presentationVideo!.videoSrc,
+  videos: {
+    // Pedido explícito: "Vídeos" -> "Construímos Autoridades"; "Conteúdos para redes / da Julia e
+    // Pascoal" -> "Você faz um trabalho de excelência. / Nós fazemos o mundo conhecer isso."
+    eyebrow: "Construímos Autoridades",
+    heading: ["Você faz um trabalho de excelência.", "Nós fazemos o mundo conhecer isso."] as [string, string],
+    // Ordem exata pedida, sem numeração nenhuma nos cards (pedido explícito: "tudo envolvendo
+    // números você pode excluir, isso de vídeo 01, 02, 03...").
+    rows: [
+      { kind: "horizontal", video: { src: pascoalLegacyVideos.presentationVideo!.videoSrc } }, // 02. Vídeo de Apresentação
+      { kind: "horizontal", video: { src: pascoalLegacyVideos.socialVideos[2].videoSrc } }, // 03. Entrevista com Pascoal
+      {
+        kind: "vertical-pair",
+        videos: [
+          { src: pascoalLegacyVideos.socialVideos[0].videoSrc }, // 01. Processo
+          { src: pascoalLegacyVideos.socialVideos[1].videoSrc }, // 02. Serviços
+        ],
+      },
+      { kind: "horizontal", video: { src: setembroHorizontalVideos[9]!.src } }, // vídeo 12 (H10)
+    ] satisfies ProsVideoRow[],
   },
 
-  // Bloco 3 — grade de vídeos reais da Pascoal Bombas. Clicáveis em tela cheia.
-  gallery: [
-    legacy(pascoalLegacyVideos.socialVideos[2].videoSrc, "horizontal", 4), // Entrevista com Pascoal
-    setembro("V1Conselho do pascoal - Zona Sul.mp4", "vertical", 2),
-    setembro("H6 vídeo situação mais engraçada que aconteceu na Pascoal-_1.mp4", "horizontal", 3),
-    legacy(pascoalLegacyVideos.acquisitionVideo!.videoSrc, "vertical", 3),
-    setembro("H9 Frases do Pascoal 1 - Zona Sul.mp4", "horizontal", 4),
-    setembro("V2Erro de diagnóstico - Zona Sul.mp4", "vertical", 2),
-  ] satisfies ProsGalleryVideo[],
+  footer: {
+    brandName: "Procreating Co.",
+  },
 };
 
 export type ProsContent = typeof oficinasProsContent;

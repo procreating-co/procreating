@@ -1,38 +1,65 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { useTypewriter } from "@/hooks/use-typewriter";
+import { useEffect, useRef, useState } from "react";
+
+const WELCOME_TYPE_MS = 40;
+
+/** Digita as duas linhas uma única vez ao carregar — mesma mecânica do `HeroSection`
+ *  compartilhado (`components/landing/hero-section.tsx`), duplicada aqui (componente pequeno,
+ *  não vale a pena extrair um hook compartilhado só por isso) pra não mexer em nada usado pelo
+ *  site real do cliente. */
+function useTypedWelcome(lines: [string, string]) {
+  const [line1, setLine1] = useState("");
+  const [line2, setLine2] = useState("");
+  const [activeLine, setActiveLine] = useState<1 | 2 | null>(1);
+
+  useEffect(() => {
+    let cancelled = false;
+    const timeouts: ReturnType<typeof setTimeout>[] = [];
+    const schedule = (fn: () => void, delay: number) => {
+      timeouts.push(setTimeout(() => !cancelled && fn(), delay));
+    };
+
+    const typeText = (text: string, setter: (value: string) => void, onDone: () => void) => {
+      let i = 0;
+      const step = () => {
+        if (cancelled) return;
+        setter(text.slice(0, i));
+        if (i >= text.length) return onDone();
+        i++;
+        schedule(step, WELCOME_TYPE_MS);
+      };
+      step();
+    };
+
+    setActiveLine(1);
+    typeText(lines[0], setLine1, () => {
+      setActiveLine(2);
+      typeText(lines[1], setLine2, () => setActiveLine(null));
+    });
+
+    return () => {
+      cancelled = true;
+      timeouts.forEach(clearTimeout);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return { line1, line2, activeLine };
+}
 
 /**
- * Hero — vídeo de fundo + headline em duas linhas (linha 1 fixa, linha 2 digitada em loop) +
- * subheadline. Sem botão de assistir (pedido explícito, ainda vale: é o único vídeo da página
- * que não abre em tela cheia).
- *
- * Tipografia: duas linhas com line-height bem compacto (quase coladas), tracking neutro/
- * levemente negativo, centralizado. Fonte Sora (pedido explícito, peso mais fino — `font-light`)
- * carregada em `pros-page.tsx` e aplicada na página inteira via `<main>`; este componente não
- * declara font-family nenhuma, só herda. Cor branca — a referência original (cosmos.so) era
- * preta sobre fundo claro, mas nosso Hero tem vídeo escuro atrás, então a cor foi adaptada pra
- * manter legibilidade.
+ * Hero — réplica do `HeroSection` compartilhado, sem o parágrafo e sem a estatística numérica de
+ * baixo (pedido explícito: excluir "Os novos materiais estão aqui..." e qualquer número, "isso de
+ * vídeo 01, 02, 03..."). Vídeo de fundo ambiente, sem clique/fullscreen — igual ao Hero real do
+ * cliente, que também não abre em tela cheia.
  */
-export function ProsHero({
-  videoSrc,
-  headlineLine1,
-  rotatingWords,
-  subheadline,
-}: {
-  videoSrc: string;
-  headlineLine1: string;
-  rotatingWords: string[];
-  subheadline: string;
-}) {
+export function ProsHero({ videoSrc, welcomeLines }: { videoSrc: string; welcomeLines: [string, string] }) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const { text } = useTypewriter(rotatingWords, { typingSpeed: 70, deletingSpeed: 35, pauseDuration: 3000 });
+  const [isVisible, setIsVisible] = useState(false);
+  const { line1, line2, activeLine } = useTypedWelcome(welcomeLines);
 
-  // Frase mais longa da lista — reserva a largura da linha 2 pra ela não "pular" o layout
-  // enquanto digita/apaga (renderizada invisível, só pra ocupar espaço; o texto visível fica
-  // absolutamente posicionado por cima, centralizado).
-  const longestWord = rotatingWords.reduce((a, b) => (b.length > a.length ? b : a), "");
+  useEffect(() => setIsVisible(true), []);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -54,28 +81,30 @@ export function ProsHero({
   }, []);
 
   return (
-    <section aria-label={`${headlineLine1} ${longestWord}`} className="relative flex h-[100svh] w-full items-center justify-center overflow-hidden bg-black text-center">
-      <video ref={videoRef} autoPlay muted loop playsInline preload="auto" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover opacity-60">
-        <source src={videoSrc} type="video/mp4" />
-      </video>
-      <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-black/60" />
-
-      <div className="relative z-10 mx-auto flex max-w-4xl flex-col items-center gap-5 px-6">
-        <h1 aria-hidden="true" className="text-balance text-[clamp(2.25rem,6.5vw,5.5rem)] font-light leading-[0.95] tracking-tight text-white">
-          <span className="block">{headlineLine1}</span>
-          <span className="relative mt-1 inline-block align-top">
-            {/* Ghost invisível — define a largura pela maior frase, sem afetar layout. */}
-            <span aria-hidden="true" className="invisible block whitespace-nowrap">
-              {longestWord}
-            </span>
-            <span className="absolute inset-0 flex items-center justify-center whitespace-nowrap">
-              {text}
-              <span className="ml-1 inline-block w-[0.06em] animate-pulse bg-white align-middle" style={{ height: "0.85em" }} />
-            </span>
-          </span>
-        </h1>
-        <p className="max-w-xl text-balance text-base leading-relaxed text-white/70 sm:text-lg">{subheadline}</p>
+    <section className="relative min-h-screen overflow-hidden bg-black text-white">
+      <div className="absolute inset-0 z-0">
+        <video ref={videoRef} autoPlay muted loop playsInline preload="auto" aria-hidden="true" className="h-full w-full object-cover object-center opacity-75">
+          <source src={videoSrc} type="video/mp4" />
+        </video>
+        <div className="absolute inset-0 bg-black/55" />
       </div>
+      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-[1400px] flex-col justify-center px-6 lg:px-12">
+        <div className={`max-w-6xl transition-all duration-1000 ${isVisible ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"}`}>
+          <h1 className="text-balance font-display text-[clamp(2.25rem,5vw,5rem)] leading-[1.02] tracking-tight">
+            <span aria-label={`${welcomeLines[0]} ${welcomeLines[1]}`}>
+              <span className="block" aria-hidden="true">
+                {line1}
+                {activeLine === 1 && <span className="animate-pulse">|</span>}
+              </span>
+              <span className="block font-medium text-white" aria-hidden="true">
+                {line2}
+                {activeLine === 2 && <span className="animate-pulse">|</span>}
+              </span>
+            </span>
+          </h1>
+        </div>
+      </div>
+      <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 z-[5] h-44 bg-gradient-to-b from-transparent via-black/55 to-black" />
     </section>
   );
 }
