@@ -50,16 +50,9 @@ function useTypedWelcome(lines: [string, string]) {
 
 /**
  * Hero — réplica do `HeroSection` compartilhado, sem o parágrafo e sem a estatística numérica de
- * baixo. Vídeo de fundo ambiente, sem clique/fullscreen — igual ao Hero real do cliente, que
- * também não abre em tela cheia.
- *
- * Foco mobile (pedido explícito): texto centralizado (`text-center`, só até `sm:` — desktop
- * continua alinhado à esquerda como o Hero original) e "subido" — `justify-start` com padding no
- * topo em vez de `justify-center`, pra garantir que o headline apareça antes da primeira dobra em
- * celular (a altura real da viewport no mobile, antes do navegador recolher a barra de endereço,
- * costuma ser menor que `100svh`; texto centralizado no meio de uma seção `min-h-screen` corre o
- * risco de cair fora da área visível no primeiro load). Desktop mantém `justify-center` — não tem
- * esse problema de chrome do navegador.
+ * baixo (pedido explícito: excluir "Os novos materiais estão aqui..." e qualquer número, "isso de
+ * vídeo 01, 02, 03..."). Vídeo de fundo ambiente, sem clique/fullscreen — igual ao Hero real do
+ * cliente, que também não abre em tela cheia.
  */
 export function ProsHero({ videoSrc, welcomeLines }: { videoSrc: string; welcomeLines: [string, string] }) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -95,8 +88,8 @@ export function ProsHero({ videoSrc, welcomeLines }: { videoSrc: string; welcome
         </video>
         <div className="absolute inset-0 bg-black/55" />
       </div>
-      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-[1400px] flex-col justify-start px-6 pt-28 sm:justify-center sm:pt-0 lg:px-12">
-        <div className={`max-w-6xl text-center transition-all duration-1000 sm:text-left ${isVisible ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"}`}>
+      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-[1400px] flex-col justify-center px-6 lg:px-12">
+        <div className={`max-w-6xl transition-all duration-1000 ${isVisible ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"}`}>
           <h1 className="text-balance font-display text-[clamp(2.25rem,5vw,5rem)] leading-[1.02] tracking-tight">
             <span aria-label={`${welcomeLines[0]} ${welcomeLines[1]}`}>
               <span className="block" aria-hidden="true">
