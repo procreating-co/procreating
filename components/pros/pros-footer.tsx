@@ -8,20 +8,18 @@ type WhatsappConfig = { phoneDigits: string; message: string };
 
 /**
  * Footer — pedido explícito: headline + botão de CTA que abre o WhatsApp (número real passado
- * pelo usuário nesta rodada — ver `content/pros/oficinas.ts`). Mesmo tratamento visual do footer
- * anterior (imagem de fundo, gradiente) — só o conteúdo mudou: antes era só marca + atribuição,
- * agora tem a chamada pra ação em cima, marca + atribuição embaixo.
+ * pelo usuário numa rodada anterior — ver `content/pros/oficinas.ts`). Sem marca/atribuição
+ * embaixo (pedido explícito desta rodada: excluir "Procreating Co." e "Planejado e Executado
+ * por..." — o footer agora é só a imagem de fundo + headline + CTA).
  */
 export function ProsFooter({
   headline,
   ctaLabel,
-  brandName,
   whatsapp,
   slug,
 }: {
   headline: string;
   ctaLabel: string;
-  brandName: string;
   whatsapp: WhatsappConfig;
   slug: string;
 }) {
@@ -34,7 +32,7 @@ export function ProsFooter({
         <Image src="/images/footer-earth-gradient.png" alt="Paisagem luminosa encerrando a página" fill sizes="100vw" loading="lazy" className="object-cover object-center" />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/40 to-black" />
       </div>
-      <div className="relative z-10 mx-auto max-w-[1400px] px-6 lg:px-12">
+      <div className="relative z-10 mx-auto max-w-[1400px] px-6 pb-14 lg:px-12 lg:pb-20">
         <Reveal className="mx-auto max-w-3xl py-10 text-center">
           <h2 className="text-balance font-display text-3xl leading-[1.05] tracking-tight sm:text-4xl md:text-5xl">{headline}</h2>
           <a
@@ -47,10 +45,6 @@ export function ProsFooter({
             {ctaLabel}
           </a>
         </Reveal>
-        <div className="border-t border-white/10 py-10 text-center">
-          <span className="inline-flex font-display text-2xl">{brandName}</span>
-          <p className="mt-4 text-sm leading-relaxed text-white/50">Planejado e Executado por Procreating Co. © 2026</p>
-        </div>
       </div>
     </footer>
   );
