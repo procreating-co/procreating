@@ -93,23 +93,13 @@ function TierComparison({ comparison, accent }: { comparison: BudgetPricingTierC
   );
 }
 
-/** Quanto o combo economiza em relação a contratar os outros formatos separados — conta real
- *  (soma dos outros tiers menos o preço do combo), nunca um número inventado. `null` quando não
- *  há economia de verdade (ex.: só 1 outro tier, ou o combo não é mais barato que a soma). */
-function computeSavings(tiers: BudgetPricingTier[], tier: BudgetPricingTier): number | null {
-  const others = tiers.filter((t) => t !== tier);
-  if (others.length < 2) return null;
-  const savings = others.reduce((sum, t) => sum + t.price, 0) - tier.price;
-  return savings > 0 ? savings : null;
-}
-
 /**
  * Formatos de contratação com preço fixo, EMPILHADOS verticalmente — pedido explícito, Priscilla:
  * "quero que seja apresentado de forma vertical". Cada card, de cima pra baixo: número + rótulo
  * (mesmo tamanho/cor de heading que o resto da proposta — pedido explícito), lista do que está
  * incluso (`items`, opcional), comparação de preço animada (`comparison`, opcional — ver
- * `TierComparison`), preço real (conta de 0, `AnimatedPrice`), economia real quando é o combo
- * (`highlight: true` — ver `computeSavings`), descrição.
+ * `TierComparison`), preço real (conta de 0, `AnimatedPrice`), descrição. Sem economia calculada
+ * embaixo do combo — pedido explícito, removida.
  *
  * O card com `highlight: true` (pedido explícito: "crie um efeito para apresentar o combo
  * completo") ganha: selo "Melhor Custo-Benefício", brilho pulsante sutil atrás da borda, e entra
@@ -126,7 +116,6 @@ function ProposalBudgetTiers({ tiers, accent }: { tiers: BudgetPricingTier[]; ac
       <div className="mx-auto flex max-w-2xl flex-col gap-10">
         {tiers.map((tier, index) => {
           const isCombo = Boolean(tier.highlight);
-          const savings = isCombo ? computeSavings(tiers, tier) : null;
           return (
             <motion.div
               key={tier.label}
@@ -181,11 +170,6 @@ function ProposalBudgetTiers({ tiers, accent }: { tiers: BudgetPricingTier[]; ac
               <div className="flex flex-col items-start gap-1">
                 {tier.comparison && <TierComparison comparison={tier.comparison} accent={accent} />}
                 <AnimatedPrice value={tier.price} className="font-display text-4xl tabular-nums text-white sm:text-5xl" />
-                {savings && (
-                  <p className="font-mono text-xs uppercase tracking-wide" style={{ color: accent }}>
-                    Economize {currency.format(savings)}
-                  </p>
-                )}
                 <p className="text-sm leading-relaxed text-white/50">{tier.description}</p>
               </div>
             </motion.div>
