@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import { motion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
+import { animate, motion, useInView } from "framer-motion";
 import { ArrowRight, Check, Compass, LineChart, Minus, Plus, Video, FileText } from "lucide-react";
 import type { ProposalContent } from "@/lib/clients/proposal-types";
-import type { BudgetConfigurator, BudgetContent, BudgetPricingTier, BudgetUpsell } from "@/lib/comercial/proposal-content-types";
+import type { BudgetConfigurator, BudgetContent, BudgetPricingTier, BudgetPricingTierComparison, BudgetUpsell } from "@/lib/comercial/proposal-content-types";
 import { ProposalBudgetConfigurator } from "@/components/proposal/proposal-budget-configurator";
+import { ProposalSectionHeader } from "@/components/proposal/proposal-section-header";
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
@@ -44,52 +45,152 @@ export function ProposalBudget({
   return <ProposalBudgetClassic content={content} accent={accent} />;
 }
 
-/** Formatos de contratação com preço fixo, EMPILHADOS verticalmente — pedido explícito,
- *  Priscilla: "quero que seja apresentado de forma vertical" (troca o grid lado a lado da rodada
- *  anterior). Cada card, de cima pra baixo: rótulo, lista do que está incluso (`items`, opcional
- *  — vídeos, equipe, escopo), preço "cheio" riscado quando há `comparison` (âncora — faz o preço
- *  real parecer mais barato por comparação), preço real, descrição. `highlight` (opcional)
- *  destaca um card com a borda na cor de destaque — pensado pro pacote combinado. */
+/** Conta de 0 até `value` quando entra na viewport (framer-motion `animate()` puro, sem
+ *  keyframes CSS) — pedido explícito: "em modo animação", reforça a percepção de valor em cada
+ *  preço, não só no combo. Desativado com `prefers-reduced-motion` (mostra o valor final direto). */
+function AnimatedPrice({ value, className }: { value: number; className: string }) {
+  const ref = useRef<HTMLParagraphElement>(null);
+  const isInView = useInView(ref, { once: true, amount: 0.6 });
+  const [display, setDisplay] = useState(0);
+
+  useEffect(() => {
+    if (!isInView) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setDisplay(value);
+      return;
+    }
+    const controls = animate(0, value, { duration: 1.1, ease: [0.16, 1, 0.3, 1], onUpdate: (v) => setDisplay(Math.round(v)) });
+    return () => controls.stop();
+  }, [isInView, value]);
+
+  return (
+    <p ref={ref} className={className}>
+      {currency.format(display)}
+    </p>
+  );
+}
+
+/** "Era caro, agora é barato" — pedido explícito: "deixe isso mais claro... em modo animação".
+ *  A conta ("9 vídeos × R$1.250 = R$11.250") aparece primeiro, DEPOIS uma linha desenha o risco
+ *  sobre ela (`scaleX` animado, não o `text-decoration` estático de antes) — o olho acompanha o
+ *  "antes" sendo riscado em vez de já receber tudo pronto, o que deixa a comparação mais óbvia. */
+function TierComparison({ comparison, accent }: { comparison: BudgetPricingTierComparison; accent: string }) {
+  return (
+    <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true, amount: 0.6 }} transition={{ duration: 0.4 }} className="relative inline-block">
+      <p className="font-mono text-sm text-white/40">
+        {comparison.originalLabel} = {currency.format(comparison.originalTotal)}
+      </p>
+      <motion.span
+        aria-hidden="true"
+        initial={{ scaleX: 0 }}
+        whileInView={{ scaleX: 1 }}
+        viewport={{ once: true, amount: 0.6 }}
+        transition={{ delay: 0.5, duration: 0.5, ease: "easeOut" }}
+        style={{ transformOrigin: "left", backgroundColor: accent }}
+        className="absolute left-0 top-1/2 h-px w-full"
+      />
+    </motion.div>
+  );
+}
+
+/** Quanto o combo economiza em relação a contratar os outros formatos separados — conta real
+ *  (soma dos outros tiers menos o preço do combo), nunca um número inventado. `null` quando não
+ *  há economia de verdade (ex.: só 1 outro tier, ou o combo não é mais barato que a soma). */
+function computeSavings(tiers: BudgetPricingTier[], tier: BudgetPricingTier): number | null {
+  const others = tiers.filter((t) => t !== tier);
+  if (others.length < 2) return null;
+  const savings = others.reduce((sum, t) => sum + t.price, 0) - tier.price;
+  return savings > 0 ? savings : null;
+}
+
+/**
+ * Formatos de contratação com preço fixo, EMPILHADOS verticalmente — pedido explícito, Priscilla:
+ * "quero que seja apresentado de forma vertical". Cada card, de cima pra baixo: número + rótulo
+ * (mesmo tamanho/cor de heading que o resto da proposta — pedido explícito), lista do que está
+ * incluso (`items`, opcional), comparação de preço animada (`comparison`, opcional — ver
+ * `TierComparison`), preço real (conta de 0, `AnimatedPrice`), economia real quando é o combo
+ * (`highlight: true` — ver `computeSavings`), descrição.
+ *
+ * O card com `highlight: true` (pedido explícito: "crie um efeito para apresentar o combo
+ * completo") ganha: selo "Melhor Custo-Benefício", brilho pulsante sutil atrás da borda, e entra
+ * por último/com leve destaque de escala — sem exagerar (nada de confete, só um empurrão visual
+ * proporcional ao resto da página, que já é minimalista).
+ */
 function ProposalBudgetTiers({ tiers, accent }: { tiers: BudgetPricingTier[]; accent: string }) {
   return (
     <section className="border-t border-white/10 bg-black px-6 py-24 text-white lg:px-12 lg:py-32">
+      <div className="mx-auto mb-14 max-w-3xl lg:mb-16">
+        <ProposalSectionHeader eyebrow="Investimento" heading="Orçamento" accent={accent} />
+      </div>
+
       <div className="mx-auto flex max-w-2xl flex-col gap-10">
-        {tiers.map((tier, index) => (
-          <motion.div
-            key={tier.label}
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.35 }}
-            transition={{ duration: 0.6, delay: index * 0.05, ease: "easeOut" }}
-            className="flex flex-col gap-6 border p-8 lg:p-10"
-            style={{ borderColor: tier.highlight ? accent : "rgba(255,255,255,0.1)" }}
-          >
-            <p className="font-mono text-xs uppercase tracking-wide" style={{ color: accent }}>
-              {tier.label}
-            </p>
-
-            {tier.items && tier.items.length > 0 && (
-              <ul className="flex flex-col gap-2.5">
-                {tier.items.map((item) => (
-                  <li key={item} className="flex items-start gap-2.5 text-sm leading-relaxed text-white/70">
-                    <Check className="mt-0.5 size-3.5 shrink-0" style={{ color: accent }} />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            )}
-
-            <div className="flex flex-col items-start gap-1">
-              {tier.comparison && (
-                <p className="font-mono text-sm text-white/35 line-through decoration-white/35">
-                  {tier.comparison.originalLabel} = {currency.format(tier.comparison.originalTotal)}
-                </p>
+        {tiers.map((tier, index) => {
+          const isCombo = Boolean(tier.highlight);
+          const savings = isCombo ? computeSavings(tiers, tier) : null;
+          return (
+            <motion.div
+              key={tier.label}
+              initial={{ opacity: 0, y: 24, scale: isCombo ? 0.97 : 1 }}
+              whileInView={{ opacity: 1, y: 0, scale: 1 }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.6, delay: index * 0.08, ease: "easeOut" }}
+              className={`relative flex flex-col gap-6 border p-8 lg:p-10 ${isCombo ? "border-2" : ""}`}
+              style={{ borderColor: isCombo ? accent : "rgba(255,255,255,0.1)" }}
+            >
+              {isCombo && (
+                <>
+                  <motion.div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute -inset-3 -z-10"
+                    style={{ boxShadow: `0 0 50px 4px ${accent}40` }}
+                    animate={{ opacity: [0.5, 1, 0.5] }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                  />
+                  <span
+                    className="absolute -top-3 left-8 rounded-full px-3 py-1 font-mono text-[10px] uppercase tracking-wide text-black"
+                    style={{ backgroundColor: accent }}
+                  >
+                    Melhor custo-benefício
+                  </span>
+                </>
               )}
-              <p className="font-display text-4xl tabular-nums text-white sm:text-5xl">{currency.format(tier.price)}</p>
-              <p className="text-sm leading-relaxed text-white/50">{tier.description}</p>
-            </div>
-          </motion.div>
-        ))}
+
+              <div className="flex items-center gap-3">
+                <span className="font-mono text-sm text-white/40">{String(index + 1).padStart(2, "0")}</span>
+                <h3 className="font-display text-2xl text-white sm:text-3xl">{tier.label}</h3>
+              </div>
+
+              {tier.items && tier.items.length > 0 && (
+                <ul className="flex flex-col gap-2.5">
+                  {tier.items.map((item, itemIndex) => (
+                    <motion.li
+                      key={item}
+                      initial={{ opacity: 0, x: -8 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true, amount: 0.6 }}
+                      transition={{ duration: 0.4, delay: itemIndex * 0.05 }}
+                      className="flex items-start gap-2.5 text-sm leading-relaxed text-white/70"
+                    >
+                      <Check className="mt-0.5 size-3.5 shrink-0" style={{ color: accent }} />
+                      {item}
+                    </motion.li>
+                  ))}
+                </ul>
+              )}
+
+              <div className="flex flex-col items-start gap-1">
+                {tier.comparison && <TierComparison comparison={tier.comparison} accent={accent} />}
+                <AnimatedPrice value={tier.price} className="font-display text-4xl tabular-nums text-white sm:text-5xl" />
+                {savings && (
+                  <p className="font-mono text-xs uppercase tracking-wide" style={{ color: accent }}>
+                    Economize {currency.format(savings)}
+                  </p>
+                )}
+                <p className="text-sm leading-relaxed text-white/50">{tier.description}</p>
+              </div>
+            </motion.div>
+          );
+        })}
       </div>
     </section>
   );
