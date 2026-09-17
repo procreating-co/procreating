@@ -116,12 +116,30 @@ export type BudgetConfigurator = {
   videoRange: BudgetConfiguratorVideoRange | null;
 };
 
-/** Um "formato" de contratação com preço fixo — pedido explícito, Priscilla: 3 cards de preço
- *  lado a lado (Posicionamento / Prospecção / Pacote Completo), sem configurador interativo
- *  nenhum (confirmado: substitui o configurador, não coexiste com ele). `highlight` opcional só
- *  destaca visualmente um card (ex.: o pacote combinado) — nunca muda cálculo nenhum, o preço é
- *  sempre o número exato passado. */
-export type BudgetPricingTier = { label: string; price: number; description: string; highlight?: boolean };
+/** "Era caro, agora é barato" — âncora opcional dentro de um `BudgetPricingTier` (pedido
+ *  explícito, Priscilla: "apresenta o valor que eu falei como algo barato"). `originalLabel` é o
+ *  texto explicando a conta (ex.: "9 vídeos × R$1.250"), `originalTotal` o valor riscado — o
+ *  preço real do tier (abaixo) fica visualmente mais barato por comparação. Usa um preço unitário
+ *  REAL que já existe no projeto (nunca inventado) — decisão explícita desta proposta: revela o
+ *  valor unitário no público, ao contrário da regra padrão do configurador (`BudgetConfigurator`,
+ *  acima), que nunca mostra preço por unidade. */
+export type BudgetPricingTierComparison = { originalLabel: string; originalTotal: number };
+
+/** Um "formato" de contratação com preço fixo — pedido explícito, Priscilla: cards de preço
+ *  empilhados verticalmente (Posicionamento / Prospecção / Pacote Completo), sem configurador
+ *  interativo nenhum (confirmado: substitui o configurador, não coexiste com ele). `items`
+ *  (opcional) lista tudo que está incluso (vídeos, equipe, etc.) acima do preço. `comparison`
+ *  (opcional) mostra o preço "cheio" riscado antes do preço real. `highlight` opcional só destaca
+ *  visualmente um card (ex.: o pacote combinado) — nunca muda cálculo nenhum, o preço é sempre o
+ *  número exato passado. */
+export type BudgetPricingTier = {
+  label: string;
+  price: number;
+  description: string;
+  items?: string[];
+  comparison?: BudgetPricingTierComparison | null;
+  highlight?: boolean;
+};
 
 export type BudgetContent = {
   heroNumber: number;

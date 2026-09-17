@@ -44,28 +44,50 @@ export function ProposalBudget({
   return <ProposalBudgetClassic content={content} accent={accent} />;
 }
 
-/** 3 formatos de contratação com preço fixo, lado a lado — pedido explícito, Priscilla. Sem
- *  configurador/addons: cada card é só rótulo + preço + descrição, nenhum número muda. `highlight`
- *  (opcional) destaca um card com a borda na cor de destaque — pensado pro pacote combinado. */
+/** Formatos de contratação com preço fixo, EMPILHADOS verticalmente — pedido explícito,
+ *  Priscilla: "quero que seja apresentado de forma vertical" (troca o grid lado a lado da rodada
+ *  anterior). Cada card, de cima pra baixo: rótulo, lista do que está incluso (`items`, opcional
+ *  — vídeos, equipe, escopo), preço "cheio" riscado quando há `comparison` (âncora — faz o preço
+ *  real parecer mais barato por comparação), preço real, descrição. `highlight` (opcional)
+ *  destaca um card com a borda na cor de destaque — pensado pro pacote combinado. */
 function ProposalBudgetTiers({ tiers, accent }: { tiers: BudgetPricingTier[]; accent: string }) {
   return (
     <section className="border-t border-white/10 bg-black px-6 py-24 text-white lg:px-12 lg:py-32">
-      <div className={`mx-auto grid max-w-5xl gap-6 ${tiers.length >= 3 ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
+      <div className="mx-auto flex max-w-2xl flex-col gap-10">
         {tiers.map((tier, index) => (
           <motion.div
             key={tier.label}
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.5 }}
-            transition={{ duration: 0.6, delay: index * 0.1, ease: "easeOut" }}
-            className="flex flex-col items-center gap-4 border p-8 text-center"
+            viewport={{ once: true, amount: 0.35 }}
+            transition={{ duration: 0.6, delay: index * 0.05, ease: "easeOut" }}
+            className="flex flex-col gap-6 border p-8 lg:p-10"
             style={{ borderColor: tier.highlight ? accent : "rgba(255,255,255,0.1)" }}
           >
             <p className="font-mono text-xs uppercase tracking-wide" style={{ color: accent }}>
               {tier.label}
             </p>
-            <p className="font-display text-4xl tabular-nums text-white sm:text-5xl">{currency.format(tier.price)}</p>
-            <p className="text-sm leading-relaxed text-white/50">{tier.description}</p>
+
+            {tier.items && tier.items.length > 0 && (
+              <ul className="flex flex-col gap-2.5">
+                {tier.items.map((item) => (
+                  <li key={item} className="flex items-start gap-2.5 text-sm leading-relaxed text-white/70">
+                    <Check className="mt-0.5 size-3.5 shrink-0" style={{ color: accent }} />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <div className="flex flex-col items-start gap-1">
+              {tier.comparison && (
+                <p className="font-mono text-sm text-white/35 line-through decoration-white/35">
+                  {tier.comparison.originalLabel} = {currency.format(tier.comparison.originalTotal)}
+                </p>
+              )}
+              <p className="font-display text-4xl tabular-nums text-white sm:text-5xl">{currency.format(tier.price)}</p>
+              <p className="text-sm leading-relaxed text-white/50">{tier.description}</p>
+            </div>
           </motion.div>
         ))}
       </div>
