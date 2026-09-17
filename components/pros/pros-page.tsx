@@ -33,7 +33,7 @@ export function ProsPage({ content }: { content: ProsContent }) {
         verticalPair={content.socialVideos.verticalPair}
         bottomHorizontal={content.socialVideos.bottomHorizontal}
       />
-      <ProsFooter headline={content.footer.headline} ctaLabel={content.footer.ctaLabel} brandName={content.footer.brandName} whatsapp={content.whatsapp} slug={content.slug} />
+      <ProsFooter headline={content.footer.headline} ctaLabel={content.footer.ctaLabel} whatsapp={content.whatsapp} slug={content.slug} />
       <ProsMobileStickyCta whatsapp={content.whatsapp} slug={content.slug} />
     </main>
   );

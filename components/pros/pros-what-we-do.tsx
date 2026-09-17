@@ -10,11 +10,12 @@ import type { ProsVideo } from "@/content/pros/oficinas";
 const VideoLightbox = dynamic(() => import("@/components/landing/video-lightbox"));
 
 /**
- * Bloco "O que fazemos" — eyebrow + heading (2 linhas) + o vídeo que já estava na primeira
- * posição da página (Vídeo de Apresentação), agora com o rótulo "01. Vídeos Institucionais"
- * acima dele (mesmo padrão number+title de `features-section.tsx`/`how-it-works-section.tsx` do
- * site do cliente: número em mono/opaco + título em `font-display`). Cada bloco de texto entra
- * com `Reveal` (pedido explícito: "em todos textos coloque efeito de aparição").
+ * Bloco "O que fazemos" — eyebrow + heading (2 linhas, fonte reduzida — pedido explícito) + o
+ * vídeo que já estava na primeira posição da página (Vídeo de Apresentação), agora com o rótulo
+ * "01. Vídeos Institucionais" acima dele (mesmo padrão number+title de
+ * `features-section.tsx`/`how-it-works-section.tsx` do site do cliente: número em mono/opaco +
+ * título em `font-display`). Cada bloco de texto entra com `Reveal` (pedido explícito: "em todos
+ * textos coloque efeito de aparição").
  */
 export function ProsWhatWeDo({
   eyebrow,
@@ -38,7 +39,7 @@ export function ProsWhatWeDo({
             {eyebrow}
             <span className="h-px w-12 bg-[var(--client-accent)]" />
           </span>
-          <h2 className="text-balance font-display text-3xl leading-[1.02] tracking-tight sm:text-4xl md:text-6xl lg:text-7xl">
+          <h2 className="text-balance font-display text-2xl leading-[1.05] tracking-tight sm:text-3xl md:text-4xl lg:text-5xl">
             {heading[0]} <span className="block text-white/40">{heading[1]}</span>
           </h2>
         </Reveal>

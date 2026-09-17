@@ -97,8 +97,8 @@ export function ProsHero({ videoSrc, welcomeLines }: { videoSrc: string; welcome
         <div className="absolute inset-0 bg-black/55" />
       </div>
       <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-[1400px] flex-col items-center justify-center px-6 text-center lg:px-12" style={{ transform: "translateY(-3cm)" }}>
-        <div className={`max-w-6xl transition-all duration-1000 ${isVisible ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"}`}>
-          <h1 className="text-balance font-display text-[clamp(1.75rem,4vw,3.5rem)] leading-[1.02] tracking-tight">
+        <div className={`mx-auto max-w-6xl text-center transition-all duration-1000 ${isVisible ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"}`}>
+          <h1 className="text-balance text-center font-display text-[clamp(1.75rem,4vw,3.5rem)] leading-[1.02] tracking-tight">
             <span aria-label={`${welcomeLines[0]} ${welcomeLines[1]}`}>
               <span className="block" aria-hidden="true">
                 {line1}

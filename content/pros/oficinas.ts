@@ -17,7 +17,7 @@ import { clientConfig as pascoalConfig } from "@/data/pascoal/config";
  */
 
 export type ProsVideo = { src: string };
-export type ProsPhoto = { src: string; alt: string };
+export type ProsPhoto = { src: string; alt: string; category: string };
 
 export const oficinasProsContent = {
   slug: "01",
@@ -54,7 +54,7 @@ export const oficinasProsContent = {
   // reais já cadastradas em `data/pascoal/config.ts` — nada inventado.
   photos: {
     heading: "Ensaio Fotográfico",
-    items: pascoalConfig.features.photos.map((photo) => ({ src: photo.src, alt: photo.alt })) satisfies ProsPhoto[],
+    items: pascoalConfig.features.photos.map((photo) => ({ src: photo.src, alt: photo.alt, category: photo.category })) satisfies ProsPhoto[],
   },
 
   // Vídeos "sociais" — pedido explícito: eyebrow "Vídeos" + heading "Conteúdos / para redes
@@ -72,10 +72,11 @@ export const oficinasProsContent = {
     bottomHorizontal: { src: setembroHorizontalVideos[9]!.src }, // vídeo 12 (H10)
   },
 
+  // Sem marca/atribuição embaixo (pedido explícito desta rodada: excluir "Procreating Co." e
+  // "Planejado e Executado por...").
   footer: {
     headline: "Quer entender como isso pode ser aplicado ao seu negócio?",
     ctaLabel: "Quero aplicar isso ao meu negócio",
-    brandName: "Procreating Co.",
   },
 };
 
