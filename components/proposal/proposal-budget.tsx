@@ -120,7 +120,7 @@ function ProposalBudgetTiers({ tiers, accent }: { tiers: BudgetPricingTier[]; ac
   return (
     <section className="border-t border-white/10 bg-black px-6 py-24 text-white lg:px-12 lg:py-32">
       <div className="mx-auto mb-14 max-w-3xl lg:mb-16">
-        <ProposalSectionHeader eyebrow="Investimento" heading="Orçamento" accent={accent} />
+        <ProposalSectionHeader eyebrow="" heading="Orçamento" accent={accent} />
       </div>
 
       <div className="mx-auto flex max-w-2xl flex-col gap-10">
