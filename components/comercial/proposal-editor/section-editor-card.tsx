@@ -484,11 +484,14 @@ function BudgetUpsellField({ upsell, onChange }: { upsell: Upsell | null; onChan
   );
 }
 
-type PricingTier = { label: string; price: number; description: string; highlight?: boolean };
+type PricingTierComparison = { originalLabel: string; originalTotal: number };
+type PricingTier = { label: string; price: number; description: string; items?: string[]; comparison?: PricingTierComparison | null; highlight?: boolean };
 
-/** 3 formatos de contratação com preço fixo, lado a lado no público (`ProposalBudgetTiers`) —
- *  quando preenchido, substitui TANTO o número grande clássico quanto o configurador (os três
- *  nunca coexistem). Cada card é só rótulo + preço + descrição — sem addons/removíveis. */
+/** Formatos de preço fixo, EMPILHADOS verticalmente no público (`ProposalBudgetTiers`) — quando
+ *  preenchido, substitui TANTO o número grande clássico quanto o configurador (os três nunca
+ *  coexistem). Cada card: rótulo, lista do que está incluso (opcional), preço "cheio" riscado
+ *  opcional (âncora — faz o preço real parecer mais barato por comparação), preço real,
+ *  descrição. */
 function BudgetPricingTiersField({ tiers, onChange }: { tiers: PricingTier[] | null; onChange: (tiers: PricingTier[] | null) => void }) {
   const list = tiers ?? [];
 
@@ -496,25 +499,77 @@ function BudgetPricingTiersField({ tiers, onChange }: { tiers: PricingTier[] | n
     onChange(list.map((t, i) => (i === index ? { ...t, ...patch } : t)));
   }
 
+  function updateItem(tierIndex: number, itemIndex: number, value: string) {
+    const items = [...(list[tierIndex].items ?? [])];
+    items[itemIndex] = value;
+    update(tierIndex, { items });
+  }
+
   return (
     <div className="flex flex-col gap-2 rounded-md border border-border/60 p-2.5">
       <Label>Formatos de preço fixo (substitui o valor único/configurador quando preenchido)</Label>
-      {list.map((tier, index) => (
-        <div key={index} className="flex flex-col gap-1.5 rounded-md border border-border/60 p-2">
-          <div className="grid grid-cols-2 gap-2">
-            <Input placeholder="Ex.: Posicionamento" value={tier.label} onChange={(e) => update(index, { label: e.target.value })} className="h-8 text-sm" />
-            <Input type="number" min={0} placeholder="Preço (R$)" value={tier.price} onChange={(e) => update(index, { price: Number(e.target.value) || 0 })} className="h-8 text-sm" />
+      {list.map((tier, index) => {
+        const items = tier.items ?? [];
+        return (
+          <div key={index} className="flex flex-col gap-1.5 rounded-md border border-border/60 p-2">
+            <div className="grid grid-cols-2 gap-2">
+              <Input placeholder="Ex.: Posicionamento" value={tier.label} onChange={(e) => update(index, { label: e.target.value })} className="h-8 text-sm" />
+              <Input type="number" min={0} placeholder="Preço (R$)" value={tier.price} onChange={(e) => update(index, { price: Number(e.target.value) || 0 })} className="h-8 text-sm" />
+            </div>
+            <Input placeholder="Ex.: 09 vídeos estratégicos + 03 artes estáticas" value={tier.description} onChange={(e) => update(index, { description: e.target.value })} className="h-8 text-sm" />
+
+            <div className="flex flex-col gap-1 pl-2">
+              <span className="text-xs text-muted-foreground">Itens inclusos (opcional)</span>
+              {items.map((item, itemIndex) => (
+                <div key={itemIndex} className="flex items-center gap-1.5">
+                  <Input placeholder="Ex.: 09 vídeos estratégicos entregues" value={item} onChange={(e) => updateItem(index, itemIndex, e.target.value)} className="h-7 text-xs" />
+                  <button type="button" onClick={() => update(index, { items: items.filter((_, i) => i !== itemIndex) })} className="shrink-0 text-muted-foreground hover:text-destructive">
+                    <Trash2 className="size-3" />
+                  </button>
+                </div>
+              ))}
+              <button type="button" onClick={() => update(index, { items: [...items, ""] })} className="w-fit text-xs text-muted-foreground hover:text-foreground">
+                + item
+              </button>
+            </div>
+
+            <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={Boolean(tier.comparison)}
+                onChange={(e) => update(index, { comparison: e.target.checked ? { originalLabel: "", originalTotal: 0 } : null })}
+              />
+              mostrar preço "cheio" riscado (âncora)
+            </label>
+            {tier.comparison && (
+              <div className="grid grid-cols-2 gap-2 pl-2">
+                <Input
+                  placeholder="Ex.: 9 vídeos × R$1.250"
+                  value={tier.comparison.originalLabel}
+                  onChange={(e) => update(index, { comparison: { ...tier.comparison!, originalLabel: e.target.value } })}
+                  className="h-7 text-xs"
+                />
+                <Input
+                  type="number"
+                  min={0}
+                  placeholder="Valor cheio (R$)"
+                  value={tier.comparison.originalTotal}
+                  onChange={(e) => update(index, { comparison: { ...tier.comparison!, originalTotal: Number(e.target.value) || 0 } })}
+                  className="h-7 text-xs"
+                />
+              </div>
+            )}
+
+            <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <input type="checkbox" checked={Boolean(tier.highlight)} onChange={(e) => update(index, { highlight: e.target.checked })} />
+              destacar este card
+            </label>
+            <button type="button" onClick={() => onChange(list.filter((_, i) => i !== index))} className="w-fit text-xs text-muted-foreground hover:text-destructive">
+              remover formato
+            </button>
           </div>
-          <Input placeholder="Ex.: 09 vídeos estratégicos + 03 artes estáticas" value={tier.description} onChange={(e) => update(index, { description: e.target.value })} className="h-8 text-sm" />
-          <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <input type="checkbox" checked={Boolean(tier.highlight)} onChange={(e) => update(index, { highlight: e.target.checked })} />
-            destacar este card
-          </label>
-          <button type="button" onClick={() => onChange(list.filter((_, i) => i !== index))} className="w-fit text-xs text-muted-foreground hover:text-destructive">
-            remover formato
-          </button>
-        </div>
-      ))}
+        );
+      })}
       <button type="button" onClick={() => onChange([...list, { label: "", price: 0, description: "" }])} className="w-fit text-xs text-muted-foreground hover:text-foreground">
         + formato de preço
       </button>
