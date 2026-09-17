@@ -50,9 +50,17 @@ function useTypedWelcome(lines: [string, string]) {
 
 /**
  * Hero — réplica do `HeroSection` compartilhado, sem o parágrafo e sem a estatística numérica de
- * baixo (pedido explícito: excluir "Os novos materiais estão aqui..." e qualquer número, "isso de
- * vídeo 01, 02, 03..."). Vídeo de fundo ambiente, sem clique/fullscreen — igual ao Hero real do
- * cliente, que também não abre em tela cheia.
+ * baixo. Vídeo de fundo ambiente, sem clique/fullscreen — igual ao Hero real do cliente, que
+ * também não abre em tela cheia.
+ *
+ * Pedidos explícitos desta rodada:
+ * - Texto centralizado (antes era alinhado à esquerda, como o Hero original do cliente).
+ * - Fonte menor — "2 números abaixo" na escala de tamanhos: o `clamp()` original ia até 5rem no
+ *   desktop (perto de `text-7xl`/`text-8xl`); reduzido pra 3.5rem (perto de `text-5xl`/`text-6xl`,
+ *   2 degraus abaixo). Interpretação de uma instrução um pouco ambígua — fácil de recalibrar se
+ *   não for exatamente o tamanho pretendido.
+ * - Bloco subido 3cm (`translateY(-3cm)`, mesma técnica já usada no bloco de vídeo em rodada
+ *   anterior) — unidade `cm` é absoluta em CSS, o navegador resolve pra px sozinho.
  */
 export function ProsHero({ videoSrc, welcomeLines }: { videoSrc: string; welcomeLines: [string, string] }) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -88,9 +96,9 @@ export function ProsHero({ videoSrc, welcomeLines }: { videoSrc: string; welcome
         </video>
         <div className="absolute inset-0 bg-black/55" />
       </div>
-      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-[1400px] flex-col justify-center px-6 lg:px-12">
+      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-[1400px] flex-col items-center justify-center px-6 text-center lg:px-12" style={{ transform: "translateY(-3cm)" }}>
         <div className={`max-w-6xl transition-all duration-1000 ${isVisible ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"}`}>
-          <h1 className="text-balance font-display text-[clamp(2.25rem,5vw,5rem)] leading-[1.02] tracking-tight">
+          <h1 className="text-balance font-display text-[clamp(1.75rem,4vw,3.5rem)] leading-[1.02] tracking-tight">
             <span aria-label={`${welcomeLines[0]} ${welcomeLines[1]}`}>
               <span className="block" aria-hidden="true">
                 {line1}

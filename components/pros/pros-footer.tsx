@@ -1,13 +1,32 @@
+"use client";
+
 import Image from "next/image";
+import { track } from "@vercel/analytics";
+import { Reveal } from "@/components/pros/reveal";
+
+type WhatsappConfig = { phoneDigits: string; message: string };
 
 /**
- * Footer — réplica visual do `FooterSection` compartilhado (mesma imagem de fundo, mesmo
- * tratamento). Sem o parágrafo de razão social/CNPJ que o footer do cliente tem (`legalLine`):
- * é um dado jurídico real da Pascoal, não existe um equivalente da Procreating Co. pra colocar
- * aqui sem inventar informação. Mantém só a marca e a linha de atribuição — que já é a mesma que
- * aparece no footer do cliente, então não é dado novo/inventado.
+ * Footer — pedido explícito: headline + botão de CTA que abre o WhatsApp (número real passado
+ * pelo usuário nesta rodada — ver `content/pros/oficinas.ts`). Mesmo tratamento visual do footer
+ * anterior (imagem de fundo, gradiente) — só o conteúdo mudou: antes era só marca + atribuição,
+ * agora tem a chamada pra ação em cima, marca + atribuição embaixo.
  */
-export function ProsFooter({ brandName }: { brandName: string }) {
+export function ProsFooter({
+  headline,
+  ctaLabel,
+  brandName,
+  whatsapp,
+  slug,
+}: {
+  headline: string;
+  ctaLabel: string;
+  brandName: string;
+  whatsapp: WhatsappConfig;
+  slug: string;
+}) {
+  const href = `https://wa.me/${whatsapp.phoneDigits}?text=${encodeURIComponent(whatsapp.message)}`;
+
   return (
     <footer className="relative bg-black pt-14 text-white lg:pt-20">
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-[oklch(0.09_0.01_260)] via-black/70 to-black lg:h-20" />
@@ -16,9 +35,21 @@ export function ProsFooter({ brandName }: { brandName: string }) {
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/40 to-black" />
       </div>
       <div className="relative z-10 mx-auto max-w-[1400px] px-6 lg:px-12">
-        <div className="py-10">
-          <span className="inline-flex font-display text-3xl">{brandName}</span>
-          <p className="mt-6 text-sm leading-relaxed text-white/65">Planejado e Executado por Procreating Co. © 2026</p>
+        <Reveal className="mx-auto max-w-3xl py-10 text-center">
+          <h2 className="text-balance font-display text-3xl leading-[1.05] tracking-tight sm:text-4xl md:text-5xl">{headline}</h2>
+          <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => track("pros_cta_click", { slug, location: "footer" })}
+            className="mt-8 inline-flex h-14 items-center justify-center rounded-full bg-[var(--client-accent)] px-8 text-sm font-medium text-black transition-all duration-300 hover:scale-[1.03] hover:bg-white"
+          >
+            {ctaLabel}
+          </a>
+        </Reveal>
+        <div className="border-t border-white/10 py-10 text-center">
+          <span className="inline-flex font-display text-2xl">{brandName}</span>
+          <p className="mt-4 text-sm leading-relaxed text-white/50">Planejado e Executado por Procreating Co. © 2026</p>
         </div>
       </div>
     </footer>
