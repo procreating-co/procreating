@@ -226,6 +226,7 @@ export function SectionEditorCard({
               />
               <BudgetUpsellField upsell={content.upsell ?? null} onChange={(upsell) => set({ upsell })} />
               <BudgetConfiguratorField configurator={content.configurator ?? null} onChange={(configurator) => set({ configurator })} />
+              <BudgetPricingTiersField tiers={content.pricingTiers ?? null} onChange={(pricingTiers) => set({ pricingTiers })} />
             </div>
           )}
 
@@ -314,7 +315,8 @@ function RoadmapProductionField({ block, onChange }: { block: { heading: string;
 }
 
 type FunnelStage = { heading: string; objective: string; videos: ProposalVideo[] };
-type Funnel = { heading: string; profiles: string[]; stages: FunnelStage[] };
+type FunnelProfile = { label: string; steps: string[] };
+type Funnel = { heading: string; profiles: FunnelProfile[]; stages: FunnelStage[] };
 
 /** Bloco "estratégia por trás" do Roadmap (opcional) — perfis (colunas) + etapas de funil
  *  (Topo/Meio/Fundo), cada uma com objetivo em texto + até 2 vídeos explicativos. */
@@ -331,10 +333,14 @@ function RoadmapFunnelField({ proposalId, funnel, onChange }: { proposalId: stri
     );
   }
 
-  function updateProfile(index: number, value: string) {
-    const profiles = [...funnel!.profiles];
-    profiles[index] = value;
-    onChange({ ...funnel!, profiles });
+  function updateProfile(index: number, patch: Partial<FunnelProfile>) {
+    onChange({ ...funnel!, profiles: funnel!.profiles.map((p, i) => (i === index ? { ...p, ...patch } : p)) });
+  }
+
+  function updateProfileStep(profileIndex: number, stepIndex: number, value: string) {
+    const steps = [...funnel!.profiles[profileIndex].steps];
+    steps[stepIndex] = value;
+    updateProfile(profileIndex, { steps });
   }
 
   function updateStage(index: number, patch: Partial<FunnelStage>) {
@@ -346,17 +352,38 @@ function RoadmapFunnelField({ proposalId, funnel, onChange }: { proposalId: stri
       <Label>Bloco de estratégia (funil)</Label>
       <Input placeholder="Ex.: A Estratégia por trás" value={funnel.heading} onChange={(e) => onChange({ ...funnel, heading: e.target.value })} className="h-8 text-sm" />
 
-      <div className="flex flex-col gap-1 pl-2">
-        <span className="text-xs text-muted-foreground">Perfis (colunas da matriz)</span>
+      {/* Perfis — cada um vira uma coluna vertical no público, com sua PRÓPRIA lista de etapas
+          (nunca compartilhada entre perfis, diferente da matriz original). */}
+      <div className="flex flex-col gap-2 pl-2">
+        <span className="text-xs text-muted-foreground">Perfis (colunas verticais)</span>
         {funnel.profiles.map((profile, index) => (
-          <div key={index} className="flex items-center gap-1.5">
-            <Input placeholder="Ex.: Provocateur" value={profile} onChange={(e) => updateProfile(index, e.target.value)} className="h-7 text-xs" />
-            <button type="button" onClick={() => onChange({ ...funnel, profiles: funnel.profiles.filter((_, i) => i !== index) })} className="shrink-0 text-muted-foreground hover:text-destructive">
-              <Trash2 className="size-3" />
-            </button>
+          <div key={index} className="flex flex-col gap-1.5 rounded-md border border-border/60 p-2">
+            <div className="flex items-center gap-1.5">
+              <Input placeholder="Ex.: Corporativo:" value={profile.label} onChange={(e) => updateProfile(index, { label: e.target.value })} className="h-7 text-xs" />
+              <button type="button" onClick={() => onChange({ ...funnel, profiles: funnel.profiles.filter((_, i) => i !== index) })} className="shrink-0 text-muted-foreground hover:text-destructive">
+                <Trash2 className="size-3" />
+              </button>
+            </div>
+            <div className="flex flex-col gap-1 pl-2">
+              {profile.steps.map((step, stepIndex) => (
+                <div key={stepIndex} className="flex items-center gap-1.5">
+                  <Input placeholder="Ex.: Criação de Lista" value={step} onChange={(e) => updateProfileStep(index, stepIndex, e.target.value)} className="h-7 text-xs" />
+                  <button
+                    type="button"
+                    onClick={() => updateProfile(index, { steps: profile.steps.filter((_, i) => i !== stepIndex) })}
+                    className="shrink-0 text-muted-foreground hover:text-destructive"
+                  >
+                    <Trash2 className="size-3" />
+                  </button>
+                </div>
+              ))}
+              <button type="button" onClick={() => updateProfile(index, { steps: [...profile.steps, ""] })} className="w-fit text-xs text-muted-foreground hover:text-foreground">
+                + etapa
+              </button>
+            </div>
           </div>
         ))}
-        <button type="button" onClick={() => onChange({ ...funnel, profiles: [...funnel.profiles, ""] })} className="w-fit text-xs text-muted-foreground hover:text-foreground">
+        <button type="button" onClick={() => onChange({ ...funnel, profiles: [...funnel.profiles, { label: "", steps: [] }] })} className="w-fit text-xs text-muted-foreground hover:text-foreground">
           + perfil
         </button>
       </div>
@@ -452,6 +479,44 @@ function BudgetUpsellField({ upsell, onChange }: { upsell: Upsell | null; onChan
       </div>
       <button type="button" onClick={() => onChange(null)} className="w-fit text-xs text-muted-foreground hover:text-destructive">
         remover upsell
+      </button>
+    </div>
+  );
+}
+
+type PricingTier = { label: string; price: number; description: string; highlight?: boolean };
+
+/** 3 formatos de contratação com preço fixo, lado a lado no público (`ProposalBudgetTiers`) —
+ *  quando preenchido, substitui TANTO o número grande clássico quanto o configurador (os três
+ *  nunca coexistem). Cada card é só rótulo + preço + descrição — sem addons/removíveis. */
+function BudgetPricingTiersField({ tiers, onChange }: { tiers: PricingTier[] | null; onChange: (tiers: PricingTier[] | null) => void }) {
+  const list = tiers ?? [];
+
+  function update(index: number, patch: Partial<PricingTier>) {
+    onChange(list.map((t, i) => (i === index ? { ...t, ...patch } : t)));
+  }
+
+  return (
+    <div className="flex flex-col gap-2 rounded-md border border-border/60 p-2.5">
+      <Label>Formatos de preço fixo (substitui o valor único/configurador quando preenchido)</Label>
+      {list.map((tier, index) => (
+        <div key={index} className="flex flex-col gap-1.5 rounded-md border border-border/60 p-2">
+          <div className="grid grid-cols-2 gap-2">
+            <Input placeholder="Ex.: Posicionamento" value={tier.label} onChange={(e) => update(index, { label: e.target.value })} className="h-8 text-sm" />
+            <Input type="number" min={0} placeholder="Preço (R$)" value={tier.price} onChange={(e) => update(index, { price: Number(e.target.value) || 0 })} className="h-8 text-sm" />
+          </div>
+          <Input placeholder="Ex.: 09 vídeos estratégicos + 03 artes estáticas" value={tier.description} onChange={(e) => update(index, { description: e.target.value })} className="h-8 text-sm" />
+          <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <input type="checkbox" checked={Boolean(tier.highlight)} onChange={(e) => update(index, { highlight: e.target.checked })} />
+            destacar este card
+          </label>
+          <button type="button" onClick={() => onChange(list.filter((_, i) => i !== index))} className="w-fit text-xs text-muted-foreground hover:text-destructive">
+            remover formato
+          </button>
+        </div>
+      ))}
+      <button type="button" onClick={() => onChange([...list, { label: "", price: 0, description: "" }])} className="w-fit text-xs text-muted-foreground hover:text-foreground">
+        + formato de preço
       </button>
     </div>
   );
