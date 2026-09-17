@@ -68,45 +68,62 @@ function ProductionBlock({ block, accent }: { block: RoadmapProductionBlock; acc
   );
 }
 
-/** Bloco "estratégia por trás" (opcional) — matriz perfis × etapas de funil + detalhe de cada
- *  etapa (objetivo + até 2 vídeos explicativos). Vídeo vazio = espaço reservado, sem placeholder
- *  visível (pedido: "deixar espaço para eu subir" — a estrutura já existe, o vídeo chega depois
- *  via editor). */
+/** Bloco "estratégia por trás" (opcional) — cada perfil é uma coluna vertical com sua própria
+ *  lista de etapas (pedido explícito, Priscilla: "deixa alinhado verticalmente" — substituiu a
+ *  matriz perfis×etapas original, que só fazia sentido quando as etapas eram as MESMAS pra todo
+ *  perfil; aqui cada perfil tem etapas diferentes, então vira 3 listas lado a lado, alinhadas no
+ *  topo). Detalhe de cada etapa (objetivo + até 2 vídeos), quando `stages` está preenchido,
+ *  continua existindo abaixo — nenhuma proposta usa isso hoje, mas a estrutura fica pronta. */
 function FunnelBlock({ funnel, accent }: { funnel: RoadmapFunnel; accent: string }) {
   return (
     <div className="mx-auto mt-24 max-w-4xl">
-      <h3 className="text-center font-display text-2xl text-white sm:text-3xl">{funnel.heading}</h3>
+      <motion.h3
+        initial={{ opacity: 0, y: 16 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.6 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="text-center font-display text-2xl text-white sm:text-3xl"
+      >
+        {funnel.heading}
+      </motion.h3>
 
-      {/* Matriz perfis × etapas — cada perfil é uma coluna, cada linha é uma etapa de funil.
-          Auditoria mobile: 3 colunas de texto (nomes de etapa como "Conteúdo de Topo de
-          Funil.") num grid de largura fixa espremia cada coluna a ~90px em telas de 320-375px,
-          ilegível. `overflow-x-auto` no container (nunca na página) + `min-w` no grid — rola só
-          essa matriz quando não cabe, sem gerar overflow horizontal na página inteira. */}
-      <div className="mt-10 overflow-x-auto rounded-lg border border-white/10">
-        <div className="grid min-w-[480px] gap-px bg-white/10" style={{ gridTemplateColumns: `repeat(${funnel.profiles.length}, 1fr)` }}>
-          {funnel.profiles.map((profile) => (
-            <div key={profile} className="bg-black px-3 py-3 text-center font-mono text-xs uppercase tracking-wide text-white/70">
-              {profile}
-            </div>
-          ))}
-          {funnel.stages.flatMap((stage) =>
-            funnel.profiles.map((profile) => (
-              <div key={`${stage.heading}-${profile}`} className="bg-black px-3 py-3 text-center text-xs text-white/45">
-                {stage.heading}
-              </div>
-            )),
-          )}
-        </div>
+      {/* Perfis lado a lado, cada um lido de cima a baixo — alinhados na mesma altura via grid
+          (items-start evita que um perfil com menos etapas "puxe" o alinhamento dos outros). */}
+      <div className="mt-12 grid grid-cols-1 gap-10 sm:grid-cols-3 sm:gap-6">
+        {funnel.profiles.map((profile, index) => (
+          <motion.div
+            key={profile.label}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.5 }}
+            transition={{ duration: 0.6, delay: index * 0.1, ease: "easeOut" }}
+            className="flex flex-col items-start gap-4"
+          >
+            <p className="font-mono text-xs uppercase tracking-wide" style={{ color: accent }}>
+              {profile.label}
+            </p>
+            <ul className="flex flex-col gap-2.5">
+              {profile.steps.map((step) => (
+                <li key={step} className="flex items-start gap-2.5 text-sm leading-relaxed text-white/60">
+                  <span className="mt-2 size-1 shrink-0 rounded-full bg-white/25" />
+                  {step}
+                </li>
+              ))}
+            </ul>
+          </motion.div>
+        ))}
       </div>
 
       {/* Detalhe de cada etapa — o primeiro vídeo (quando enviado) vira o FUNDO da própria
-          etapa, texto por cima (não "3 players genéricos" — pedido explícito: integrar cada
-          vídeo à narrativa daquela etapa). Sem vídeo, cai no texto plano de sempre. */}
-      <div className="mt-14 flex flex-col gap-12">
-        {funnel.stages.map((stage, index) => (
-          <FunnelStageCard key={stage.heading} stage={stage} accent={accent} index={index} />
-        ))}
-      </div>
+          etapa, texto por cima. Só renderiza quando `stages` está preenchido (hoje, nenhuma
+          proposta usa) — sem isso, nada de espaço vazio abaixo dos perfis. */}
+      {funnel.stages.length > 0 && (
+        <div className="mt-14 flex flex-col gap-12">
+          {funnel.stages.map((stage, index) => (
+            <FunnelStageCard key={stage.heading} stage={stage} accent={accent} index={index} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

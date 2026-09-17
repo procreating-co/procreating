@@ -49,9 +49,16 @@ export type RoadmapProductionBlock = { heading: string; items: string[]; deliver
  *  a seção já existe/renderiza com o "espaço" mesmo sem vídeo nenhum ainda. */
 export type RoadmapFunnelStage = { heading: string; objective: string; videos: ProposalVideo[] };
 
-/** Bloco "estratégia por trás" (opcional) — matriz perfis × etapas de funil + o detalhe de cada
- *  etapa. Ausente = `ProposalRoadmap` não renderiza esse bloco. */
-export type RoadmapFunnel = { heading: string; profiles: string[]; stages: RoadmapFunnelStage[] };
+/** Um perfil dentro do bloco "estratégia por trás" — rótulo + sua própria lista de etapas,
+ *  renderizado como uma coluna vertical (pedido explícito, Priscilla: "deixa alinhado
+ *  verticalmente" — cada perfil lê de cima a baixo, as colunas alinhadas na mesma altura, em vez
+ *  da matriz perfis×etapas original). */
+export type RoadmapFunnelProfile = { label: string; steps: string[] };
+
+/** Bloco "estratégia por trás" (opcional) — perfis (cada um com sua lista vertical de etapas) +
+ *  opcionalmente o detalhe de cada etapa de funil (`stages`, com vídeo). Ausente = `ProposalRoadmap`
+ *  não renderiza esse bloco. */
+export type RoadmapFunnel = { heading: string; profiles: RoadmapFunnelProfile[]; stages: RoadmapFunnelStage[] };
 
 export type RoadmapContent = {
   heading: string;
@@ -109,6 +116,13 @@ export type BudgetConfigurator = {
   videoRange: BudgetConfiguratorVideoRange | null;
 };
 
+/** Um "formato" de contratação com preço fixo — pedido explícito, Priscilla: 3 cards de preço
+ *  lado a lado (Posicionamento / Prospecção / Pacote Completo), sem configurador interativo
+ *  nenhum (confirmado: substitui o configurador, não coexiste com ele). `highlight` opcional só
+ *  destaca visualmente um card (ex.: o pacote combinado) — nunca muda cálculo nenhum, o preço é
+ *  sempre o número exato passado. */
+export type BudgetPricingTier = { label: string; price: number; description: string; highlight?: boolean };
+
 export type BudgetContent = {
   heroNumber: number;
   heroLabel: string;
@@ -122,6 +136,9 @@ export type BudgetContent = {
   flowSteps: string[];
   upsell: BudgetUpsell | null;
   configurator: BudgetConfigurator | null;
+  /** Presente e não-vazio = assume o lugar da seção inteira (`ProposalBudgetTiers`), substituindo
+   *  tanto o modo clássico quanto o configurador. Ausente/vazio = comportamento de sempre. */
+  pricingTiers?: BudgetPricingTier[] | null;
 };
 /** Disparo opcional de WhatsApp ao aceitar — pedido explícito, só na proposta da Priscilla por
  *  enquanto: além de gravar o aceite no banco (sempre acontece), abre o WhatsApp do visitante já

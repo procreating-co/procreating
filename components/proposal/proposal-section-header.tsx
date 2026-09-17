@@ -1,8 +1,17 @@
+"use client";
+
+import { motion } from "framer-motion";
+
 /**
  * Cabeçalho "eyebrow + heading" reaproveitado em toda a Proposta de Continuidade —
  * mesmo padrão visual já usado em components/landing/** (linha + texto mono + heading em
  * font-display), reimplementado aqui pra manter components/proposal/** totalmente isolado
  * (nenhum import de components/landing/**).
+ *
+ * Efeito de aparição (fade + slide-up ao entrar na viewport) — pedido explícito, Priscilla:
+ * "adicione efeito de aparecimento dos textos". Componente compartilhado por toda proposta
+ * pública (Elenita incluída) — mudança puramente aditiva/cosmética, sem alterar texto ou dado
+ * nenhum, então aplicada aqui uma vez só em vez de repetida seção por seção.
  */
 export function ProposalSectionHeader({
   eyebrow,
@@ -17,7 +26,13 @@ export function ProposalSectionHeader({
 }) {
   const alignClass = align === "center" ? "mx-auto text-center items-center" : "text-left items-start";
   return (
-    <div className={`flex max-w-3xl flex-col ${alignClass}`}>
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.6 }}
+      transition={{ duration: 0.6, ease: "easeOut" }}
+      className={`flex max-w-3xl flex-col ${alignClass}`}
+    >
       {eyebrow && (
         <span className="mb-4 inline-flex items-center gap-3 font-mono text-xs uppercase tracking-wide text-white/45">
           <span className="h-px w-10 shrink-0" style={{ backgroundColor: accent }} />
@@ -26,6 +41,6 @@ export function ProposalSectionHeader({
         </span>
       )}
       <h2 className="text-balance font-display text-3xl leading-[1.05] tracking-tight text-white sm:text-4xl md:text-5xl">{heading}</h2>
-    </div>
+    </motion.div>
   );
 }

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, Check, Compass, LineChart, Minus, Plus, Video, FileText } from "lucide-react";
 import type { ProposalContent } from "@/lib/clients/proposal-types";
-import type { BudgetConfigurator, BudgetContent, BudgetUpsell } from "@/lib/comercial/proposal-content-types";
+import type { BudgetConfigurator, BudgetContent, BudgetPricingTier, BudgetUpsell } from "@/lib/comercial/proposal-content-types";
 import { ProposalBudgetConfigurator } from "@/components/proposal/proposal-budget-configurator";
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
@@ -22,14 +22,55 @@ const PILLAR_ICONS = [Compass, FileText, LineChart, Video];
  * unitário. `configurator` (opcional, v2, pedido explícito — mockup completo) — configurador
  * transparente inteiro (âncora, condição de pagamento, escopo dinâmico, addons/removíveis,
  * recibo ao vivo); quando presente, assume o lugar da seção inteira (delega pra
- * `ProposalBudgetConfigurator`) — os dois nunca coexistem na mesma proposta.
+ * `ProposalBudgetConfigurator`). `pricingTiers` (opcional, v3, pedido explícito — Priscilla: "3
+ * formatos" de contratação com preço fixo) tem prioridade sobre os dois: quando presente e
+ * não-vazio, nenhum dos outros modos renderiza — os três nunca coexistem na mesma proposta.
  */
-export function ProposalBudget({ content, accent }: { content: ProposalContent["budget"] & { recurrence?: "mensal" | "unico"; upsell?: BudgetUpsell | null; configurator?: BudgetConfigurator | null }; accent: string }) {
+export function ProposalBudget({
+  content,
+  accent,
+}: {
+  content: ProposalContent["budget"] & { recurrence?: "mensal" | "unico"; upsell?: BudgetUpsell | null; configurator?: BudgetConfigurator | null; pricingTiers?: BudgetPricingTier[] | null };
+  accent: string;
+}) {
+  if (content.pricingTiers && content.pricingTiers.length > 0) {
+    return <ProposalBudgetTiers tiers={content.pricingTiers} accent={accent} />;
+  }
+
   if (content.configurator) {
     return <ProposalBudgetConfigurator content={content as BudgetContent} configurator={content.configurator} accent={accent} />;
   }
 
   return <ProposalBudgetClassic content={content} accent={accent} />;
+}
+
+/** 3 formatos de contratação com preço fixo, lado a lado — pedido explícito, Priscilla. Sem
+ *  configurador/addons: cada card é só rótulo + preço + descrição, nenhum número muda. `highlight`
+ *  (opcional) destaca um card com a borda na cor de destaque — pensado pro pacote combinado. */
+function ProposalBudgetTiers({ tiers, accent }: { tiers: BudgetPricingTier[]; accent: string }) {
+  return (
+    <section className="border-t border-white/10 bg-black px-6 py-24 text-white lg:px-12 lg:py-32">
+      <div className={`mx-auto grid max-w-5xl gap-6 ${tiers.length >= 3 ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
+        {tiers.map((tier, index) => (
+          <motion.div
+            key={tier.label}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.5 }}
+            transition={{ duration: 0.6, delay: index * 0.1, ease: "easeOut" }}
+            className="flex flex-col items-center gap-4 border p-8 text-center"
+            style={{ borderColor: tier.highlight ? accent : "rgba(255,255,255,0.1)" }}
+          >
+            <p className="font-mono text-xs uppercase tracking-wide" style={{ color: accent }}>
+              {tier.label}
+            </p>
+            <p className="font-display text-4xl tabular-nums text-white sm:text-5xl">{currency.format(tier.price)}</p>
+            <p className="text-sm leading-relaxed text-white/50">{tier.description}</p>
+          </motion.div>
+        ))}
+      </div>
+    </section>
+  );
 }
 
 function ProposalBudgetClassic({ content, accent }: { content: ProposalContent["budget"] & { recurrence?: "mensal" | "unico"; upsell?: BudgetUpsell | null }; accent: string }) {
