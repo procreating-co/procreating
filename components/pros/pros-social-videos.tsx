@@ -11,22 +11,17 @@ const VideoLightbox = dynamic(() => import("@/components/landing/video-lightbox"
 
 /**
  * Bloco "Vídeos" — réplica de copy do `videosSection` do site do cliente (eyebrow "Vídeos" +
- * heading "Conteúdos / para redes sociais."). Ordem pedida: horizontal, par vertical lado a
- * lado, horizontal — os 3 vídeos que sobraram na página depois que o de Apresentação virou o
- * bloco "institucional" acima.
+ * heading "Conteúdos / para redes sociais."). Só o par vertical — os 2 vídeos horizontais que
+ * viviam aqui foram movidos pro bloco "institucional" acima.
  */
 export function ProsSocialVideos({
   eyebrow,
   heading,
-  topHorizontal,
   verticalPair,
-  bottomHorizontal,
 }: {
   eyebrow: string;
   heading: [string, string];
-  topHorizontal: ProsVideo;
   verticalPair: [ProsVideo, ProsVideo];
-  bottomHorizontal: ProsVideo;
 }) {
   const [activeVideo, setActiveVideo] = useState<ActiveVideo | null>(null);
   const open = (src: string) => setActiveVideo({ poster: "", title: "Vídeo", videoSrc: src });
@@ -45,27 +40,13 @@ export function ProsSocialVideos({
           </h2>
         </Reveal>
 
-        <div className="flex flex-col gap-8 lg:gap-10">
-          <Reveal>
-            <div className="mx-auto w-full max-w-4xl">
-              <VideoTile video={topHorizontal} orientation="horizontal" onOpen={() => open(topHorizontal.src)} />
-            </div>
-          </Reveal>
-
-          <Reveal>
-            <div className="mx-auto grid w-full max-w-4xl grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-6 lg:gap-8">
-              {verticalPair.map((video, i) => (
-                <VideoTile key={i} video={video} orientation="vertical" onOpen={() => open(video.src)} />
-              ))}
-            </div>
-          </Reveal>
-
-          <Reveal>
-            <div className="mx-auto w-full max-w-4xl">
-              <VideoTile video={bottomHorizontal} orientation="horizontal" onOpen={() => open(bottomHorizontal.src)} />
-            </div>
-          </Reveal>
-        </div>
+        <Reveal>
+          <div className="mx-auto grid w-full max-w-4xl grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-6 lg:gap-8">
+            {verticalPair.map((video, i) => (
+              <VideoTile key={i} video={video} orientation="vertical" onOpen={() => open(video.src)} />
+            ))}
+          </div>
+        </Reveal>
       </div>
 
       {activeVideo && <VideoLightbox item={activeVideo} onClose={() => setActiveVideo(null)} />}

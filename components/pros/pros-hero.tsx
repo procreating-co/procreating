@@ -54,13 +54,15 @@ function useTypedWelcome(lines: [string, string]) {
  * também não abre em tela cheia.
  *
  * Pedidos explícitos desta rodada:
- * - Texto centralizado (antes era alinhado à esquerda, como o Hero original do cliente).
+ * - Texto centralizado, vertical e horizontalmente, na tela cheia do Hero.
  * - Fonte menor — "2 números abaixo" na escala de tamanhos: o `clamp()` original ia até 5rem no
  *   desktop (perto de `text-7xl`/`text-8xl`); reduzido pra 3.5rem (perto de `text-5xl`/`text-6xl`,
  *   2 degraus abaixo). Interpretação de uma instrução um pouco ambígua — fácil de recalibrar se
  *   não for exatamente o tamanho pretendido.
- * - Bloco subido 3cm (`translateY(-3cm)`, mesma técnica já usada no bloco de vídeo em rodada
- *   anterior) — unidade `cm` é absoluta em CSS, o navegador resolve pra px sozinho.
+ *
+ * `min-h-dvh` (em vez de `min-h-screen`) evita que a barra de endereço do navegador mobile
+ * desalinhe a centralização vertical — `100vh` no mobile considera a altura da barra mesmo quando
+ * ela está recolhida, empurrando o conteúdo pra fora do centro visível.
  */
 export function ProsHero({ videoSrc, welcomeLines }: { videoSrc: string; welcomeLines: [string, string] }) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -89,14 +91,14 @@ export function ProsHero({ videoSrc, welcomeLines }: { videoSrc: string; welcome
   }, []);
 
   return (
-    <section className="relative min-h-screen overflow-hidden bg-black text-white">
+    <section className="relative min-h-dvh overflow-hidden bg-black text-white">
       <div className="absolute inset-0 z-0">
         <video ref={videoRef} autoPlay muted loop playsInline preload="auto" aria-hidden="true" className="h-full w-full object-cover object-center opacity-75">
           <source src={videoSrc} type="video/mp4" />
         </video>
         <div className="absolute inset-0 bg-black/55" />
       </div>
-      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-[1400px] flex-col items-center justify-center px-6 text-center lg:px-12" style={{ transform: "translateY(-3cm)" }}>
+      <div className="relative z-10 mx-auto flex min-h-dvh w-full max-w-[1400px] flex-col items-center justify-center px-6 text-center lg:px-12">
         <div className={`mx-auto max-w-6xl text-center transition-all duration-1000 ${isVisible ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"}`}>
           <h1 className="text-balance text-center font-display text-[clamp(1.75rem,4vw,3.5rem)] leading-[1.02] tracking-tight">
             <span aria-label={`${welcomeLines[0]} ${welcomeLines[1]}`}>

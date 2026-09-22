@@ -10,30 +10,30 @@ import type { ProsVideo } from "@/content/pros/oficinas";
 const VideoLightbox = dynamic(() => import("@/components/landing/video-lightbox"));
 
 /**
- * Bloco "O que fazemos" — eyebrow + heading (2 linhas, fonte reduzida — pedido explícito) + o
- * vídeo que já estava na primeira posição da página (Vídeo de Apresentação), agora com o rótulo
- * "01. Vídeos Institucionais" acima dele (mesmo padrão number+title de
- * `features-section.tsx`/`how-it-works-section.tsx` do site do cliente: número em mono/opaco +
- * título em `font-display`). Cada bloco de texto entra com `Reveal` (pedido explícito: "em todos
- * textos coloque efeito de aparição").
+ * Bloco "O que fazemos" — eyebrow + heading (2 linhas, fonte reduzida) + rótulo "01. Vídeos
+ * Institucionais" (mesmo padrão number+title de `features-section.tsx`/`how-it-works-section.tsx`
+ * do site do cliente: número em mono/opaco + título em `font-display`) + 3 vídeos horizontais
+ * empilhados. Cada bloco de texto entra com `Reveal` ("em todos textos coloque efeito de
+ * aparição"). Seção puxada pra cima com margem negativa (`-mt-*`) por baixo do fade do Hero, pra
+ * reduzir o espaço vazio entre o Hero e o heading.
  */
 export function ProsWhatWeDo({
   eyebrow,
   heading,
   videoLabel,
-  video,
+  videos,
 }: {
   eyebrow: string;
   heading: [string, string];
   videoLabel: [string, string];
-  video: ProsVideo;
+  videos: ProsVideo[];
 }) {
   const [activeVideo, setActiveVideo] = useState<ActiveVideo | null>(null);
 
   return (
-    <section aria-label="O que fazemos" className="relative overflow-hidden bg-[oklch(0.09_0.01_260)] pb-16 pt-16 text-white lg:pb-20 lg:pt-20">
+    <section aria-label="O que fazemos" className="relative -mt-16 overflow-hidden bg-[oklch(0.09_0.01_260)] pb-16 pt-10 text-white lg:-mt-24 lg:pb-20 lg:pt-14">
       <div className="mx-auto max-w-4xl px-6 lg:px-12">
-        <Reveal className="mb-10 text-center lg:mb-12">
+        <Reveal className="mb-8 text-center lg:mb-10">
           <span className="mb-3 inline-flex items-center gap-3 font-mono text-sm text-white/45">
             <span className="h-px w-12 bg-[var(--client-accent)]" />
             {eyebrow}
@@ -49,9 +49,13 @@ export function ProsWhatWeDo({
           <h3 className="font-display text-2xl sm:text-4xl">{videoLabel[1]}</h3>
         </Reveal>
 
-        <Reveal>
-          <VideoTile video={video} orientation="horizontal" onOpen={() => setActiveVideo({ poster: "", title: "Vídeo", videoSrc: video.src })} />
-        </Reveal>
+        <div className="flex flex-col gap-6 lg:gap-8">
+          {videos.map((video, i) => (
+            <Reveal key={i}>
+              <VideoTile video={video} orientation="horizontal" onOpen={() => setActiveVideo({ poster: "", title: "Vídeo", videoSrc: video.src })} />
+            </Reveal>
+          ))}
+        </div>
       </div>
 
       {activeVideo && <VideoLightbox item={activeVideo} onClose={() => setActiveVideo(null)} />}
