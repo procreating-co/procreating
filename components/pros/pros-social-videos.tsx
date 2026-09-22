@@ -11,17 +11,17 @@ const VideoLightbox = dynamic(() => import("@/components/landing/video-lightbox"
 
 /**
  * Bloco "Vídeos" — réplica de copy do `videosSection` do site do cliente (eyebrow "Vídeos" +
- * heading "Conteúdos / para redes sociais."). Só o par vertical — os 2 vídeos horizontais que
- * viviam aqui foram movidos pro bloco "institucional" acima.
+ * heading "Conteúdos / para redes sociais."). Só verticais — os 2 vídeos horizontais que viviam
+ * aqui foram movidos pro bloco "institucional" acima.
  */
 export function ProsSocialVideos({
   eyebrow,
   heading,
-  verticalPair,
+  videos,
 }: {
   eyebrow: string;
   heading: [string, string];
-  verticalPair: [ProsVideo, ProsVideo];
+  videos: ProsVideo[];
 }) {
   const [activeVideo, setActiveVideo] = useState<ActiveVideo | null>(null);
   const open = (src: string) => setActiveVideo({ poster: "", title: "Vídeo", videoSrc: src });
@@ -42,7 +42,7 @@ export function ProsSocialVideos({
 
         <Reveal>
           <div className="mx-auto grid w-full max-w-4xl grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-6 lg:gap-8">
-            {verticalPair.map((video, i) => (
+            {videos.map((video, i) => (
               <VideoTile key={i} video={video} orientation="vertical" onOpen={() => open(video.src)} />
             ))}
           </div>

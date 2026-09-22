@@ -1,5 +1,5 @@
 import { clientVideos as pascoalLegacyVideos } from "@/data/pascoal/videos";
-import { setembroHorizontalVideos } from "@/data/pascoal/setembro-videos";
+import { setembroHorizontalVideos, setembroVerticalVideos } from "@/data/pascoal/setembro-videos";
 
 /**
  * Conteúdo da página de prospecção `/pros/01` — nicho "oficinas, mecânicas e negócios técnicos".
@@ -48,15 +48,19 @@ export const oficinasProsContent = {
   },
 
   // Vídeos "sociais" — eyebrow "Vídeos" + heading "Conteúdos / para redes sociais." (réplica exata
-  // do `videosSection` do cliente), agora só com o par vertical (os 2 horizontais foram pro bloco
-  // institucional acima).
+  // do `videosSection` do cliente), só verticais: os 2 originais + os outros 3 verticais
+  // disponíveis nos buckets R2 do cliente (legado + setembro/26), hoje usados em
+  // `/clients/pascoal/public` e `/clients/pascoal/public/past`.
   socialVideos: {
     eyebrow: "Vídeos",
     heading: ["Conteúdos", "para redes sociais."] as [string, string],
-    verticalPair: [
+    videos: [
       { src: pascoalLegacyVideos.socialVideos[0].videoSrc }, // Processo
       { src: pascoalLegacyVideos.socialVideos[1].videoSrc }, // Serviços
-    ] as [ProsVideo, ProsVideo],
+      { src: pascoalLegacyVideos.acquisitionVideo!.videoSrc }, // Disparo
+      { src: setembroVerticalVideos[0]!.src }, // V1 — Conselho do Pascoal
+      { src: setembroVerticalVideos[1]!.src }, // V2 — Erro de diagnóstico
+    ] as ProsVideo[],
   },
 
   // Sem CTA/botão no footer — só a headline encerra a página.

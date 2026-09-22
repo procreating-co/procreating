@@ -21,7 +21,7 @@ export function ProsPage({ content }: { content: ProsContent }) {
         videoLabel={content.whatWeDo.videoLabel}
         videos={content.whatWeDo.videos}
       />
-      <ProsSocialVideos eyebrow={content.socialVideos.eyebrow} heading={content.socialVideos.heading} verticalPair={content.socialVideos.verticalPair} />
+      <ProsSocialVideos eyebrow={content.socialVideos.eyebrow} heading={content.socialVideos.heading} videos={content.socialVideos.videos} />
       <ProsFooter headline={content.footer.headline} />
       <ProsMobileStickyCta whatsapp={content.whatsapp} slug={content.slug} />
     </main>
