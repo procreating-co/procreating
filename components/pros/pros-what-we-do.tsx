@@ -14,8 +14,9 @@ const VideoLightbox = dynamic(() => import("@/components/landing/video-lightbox"
  * Institucionais" (mesmo padrão number+title de `features-section.tsx`/`how-it-works-section.tsx`
  * do site do cliente: número em mono/opaco + título em `font-display`) + 3 vídeos horizontais
  * empilhados. Cada bloco de texto entra com `Reveal` ("em todos textos coloque efeito de
- * aparição"). Seção puxada pra cima com margem negativa (`-mt-*`) por baixo do fade do Hero, pra
- * reduzir o espaço vazio entre o Hero e o heading.
+ * aparição"). Seção puxada pra cima com margem negativa por baixo do fade do Hero, pra reduzir o
+ * espaço vazio entre o Hero e o heading — pedido explícito: mais 3cm além do que já estava (por
+ * isso o `calc()` somando `cm` à margem em `rem`, unidade absoluta que o navegador resolve só).
  */
 export function ProsWhatWeDo({
   eyebrow,
@@ -31,7 +32,10 @@ export function ProsWhatWeDo({
   const [activeVideo, setActiveVideo] = useState<ActiveVideo | null>(null);
 
   return (
-    <section aria-label="O que fazemos" className="relative -mt-16 overflow-hidden bg-[oklch(0.09_0.01_260)] pb-16 pt-10 text-white lg:-mt-24 lg:pb-20 lg:pt-14">
+    <section
+      aria-label="O que fazemos"
+      className="relative -mt-[calc(4rem+3cm)] overflow-hidden bg-[oklch(0.09_0.01_260)] pb-16 pt-10 text-white lg:-mt-[calc(6rem+3cm)] lg:pb-20 lg:pt-14"
+    >
       <div className="mx-auto max-w-4xl px-6 lg:px-12">
         <Reveal className="mb-8 text-center lg:mb-10">
           <span className="mb-3 inline-flex items-center gap-3 font-mono text-sm text-white/45">

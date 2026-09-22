@@ -63,6 +63,9 @@ function useTypedWelcome(lines: [string, string]) {
  * `min-h-dvh` (em vez de `min-h-screen`) evita que a barra de endereço do navegador mobile
  * desalinhe a centralização vertical — `100vh` no mobile considera a altura da barra mesmo quando
  * ela está recolhida, empurrando o conteúdo pra fora do centro visível.
+ *
+ * Vídeo sem opacidade reduzida + overlay mais leve (`bg-black/30`, era `/55`) — pedido explícito:
+ * o fundo estava escuro demais.
  */
 export function ProsHero({ videoSrc, welcomeLines }: { videoSrc: string; welcomeLines: [string, string] }) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -93,10 +96,10 @@ export function ProsHero({ videoSrc, welcomeLines }: { videoSrc: string; welcome
   return (
     <section className="relative min-h-dvh overflow-hidden bg-black text-white">
       <div className="absolute inset-0 z-0">
-        <video ref={videoRef} autoPlay muted loop playsInline preload="auto" aria-hidden="true" className="h-full w-full object-cover object-center opacity-75">
+        <video ref={videoRef} autoPlay muted loop playsInline preload="auto" aria-hidden="true" className="h-full w-full object-cover object-center">
           <source src={videoSrc} type="video/mp4" />
         </video>
-        <div className="absolute inset-0 bg-black/55" />
+        <div className="absolute inset-0 bg-black/30" />
       </div>
       <div className="relative z-10 mx-auto flex min-h-dvh w-full max-w-[1400px] flex-col items-center justify-center px-6 text-center lg:px-12">
         <div className={`mx-auto max-w-6xl text-center transition-all duration-1000 ${isVisible ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"}`}>
