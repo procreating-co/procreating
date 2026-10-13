@@ -1,7 +1,25 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/types/database";
+import type { AdminUser } from "@/lib/admin/auth/types";
 import { createServiceClient, serviceRoleConfigured } from "@/lib/supabase/service";
+
+/**
+ * Usuário "visitante" — último recurso quando NENHUMA credencial está configurada (sem
+ * `SUPABASE_SERVICE_ROLE_KEY` e sem `ADMIN_AUTO_EMAIL/PASSWORD`). Em vez de bloquear o painel, ele
+ * abre direto neste perfil (acesso de owner na UI; os dados ficam sujeitos ao que o RLS libera sem
+ * sessão autenticada — tabelas `to public` aparecem, tabelas só `to authenticated` vêm vazias).
+ * Assim o link SEMPRE abre. Pra ter os dados completos, configure a chave de serviço, que faz o
+ * auto-login numa conta owner real e substitui este modo automaticamente.
+ */
+export const PUBLIC_FALLBACK_USER: AdminUser = {
+  id: "00000000-0000-0000-0000-000000000000",
+  name: "Visitante",
+  email: "visitante@procreating.co",
+  role: "owner",
+  theme: null,
+  avatarUrl: null,
+};
 
 /**
  * Painel interno PÚBLICO (login removido) — em vez de pedir e-mail/senha, o ERP mantém por baixo

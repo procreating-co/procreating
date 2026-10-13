@@ -1,7 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { clearAdminSessionCookie, setAdminSessionCookie } from "@/lib/admin/auth/session-cookie";
-import { performAutoLogin } from "@/lib/admin/auth/auto-login";
+import { performAutoLogin, PUBLIC_FALLBACK_USER } from "@/lib/admin/auth/auto-login";
 import type { AdminUser, AuthProvider, AuthSession, SignInResult } from "@/lib/admin/auth/types";
 
 /**
@@ -32,17 +32,20 @@ export const supabaseAuthProvider: AuthProvider = {
         } = await supabase.auth.getUser());
       }
     }
-    if (!user) return null;
 
-    // Todo usuário do ERP precisa de uma linha em `public.users` (name/role) além da conta em
-    // `auth.users` — provisionada hoje via `supabase/seed-foundation.sql`. Sem ela, tratamos
-    // como sessão inválida em vez de inventar um perfil: role indefinido não deveria acessar
-    // nada do painel.
-    const { data: profile } = await supabase.from("users").select("id, name, email, role, theme, avatar_url").eq("id", user.id).single();
-    if (!profile) return null;
+    if (user) {
+      // Sessão real: resolve o perfil em `public.users` (name/role/tema).
+      const { data: profile } = await supabase.from("users").select("id, name, email, role, theme, avatar_url").eq("id", user.id).single();
+      if (profile) {
+        const adminUser: AdminUser = { id: profile.id, name: profile.name, email: profile.email, role: profile.role, theme: profile.theme, avatarUrl: profile.avatar_url };
+        return { user: adminUser };
+      }
+    }
 
-    const adminUser: AdminUser = { id: profile.id, name: profile.name, email: profile.email, role: profile.role, theme: profile.theme, avatarUrl: profile.avatar_url };
-    return { user: adminUser };
+    // Painel público sem credencial configurada (nem chave de serviço, nem conta): em vez de
+    // bloquear, abre em modo "visitante". O link sempre abre; configure a chave de serviço pra ter
+    // os dados completos (vira sessão owner real automaticamente). Ver `auto-login.ts`.
+    return { user: PUBLIC_FALLBACK_USER };
   },
 
   async signIn(email: string, password: string): Promise<SignInResult> {

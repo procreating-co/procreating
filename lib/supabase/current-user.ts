@@ -1,6 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import { performAutoLogin } from "@/lib/admin/auth/auto-login";
+import { performAutoLogin, PUBLIC_FALLBACK_USER } from "@/lib/admin/auth/auto-login";
 
 /**
  * `auth.uid()` do lado do banco (usado dentro do RPC `close_lead_and_create_client`) não tem
@@ -24,5 +24,7 @@ export async function getCurrentUserId(): Promise<string | null> {
       } = await supabase.auth.getUser());
     }
   }
-  return user?.id ?? null;
+  // Sem sessão real e sem credencial configurada: modo "visitante" (ver `auto-login.ts`), pra o
+  // painel nunca bloquear. Com a chave de serviço, `user` é real e isto não é usado.
+  return user?.id ?? PUBLIC_FALLBACK_USER.id;
 }
