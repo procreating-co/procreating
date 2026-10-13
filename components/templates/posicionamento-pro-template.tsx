@@ -60,6 +60,7 @@ export function PosicionamentoProTemplate({
         acquisitionEyebrow={config.videosSection.acquisitionEyebrow}
         acquisitionHeadingPrefix={config.videosSection.acquisitionHeadingPrefix}
         acquisitionHeadingSuffix={config.videosSection.acquisitionHeadingSuffix}
+        production={config.videosSection.production}
       />
       {config.prospeccao && <InfrastructureSection prospeccao={config.prospeccao} prospeccaoHref={prospeccaoHref} />}
       <FooterSection brandName={config.brandName} legalLine={config.footer.legalLine} backgroundImage={config.footer.backgroundImage} />

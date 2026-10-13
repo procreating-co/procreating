@@ -52,8 +52,10 @@ export type GalleryFolder = { id: string; label: string; photos: GalleryPhoto[] 
 /** Metadata de uma pasta da galeria — as fotos em si vêm do filesystem (`public/gallery/<slug>/<id>/`). */
 export type GalleryFolderDef = { id: string; label: string };
 
-/** Foto em destaque no carrossel da Home (teaser da Galeria completa). */
-export type FeaturedPhoto = { src: string; alt: string; category: string };
+/** Foto em destaque no carrossel da Home (teaser da Galeria completa).
+ *  `src` pode ser `null` — slot reservado que renderiza um card "Em breve" até a foto ser
+ *  adicionada (ver `components/landing/features-section.tsx`). */
+export type FeaturedPhoto = { src: string | null; alt: string; category: string };
 
 /** Configuração do módulo opcional de Prospecção (teaser na Home + página `/prospeccao`). */
 export type ProspeccaoConfig = {
@@ -109,7 +111,9 @@ export type ClientConfig = {
     welcomeLines: [string, string];
     backgroundVideo: string;
     paragraph: string;
-    stats: {
+    /** Opcional — as métricas numéricas do Hero (vídeos/fotos). Ausente (padrão: presente) =
+     *  Hero mostra só o parágrafo, sem os números (ex.: cliente cujos números ainda não existem). */
+    stats?: {
       videos: Metric;
       photos: Metric;
     };
@@ -137,6 +141,10 @@ export type ClientConfig = {
     acquisitionEyebrow: string;
     acquisitionHeadingPrefix: string;
     acquisitionHeadingSuffix: string;
+    /** Opcional — modo "em produção": no lugar dos vídeos sociais prontos, mostra um contador
+     *  animado (0 → `count`) e uma grade de `count` slots "Em produção" pra preencher depois.
+     *  Ausente (padrão) = seção renderiza `videos.socialVideos` normalmente. */
+    production?: { count: number; label: string };
   };
   footer: {
     legalLine: string;
