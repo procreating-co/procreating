@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { redirect } from "next/navigation";
-import { getSession, ADMIN_LOGIN_PATH } from "@/lib/admin/auth";
+import { getSession } from "@/lib/admin/auth";
 import { AdminAuthProvider } from "@/lib/admin/auth/auth-context";
+import { AutoLoginMissing } from "@/components/admin/auto-login-missing";
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout";
 import { ThemeProvider } from "@/lib/theme/theme-provider";
 import { getThemeCookie } from "@/lib/theme/theme-cookie";
@@ -29,8 +29,11 @@ export const metadata: Metadata = {
  * primeira página no tema certo — zero flash, sem script bloqueante.
  */
 export default async function InternalLayout({ children }: { children: ReactNode }) {
+  // Painel público: `getSession()` já tenta o auto-login na conta de serviço (owner). Se mesmo
+  // assim não houver sessão, é configuração ausente — mostra instrução em vez de redirecionar
+  // pra um login que não existe mais (evita loop).
   const session = await getSession();
-  if (!session) redirect(ADMIN_LOGIN_PATH);
+  if (!session) return <AutoLoginMissing />;
 
   const cookieTheme = await getThemeCookie();
   const initialTheme = resolveInitialTheme(cookieTheme, session.user.theme);

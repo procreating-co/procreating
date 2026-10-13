@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
-import { redirect } from "next/navigation";
-import { getSession, ADMIN_LOGIN_PATH } from "@/lib/admin/auth";
+import { getSession } from "@/lib/admin/auth";
 import { AdminAuthProvider } from "@/lib/admin/auth/auth-context";
 import { AdminShell } from "@/components/admin/shell/admin-shell";
+import { AutoLoginMissing } from "@/components/admin/auto-login-missing";
 
 /**
  * Tudo dentro de `(protected)` exige sessão — esse grupo de rotas não inclui `/admin/login`
@@ -12,8 +12,10 @@ import { AdminShell } from "@/components/admin/shell/admin-shell";
  * futuramente rejeitaria uma sessão expirada/inválida mesmo com o cookie presente.
  */
 export default async function AdminProtectedLayout({ children }: { children: ReactNode }) {
+  // Painel público: `getSession()` já tenta o auto-login na conta de serviço (owner). Sem sessão
+  // aqui significa configuração ausente — mostra instrução em vez de redirecionar pro login.
   const session = await getSession();
-  if (!session) redirect(ADMIN_LOGIN_PATH);
+  if (!session) return <AutoLoginMissing />;
 
   return (
     <AdminAuthProvider user={session.user}>

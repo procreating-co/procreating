@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { FolderPlus, UserRound } from "lucide-react";
 import { getCurrentUserId } from "@/lib/supabase/current-user";
 import { computeWorkspaceOverview, pickRecommendedTask } from "@/lib/workspace/queries";
@@ -17,7 +16,7 @@ import { FocusPanel } from "@/components/workspace-tasks/focus-panel";
 import { WeekView } from "@/components/workspace-tasks/week-view";
 import { SectionHeader } from "@/components/dashboard/section-header";
 import { EmptyInline } from "@/components/dashboard/empty-inline";
-import { ADMIN_LOGIN_PATH } from "@/lib/admin/auth/constants";
+import { AutoLoginMissing } from "@/components/admin/auto-login-missing";
 
 export const metadata: Metadata = {
   title: "Workspace — Procreating",
@@ -35,7 +34,7 @@ export const metadata: Metadata = {
  */
 export default async function WorkspacePage() {
   const userId = await getCurrentUserId();
-  if (!userId) redirect(ADMIN_LOGIN_PATH);
+  if (!userId) return <AutoLoginMissing />;
 
   const [overview, teamMembers, clients, runningFocusSession, strategies, todayTimeBlocks] = await Promise.all([
     computeWorkspaceOverview(userId),

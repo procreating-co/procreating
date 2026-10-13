@@ -1,5 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import { performAutoLogin } from "@/lib/admin/auth/auto-login";
 
 /**
  * `auth.uid()` do lado do banco (usado dentro do RPC `close_lead_and_create_client`) não tem
@@ -9,8 +10,19 @@ import { createClient } from "@/lib/supabase/server";
  */
 export async function getCurrentUserId(): Promise<string | null> {
   const supabase = await createClient();
-  const {
+  let {
     data: { user },
   } = await supabase.auth.getUser();
+
+  // Painel público (login removido): mesmo fallback de `getSession()` — sem sessão, loga na conta
+  // de serviço (owner). Cobre o primeiro render de um navegador novo, antes de o `proxy.ts` ter
+  // persistido os cookies sb-*. Ver `lib/admin/auth/auto-login.ts`.
+  if (!user) {
+    if (await performAutoLogin(supabase)) {
+      ({
+        data: { user },
+      } = await supabase.auth.getUser());
+    }
+  }
   return user?.id ?? null;
 }

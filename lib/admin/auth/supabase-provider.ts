@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { clearAdminSessionCookie, setAdminSessionCookie } from "@/lib/admin/auth/session-cookie";
+import { performAutoLogin } from "@/lib/admin/auth/auto-login";
 import type { AdminUser, AuthProvider, AuthSession, SignInResult } from "@/lib/admin/auth/types";
 
 /**
@@ -16,9 +17,21 @@ import type { AdminUser, AuthProvider, AuthSession, SignInResult } from "@/lib/a
 export const supabaseAuthProvider: AuthProvider = {
   async getSession(): Promise<AuthSession> {
     const supabase = await createClient();
-    const {
+    let {
       data: { user },
     } = await supabase.auth.getUser();
+
+    // Painel público (login removido): sem sessão, loga automaticamente na conta de serviço
+    // (owner) — ver `lib/admin/auth/auto-login.ts`. Normalmente o `proxy.ts` já estabeleceu a
+    // sessão na borda (persistindo os cookies sb-*); este fallback cobre qualquer render em que
+    // isso não tenha acontecido, pra a página nunca aparecer vazia nem redirecionar pra login.
+    if (!user) {
+      if (await performAutoLogin(supabase)) {
+        ({
+          data: { user },
+        } = await supabase.auth.getUser());
+      }
+    }
     if (!user) return null;
 
     // Todo usuário do ERP precisa de uma linha em `public.users` (name/role) além da conta em

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { ArrowUpRight } from "lucide-react";
-import { getSession, ADMIN_LOGIN_PATH } from "@/lib/admin/auth";
+import { getSession } from "@/lib/admin/auth";
+import { AutoLoginMissing } from "@/components/admin/auto-login-missing";
 import { listAllProposals, listProposalTemplates } from "@/lib/comercial/proposal-queries";
 import { listOpenLeads } from "@/lib/comercial/queries";
 import { NewExperienceForm } from "@/components/comercial/proposal-panel/new-experience-form";
@@ -58,7 +58,7 @@ const dateFormatter = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: 
  */
 export default async function ProposalsPanelPage({ searchParams }: { searchParams: Promise<{ type?: string }> }) {
   const session = await getSession();
-  if (!session) redirect(ADMIN_LOGIN_PATH);
+  if (!session) return <AutoLoginMissing />;
 
   const { type: typeParam } = await searchParams;
   const activeType = TYPE_TABS.some((t) => t.key === typeParam) ? typeParam! : "all";
