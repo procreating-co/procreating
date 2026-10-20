@@ -44,7 +44,7 @@ export const clientConfig: ClientConfig = {
 
   features: {
     eyebrow: "O que fazemos",
-    heading: "Posicionamento Digital.",
+    heading: "Criamos Posicionamento Digital.",
     blockNumber: "01.",
     blockTitle: "Ensaio Fotográfico",
     subtitle: "Captamos a essência do consultório, equipe e a experiência das pacientes com a doutora.",
@@ -76,6 +76,9 @@ export const clientConfig: ClientConfig = {
     acquisitionHeadingSuffix: "de apresentação.",
     // Esconde número/título/download dos vídeos — só o vídeo clicável.
     hideVideoMeta: true,
+    // Grade 3×3 (estilo Elenita, sem contador pois não tem `label`): posições 01-03 = Elenita,
+    // 04-06 = Sandra, 07-09 = "Em breve" (3 espaços reservados). Ver `data/pros-02/videos.ts`.
+    production: { count: 9, columns: 3 },
   },
 
   footer: {

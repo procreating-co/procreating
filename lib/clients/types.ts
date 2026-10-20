@@ -148,8 +148,10 @@ export type ClientConfig = {
     /** Opcional — grade de `count` posições: os vídeos entregues (`videos.socialVideos`) preenchem
      *  suas posições (por `number`) e o resto fica "Em breve". Se `label` existir, mostra também um
      *  contador animado (0 → `count`) acima da grade (ex.: "12 vídeos em produção"); sem `label`,
-     *  só a grade, estilo Elenita. Ausente (padrão) = seção renderiza os vídeos normalmente. */
-    production?: { count: number; label?: string };
+     *  só a grade, estilo Elenita. Ausente (padrão) = seção renderiza os vídeos normalmente.
+     *  `columns` fixa quantas colunas a grade tem no desktop (padrão 4; ex.: `/pros/02` usa 3 para
+     *  um layout 3×3 limpo). */
+    production?: { count: number; label?: string; columns?: 3 | 4 };
     /** Opcional — `true` esconde número/título/botão de download dos vídeos verticais, deixando
      *  só o vídeo clicável. Ausente (padrão) = cabeçalho completo, como sempre foi. */
     hideVideoMeta?: boolean;

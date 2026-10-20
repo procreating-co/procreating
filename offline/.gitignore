@@ -1,0 +1,5 @@
+# Gerado por `npm run sync:offline` — vídeos (~1GB), cópias de imagens e manifesto. Nunca commitar.
+/public/
+/generated/
+/.next/
+/next-env.d.ts

@@ -45,7 +45,7 @@ function ProductionCount({ value, start }: { value: number; start: boolean }) {
 /** Grade de `count` posições verticais (9/16). As primeiras são preenchidas com os vídeos reais
  *  já prontos (clicáveis → abrem no lightbox); as restantes ficam como placeholders "Em produção".
  *  Mantém o template de "espaço pra N vídeos" (ex.: Dra. Sandra, 12 vídeos, 2 prontos). */
-function ProductionSlots({ count, isVisible, videos, onOpen }: { count: number; isVisible: boolean; videos: VideoItem[]; onOpen: (video: VideoItem) => void }) {
+function ProductionSlots({ count, columns = 4, isVisible, videos, onOpen }: { count: number; columns?: 3 | 4; isVisible: boolean; videos: VideoItem[]; onOpen: (video: VideoItem) => void }) {
   // Cada vídeo ocupa a posição do seu `number` (ex.: "05" → 5ª célula). Vídeos sem número válido
   // (ou fora de 1..count) caem em ordem nas primeiras posições ainda livres.
   const byPosition = new Map<number, VideoItem>();
@@ -59,8 +59,11 @@ function ProductionSlots({ count, isVisible, videos, onOpen }: { count: number; 
     if (!byPosition.has(i)) byPosition.set(i, leftovers.shift()!);
   }
 
+  // Classes estáticas (Tailwind não lê valor dinâmico): 3 colunas (layout 3×3) ou 4 (padrão).
+  const gridCols = columns === 3 ? "sm:grid-cols-3 lg:grid-cols-3" : "sm:grid-cols-3 lg:grid-cols-4";
+
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+    <div className={`grid grid-cols-2 gap-3 sm:gap-4 ${gridCols}`}>
       {Array.from({ length: count }).map((_, i) => {
         const video = byPosition.get(i + 1);
         const reveal = isVisible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0";
@@ -158,7 +161,7 @@ export type HowItWorksSectionProps = {
   acquisitionHeadingPrefix: string;
   acquisitionHeadingSuffix: string;
   /** Modo "em produção" — ver `ClientConfig.videosSection.production`. */
-  production?: { count: number; label?: string };
+  production?: { count: number; label?: string; columns?: 3 | 4 };
   /** `true` esconde número/título/download dos vídeos verticais (só o vídeo clicável). */
   hideVideoMeta?: boolean;
 };
@@ -223,6 +226,7 @@ export function HowItWorksSection({
             {production ? (
               <ProductionSlots
                 count={production.count}
+                columns={production.columns}
                 isVisible={isVisible}
                 videos={videos.socialVideos}
                 onOpen={(video) => setActiveVideo({ poster: video.poster, title: video.shortTitle ?? video.title, videoSrc: video.videoSrc })}

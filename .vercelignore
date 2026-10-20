@@ -12,3 +12,6 @@ public/videos/*
 !public/videos/topo-apresentacao-julia.mp4
 !public/videos/meio-a-origem.mp4
 !public/videos/fundo-wish-carol.mp4
+
+# Apresentação offline (offline/, ver OFFLINE_PRESENTATION.md) — app separado, nunca vai pro deploy.
+offline/

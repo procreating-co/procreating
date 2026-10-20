@@ -8,7 +8,11 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "presentation": "node --no-warnings scripts/offline/presentation.mjs",
+    "sync:offline": "node --no-warnings scripts/offline/sync.mjs",
+    "validate:offline": "node --no-warnings scripts/offline/validate.mjs --serve",
+    "test:offline": "node --no-warnings scripts/offline/browser-test.mjs"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.23",
