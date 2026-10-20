@@ -46,10 +46,23 @@ function ProductionCount({ value, start }: { value: number; start: boolean }) {
  *  já prontos (clicáveis → abrem no lightbox); as restantes ficam como placeholders "Em produção".
  *  Mantém o template de "espaço pra N vídeos" (ex.: Dra. Sandra, 12 vídeos, 2 prontos). */
 function ProductionSlots({ count, isVisible, videos, onOpen }: { count: number; isVisible: boolean; videos: VideoItem[]; onOpen: (video: VideoItem) => void }) {
+  // Cada vídeo ocupa a posição do seu `number` (ex.: "05" → 5ª célula). Vídeos sem número válido
+  // (ou fora de 1..count) caem em ordem nas primeiras posições ainda livres.
+  const byPosition = new Map<number, VideoItem>();
+  const leftovers: VideoItem[] = [];
+  for (const v of videos) {
+    const n = Number.parseInt(v.number, 10);
+    if (Number.isInteger(n) && n >= 1 && n <= count && !byPosition.has(n)) byPosition.set(n, v);
+    else leftovers.push(v);
+  }
+  for (let i = 1; i <= count && leftovers.length; i++) {
+    if (!byPosition.has(i)) byPosition.set(i, leftovers.shift()!);
+  }
+
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
       {Array.from({ length: count }).map((_, i) => {
-        const video = videos[i];
+        const video = byPosition.get(i + 1);
         const reveal = isVisible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0";
         const delay = { transitionDelay: isVisible ? `${i * 60}ms` : "0ms" };
 
@@ -80,7 +93,7 @@ function ProductionSlots({ count, isVisible, videos, onOpen }: { count: number; 
             style={delay}
           >
             <span className="font-display text-xl text-white/25">{String(i + 1).padStart(2, "0")}</span>
-            <span className="font-mono text-[10px] uppercase tracking-wide text-white/25">Em produção</span>
+            <span className="font-mono text-[10px] uppercase tracking-wide text-white/25">Em breve</span>
           </div>
         );
       })}
@@ -144,7 +157,7 @@ export type HowItWorksSectionProps = {
   acquisitionHeadingPrefix: string;
   acquisitionHeadingSuffix: string;
   /** Modo "em produção" — ver `ClientConfig.videosSection.production`. */
-  production?: { count: number; label: string };
+  production?: { count: number; label?: string };
   /** `true` esconde número/título/download dos vídeos verticais (só o vídeo clicável). */
   hideVideoMeta?: boolean;
 };
@@ -188,7 +201,7 @@ export function HowItWorksSection({
           <h2 className="text-balance font-display text-4xl leading-[0.95] tracking-tight sm:text-5xl md:text-7xl lg:text-[96px]">{headingPrefix} <span className="block text-white/40">{headingSuffix}</span></h2>
         </header>
 
-        {production && (
+        {production?.label && (
           <div className={`mx-auto mb-14 flex max-w-4xl flex-col items-center text-center transition-all duration-1000 lg:mb-20 ${isVisible ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"}`}>
             <span className="font-display text-7xl leading-none text-[var(--client-accent)] sm:text-8xl lg:text-[120px]">
               <ProductionCount value={production.count} start={isVisible} />

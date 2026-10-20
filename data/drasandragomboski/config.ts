@@ -36,8 +36,11 @@ export const clientConfig: ClientConfig = {
     welcomeLines: ["Seja bem-vinda,", "Dra. Sandra."],
     // Sem vídeo de fundo por enquanto (pedido explícito) — o Hero fica com fundo preto.
     backgroundVideo: "",
-    paragraph: "A Galeria de Fotos já está disponível...",
-    // `stats` omitido de propósito — os números ainda não existem; Hero mostra só o parágrafo.
+    paragraph: "Todos materiais captados estão aqui...",
+    stats: {
+      videos: { count: 12, label: "vídeos produzidos" },
+      photos: { count: 30, label: "fotos editadas" },
+    },
   },
 
   features: {
@@ -64,13 +67,14 @@ export const clientConfig: ClientConfig = {
     headingPrefix: "Conteúdos",
     headingSuffix: "para redes sociais.",
     blockNumber: "02.",
-    blockTitle: "Vídeos em Produção.",
-    subtitle: "Conteúdos estratégicos em produção para o perfil nas redes sociais.",
+    blockTitle: "Vídeos Produzidos.",
+    subtitle: "Conteúdos estratégicos para o perfil nas redes sociais.",
     acquisitionEyebrow: "Estratégia de Conteúdo",
     acquisitionHeadingPrefix: "Conteúdos",
     acquisitionHeadingSuffix: "de apresentação.",
-    // Modo "em produção": contador animado 0 → 12 + 12 slots pra preencher depois.
-    production: { count: 12, label: "vídeos em produção" },
+    // Mantém os 12 espaços (grade), sem o contador "em produção" (`label` omitido) — estilo Elenita.
+    // Os vídeos entregues preenchem suas posições (por `number`); o resto fica "Em breve".
+    production: { count: 12 },
   },
 
   footer: {

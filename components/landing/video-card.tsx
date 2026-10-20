@@ -15,7 +15,12 @@ export function VideoPoster({ item }: { item: VideoItem }) {
       </>
     );
   }
-  return <Image src={item.poster || "/placeholder.svg"} alt="" fill sizes="(min-width: 1024px) 340px, 90vw" className="object-cover transition-transform duration-700 group-hover:scale-105" />;
+  // Sem capa definida: usa o primeiro frame do próprio vídeo (preload de metadados) em vez de um
+  // placeholder genérico — assim vídeos sem imagem de capa (ex.: /pros/02) já mostram uma prévia.
+  if (!item.poster) {
+    return <video src={item.videoSrc} muted playsInline preload="metadata" tabIndex={-1} aria-hidden="true" className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />;
+  }
+  return <Image src={item.poster} alt="" fill sizes="(min-width: 1024px) 340px, 90vw" className="object-cover transition-transform duration-700 group-hover:scale-105" />;
 }
 
 /**

@@ -145,10 +145,11 @@ export type ClientConfig = {
     acquisitionEyebrow: string;
     acquisitionHeadingPrefix: string;
     acquisitionHeadingSuffix: string;
-    /** Opcional — modo "em produção": no lugar dos vídeos sociais prontos, mostra um contador
-     *  animado (0 → `count`) e uma grade de `count` slots "Em produção" pra preencher depois.
-     *  Ausente (padrão) = seção renderiza `videos.socialVideos` normalmente. */
-    production?: { count: number; label: string };
+    /** Opcional — grade de `count` posições: os vídeos entregues (`videos.socialVideos`) preenchem
+     *  suas posições (por `number`) e o resto fica "Em breve". Se `label` existir, mostra também um
+     *  contador animado (0 → `count`) acima da grade (ex.: "12 vídeos em produção"); sem `label`,
+     *  só a grade, estilo Elenita. Ausente (padrão) = seção renderiza os vídeos normalmente. */
+    production?: { count: number; label?: string };
     /** Opcional — `true` esconde número/título/botão de download dos vídeos verticais, deixando
      *  só o vídeo clicável. Ausente (padrão) = cabeçalho completo, como sempre foi. */
     hideVideoMeta?: boolean;
