@@ -42,21 +42,48 @@ function ProductionCount({ value, start }: { value: number; start: boolean }) {
   );
 }
 
-/** Grade de slots "Em produção" — placeholders verticais (9/16) numerados, pra preencher com os
- *  vídeos reais depois. Entra no lugar dos cards de vídeo quando `videosSection.production` existe. */
-function ProductionSlots({ count, isVisible }: { count: number; isVisible: boolean }) {
+/** Grade de `count` posições verticais (9/16). As primeiras são preenchidas com os vídeos reais
+ *  já prontos (clicáveis → abrem no lightbox); as restantes ficam como placeholders "Em produção".
+ *  Mantém o template de "espaço pra N vídeos" (ex.: Dra. Sandra, 12 vídeos, 2 prontos). */
+function ProductionSlots({ count, isVisible, videos, onOpen }: { count: number; isVisible: boolean; videos: VideoItem[]; onOpen: (video: VideoItem) => void }) {
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
-      {Array.from({ length: count }).map((_, i) => (
-        <div
-          key={i}
-          className={`relative flex aspect-[9/16] w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-lg border border-white/10 bg-white/[0.03] transition-all duration-700 ${isVisible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"}`}
-          style={{ transitionDelay: isVisible ? `${i * 60}ms` : "0ms" }}
-        >
-          <span className="font-display text-xl text-white/25">{String(i + 1).padStart(2, "0")}</span>
-          <span className="font-mono text-[10px] uppercase tracking-wide text-white/25">Em produção</span>
-        </div>
-      ))}
+      {Array.from({ length: count }).map((_, i) => {
+        const video = videos[i];
+        const reveal = isVisible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0";
+        const delay = { transitionDelay: isVisible ? `${i * 60}ms` : "0ms" };
+
+        if (video) {
+          return (
+            <button
+              key={video.id}
+              type="button"
+              onClick={() => onOpen(video)}
+              aria-label={`Abrir vídeo ${i + 1} em tela cheia`}
+              className={`group relative block aspect-[9/16] w-full overflow-hidden rounded-lg border border-white/10 bg-black transition-all duration-700 ${reveal}`}
+              style={delay}
+            >
+              {/* Primeiro frame do vídeo como prévia (sem precisar de imagem de capa). */}
+              <video src={video.videoSrc} muted playsInline preload="metadata" tabIndex={-1} aria-hidden="true" className="absolute inset-0 h-full w-full object-cover" />
+              <span className="absolute inset-0 bg-black/20 transition-colors group-hover:bg-black/35" />
+              <span className="absolute left-1/2 top-1/2 flex size-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/50 bg-black/35 text-white backdrop-blur-sm transition-all group-hover:scale-110 group-hover:border-[var(--client-accent)] group-hover:text-[var(--client-accent)]">
+                <Play className="ml-0.5 size-4 fill-current" />
+              </span>
+            </button>
+          );
+        }
+
+        return (
+          <div
+            key={i}
+            className={`relative flex aspect-[9/16] w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-lg border border-white/10 bg-white/[0.03] transition-all duration-700 ${reveal}`}
+            style={delay}
+          >
+            <span className="font-display text-xl text-white/25">{String(i + 1).padStart(2, "0")}</span>
+            <span className="font-mono text-[10px] uppercase tracking-wide text-white/25">Em produção</span>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -180,7 +207,12 @@ export function HowItWorksSection({
           </div>
           <div className="min-w-0 p-6 lg:p-10">
             {production ? (
-              <ProductionSlots count={production.count} isVisible={isVisible} />
+              <ProductionSlots
+                count={production.count}
+                isVisible={isVisible}
+                videos={videos.socialVideos}
+                onOpen={(video) => setActiveVideo({ poster: video.poster, title: video.shortTitle ?? video.title, videoSrc: video.videoSrc })}
+              />
             ) : (
               <div className={`flex w-full flex-col items-start gap-6 lg:flex-row ${allSameFormat ? "lg:justify-center" : "lg:justify-end"}`}>
                 {allSameFormat ? (
