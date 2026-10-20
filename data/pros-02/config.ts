@@ -43,17 +43,24 @@ export const clientConfig: ClientConfig = {
   },
 
   features: {
-    eyebrow: "Projeto Inicial",
+    eyebrow: "O que fazemos",
     heading: "Posicionamento Digital.",
     blockNumber: "01.",
-    blockTitle: "Fotos Produzidas",
+    blockTitle: "Ensaio Fotográfico",
     subtitle: "Captamos a essência do consultório, equipe e a experiência das pacientes com a doutora.",
     galleryButtonLabel: "Acessar Galeria",
+    // Fotos sortidas da galeria da Elenita (sem consultório), `category: ""` pra NÃO mostrar
+    // nenhum rótulo interno sobre a foto. Troque livremente por outras de
+    // `public/gallery/elenita/{retratos-elenita,procedimento,retratos-elenita-alexandre}/`.
     photos: [
-      { src: "/images/gallery/elenita-retratos.jpg", alt: "Retratos", category: "Retratos" },
-      { src: "/images/gallery/elenita-consultorio.jpg", alt: "Consultório", category: "Consultório" },
-      { src: "/images/gallery/elenita-procedimento.jpg", alt: "Procedimento", category: "Procedimento" },
-      { src: "/images/gallery/elenita-retratos-alexandre.jpg", alt: "Retratos", category: "Retratos e equipe" },
+      { src: "/gallery/elenita/retratos-elenita/retratos-elenita-01.jpg", alt: "Ensaio fotográfico", category: "" },
+      { src: "/gallery/elenita/procedimento/procedimento-03.jpg", alt: "Ensaio fotográfico", category: "" },
+      { src: "/gallery/elenita/retratos-elenita-alexandre/retratos-elenita-alexandre-02.jpg", alt: "Ensaio fotográfico", category: "" },
+      { src: "/gallery/elenita/retratos-elenita/retratos-elenita-08.jpg", alt: "Ensaio fotográfico", category: "" },
+      { src: "/gallery/elenita/procedimento/procedimento-11.jpg", alt: "Ensaio fotográfico", category: "" },
+      { src: "/gallery/elenita/retratos-elenita-alexandre/retratos-elenita-alexandre-06.jpg", alt: "Ensaio fotográfico", category: "" },
+      { src: "/gallery/elenita/retratos-elenita/retratos-elenita-15.jpg", alt: "Ensaio fotográfico", category: "" },
+      { src: "/gallery/elenita/procedimento/procedimento-07.jpg", alt: "Ensaio fotográfico", category: "" },
     ],
   },
 
@@ -62,11 +69,13 @@ export const clientConfig: ClientConfig = {
     headingPrefix: "Conteúdos",
     headingSuffix: "para redes sociais.",
     blockNumber: "02.",
-    blockTitle: "Vídeos Produzidos.",
+    blockTitle: "Produção de Conteúdo",
     subtitle: "Conteúdos estratégicos para o perfil nas redes sociais.",
     acquisitionEyebrow: "Estratégia de Conteúdo",
     acquisitionHeadingPrefix: "Conteúdos",
     acquisitionHeadingSuffix: "de apresentação.",
+    // Esconde número/título/download dos vídeos — só o vídeo clicável.
+    hideVideoMeta: true,
   },
 
   footer: {

@@ -65,27 +65,30 @@ function ProductionSlots({ count, isVisible }: { count: number; isVisible: boole
  * Vídeo "solto": cabeçalho acima da mídia, sem card/borda envolvendo os dois.
  * Cabeçalho reaproveita EXATAMENTE as classes do header do VideoCard (referência: Conteúdos para aquisição).
  */
-function VideoTile({ video, onOpen }: { video: VideoItem; onOpen: () => void }) {
+function VideoTile({ video, onOpen, hideMeta = false }: { video: VideoItem; onOpen: () => void; hideMeta?: boolean }) {
   const title = video.shortTitle ?? video.title;
   return (
     // `lg:flex-1 lg:basis-0` faz os 3 vídeos lado a lado ficarem EXATAMENTE do mesmo tamanho
     // (antes o `lg:w-80` fixo brigava com o `flex-1` e deixava o último com largura diferente).
     <div className="w-full lg:min-w-0 lg:max-w-[340px] lg:flex-1 lg:basis-0">
-      <div className="mb-4 flex h-10 shrink-0 items-center gap-4 lg:mb-5">
-        <span className="shrink-0 font-display text-3xl text-[var(--client-accent)]">{video.number}.</span>
-        <h3 className="min-w-0 shrink truncate text-left font-display text-xl leading-snug lg:text-2xl">{title}</h3>
-        <span className="h-px min-w-6 flex-1 bg-white/15" />
-        {video.ready && (
-          <a
-            href={`/api/download?src=${encodeURIComponent(video.downloadHref)}`}
-            download
-            className="flex size-10 shrink-0 items-center justify-center border border-white/15 text-white/55 transition-colors hover:border-[var(--client-accent)] hover:text-[var(--client-accent)]"
-            aria-label={`Baixar vídeo ${video.number}`}
-          >
-            <Download className="size-4" />
-          </a>
-        )}
-      </div>
+      {/* `hideMeta` (ex.: /pros/02): esconde número, título e download — fica só o vídeo clicável. */}
+      {!hideMeta && (
+        <div className="mb-4 flex h-10 shrink-0 items-center gap-4 lg:mb-5">
+          <span className="shrink-0 font-display text-3xl text-[var(--client-accent)]">{video.number}.</span>
+          <h3 className="min-w-0 shrink truncate text-left font-display text-xl leading-snug lg:text-2xl">{title}</h3>
+          <span className="h-px min-w-6 flex-1 bg-white/15" />
+          {video.ready && (
+            <a
+              href={`/api/download?src=${encodeURIComponent(video.downloadHref)}`}
+              download
+              className="flex size-10 shrink-0 items-center justify-center border border-white/15 text-white/55 transition-colors hover:border-[var(--client-accent)] hover:text-[var(--client-accent)]"
+              aria-label={`Baixar vídeo ${video.number}`}
+            >
+              <Download className="size-4" />
+            </a>
+          )}
+        </div>
+      )}
       <button
         type="button"
         onClick={onOpen}
@@ -115,6 +118,8 @@ export type HowItWorksSectionProps = {
   acquisitionHeadingSuffix: string;
   /** Modo "em produção" — ver `ClientConfig.videosSection.production`. */
   production?: { count: number; label: string };
+  /** `true` esconde número/título/download dos vídeos verticais (só o vídeo clicável). */
+  hideVideoMeta?: boolean;
 };
 
 export function HowItWorksSection({
@@ -129,6 +134,7 @@ export function HowItWorksSection({
   acquisitionHeadingPrefix,
   acquisitionHeadingSuffix,
   production,
+  hideVideoMeta = false,
 }: HowItWorksSectionProps) {
   const [activeVideo, setActiveVideo] = useState<ActiveVideo | null>(null);
   const [isVisible, setIsVisible] = useState(false);
@@ -182,6 +188,7 @@ export function HowItWorksSection({
                     <VideoTile
                       key={video.id}
                       video={video}
+                      hideMeta={hideVideoMeta}
                       onOpen={() => setActiveVideo({ poster: video.poster, title: video.shortTitle ?? video.title, videoSrc: video.videoSrc })}
                     />
                   ))
@@ -189,10 +196,12 @@ export function HowItWorksSection({
                   <>
                     <VideoTile
                       video={verticalOne}
+                      hideMeta={hideVideoMeta}
                       onOpen={() => setActiveVideo({ poster: verticalOne.poster, title: verticalOne.shortTitle ?? verticalOne.title, videoSrc: verticalOne.videoSrc })}
                     />
                     <VideoTile
                       video={verticalTwo}
+                      hideMeta={hideVideoMeta}
                       onOpen={() => setActiveVideo({ poster: verticalTwo.poster, title: verticalTwo.shortTitle ?? verticalTwo.title, videoSrc: verticalTwo.videoSrc })}
                     />
                   </>

@@ -95,12 +95,12 @@ function PhotoCarousel({ isVisible, photos, galleryHref }: { isVisible: boolean;
     >
       {photos.map((photo, index) => (
         <a
-          key={photo.category}
+          key={`${index}-${photo.src ?? photo.category}`}
           ref={(el) => { slideRefs.current[index] = el; }}
           href={galleryHref}
           className={`group relative h-[380px] w-[78vw] max-w-[280px] shrink-0 snap-start overflow-hidden bg-black transition-all duration-700 sm:h-[430px] sm:w-[46%] sm:max-w-none lg:w-[38%] ${isVisible ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"}`}
           style={{ transitionDelay: isVisible ? `${index * 120}ms` : "0ms" }}
-          aria-label={`Acessar galeria: ${photo.category}`}
+          aria-label={photo.category ? `Acessar galeria: ${photo.category}` : "Ver foto"}
         >
           {photo.src ? (
             <Image
@@ -117,7 +117,8 @@ function PhotoCarousel({ isVisible, photos, galleryHref }: { isVisible: boolean;
             </div>
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/5 to-transparent opacity-100 transition-opacity duration-300 lg:opacity-40 lg:group-hover:opacity-100 lg:group-focus-visible:opacity-100" />
-          <span className="absolute bottom-5 left-5 right-5 translate-y-0 text-left font-display text-lg text-white opacity-100 transition-all duration-300 lg:translate-y-2 lg:opacity-0 lg:group-hover:translate-y-0 lg:group-hover:opacity-100 lg:group-focus-visible:translate-y-0 lg:group-focus-visible:opacity-100">{photo.category}</span>
+          {/* Rótulo interno (ex.: "Retratos"): some quando `category` é vazio (ex.: /pros/02). */}
+          {photo.category && <span className="absolute bottom-5 left-5 right-5 translate-y-0 text-left font-display text-lg text-white opacity-100 transition-all duration-300 lg:translate-y-2 lg:opacity-0 lg:group-hover:translate-y-0 lg:group-hover:opacity-100 lg:group-focus-visible:translate-y-0 lg:group-focus-visible:opacity-100">{photo.category}</span>}
         </a>
       ))}
     </div>

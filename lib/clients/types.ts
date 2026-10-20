@@ -149,6 +149,9 @@ export type ClientConfig = {
      *  animado (0 → `count`) e uma grade de `count` slots "Em produção" pra preencher depois.
      *  Ausente (padrão) = seção renderiza `videos.socialVideos` normalmente. */
     production?: { count: number; label: string };
+    /** Opcional — `true` esconde número/título/botão de download dos vídeos verticais, deixando
+     *  só o vídeo clicável. Ausente (padrão) = cabeçalho completo, como sempre foi. */
+    hideVideoMeta?: boolean;
   };
   footer: {
     legalLine: string;
