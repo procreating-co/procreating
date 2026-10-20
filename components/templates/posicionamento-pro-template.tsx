@@ -17,13 +17,20 @@ export function PosicionamentoProTemplate({
   slug,
   config,
   videos,
+  homeHref: homeHrefOverride,
 }: {
   slug: string;
   config: ClientConfig;
   videos: ClientVideos;
+  /** Opcional — base da URL da página. Padrão `/clients/<slug>/public`. Páginas-vitrine como
+   *  `/pros/02` passam o próprio caminho pra o logo/links não apontarem pra uma rota de cliente. */
+  homeHref?: string;
 }) {
-  const homeHref = `/clients/${slug}/public`;
-  const galleryHref = `${homeHref}/galeria`;
+  const homeHref = homeHrefOverride ?? `/clients/${slug}/public`;
+  const showGallery = config.nav.showGallery ?? true;
+  // Com a galeria escondida, os links de galeria (carrossel/logo) ficam na própria página em vez
+  // de apontar pra uma rota de galeria que pode não existir.
+  const galleryHref = showGallery ? `${homeHref}/galeria` : homeHref;
   const prospeccaoHref = `${homeHref}/prospeccao`;
 
   return (
@@ -36,6 +43,7 @@ export function PosicionamentoProTemplate({
         prospeccaoCtaLabel={config.nav.prospeccaoCtaLabel}
         showProspeccaoCta={config.prospeccao !== null}
         extraLink={config.nav.extraLink}
+        showGalleryCta={showGallery}
       />
       <HeroSection welcomeLines={config.hero.welcomeLines} backgroundVideo={config.hero.backgroundVideo} paragraph={config.hero.paragraph} stats={config.hero.stats} />
       <FeaturesSection
@@ -48,6 +56,7 @@ export function PosicionamentoProTemplate({
         galleryHref={galleryHref}
         photos={config.features.photos}
         backgroundVideo={config.features.backgroundVideo}
+        showGalleryButton={showGallery}
       />
       <HowItWorksSection
         videos={videos}

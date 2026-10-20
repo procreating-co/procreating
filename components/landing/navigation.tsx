@@ -17,9 +17,11 @@ export type NavigationProps = {
   galleryIcon?: "gallery" | "project";
   /** Opcional — item extra no menu (ex.: link pra uma proposta comercial). Ausente = menu igual a sempre foi. */
   extraLink?: { label: string; href: string; delayMs?: number };
+  /** Opcional — `false` esconde o botão "Acessar Galeria" (desktop e mobile). Padrão: visível. */
+  showGalleryCta?: boolean;
 };
 
-export function Navigation({ brandName, homeHref, galleryHref, galleryLabel, prospeccaoCtaLabel, showProspeccaoCta, galleryIcon = "gallery", extraLink }: NavigationProps) {
+export function Navigation({ brandName, homeHref, galleryHref, galleryLabel, prospeccaoCtaLabel, showProspeccaoCta, galleryIcon = "gallery", extraLink, showGalleryCta = true }: NavigationProps) {
   const GalleryIcon = galleryIcon === "project" ? FolderOpen : Images;
   const [isScrolled, setIsScrolled] = useState(false);
   const [isHidden, setIsHidden] = useState(false);
@@ -98,16 +100,18 @@ export function Navigation({ brandName, homeHref, galleryHref, galleryLabel, pro
 
             {/* Desktop CTA */}
             <div className="hidden md:flex items-center gap-3">
-              <Button
-                asChild
-                size="sm"
-                className={`rounded-full transition-all duration-500 ${isScrolled ? "bg-foreground hover:bg-foreground/90 text-background px-4 h-8 text-xs" : "bg-white hover:bg-white/90 text-black px-6"}`}
-              >
-                <a href={galleryHref} className="inline-flex items-center gap-2">
-                  <GalleryIcon className="size-3.5" />
-                  {galleryLabel}
-                </a>
-              </Button>
+              {showGalleryCta && (
+                <Button
+                  asChild
+                  size="sm"
+                  className={`rounded-full transition-all duration-500 ${isScrolled ? "bg-foreground hover:bg-foreground/90 text-background px-4 h-8 text-xs" : "bg-white hover:bg-white/90 text-black px-6"}`}
+                >
+                  <a href={galleryHref} className="inline-flex items-center gap-2">
+                    <GalleryIcon className="size-3.5" />
+                    {galleryLabel}
+                  </a>
+                </Button>
+              )}
               {showProspeccaoCta && (
                 <Button
                   asChild
@@ -135,10 +139,10 @@ export function Navigation({ brandName, homeHref, galleryHref, galleryLabel, pro
               )}
             </div>
 
-            {/* Mobile Menu Button */}
+            {/* Mobile Menu Button — escondido quando não há nenhum item pra mostrar no menu */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className={`md:hidden p-2 transition-colors duration-500 ${isScrolled || isMobileMenuOpen ? "text-foreground" : "text-white"}`}
+              className={`${showGalleryCta || showProspeccaoCta || showExtraLink ? "md:hidden" : "hidden"} p-2 transition-colors duration-500 ${isScrolled || isMobileMenuOpen ? "text-foreground" : "text-white"}`}
               aria-label="Toggle menu"
             >
               {isMobileMenuOpen ? (
@@ -161,15 +165,17 @@ export function Navigation({ brandName, homeHref, galleryHref, galleryLabel, pro
           style={{ top: 0 }}
         >
           <div className="flex h-full flex-col justify-center gap-3 px-8">
-            <Button
-              asChild
-              className="bg-foreground text-background rounded-full h-14 text-base"
-            >
-              <a href={galleryHref} onClick={() => setIsMobileMenuOpen(false)} className="inline-flex items-center justify-center gap-2">
-                <GalleryIcon className="size-4" />
-                {galleryLabel}
-              </a>
-            </Button>
+            {showGalleryCta && (
+              <Button
+                asChild
+                className="bg-foreground text-background rounded-full h-14 text-base"
+              >
+                <a href={galleryHref} onClick={() => setIsMobileMenuOpen(false)} className="inline-flex items-center justify-center gap-2">
+                  <GalleryIcon className="size-4" />
+                  {galleryLabel}
+                </a>
+              </Button>
+            )}
             {showProspeccaoCta && (
               <Button
                 asChild

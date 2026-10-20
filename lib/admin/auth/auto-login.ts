@@ -52,6 +52,26 @@ export function autoLoginConfigured(): boolean {
 }
 
 /**
+ * Cache de resultado POR INSTÂNCIA (serverless/edge) — crucial pra performance. Sem uma sessão
+ * persistida (cookie), o auto-login seria chamado a CADA request; se ele está falhando (ex.: chave
+ * errada), toda navegação pagaria várias idas ao Supabase à toa, deixando o painel lentíssimo. Com
+ * um TTL negativo curto, uma falha recente faz os próximos requests caírem direto no modo visitante,
+ * sem rede. Quando a chave estiver certa, o login dá certo uma vez, o `proxy.ts` persiste o cookie e
+ * isto deixa de ser chamado.
+ */
+let lastOutcome: { ok: boolean; at: number } | null = null;
+const NEGATIVE_TTL_MS = 60_000;
+/** Provisionamento (criar/confirmar a conta) é caro (lista usuários) — no máximo uma vez por instância. */
+let provisionTried = false;
+
+export function autoLoginRecentlyFailed(): boolean {
+  return lastOutcome !== null && !lastOutcome.ok && Date.now() - lastOutcome.at < NEGATIVE_TTL_MS;
+}
+export function recordAutoLoginOutcome(ok: boolean): void {
+  lastOutcome = { ok, at: Date.now() };
+}
+
+/**
  * Garante que a conta de serviço exista, esteja com e-mail confirmado e com a senha esperada, e
  * tenha a linha correspondente em `public.users` (o `getSession()` exige o perfil). Idempotente:
  * seguro rodar várias vezes. Usa a chave de serviço, que ignora o RLS.
@@ -91,11 +111,17 @@ async function provisionServiceAccount(): Promise<void> {
  */
 export async function performAutoLogin(supabase: SupabaseClient<Database>): Promise<boolean> {
   if (!autoLoginConfigured()) return false;
+  // Falhou há pouco nesta instância? Não repete o custo — vai direto pro visitante.
+  if (autoLoginRecentlyFailed()) return false;
 
   let { error } = await supabase.auth.signInWithPassword({ email: AUTO_LOGIN_EMAIL, password: AUTO_LOGIN_PASSWORD });
-  if (error && serviceRoleConfigured()) {
+  if (error && serviceRoleConfigured() && !provisionTried) {
+    // Provisiona só uma vez por instância (a listagem de usuários é cara).
+    provisionTried = true;
     await provisionServiceAccount();
     ({ error } = await supabase.auth.signInWithPassword({ email: AUTO_LOGIN_EMAIL, password: AUTO_LOGIN_PASSWORD }));
   }
-  return !error;
+  const ok = !error;
+  recordAutoLoginOutcome(ok);
+  return ok;
 }

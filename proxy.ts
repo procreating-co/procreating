@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { ADMIN_LOGIN_PATH, ADMIN_SIGNUP_PATH, POST_LOGIN_PATH } from "@/lib/admin/auth/constants";
-import { AUTO_LOGIN_EMAIL, AUTO_LOGIN_PASSWORD, autoLoginConfigured } from "@/lib/admin/auth/auto-login";
+import { AUTO_LOGIN_EMAIL, AUTO_LOGIN_PASSWORD, autoLoginConfigured, autoLoginRecentlyFailed, recordAutoLoginOutcome } from "@/lib/admin/auth/auto-login";
 import { PORTAL_LOGIN_PATH, PORTAL_SESSION_COOKIE, PORTAL_SIGNUP_PATH } from "@/lib/portal/auth/constants";
 
 /**
@@ -63,7 +63,9 @@ export async function proxy(request: NextRequest) {
   let response = NextResponse.next();
 
   const hasSupabaseSession = request.cookies.getAll().some((cookie) => cookie.name.startsWith("sb-"));
-  if (autoLoginConfigured() && !hasSupabaseSession) {
+  // `autoLoginRecentlyFailed()` evita tentar logar no Supabase em TODA navegação quando a credencial
+  // está falhando — era isso que deixava a troca de páginas lentíssima (uma ida ao Supabase por request).
+  if (autoLoginConfigured() && !hasSupabaseSession && !autoLoginRecentlyFailed()) {
     const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
       cookies: {
         getAll() {
@@ -76,9 +78,10 @@ export async function proxy(request: NextRequest) {
         },
       },
     });
-    // Falha silenciosa (env ausente/credencial inválida) não derruba a navegação: o layout
-    // server-side ainda mostra um aviso claro de configuração em vez de 500/loop.
-    await supabase.auth.signInWithPassword({ email: AUTO_LOGIN_EMAIL, password: AUTO_LOGIN_PASSWORD });
+    // Falha silenciosa (credencial inválida) não derruba a navegação: o painel abre em modo
+    // visitante. Cacheia o resultado pra não repetir a tentativa a cada request.
+    const { error } = await supabase.auth.signInWithPassword({ email: AUTO_LOGIN_EMAIL, password: AUTO_LOGIN_PASSWORD });
+    recordAutoLoginOutcome(!error);
   }
 
   return response;

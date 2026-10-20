@@ -135,9 +135,11 @@ export type FeaturesSectionProps = {
   photos: FeaturedPhoto[];
   /** Opcional — vídeo de fundo do bloco preto, mesmo tratamento visual do Hero. Ausente = fundo sólido preto (padrão). */
   backgroundVideo?: string;
+  /** Opcional — `false` esconde o botão "Acessar Galeria" do bloco. Padrão: visível. */
+  showGalleryButton?: boolean;
 };
 
-export function FeaturesSection({ eyebrow, heading, blockNumber, blockTitle, subtitle, galleryButtonLabel, galleryHref, photos, backgroundVideo }: FeaturesSectionProps) {
+export function FeaturesSection({ eyebrow, heading, blockNumber, blockTitle, subtitle, galleryButtonLabel, galleryHref, photos, backgroundVideo, showGalleryButton = true }: FeaturesSectionProps) {
   const [isVisible, setIsVisible] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
 
@@ -172,18 +174,22 @@ export function FeaturesSection({ eyebrow, heading, blockNumber, blockTitle, sub
               <h3 className="font-display text-2xl sm:text-4xl">{blockTitle}</h3>
             </div>
             <p className="mt-4 pl-0 text-base leading-relaxed text-white/55 sm:mt-6 sm:pl-10 sm:text-lg">{subtitle}</p>
-            <div className="mt-4 hidden pl-0 sm:mt-6 sm:pl-10 lg:block">
+            {showGalleryButton && (
+              <div className="mt-4 hidden pl-0 sm:mt-6 sm:pl-10 lg:block">
+                <a href={galleryHref} className="inline-flex h-12 w-full items-center justify-center gap-3 rounded-full bg-[var(--client-accent)] px-6 text-sm font-medium text-black transition-all duration-300 hover:scale-[1.03] hover:bg-white">
+                  {galleryButtonLabel}
+                </a>
+              </div>
+            )}
+          </div>
+          <div className="relative z-10 min-w-0 p-6 lg:p-10"><PhotoCarousel isVisible={isVisible} photos={photos} galleryHref={galleryHref} /></div>
+          {showGalleryButton && (
+            <div className="relative z-10 px-6 pb-6 pt-2 lg:hidden">
               <a href={galleryHref} className="inline-flex h-12 w-full items-center justify-center gap-3 rounded-full bg-[var(--client-accent)] px-6 text-sm font-medium text-black transition-all duration-300 hover:scale-[1.03] hover:bg-white">
                 {galleryButtonLabel}
               </a>
             </div>
-          </div>
-          <div className="relative z-10 min-w-0 p-6 lg:p-10"><PhotoCarousel isVisible={isVisible} photos={photos} galleryHref={galleryHref} /></div>
-          <div className="relative z-10 px-6 pb-6 pt-2 lg:hidden">
-            <a href={galleryHref} className="inline-flex h-12 w-full items-center justify-center gap-3 rounded-full bg-[var(--client-accent)] px-6 text-sm font-medium text-black transition-all duration-300 hover:scale-[1.03] hover:bg-white">
-              {galleryButtonLabel}
-            </a>
-          </div>
+          )}
         </div>
       </div>
     </section>

@@ -157,6 +157,9 @@ export function HeroSection({ welcomeLines, backgroundVideo, paragraph, stats }:
         </div>
       </div>
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 z-[5] h-44 bg-gradient-to-b from-transparent via-black/55 to-background" />
+      {/* Bloco inferior (parágrafo + números) — some por completo quando não há nem parágrafo nem
+          métricas (ex.: página-vitrine só com o título do Hero). */}
+      {(paragraph || stats) && (
       <div ref={statsRef} className={`absolute bottom-10 left-0 right-0 z-10 transition-all delay-500 duration-1000 sm:bottom-[57px] ${isVisible ? "translate-y-0 opacity-100" : "translate-y-5 opacity-0"}`}>
         <div
           className={`mx-auto flex max-w-[1400px] flex-col gap-4 px-6 transition-all ease-out ${stats ? `sm:grid ${stats.photos ? "sm:grid-cols-[minmax(0,1fr)_auto_auto]" : "sm:grid-cols-[minmax(0,1fr)_auto]"}` : ""} sm:items-baseline sm:gap-x-8 sm:gap-y-0 lg:gap-x-12 lg:pl-12 lg:pr-[88px] ${statsVisible ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"}`}
@@ -179,6 +182,7 @@ export function HeroSection({ welcomeLines, backgroundVideo, paragraph, stats }:
           )}
         </div>
       </div>
+      )}
     </section>
   );
 }

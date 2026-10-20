@@ -68,7 +68,9 @@ function ProductionSlots({ count, isVisible }: { count: number; isVisible: boole
 function VideoTile({ video, onOpen }: { video: VideoItem; onOpen: () => void }) {
   const title = video.shortTitle ?? video.title;
   return (
-    <div className="w-full lg:w-80 lg:max-w-[340px] lg:flex-1">
+    // `lg:flex-1 lg:basis-0` faz os 3 vídeos lado a lado ficarem EXATAMENTE do mesmo tamanho
+    // (antes o `lg:w-80` fixo brigava com o `flex-1` e deixava o último com largura diferente).
+    <div className="w-full lg:min-w-0 lg:max-w-[340px] lg:flex-1 lg:basis-0">
       <div className="mb-4 flex h-10 shrink-0 items-center gap-4 lg:mb-5">
         <span className="shrink-0 font-display text-3xl text-[var(--client-accent)]">{video.number}.</span>
         <h3 className="min-w-0 shrink truncate text-left font-display text-xl leading-snug lg:text-2xl">{title}</h3>

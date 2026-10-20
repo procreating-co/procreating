@@ -8,6 +8,9 @@ import { galleryFolderDefs as elenitaGalleryDefs } from "@/data/elenita/gallery"
 import { clientConfig as sandraConfig } from "@/data/drasandragomboski/config";
 import { clientVideos as sandraVideos } from "@/data/drasandragomboski/videos";
 import { galleryFolderDefs as sandraGalleryDefs } from "@/data/drasandragomboski/gallery";
+import { clientConfig as pros02Config } from "@/data/pros-02/config";
+import { clientVideos as pros02Videos } from "@/data/pros-02/videos";
+import { galleryFolderDefs as pros02GalleryDefs } from "@/data/pros-02/gallery";
 
 export type ClientEntry = {
   config: ClientConfig;
@@ -24,6 +27,7 @@ const REGISTRY: Record<string, ClientEntry> = {
   pascoal: { config: pascoalConfig, videos: pascoalVideos, galleryFolderDefs: pascoalGalleryDefs },
   elenita: { config: elenitaConfig, videos: elenitaVideos, galleryFolderDefs: elenitaGalleryDefs },
   drasandragomboski: { config: sandraConfig, videos: sandraVideos, galleryFolderDefs: sandraGalleryDefs },
+  "pros-02": { config: pros02Config, videos: pros02Videos, galleryFolderDefs: pros02GalleryDefs },
 };
 
 export function getClientEntry(slug: string): ClientEntry | null {

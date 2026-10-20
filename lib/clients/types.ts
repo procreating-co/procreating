@@ -97,6 +97,10 @@ export type ClientConfig = {
   nav: {
     galleryLabel: string;
     prospeccaoCtaLabel: string;
+    /** Opcional — `false` esconde os botões "Acessar Galeria" (no menu e no bloco de fotos).
+     *  Ausente (padrão) = galeria visível, como sempre foi. Usado em páginas-vitrine (ex.: `/pros`)
+     *  que não têm galeria de cliente por trás. */
+    showGallery?: boolean;
     /** Opcional — um link extra no menu (desktop e mobile), ex.: uma proposta comercial.
      *  Ausente (padrão) = menu igual a sempre foi, sem item extra. */
     extraLink?: {
