@@ -146,9 +146,13 @@ export function HeroSection({ welcomeLines, backgroundVideo, paragraph, stats }:
   return (
     <section className="relative min-h-screen overflow-hidden bg-black text-white">
       <div className="absolute inset-0 z-0">
-        <video ref={videoRef} autoPlay muted loop playsInline preload="auto" aria-hidden="true" className="hero-bg-video h-full w-full object-cover object-center opacity-75">
-          <source src={backgroundVideo} type="video/mp4" />
-        </video>
+        {/* Só renderiza o vídeo quando há um arquivo — sem isso um `src` vazio dispara uma
+            requisição inútil (e não mostra nada). Sem vídeo, fica o fundo preto da section. */}
+        {backgroundVideo && (
+          <video ref={videoRef} autoPlay muted loop playsInline preload="auto" aria-hidden="true" className="hero-bg-video h-full w-full object-cover object-center opacity-75">
+            <source src={backgroundVideo} type="video/mp4" />
+          </video>
+        )}
         <div className="absolute inset-0 bg-black/55" />
       </div>
       <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-[1400px] flex-col justify-center px-6 lg:px-12">

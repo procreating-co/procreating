@@ -76,8 +76,9 @@ function ProductionSlots({ count, isVisible, videos, onOpen }: { count: number; 
               className={`group relative block aspect-[9/16] w-full overflow-hidden rounded-lg border border-white/10 bg-black transition-all duration-700 ${reveal}`}
               style={delay}
             >
-              {/* Primeiro frame do vídeo como prévia (sem precisar de imagem de capa). */}
-              <video src={video.videoSrc} muted playsInline preload="metadata" tabIndex={-1} aria-hidden="true" className="absolute inset-0 h-full w-full object-cover" />
+              {/* Capa = primeiro frame do vídeo. `#t=0.1` força o navegador a pintar o frame em
+                  0,1s — sem isso o mobile (iOS Safari) mostra um quadro preto. */}
+              <video src={`${video.videoSrc}#t=0.1`} muted playsInline preload="metadata" tabIndex={-1} aria-hidden="true" className="absolute inset-0 h-full w-full object-cover" />
               <span className="absolute inset-0 bg-black/20 transition-colors group-hover:bg-black/35" />
               <span className="absolute left-1/2 top-1/2 flex size-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/50 bg-black/35 text-white backdrop-blur-sm transition-all group-hover:scale-110 group-hover:border-[var(--client-accent)] group-hover:text-[var(--client-accent)]">
                 <Play className="ml-0.5 size-4 fill-current" />

@@ -15,10 +15,11 @@ export function VideoPoster({ item }: { item: VideoItem }) {
       </>
     );
   }
-  // Sem capa definida: usa o primeiro frame do próprio vídeo (preload de metadados) em vez de um
-  // placeholder genérico — assim vídeos sem imagem de capa (ex.: /pros/02) já mostram uma prévia.
+  // Sem capa definida: usa o primeiro frame do próprio vídeo em vez de um placeholder genérico.
+  // `#t=0.1` força o navegador a pintar o frame em 0,1s — sem isso o mobile (iOS Safari) mostra
+  // um quadro preto em vez da capa.
   if (!item.poster) {
-    return <video src={item.videoSrc} muted playsInline preload="metadata" tabIndex={-1} aria-hidden="true" className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />;
+    return <video src={`${item.videoSrc}#t=0.1`} muted playsInline preload="metadata" tabIndex={-1} aria-hidden="true" className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />;
   }
   return <Image src={item.poster} alt="" fill sizes="(min-width: 1024px) 340px, 90vw" className="object-cover transition-transform duration-700 group-hover:scale-105" />;
 }
