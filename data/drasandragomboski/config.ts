@@ -1,5 +1,6 @@
 import type { ClientConfig } from "@/lib/clients/types";
 import { r2Url } from "@/lib/r2";
+import { galleryPhotos } from "./gallery";
 
 /** URL pública do bucket `drasandra` no R2 (mesma de `data/drasandragomboski/videos.ts`). */
 const R2_PUBLIC_BASE = "https://pub-efdfecafe11a4cb4aacac47948335da3.r2.dev";
@@ -54,16 +55,9 @@ export const clientConfig: ClientConfig = {
     blockTitle: "Fotos Produzidas",
     subtitle: "Captamos a essência do instituto, equipe e a experiência das pacientes com a doutora.",
     galleryButtonLabel: "Acessar Galeria",
-    // Slots do carrossel — `src: null` renderiza "Em breve". Troque por caminhos reais
-    // (ex.: "/images/gallery/drasandragomboski-retratos.jpg") conforme as fotos chegarem.
-    photos: [
-      { src: null, alt: "Foto 01 — Dra. Sandra Gomboski", category: "Foto 01" },
-      { src: null, alt: "Foto 02 — Dra. Sandra Gomboski", category: "Foto 02" },
-      { src: null, alt: "Foto 03 — Dra. Sandra Gomboski", category: "Foto 03" },
-      { src: null, alt: "Foto 04 — Dra. Sandra Gomboski", category: "Foto 04" },
-      { src: null, alt: "Foto 05 — Dra. Sandra Gomboski", category: "Foto 05" },
-      { src: null, alt: "Foto 06 — Dra. Sandra Gomboski", category: "Foto 06" },
-    ],
+    // Carrossel-teaser da Home: as mesmas 6 fotos da galeria (R2), `category: ""` para não
+    // mostrar rótulo por cima. Fonte única em `gallery.ts` (`galleryPhotos`).
+    photos: galleryPhotos.map((photo) => ({ ...photo, category: "" })),
   },
 
   videosSection: {

@@ -1,4 +1,4 @@
-import type { GalleryFolderDef } from "@/lib/clients/types";
+import type { GalleryFolderDef, GalleryPhoto } from "@/lib/clients/types";
 import { r2Url } from "@/lib/r2";
 
 /**
@@ -22,13 +22,17 @@ const FILES = [
   "DSC00433.JPG",
 ];
 
+/** As 6 fotos da galeria (URLs do R2). Reusado pelo carrossel da Home em `config.ts`
+ *  (fonte única — não duplicar a lista). */
+export const galleryPhotos: GalleryPhoto[] = FILES.map((file, i) => ({
+  src: r2Url(R2_GALLERY_BASE, file),
+  alt: `Dra. Sandra Gomboski — foto ${String(i + 1).padStart(2, "0")}`,
+}));
+
 export const galleryFolderDefs: GalleryFolderDef[] = [
   {
     id: "galeria",
     label: "Galeria Dra. Sandra",
-    photos: FILES.map((file, i) => ({
-      src: r2Url(R2_GALLERY_BASE, file),
-      alt: `Dra. Sandra Gomboski — foto ${String(i + 1).padStart(2, "0")}`,
-    })),
+    photos: galleryPhotos,
   },
 ];
