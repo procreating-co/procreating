@@ -76,7 +76,7 @@ export const clientConfig: ClientConfig = {
     // Bloco "Anúncios de Remarketing" com 2 espaços; o 1º preenchido por `videos.adsVideos`
     // ("Remarketing 1"), o 2º fica "Em breve".
     ads: {
-      blockNumber: "02.",
+      blockNumber: "03.",
       blockTitle: "Anúncios de Remarketing.",
       production: { count: 2, columns: 2 },
     },
