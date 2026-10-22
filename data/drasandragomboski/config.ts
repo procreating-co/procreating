@@ -1,4 +1,8 @@
 import type { ClientConfig } from "@/lib/clients/types";
+import { r2Url } from "@/lib/r2";
+
+/** URL pública do bucket `drasandra` no R2 (mesma de `data/drasandragomboski/videos.ts`). */
+const R2_PUBLIC_BASE = "https://pub-efdfecafe11a4cb4aacac47948335da3.r2.dev";
 
 /**
  * Dra. Sandra Gomboski — duplicata da arquitetura da Dra. Elenita (`data/elenita/config.ts`),
@@ -34,8 +38,8 @@ export const clientConfig: ClientConfig = {
 
   hero: {
     welcomeLines: ["Seja bem-vinda,", "Dra. Sandra."],
-    // Sem vídeo de fundo por enquanto (pedido explícito) — o Hero fica com fundo preto.
-    backgroundVideo: "",
+    // Vídeo de fundo do Hero (hero01.mp4 no bucket R2).
+    backgroundVideo: r2Url(R2_PUBLIC_BASE, "hero01.mp4"),
     paragraph: "Todos materiais captados estão aqui...",
     stats: {
       videos: { count: 12, label: "vídeos produzidos" },
