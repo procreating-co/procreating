@@ -79,13 +79,6 @@ export const clientConfig: ClientConfig = {
     // Mantém os 12 espaços (grade), sem o contador "em produção" (`label` omitido) — estilo Elenita.
     // Os vídeos entregues preenchem suas posições (por `number`); o resto fica "Em breve".
     production: { count: 12 },
-    // Bloco "03. Anúncios Produzidos." com 2 espaços (ainda sem vídeos → "Em breve").
-    // Preencher depois com `videos.adsVideos` em `data/drasandragomboski/videos.ts`.
-    ads: {
-      blockNumber: "03.",
-      blockTitle: "Anúncios Produzidos.",
-      production: { count: 2, columns: 2 },
-    },
   },
 
   footer: {
