@@ -40,6 +40,9 @@ export type ClientVideos = {
    */
   acquisitionVideo?: VideoItem;
   presentationVideo?: VideoItem;
+  /** Vídeos do bloco opcional "Anúncios Produzidos" (ver `videosSection.ads`). Preenchem as
+   *  primeiras posições da grade; as restantes ficam "Em breve". Ausente = grade só com slots. */
+  adsVideos?: VideoItem[];
 };
 
 /** Par número+rótulo usado nas métricas do Hero (ex.: "05" + "vídeos produzidos"). */
@@ -151,10 +154,19 @@ export type ClientConfig = {
      *  só a grade, estilo Elenita. Ausente (padrão) = seção renderiza os vídeos normalmente.
      *  `columns` fixa quantas colunas a grade tem no desktop (padrão 4; ex.: `/pros/02` usa 3 para
      *  um layout 3×3 limpo). */
-    production?: { count: number; label?: string; columns?: 3 | 4 };
+    production?: { count: number; label?: string; columns?: 2 | 3 | 4 };
     /** Opcional — `true` esconde número/título/botão de download dos vídeos verticais, deixando
      *  só o vídeo clicável. Ausente (padrão) = cabeçalho completo, como sempre foi. */
     hideVideoMeta?: boolean;
+    /** Opcional — bloco extra "Anúncios Produzidos" abaixo do bloco de vídeos, mesmo visual
+     *  (número + título à esquerda, grade de slots à direita). A grade usa `production` (count +
+     *  columns) e é preenchida por `videos.adsVideos`. Ausente (padrão) = sem bloco de anúncios. */
+    ads?: {
+      blockNumber: string;
+      blockTitle: string;
+      subtitle?: string;
+      production: { count: number; columns?: 2 | 3 | 4 };
+    };
   };
   footer: {
     legalLine: string;

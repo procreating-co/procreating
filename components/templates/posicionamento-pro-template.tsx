@@ -71,6 +71,7 @@ export function PosicionamentoProTemplate({
         acquisitionHeadingSuffix={config.videosSection.acquisitionHeadingSuffix}
         production={config.videosSection.production}
         hideVideoMeta={config.videosSection.hideVideoMeta}
+        ads={config.videosSection.ads}
       />
       {config.prospeccao && <InfrastructureSection prospeccao={config.prospeccao} prospeccaoHref={prospeccaoHref} />}
       <FooterSection brandName={config.brandName} legalLine={config.footer.legalLine} backgroundImage={config.footer.backgroundImage} />

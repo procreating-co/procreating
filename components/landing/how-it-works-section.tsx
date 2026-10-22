@@ -45,7 +45,7 @@ function ProductionCount({ value, start }: { value: number; start: boolean }) {
 /** Grade de `count` posições verticais (9/16). As primeiras são preenchidas com os vídeos reais
  *  já prontos (clicáveis → abrem no lightbox); as restantes ficam como placeholders "Em produção".
  *  Mantém o template de "espaço pra N vídeos" (ex.: Dra. Sandra, 12 vídeos, 2 prontos). */
-function ProductionSlots({ count, columns = 4, isVisible, videos, onOpen }: { count: number; columns?: 3 | 4; isVisible: boolean; videos: VideoItem[]; onOpen: (video: VideoItem) => void }) {
+function ProductionSlots({ count, columns = 4, isVisible, videos, onOpen }: { count: number; columns?: 2 | 3 | 4; isVisible: boolean; videos: VideoItem[]; onOpen: (video: VideoItem) => void }) {
   // Cada vídeo ocupa a posição do seu `number` (ex.: "05" → 5ª célula). Vídeos sem número válido
   // (ou fora de 1..count) caem em ordem nas primeiras posições ainda livres.
   const byPosition = new Map<number, VideoItem>();
@@ -59,8 +59,9 @@ function ProductionSlots({ count, columns = 4, isVisible, videos, onOpen }: { co
     if (!byPosition.has(i)) byPosition.set(i, leftovers.shift()!);
   }
 
-  // Classes estáticas (Tailwind não lê valor dinâmico): 3 colunas (layout 3×3) ou 4 (padrão).
-  const gridCols = columns === 3 ? "sm:grid-cols-3 lg:grid-cols-3" : "sm:grid-cols-3 lg:grid-cols-4";
+  // Classes estáticas (Tailwind não lê valor dinâmico): 2 colunas (ex.: anúncios), 3 (layout 3×3)
+  // ou 4 (padrão).
+  const gridCols = columns === 2 ? "sm:grid-cols-2 lg:grid-cols-2" : columns === 3 ? "sm:grid-cols-3 lg:grid-cols-3" : "sm:grid-cols-3 lg:grid-cols-4";
 
   return (
     <div className={`grid grid-cols-2 gap-3 sm:gap-4 ${gridCols}`}>
@@ -161,9 +162,16 @@ export type HowItWorksSectionProps = {
   acquisitionHeadingPrefix: string;
   acquisitionHeadingSuffix: string;
   /** Modo "em produção" — ver `ClientConfig.videosSection.production`. */
-  production?: { count: number; label?: string; columns?: 3 | 4 };
+  production?: { count: number; label?: string; columns?: 2 | 3 | 4 };
   /** `true` esconde número/título/download dos vídeos verticais (só o vídeo clicável). */
   hideVideoMeta?: boolean;
+  /** Bloco extra "Anúncios Produzidos" — ver `ClientConfig.videosSection.ads`. */
+  ads?: {
+    blockNumber: string;
+    blockTitle: string;
+    subtitle?: string;
+    production: { count: number; columns?: 2 | 3 | 4 };
+  };
 };
 
 export function HowItWorksSection({
@@ -179,6 +187,7 @@ export function HowItWorksSection({
   acquisitionHeadingSuffix,
   production,
   hideVideoMeta = false,
+  ads,
 }: HowItWorksSectionProps) {
   const [activeVideo, setActiveVideo] = useState<ActiveVideo | null>(null);
   const [isVisible, setIsVisible] = useState(false);
@@ -267,6 +276,29 @@ export function HowItWorksSection({
               video={horizontalVideo}
               onOpen={() => setActiveVideo({ poster: horizontalVideo.poster, title: horizontalVideo.title, videoSrc: horizontalVideo.videoSrc })}
             />
+          </div>
+        )}
+
+        {/* Bloco extra "Anúncios Produzidos" — mesmo visual do bloco de vídeos (número + título à
+            esquerda, grade de slots à direita). Preenchido por `videos.adsVideos`; o resto "Em breve". */}
+        {ads && (
+          <div className="mt-5 overflow-hidden bg-black text-white lg:grid lg:grid-cols-[340px_minmax(0,1fr)]">
+            <div className="flex flex-col justify-center p-6 text-left sm:p-8 lg:p-12">
+              <div className="flex items-baseline gap-3 sm:gap-4">
+                <span className="font-mono text-sm text-white/40">{ads.blockNumber}</span>
+                <h3 className="font-display text-2xl sm:text-4xl">{ads.blockTitle}</h3>
+              </div>
+              {ads.subtitle && <p className="mt-4 pl-0 text-base leading-relaxed text-white/55 sm:mt-6 sm:pl-10 sm:text-lg">{ads.subtitle}</p>}
+            </div>
+            <div className="min-w-0 p-6 lg:p-10">
+              <ProductionSlots
+                count={ads.production.count}
+                columns={ads.production.columns}
+                isVisible={isVisible}
+                videos={videos.adsVideos ?? []}
+                onOpen={(video) => setActiveVideo({ poster: video.poster, title: video.shortTitle ?? video.title, videoSrc: video.videoSrc })}
+              />
+            </div>
           </div>
         )}
 
