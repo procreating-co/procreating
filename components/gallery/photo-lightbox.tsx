@@ -1,6 +1,7 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Download, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ChevronLeft, ChevronRight, Download, Loader2, X } from "lucide-react";
 import { optimizedGallerySrc, type GalleryPhoto } from "@/lib/gallery";
 import { useModalBehavior } from "@/hooks/use-modal-behavior";
 
@@ -24,6 +25,12 @@ export function PhotoLightbox({
     onPrev: hasPrev ? onPrev : undefined,
     onNext: hasNext ? onNext : undefined,
   });
+
+  // A tela cheia mostra a FOTO ORIGINAL do R2 (sem recompressão → altíssima qualidade). Como o
+  // arquivo é grande, uma versão leve e otimizada aparece na hora como prévia e a original entra
+  // por cima quando termina de carregar. `loaded` reseta a cada troca de foto (prev/próxima).
+  const [loaded, setLoaded] = useState(false);
+  useEffect(() => setLoaded(false), [photo.src]);
 
   return (
     <div
@@ -79,12 +86,28 @@ export function PhotoLightbox({
         </button>
       )}
 
-      <img
-        src={optimizedGallerySrc(photo.src, 1920, 85)}
-        alt={photo.alt}
-        onClick={(event) => event.stopPropagation()}
-        className="max-h-[90vh] max-w-[92vw] object-contain"
-      />
+      <div className="relative flex items-center justify-center" onClick={(event) => event.stopPropagation()}>
+        {/* Prévia leve (otimizada, q75 — permitido pelo Next 16) enquanto a original não chega. */}
+        <img
+          src={optimizedGallerySrc(photo.src, 1200)}
+          alt=""
+          aria-hidden="true"
+          className={`max-h-[90vh] max-w-[92vw] object-contain transition-opacity duration-300 ${loaded ? "opacity-0" : "opacity-100"}`}
+        />
+        {/* Foto original em altíssima qualidade, por cima, fade-in ao carregar. */}
+        <img
+          key={photo.src}
+          src={photo.src}
+          alt={photo.alt}
+          onLoad={() => setLoaded(true)}
+          className={`absolute inset-0 m-auto max-h-[90vh] max-w-[92vw] object-contain transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
+        />
+        {!loaded && (
+          <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <Loader2 className="size-8 animate-spin text-white/70" />
+          </span>
+        )}
+      </div>
     </div>
   );
 }
