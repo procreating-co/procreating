@@ -43,8 +43,8 @@ export const clientConfig: ClientConfig = {
     backgroundVideo: r2Url(R2_PUBLIC_BASE, "hero01.mp4"),
     paragraph: "Todos materiais captados estão aqui...",
     stats: {
-      videos: { count: 12, label: "vídeos produzidos" },
-      photos: { count: 30, label: "fotos editadas" },
+      videos: { count: 14, label: "vídeos produzidos" },
+      photos: { count: 59, label: "fotos editadas" },
     },
   },
 
