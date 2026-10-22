@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getAllProsSlugs, getProsContent } from "@/content/pros/registry";
 import { ProsPage } from "@/components/pros/pros-page";
+import { CreativeSplash } from "@/components/pros/creative-splash";
 import { getClientConfig, getClientVideos } from "@/lib/clients";
 import { PosicionamentoProTemplate } from "@/components/templates/posicionamento-pro-template";
 
@@ -20,13 +21,29 @@ const POSICIONAMENTO_PROS: Record<string, string> = {
   "02": "pros-02", // slug da rota -> chave no registry de clientes (data/pros-02)
 };
 
+// `03` é uma splash tipográfica própria (ver `CreativeSplash`), fora dos dois formatos acima.
+const SPLASH_PROS = new Set(["03"]);
+
 export async function generateStaticParams() {
-  return [...getAllProsSlugs(), ...Object.keys(POSICIONAMENTO_PROS)].map((slug) => ({ slug }));
+  return [...getAllProsSlugs(), ...Object.keys(POSICIONAMENTO_PROS), ...SPLASH_PROS].map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const path = `/pros/${slug}`;
+
+  if (SPLASH_PROS.has(slug)) {
+    const title = "Procreating — Marketing Criativo";
+    const description = "Marketing criativo para negócios e marcas.";
+    return {
+      title,
+      description,
+      alternates: { canonical: path },
+      robots: { index: false, follow: false },
+      openGraph: { title, description, url: path, siteName: "Procreating", locale: "pt_BR", type: "website" },
+      twitter: { card: "summary_large_image", title, description },
+    };
+  }
 
   const clientSlug = POSICIONAMENTO_PROS[slug];
   if (clientSlug) {
@@ -73,6 +90,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function ProsSlugPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
+
+  // Splash tipográfica própria (ex.: `/pros/03`).
+  if (SPLASH_PROS.has(slug)) return <CreativeSplash />;
 
   // Vitrine no template "posicionamento-pro" (ex.: `/pros/02`).
   const clientSlug = POSICIONAMENTO_PROS[slug];
