@@ -73,6 +73,13 @@ export const clientConfig: ClientConfig = {
     // Mantém os 12 espaços (grade), sem o contador "em produção" (`label` omitido) — estilo Elenita.
     // Os vídeos entregues preenchem suas posições (por `number`); o resto fica "Em breve".
     production: { count: 12 },
+    // Bloco "Anúncios de Remarketing" com 2 espaços; o 1º preenchido por `videos.adsVideos`
+    // ("Remarketing 1"), o 2º fica "Em breve".
+    ads: {
+      blockNumber: "02.",
+      blockTitle: "Anúncios de Remarketing.",
+      production: { count: 2, columns: 2 },
+    },
   },
 
   footer: {

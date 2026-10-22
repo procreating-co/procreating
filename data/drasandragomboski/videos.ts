@@ -98,6 +98,16 @@ export const clientVideos: ClientVideos = {
       ready: true,
     },
     {
+      id: "sandra-09-medo-exagero",
+      number: "09",
+      title: "Caixinha: medo do exagero.",
+      format: "vertical",
+      poster: "",
+      videoSrc: r2Url(R2_PUBLIC_BASE, "9. caixinha medo do exagero.mp4"),
+      downloadHref: r2Url(R2_PUBLIC_BASE, "9. caixinha medo do exagero.mp4"),
+      ready: true,
+    },
+    {
       id: "sandra-10-nome",
       number: "10",
       title: "Você não precisa saber o nome.",
@@ -107,6 +117,39 @@ export const clientVideos: ClientVideos = {
       downloadHref: r2Url(R2_PUBLIC_BASE, "10. você não precisa saber o nome.mp4"),
       ready: true,
     },
-    // Posições 09, 11 e 12 ficam "Em breve" até os próximos vídeos chegarem.
+    {
+      id: "sandra-11-cuidar",
+      number: "11",
+      title: "Você quer se cuidar, não parecer mais jovem.",
+      format: "vertical",
+      poster: "",
+      videoSrc: r2Url(R2_PUBLIC_BASE, "11. Você quer se cuidar. não parecer mais jovem.mp4"),
+      downloadHref: r2Url(R2_PUBLIC_BASE, "11. Você quer se cuidar. não parecer mais jovem.mp4"),
+      ready: true,
+    },
+    {
+      id: "sandra-12-casos",
+      number: "12",
+      title: "Analisando casos.",
+      format: "vertical",
+      poster: "",
+      videoSrc: r2Url(R2_PUBLIC_BASE, "12. Analisando Casos.mp4"),
+      downloadHref: r2Url(R2_PUBLIC_BASE, "12. Analisando Casos.mp4"),
+      ready: true,
+    },
+  ],
+  // Bloco "Anúncios de Remarketing" (ver `videosSection.ads` em config.ts): 2 espaços, o 1º já
+  // preenchido com "Remarketing 1.mp4" (mesmo bucket), o 2º fica "Em breve".
+  adsVideos: [
+    {
+      id: "sandra-remarketing-01",
+      number: "01",
+      title: "Remarketing 1.",
+      format: "vertical",
+      poster: "",
+      videoSrc: r2Url(R2_PUBLIC_BASE, "Remarketing 1.mp4"),
+      downloadHref: r2Url(R2_PUBLIC_BASE, "Remarketing 1.mp4"),
+      ready: true,
+    },
   ],
 };
