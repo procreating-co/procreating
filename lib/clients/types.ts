@@ -180,6 +180,9 @@ export type ClientConfig = {
     lockScreenTitle: string;
     /** Link para o Google Drive (ou outro storage) com o acervo completo. Se ausente, o convite some da Galeria. */
     driveUrl?: string;
+    /** Opcional — `true` mostra um botão de download em cada foto da grade (além do botão no
+     *  lightbox). Ausente (padrão) = sem botão por foto, como sempre foi nas outras galerias. */
+    allowDownload?: boolean;
   };
   /** Módulo opcional. `null` desativa a rota `/clients/<slug>/prospeccao`, a seção na Home e o CTA no menu. */
   prospeccao: ProspeccaoConfig | null;

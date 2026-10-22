@@ -44,7 +44,7 @@ export function PhotoLightbox({
       </button>
 
       <a
-        href={photo.src}
+        href={`/api/download?src=${encodeURIComponent(photo.src)}`}
         download
         onClick={(event) => event.stopPropagation()}
         className="absolute left-6 top-6 z-10 flex h-12 items-center gap-2 border border-white/20 px-5 text-sm text-white transition-colors hover:border-[var(--client-accent)] hover:text-[var(--client-accent)]"

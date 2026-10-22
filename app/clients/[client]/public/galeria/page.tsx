@@ -18,6 +18,7 @@ export default async function ClientGaleriaPage({ params }: { params: Promise<{ 
       logo={config.logo}
       brandName={config.brandName}
       driveUrl={config.gallery.driveUrl}
+      allowDownload={config.gallery.allowDownload}
       homeHref={`/clients/${client}/public`}
     />
   );

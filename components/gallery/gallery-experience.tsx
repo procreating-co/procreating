@@ -3,10 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import dynamic from "next/dynamic";
-import { ArrowRight, ChevronLeft, ChevronRight, Home } from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight, Download, Home } from "lucide-react";
 import { LockScreen } from "@/components/gallery/lock-screen";
 import { AnimatedRevealText } from "@/components/shared/animated-reveal-text";
-import { optimizedGallerySrc, type GalleryFolder } from "@/lib/gallery";
+import { optimizedGallerySrc, type GalleryFolder, type GalleryPhoto } from "@/lib/gallery";
 
 const PhotoLightbox = dynamic(() => import("@/components/gallery/photo-lightbox").then((mod) => mod.PhotoLightbox));
 
@@ -206,6 +206,45 @@ function FolderCarousel({ folders, onSelect }: { folders: GalleryFolder[]; onSel
   );
 }
 
+/** Grade de fotos (mesma usada no modo "pasta" e no modo "plano"). Cada foto abre o lightbox;
+ *  com `allowDownload`, ganha um botão de download que passa pelo proxy `/api/download` — o
+ *  atributo `download` sozinho não funciona em URL de outra origem (R2). */
+function PhotoGrid({ photos, onOpen, allowDownload }: { photos: GalleryPhoto[]; onOpen: (index: number) => void; allowDownload?: boolean }) {
+  return (
+    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+      {photos.map((photo, index) => (
+        <div
+          key={photo.src}
+          className="group relative overflow-hidden border border-white/10 bg-background transition-colors hover:border-[var(--client-accent)]/70"
+        >
+          <button type="button" onClick={() => onOpen(index)} className="block w-full" aria-label={`Abrir foto ${index + 1}`}>
+            <img
+              src={optimizedGallerySrc(photo.src, 640)}
+              srcSet={`${optimizedGallerySrc(photo.src, 384)} 384w, ${optimizedGallerySrc(photo.src, 640)} 640w, ${optimizedGallerySrc(photo.src, 750)} 750w`}
+              sizes="(min-width: 1024px) 23vw, (min-width: 640px) 31vw, 46vw"
+              alt={photo.alt}
+              loading="lazy"
+              decoding="async"
+              className="h-auto w-full object-cover transition-transform duration-700 group-hover:scale-105"
+            />
+          </button>
+          {allowDownload && (
+            <a
+              href={`/api/download?src=${encodeURIComponent(photo.src)}`}
+              download
+              onClick={(event) => event.stopPropagation()}
+              className="absolute right-2 top-2 z-10 flex size-10 items-center justify-center rounded-full border border-white/20 bg-black/55 text-white backdrop-blur-sm transition-all hover:border-[var(--client-accent)] hover:text-[var(--client-accent)] sm:opacity-0 sm:group-hover:opacity-100"
+              aria-label={`Baixar foto ${index + 1}`}
+            >
+              <Download className="size-4" />
+            </a>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export type GalleryExperienceProps = {
   folders: GalleryFolder[];
   accessCodes: string[];
@@ -214,9 +253,11 @@ export type GalleryExperienceProps = {
   brandName: string;
   driveUrl?: string;
   homeHref: string;
+  /** `true` mostra botão de download em cada foto (ver `ClientConfig.gallery.allowDownload`). */
+  allowDownload?: boolean;
 };
 
-export function GalleryExperience({ folders, accessCodes, lockScreenTitle, logo, brandName, driveUrl, homeHref }: GalleryExperienceProps) {
+export function GalleryExperience({ folders, accessCodes, lockScreenTitle, logo, brandName, driveUrl, homeHref, allowDownload }: GalleryExperienceProps) {
   const [unlocked, setUnlocked] = useState(false);
   const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
@@ -225,11 +266,15 @@ export function GalleryExperience({ folders, accessCodes, lockScreenTitle, logo,
     return <LockScreen onUnlock={() => setUnlocked(true)} accessCodes={accessCodes} title={lockScreenTitle} logo={logo} brandName={brandName} />;
   }
 
-  const activeFolder = folders.find((folder) => folder.id === activeFolderId) ?? null;
+  // Modo "plano": com uma única pasta, não faz sentido a etapa de escolher pasta — mostra todas
+  // as fotos direto numa grade só (pedido da Dra. Sandra). Com várias pastas, mantém o carrossel.
+  const flat = folders.length === 1;
+  const activeFolder = flat ? folders[0] : folders.find((folder) => folder.id === activeFolderId) ?? null;
+  const showTopBar = flat || !activeFolder;
 
   return (
     <main className="relative min-h-screen overflow-x-hidden bg-background text-foreground">
-      {!activeFolder && (
+      {showTopBar && (
         <a
           href={homeHref}
           aria-label="Voltar para a página inicial"
@@ -241,7 +286,22 @@ export function GalleryExperience({ folders, accessCodes, lockScreenTitle, logo,
 
       <section className="relative pb-14 pt-24 lg:pb-20 lg:pt-28">
         <div className="mx-auto max-w-[1400px] px-6 lg:px-12">
-          {!activeFolder ? (
+          {flat && activeFolder ? (
+            <>
+              <header className="mb-8 flex flex-wrap items-end justify-between gap-4 lg:mb-10">
+                <h1 className="text-balance font-display text-3xl leading-[0.95] tracking-tight sm:text-4xl md:text-6xl lg:text-7xl">
+                  <AnimatedRevealText text="Galeria" />
+                </h1>
+                {driveUrl && <GalleryHintLink driveUrl={driveUrl} />}
+              </header>
+
+              {activeFolder.photos.length === 0 ? (
+                <p className="border border-white/10 bg-background px-6 py-10 text-center text-muted-foreground">Nenhuma foto ainda.</p>
+              ) : (
+                <PhotoGrid photos={activeFolder.photos} onOpen={setLightboxIndex} allowDownload={allowDownload} />
+              )}
+            </>
+          ) : !activeFolder ? (
             <>
               <header className="mb-8 flex flex-wrap items-end justify-between gap-4 lg:mb-10">
                 <h1 className="text-balance font-display text-3xl leading-[0.95] tracking-tight sm:text-4xl md:text-6xl lg:text-7xl">
@@ -272,26 +332,7 @@ export function GalleryExperience({ folders, accessCodes, lockScreenTitle, logo,
               {activeFolder.photos.length === 0 ? (
                 <p className="border border-white/10 bg-background px-6 py-10 text-center text-muted-foreground">Nenhuma foto nesta pasta ainda.</p>
               ) : (
-                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-                  {activeFolder.photos.map((photo, index) => (
-                    <button
-                      key={photo.src}
-                      type="button"
-                      onClick={() => setLightboxIndex(index)}
-                      className="group relative overflow-hidden border border-white/10 bg-background transition-colors hover:border-[var(--client-accent)]/70"
-                    >
-                      <img
-                        src={optimizedGallerySrc(photo.src, 640)}
-                        srcSet={`${optimizedGallerySrc(photo.src, 384)} 384w, ${optimizedGallerySrc(photo.src, 640)} 640w, ${optimizedGallerySrc(photo.src, 750)} 750w`}
-                        sizes="(min-width: 1024px) 23vw, (min-width: 640px) 31vw, 46vw"
-                        alt={photo.alt}
-                        loading="lazy"
-                        decoding="async"
-                        className="h-auto w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                      />
-                    </button>
-                  ))}
-                </div>
+                <PhotoGrid photos={activeFolder.photos} onOpen={setLightboxIndex} allowDownload={allowDownload} />
               )}
             </>
           )}

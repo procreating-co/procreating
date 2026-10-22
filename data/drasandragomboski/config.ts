@@ -89,6 +89,8 @@ export const clientConfig: ClientConfig = {
   gallery: {
     accessCodes: ["sandra", "admin"],
     lockScreenTitle: "Galeria de Conteúdos",
+    // Botão de baixar em cada foto da grade (além do botão no lightbox).
+    allowDownload: true,
   },
 
   prospeccao: null,
