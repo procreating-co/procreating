@@ -97,6 +97,16 @@ export const clientVideos: ClientVideos = {
       downloadHref: r2Url(R2_PUBLIC_BASE, "8. Por que eu não falo apenas de beleza.mp4"),
       ready: true,
     },
-    // Posições 09-12 ficam "Em breve" até os próximos vídeos chegarem.
+    {
+      id: "sandra-10-nome",
+      number: "10",
+      title: "Você não precisa saber o nome.",
+      format: "vertical",
+      poster: "",
+      videoSrc: r2Url(R2_PUBLIC_BASE, "10. você não precisa saber o nome.mp4"),
+      downloadHref: r2Url(R2_PUBLIC_BASE, "10. você não precisa saber o nome.mp4"),
+      ready: true,
+    },
+    // Posições 09, 11 e 12 ficam "Em breve" até os próximos vídeos chegarem.
   ],
 };
