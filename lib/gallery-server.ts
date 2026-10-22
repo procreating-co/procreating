@@ -21,7 +21,12 @@ const IMAGE_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".webp"]);
 export async function getGalleryFolders(clientSlug: string, folderDefs: GalleryFolderDef[]): Promise<GalleryFolder[]> {
   const galleryRoot = path.join(process.cwd(), "public", "gallery", clientSlug);
 
-  return folderDefs.map(({ id, label }) => {
+  return folderDefs.map(({ id, label, photos: explicitPhotos }) => {
+    // Pasta com fotos explícitas (ex.: URLs do R2): usa direto, sem ler o disco.
+    if (explicitPhotos && explicitPhotos.length > 0) {
+      return { id, label, photos: explicitPhotos };
+    }
+
     let files: string[] = [];
     try {
       files = fs

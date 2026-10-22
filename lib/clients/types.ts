@@ -52,8 +52,10 @@ export type Metric = { count: number; label: string };
 export type GalleryPhoto = { src: string; alt: string };
 /** Uma pasta da Galeria com suas fotos já carregadas do filesystem. */
 export type GalleryFolder = { id: string; label: string; photos: GalleryPhoto[] };
-/** Metadata de uma pasta da galeria — as fotos em si vêm do filesystem (`public/gallery/<slug>/<id>/`). */
-export type GalleryFolderDef = { id: string; label: string };
+/** Metadata de uma pasta da galeria. Por padrão as fotos vêm do filesystem
+ *  (`public/gallery/<slug>/<id>/`). Opcionalmente, `photos` fornece as fotos explicitamente
+ *  (ex.: URLs públicas do Cloudflare R2) — nesse caso o disco é ignorado para essa pasta. */
+export type GalleryFolderDef = { id: string; label: string; photos?: GalleryPhoto[] };
 
 /** Foto em destaque no carrossel da Home (teaser da Galeria completa).
  *  `src` pode ser `null` — slot reservado que renderiza um card "Em breve" até a foto ser

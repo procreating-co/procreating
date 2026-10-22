@@ -2,6 +2,13 @@
 const nextConfig = {
   images: {
     formats: ["image/avif", "image/webp"],
+    // Buckets públicos do Cloudflare R2 — libera o otimizador do Next a redimensionar as fotos
+    // da galeria servidas de lá (ex.: galeria da Dra. Sandra). Sem isso, `/_next/image?url=...`
+    // de um host externo retorna 400. Hosts fixos (não wildcard) por segurança.
+    remotePatterns: [
+      { protocol: "https", hostname: "pub-267cc906483e43b1ab879e0a55228575.r2.dev" },
+      { protocol: "https", hostname: "pub-efdfecafe11a4cb4aacac47948335da3.r2.dev" },
+    ],
   },
   async headers() {
     return [
