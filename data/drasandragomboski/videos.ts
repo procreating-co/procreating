@@ -16,16 +16,7 @@ const R2_PUBLIC_BASE = "https://pub-efdfecafe11a4cb4aacac47948335da3.r2.dev";
 
 export const clientVideos: ClientVideos = {
   socialVideos: [
-    {
-      id: "sandra-01-quem-sou-eu",
-      number: "01",
-      title: "Quem sou eu.",
-      format: "vertical",
-      poster: "",
-      videoSrc: r2Url(R2_PUBLIC_BASE, "1. Quem sou eu.mp4"),
-      downloadHref: r2Url(R2_PUBLIC_BASE, "1. Quem sou eu.mp4"),
-      ready: true,
-    },
+    // "1. Quem sou eu" (vídeo bônus) removido a pedido — posição 01 volta a "Em breve".
     {
       id: "sandra-02-cuidar-aparencia",
       number: "02",
