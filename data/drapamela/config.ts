@@ -35,7 +35,7 @@ export const clientConfig: ClientConfig = {
   },
 
   hero: {
-    welcomeLines: ["Bem vinda,", "Dra. Pamela."],
+    welcomeLines: ["Seja bem vinda,", "Dra. Pâmela Lande."],
     // Vídeo de fundo do Hero ainda não subido — "" esconde o <video> (ver hero-section.tsx).
     backgroundVideo: "",
     paragraph: "Todos materiais captados estão aqui...",
