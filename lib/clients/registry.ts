@@ -11,6 +11,9 @@ import { galleryFolderDefs as sandraGalleryDefs } from "@/data/drasandragomboski
 import { clientConfig as pros02Config } from "@/data/pros-02/config";
 import { clientVideos as pros02Videos } from "@/data/pros-02/videos";
 import { galleryFolderDefs as pros02GalleryDefs } from "@/data/pros-02/gallery";
+import { clientConfig as pamelaConfig } from "@/data/drapamela/config";
+import { clientVideos as pamelaVideos } from "@/data/drapamela/videos";
+import { galleryFolderDefs as pamelaGalleryDefs } from "@/data/drapamela/gallery";
 
 export type ClientEntry = {
   config: ClientConfig;
@@ -27,6 +30,7 @@ const REGISTRY: Record<string, ClientEntry> = {
   pascoal: { config: pascoalConfig, videos: pascoalVideos, galleryFolderDefs: pascoalGalleryDefs },
   elenita: { config: elenitaConfig, videos: elenitaVideos, galleryFolderDefs: elenitaGalleryDefs },
   drasandragomboski: { config: sandraConfig, videos: sandraVideos, galleryFolderDefs: sandraGalleryDefs },
+  drapamela: { config: pamelaConfig, videos: pamelaVideos, galleryFolderDefs: pamelaGalleryDefs },
   "pros-02": { config: pros02Config, videos: pros02Videos, galleryFolderDefs: pros02GalleryDefs },
 };
 

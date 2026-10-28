@@ -1,6 +1,7 @@
 import { pascoalPresentationEntry } from "@/content/clients/pascoal/public";
 import { elenitaPresentationEntry } from "@/content/clients/elenita/public";
 import { drasandragomboskiPresentationEntry } from "@/content/clients/drasandragomboski/public";
+import { drapamelaPresentationEntry } from "@/content/clients/drapamela/public";
 import type { PresentationContent } from "@/lib/clients/presentation-types";
 
 export type { PresentationContent, PresentationSection, PresentationSectionType } from "@/lib/clients/presentation-types";
@@ -29,6 +30,7 @@ const PRESENTATION_REGISTRY: Record<string, PresentationEntry> = {
   pascoal: pascoalPresentationEntry,
   elenita: elenitaPresentationEntry,
   drasandragomboski: drasandragomboskiPresentationEntry,
+  drapamela: drapamelaPresentationEntry,
 };
 
 export function getClientPresentation(slug: string): PresentationEntry | null {
