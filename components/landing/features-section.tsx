@@ -153,12 +153,18 @@ export function FeaturesSection({ eyebrow, heading, blockNumber, blockTitle, sub
   return (
     <section id="features" ref={sectionRef} className="relative overflow-hidden pb-8 pt-[38px] lg:pb-10">
       <div className="mx-auto max-w-[1400px] px-6 lg:px-12">
-        <div className="mx-auto mb-4 max-w-5xl text-center md:mb-5">
-          <span className="mb-4 inline-flex items-center gap-3 font-sans text-sm text-muted-foreground md:mb-5"><span className="h-px w-12 bg-[var(--client-accent)]" />{eyebrow}<span className="h-px w-12 bg-[var(--client-accent)]" /></span>
-          <h2 className={`text-balance font-display text-4xl leading-[0.95] tracking-tight transition-all duration-1000 sm:text-5xl md:text-7xl lg:text-[92px] ${isVisible ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"}`}>
-            {heading}
-          </h2>
-        </div>
+        {(eyebrow || heading) && (
+          <div className="mx-auto mb-4 max-w-5xl text-center md:mb-5">
+            {eyebrow && (
+              <span className="mb-4 inline-flex items-center gap-3 font-sans text-sm text-muted-foreground md:mb-5"><span className="h-px w-12 bg-[var(--client-accent)]" />{eyebrow}<span className="h-px w-12 bg-[var(--client-accent)]" /></span>
+            )}
+            {heading && (
+              <h2 className={`text-balance font-display text-4xl leading-[0.95] tracking-tight transition-all duration-1000 sm:text-5xl md:text-7xl lg:text-[92px] ${isVisible ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"}`}>
+                {heading}
+              </h2>
+            )}
+          </div>
+        )}
 
         <div id="fotos" className="relative scroll-mt-24 overflow-hidden bg-black text-white lg:grid lg:grid-cols-[340px_minmax(0,1fr)]">
           {backgroundVideo && isVisible && (

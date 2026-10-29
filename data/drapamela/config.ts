@@ -41,13 +41,15 @@ export const clientConfig: ClientConfig = {
     paragraph: "Todos materiais captados estão aqui...",
     stats: {
       videos: { count: 46, label: "vídeos produzidos" },
-      photos: { count: 267, label: "fotos editadas" },
+      photos: { count: 148, label: "fotos editadas" },
     },
   },
 
   features: {
-    eyebrow: "Projeto Inicial",
-    heading: "Posicionamento Digital.",
+    // "Projeto Inicial" / "Posicionamento Digital." removidos a pedido — vazios somem da seção
+    // (FeaturesSection renderiza eyebrow/heading só quando têm texto).
+    eyebrow: "",
+    heading: "",
     blockNumber: "01.",
     blockTitle: "Fotos Produzidas",
     subtitle: "Captamos a essência do consultório, equipe e a experiência das pacientes com a doutora.",
