@@ -39,10 +39,9 @@ export const clientConfig: ClientConfig = {
     backgroundVideo: "",
     atmosphere: true,
     paragraph: "Todos materiais captados estão aqui...",
-    // Só a métrica de vídeos por enquanto (46 clipes mapeados); a de fotos entra quando a lista
-    // completa do bucket chegar (hoje parcial — ver gallery.ts).
     stats: {
       videos: { count: 46, label: "vídeos produzidos" },
+      photos: { count: 298, label: "fotos editadas" },
     },
   },
 
