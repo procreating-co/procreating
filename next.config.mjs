@@ -8,6 +8,7 @@ const nextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "pub-267cc906483e43b1ab879e0a55228575.r2.dev" },
       { protocol: "https", hostname: "pub-efdfecafe11a4cb4aacac47948335da3.r2.dev" },
+      { protocol: "https", hostname: "pub-8eeaba32ed6d495293e15b112eb0184b.r2.dev" },
     ],
   },
   async headers() {

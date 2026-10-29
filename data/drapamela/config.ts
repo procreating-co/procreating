@@ -1,16 +1,15 @@
 import type { ClientConfig } from "@/lib/clients/types";
+import { galleryPhotos } from "./gallery";
 
 /**
  * Dra. Pamela — duplicata da arquitetura da Dra. Elenita (`data/elenita/config.ts`), pipeline
  * legado via `lib/clients/registry.ts`.
  *
- * Montado em modo "estrutura" (pedido explícito): as fotos e vídeos ainda NÃO foram subidos, só o
- * esqueleto está pronto pra receber a mídia depois —
- *   - Hero: sem vídeo de fundo ainda (`backgroundVideo: ""`) e sem os números (`stats` omitido).
- *   - carrossel da Home: `features.photos` com `src: null` → cards "Em breve".
- *   - vídeos: `videosSection.production` ativa 3 slots "Em breve" (espelha os 3 vídeos da Elenita),
- *     com `videos.ts` trazendo `socialVideos: []`.
- *   - galeria: pastas criadas em `public/gallery/drapamela/<id>/` (vazias por enquanto).
+ * Mídia servida do bucket R2 da Pâmela (`data/drapamela/gallery.ts` + `videos.ts`):
+ *   - Hero: sem vídeo de fundo (pedido) → fundo atmosférico animado das propostas (`atmosphere`).
+ *   - carrossel da Home: 6 fotos destaque reais (`galleryPhotos`).
+ *   - Galeria (`/galeria`): todas as fotos (grade plana) + acervo de vídeos, com download.
+ *   - vídeos sociais produzidos ainda pendentes → 3 slots "Em breve" na Home (`production`).
  *
  * `siteLock` tranca a Home inteira atrás de senha, igual à Elenita.
  */
@@ -40,7 +39,11 @@ export const clientConfig: ClientConfig = {
     backgroundVideo: "",
     atmosphere: true,
     paragraph: "Todos materiais captados estão aqui...",
-    // `stats` omitido até os números existirem (Hero mostra só o parágrafo).
+    // Só a métrica de vídeos por enquanto (46 clipes mapeados); a de fotos entra quando a lista
+    // completa do bucket chegar (hoje parcial — ver gallery.ts).
+    stats: {
+      videos: { count: 46, label: "vídeos produzidos" },
+    },
   },
 
   features: {
@@ -50,13 +53,9 @@ export const clientConfig: ClientConfig = {
     blockTitle: "Fotos Produzidas",
     subtitle: "Captamos a essência do consultório, equipe e a experiência das pacientes com a doutora.",
     galleryButtonLabel: "Acessar Galeria",
-    // Placeholders `src: null` → cards "Em breve" até as fotos serem adicionadas.
-    photos: [
-      { src: null, alt: "Retratos da Dra. Pamela", category: "Retratos Dra. Pamela" },
-      { src: null, alt: "Consultório da Dra. Pamela", category: "Consultório" },
-      { src: null, alt: "Procedimento na Dra. Pamela", category: "Procedimento" },
-      { src: null, alt: "Equipe da Dra. Pamela", category: "Equipe" },
-    ],
+    // Carrossel-teaser da Home: as 6 fotos destaque da galeria (R2), sem rótulo por cima
+    // (`category: ""`). Fonte única em `gallery.ts` (`galleryPhotos`).
+    photos: galleryPhotos.map((photo) => ({ ...photo, category: "" })),
   },
 
   videosSection: {
@@ -80,6 +79,8 @@ export const clientConfig: ClientConfig = {
   gallery: {
     accessCodes: ["pamela", "admin"],
     lockScreenTitle: "Galeria de Conteúdos",
+    // Botão de baixar em cada foto da grade (além do botão no lightbox).
+    allowDownload: true,
   },
 
   prospeccao: null,

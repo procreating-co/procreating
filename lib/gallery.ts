@@ -5,7 +5,7 @@
  * "use client". Validação de código de acesso fica em `lib/access-code.ts`.
  */
 
-export type { GalleryPhoto, GalleryFolder, GalleryFolderDef } from "@/lib/clients/types";
+export type { GalleryPhoto, GalleryFolder, GalleryFolderDef, GalleryVideo } from "@/lib/clients/types";
 
 /**
  * As fotos da galeria são JPEGs de câmera (~1-2MB, resolução total) — pesados demais para

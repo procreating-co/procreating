@@ -43,6 +43,9 @@ export type ClientVideos = {
   /** Vídeos do bloco opcional "Anúncios Produzidos" (ver `videosSection.ads`). Preenchem as
    *  primeiras posições da grade; as restantes ficam "Em breve". Ausente = grade só com slots. */
   adsVideos?: VideoItem[];
+  /** Acervo de vídeos da Galeria (`/galeria`) — cliente assiste e baixa em alta. Separado dos
+   *  vídeos da Home; ausente (padrão) = Galeria sem seção de vídeos. */
+  galleryVideos?: GalleryVideo[];
 };
 
 /** Par número+rótulo usado nas métricas do Hero (ex.: "05" + "vídeos produzidos"). */
@@ -50,6 +53,9 @@ export type Metric = { count: number; label: string };
 
 /** Uma foto da Galeria, já resolvida com sua URL pública. */
 export type GalleryPhoto = { src: string; alt: string };
+/** Um vídeo da Galeria (acervo bruto pra cliente assistir/baixar). `src` é a URL pública (R2);
+ *  o download passa pelo proxy `/api/download`. Leve de propósito — não é o `VideoItem` da Home. */
+export type GalleryVideo = { src: string; title: string };
 /** Uma pasta da Galeria com suas fotos já carregadas do filesystem. */
 export type GalleryFolder = { id: string; label: string; photos: GalleryPhoto[] };
 /** Metadata de uma pasta da galeria. Por padrão as fotos vêm do filesystem
@@ -128,7 +134,8 @@ export type ClientConfig = {
      *  Hero mostra só o parágrafo, sem os números (ex.: cliente cujos números ainda não existem). */
     stats?: {
       videos: Metric;
-      photos: Metric;
+      /** Opcional — ausente mostra só a métrica de vídeos (ex.: fotos ainda em contagem). */
+      photos?: Metric;
     };
   };
   features: {

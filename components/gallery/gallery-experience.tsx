@@ -3,12 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import dynamic from "next/dynamic";
-import { ArrowRight, ChevronLeft, ChevronRight, Download, Home } from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight, Download, Home, Play } from "lucide-react";
 import { LockScreen } from "@/components/gallery/lock-screen";
 import { AnimatedRevealText } from "@/components/shared/animated-reveal-text";
-import { optimizedGallerySrc, type GalleryFolder, type GalleryPhoto } from "@/lib/gallery";
+import { optimizedGallerySrc, type GalleryFolder, type GalleryPhoto, type GalleryVideo } from "@/lib/gallery";
 
 const PhotoLightbox = dynamic(() => import("@/components/gallery/photo-lightbox").then((mod) => mod.PhotoLightbox));
+const VideoLightbox = dynamic(() => import("@/components/gallery/video-lightbox").then((mod) => mod.VideoLightbox));
 
 const COVER_PHOTO_LIMIT = 6;
 
@@ -245,8 +246,47 @@ function PhotoGrid({ photos, onOpen, allowDownload }: { photos: GalleryPhoto[]; 
   );
 }
 
+/** Grade de vídeos do acervo. Cada card abre o vídeo em tela cheia (VideoLightbox); com download
+ *  via proxy `/api/download`. Como são `.MOV` grandes, o card não tenta renderizar thumbnail —
+ *  mostra um botão de play + o título, robusto em qualquer navegador. */
+function VideoGrid({ videos, onOpen }: { videos: GalleryVideo[]; onOpen: (index: number) => void }) {
+  return (
+    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+      {videos.map((video, index) => (
+        <div
+          key={video.src}
+          className="group relative aspect-video overflow-hidden border border-white/10 bg-background transition-colors hover:border-[var(--client-accent)]/70"
+        >
+          <button
+            type="button"
+            onClick={() => onOpen(index)}
+            className="flex h-full w-full flex-col items-center justify-center gap-3 text-white/70 transition-colors group-hover:text-white"
+            aria-label={`Assistir ${video.title}`}
+          >
+            <span className="flex size-14 items-center justify-center rounded-full border border-white/25 transition-colors group-hover:border-[var(--client-accent)] group-hover:text-[var(--client-accent)]">
+              <Play className="size-6 translate-x-[1px]" />
+            </span>
+            <span className="px-3 text-center font-mono text-[11px] uppercase tracking-wide">{video.title}</span>
+          </button>
+          <a
+            href={`/api/download?src=${encodeURIComponent(video.src)}`}
+            download
+            onClick={(event) => event.stopPropagation()}
+            className="absolute right-2 top-2 z-10 flex size-10 items-center justify-center rounded-full border border-white/20 bg-black/55 text-white backdrop-blur-sm transition-all hover:border-[var(--client-accent)] hover:text-[var(--client-accent)] sm:opacity-0 sm:group-hover:opacity-100"
+            aria-label={`Baixar ${video.title}`}
+          >
+            <Download className="size-4" />
+          </a>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export type GalleryExperienceProps = {
   folders: GalleryFolder[];
+  /** Acervo de vídeos (opcional) — renderizado como uma seção "Vídeos" no modo plano. */
+  videos?: GalleryVideo[];
   accessCodes: string[];
   lockScreenTitle: string;
   logo: string;
@@ -257,10 +297,11 @@ export type GalleryExperienceProps = {
   allowDownload?: boolean;
 };
 
-export function GalleryExperience({ folders, accessCodes, lockScreenTitle, logo, brandName, driveUrl, homeHref, allowDownload }: GalleryExperienceProps) {
+export function GalleryExperience({ folders, videos, accessCodes, lockScreenTitle, logo, brandName, driveUrl, homeHref, allowDownload }: GalleryExperienceProps) {
   const [unlocked, setUnlocked] = useState(false);
   const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [videoIndex, setVideoIndex] = useState<number | null>(null);
 
   if (!unlocked) {
     return <LockScreen onUnlock={() => setUnlocked(true)} accessCodes={accessCodes} title={lockScreenTitle} logo={logo} brandName={brandName} />;
@@ -299,6 +340,17 @@ export function GalleryExperience({ folders, accessCodes, lockScreenTitle, logo,
                 <p className="border border-white/10 bg-background px-6 py-10 text-center text-muted-foreground">Nenhuma foto ainda.</p>
               ) : (
                 <PhotoGrid photos={activeFolder.photos} onOpen={setLightboxIndex} allowDownload={allowDownload} />
+              )}
+
+              {videos && videos.length > 0 && (
+                <div className="mt-16 lg:mt-20">
+                  <header className="mb-8 lg:mb-10">
+                    <h2 className="text-balance font-display text-3xl leading-[0.95] tracking-tight sm:text-4xl md:text-5xl">
+                      <AnimatedRevealText text="Vídeos" />
+                    </h2>
+                  </header>
+                  <VideoGrid videos={videos} onOpen={setVideoIndex} />
+                </div>
               )}
             </>
           ) : !activeFolder ? (
@@ -347,6 +399,17 @@ export function GalleryExperience({ folders, accessCodes, lockScreenTitle, logo,
           onPrev={() => setLightboxIndex((current) => (current !== null ? current - 1 : current))}
           onNext={() => setLightboxIndex((current) => (current !== null ? current + 1 : current))}
           onClose={() => setLightboxIndex(null)}
+        />
+      )}
+
+      {videos && videoIndex !== null && videos[videoIndex] && (
+        <VideoLightbox
+          video={videos[videoIndex]}
+          hasPrev={videoIndex > 0}
+          hasNext={videoIndex < videos.length - 1}
+          onPrev={() => setVideoIndex((current) => (current !== null ? current - 1 : current))}
+          onNext={() => setVideoIndex((current) => (current !== null ? current + 1 : current))}
+          onClose={() => setVideoIndex(null)}
         />
       )}
     </main>
