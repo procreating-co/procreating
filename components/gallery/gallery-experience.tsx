@@ -246,9 +246,10 @@ function PhotoGrid({ photos, onOpen, allowDownload }: { photos: GalleryPhoto[]; 
   );
 }
 
-/** Grade de vídeos do acervo. Cada card abre o vídeo em tela cheia (VideoLightbox); com download
- *  via proxy `/api/download`. Como são `.MOV` grandes, o card não tenta renderizar thumbnail —
- *  mostra um botão de play + o título, robusto em qualquer navegador. */
+/** Grade de vídeos do acervo. Cada card mostra o 1º frame do próprio vídeo como capa (não há
+ *  capas separadas no bucket) — `preload="metadata"` + fragmento `#t=0.5` faz o navegador pintar
+ *  um frame. Clicar abre em tela cheia (VideoLightbox); download via proxy `/api/download`. Em
+ *  navegador que não decodifica `.MOV` (ex.: Chrome), a capa fica escura e sobra o play + título. */
 function VideoGrid({ videos, onOpen }: { videos: GalleryVideo[]; onOpen: (index: number) => void }) {
   return (
     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
@@ -257,13 +258,23 @@ function VideoGrid({ videos, onOpen }: { videos: GalleryVideo[]; onOpen: (index:
           key={video.src}
           className="group relative aspect-video overflow-hidden border border-white/10 bg-background transition-colors hover:border-[var(--client-accent)]/70"
         >
+          {/* Capa = primeiro frame do vídeo. Decorativa (não interativa) — o clique é no botão. */}
+          <video
+            src={`${video.src}#t=0.5`}
+            muted
+            playsInline
+            preload="metadata"
+            tabIndex={-1}
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+          />
           <button
             type="button"
             onClick={() => onOpen(index)}
-            className="flex h-full w-full flex-col items-center justify-center gap-3 text-white/70 transition-colors group-hover:text-white"
+            className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-gradient-to-t from-black/70 via-black/15 to-black/30 text-white/85 transition-colors group-hover:text-white"
             aria-label={`Assistir ${video.title}`}
           >
-            <span className="flex size-14 items-center justify-center rounded-full border border-white/25 transition-colors group-hover:border-[var(--client-accent)] group-hover:text-[var(--client-accent)]">
+            <span className="flex size-14 items-center justify-center rounded-full border border-white/40 bg-black/40 backdrop-blur-sm transition-colors group-hover:border-[var(--client-accent)] group-hover:text-[var(--client-accent)]">
               <Play className="size-6 translate-x-[1px]" />
             </span>
             <span className="px-3 text-center font-mono text-[11px] uppercase tracking-wide">{video.title}</span>

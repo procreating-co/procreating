@@ -151,7 +151,9 @@ export type ClientConfig = {
      *  overlay escuro atrás do conteúdo). Ausente (padrão) = fundo sólido preto, como sempre foi. */
     backgroundVideo?: string;
   };
-  videosSection: {
+  /** Opcional — bloco de vídeos da Home ("Vídeos Produzidos"). Ausente = a seção inteira some da
+   *  Home (ex.: cliente sem vídeos sociais produzidos; o acervo fica só na Galeria). */
+  videosSection?: {
     eyebrow: string;
     headingPrefix: string;
     headingSuffix: string;

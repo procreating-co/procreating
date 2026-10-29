@@ -57,19 +57,8 @@ export const clientConfig: ClientConfig = {
     photos: galleryPhotos.map((photo) => ({ ...photo, category: "" })),
   },
 
-  videosSection: {
-    eyebrow: "Vídeos",
-    headingPrefix: "Conteúdos",
-    headingSuffix: "para redes sociais.",
-    blockNumber: "02.",
-    blockTitle: "Vídeos Produzidos.",
-    subtitle: "Conteúdos estratégicos para o perfil nas redes sociais.",
-    acquisitionEyebrow: "Estratégia de Conteúdo",
-    acquisitionHeadingPrefix: "Conteúdos",
-    acquisitionHeadingSuffix: "de apresentação.",
-    // 3 slots "Em breve" (sem `label` → só a grade). Os vídeos entregues preenchem por `number`.
-    production: { count: 3, columns: 3 },
-  },
+  // Bloco de vídeos da Home ("Vídeos Produzidos") removido a pedido — os vídeos ficam só na
+  // Galeria (`videos.ts` → `galleryVideos`). Sem `videosSection`, a seção some da Home.
 
   footer: {
     legalLine: "Desenvolvido para Dra. Pamela.",

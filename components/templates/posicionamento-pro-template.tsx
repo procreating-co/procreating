@@ -58,21 +58,23 @@ export function PosicionamentoProTemplate({
         backgroundVideo={config.features.backgroundVideo}
         showGalleryButton={showGallery}
       />
-      <HowItWorksSection
-        videos={videos}
-        eyebrow={config.videosSection.eyebrow}
-        headingPrefix={config.videosSection.headingPrefix}
-        headingSuffix={config.videosSection.headingSuffix}
-        blockNumber={config.videosSection.blockNumber}
-        blockTitle={config.videosSection.blockTitle}
-        subtitle={config.videosSection.subtitle}
-        acquisitionEyebrow={config.videosSection.acquisitionEyebrow}
-        acquisitionHeadingPrefix={config.videosSection.acquisitionHeadingPrefix}
-        acquisitionHeadingSuffix={config.videosSection.acquisitionHeadingSuffix}
-        production={config.videosSection.production}
-        hideVideoMeta={config.videosSection.hideVideoMeta}
-        ads={config.videosSection.ads}
-      />
+      {config.videosSection && (
+        <HowItWorksSection
+          videos={videos}
+          eyebrow={config.videosSection.eyebrow}
+          headingPrefix={config.videosSection.headingPrefix}
+          headingSuffix={config.videosSection.headingSuffix}
+          blockNumber={config.videosSection.blockNumber}
+          blockTitle={config.videosSection.blockTitle}
+          subtitle={config.videosSection.subtitle}
+          acquisitionEyebrow={config.videosSection.acquisitionEyebrow}
+          acquisitionHeadingPrefix={config.videosSection.acquisitionHeadingPrefix}
+          acquisitionHeadingSuffix={config.videosSection.acquisitionHeadingSuffix}
+          production={config.videosSection.production}
+          hideVideoMeta={config.videosSection.hideVideoMeta}
+          ads={config.videosSection.ads}
+        />
+      )}
       {config.prospeccao && <InfrastructureSection prospeccao={config.prospeccao} prospeccaoHref={prospeccaoHref} />}
       <FooterSection brandName={config.brandName} legalLine={config.footer.legalLine} backgroundImage={config.footer.backgroundImage} />
     </main>
