@@ -41,7 +41,7 @@ export const clientConfig: ClientConfig = {
     paragraph: "Todos materiais captados estão aqui...",
     stats: {
       videos: { count: 46, label: "vídeos produzidos" },
-      photos: { count: 148, label: "fotos editadas" },
+      photos: { count: 105, label: "fotos editadas" },
     },
   },
 

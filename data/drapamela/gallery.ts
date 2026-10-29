@@ -5,22 +5,22 @@ import { r2Url } from "@/lib/r2";
  * Galeria da Dra. Pâmela, servida direto do Cloudflare R2 (bucket público dedicado). As fotos
  * entram como `photos` explícitas na pasta, então `getGalleryFolders` usa essas URLs em vez de ler
  * o disco (ver `lib/gallery-server.ts`). O host está liberado em `next.config.mjs`
- * (`images.remotePatterns`) pro otimizador do Next gerar thumbnails AVIF/WebP; o lightbox serve o
- * ORIGINAL (qualidade máxima) e o download passa pelo proxy `/api/download`.
+ * (`images.remotePatterns`) pro otimizador do Next gerar thumbnails AVIF/WebP; o lightbox serve
+ * uma versão otimizada em alta (q90) e o download passa pelo proxy `/api/download`.
  *
  * Pasta ÚNICA, sem categorias (pedido) → a Galeria detecta e mostra tudo numa grade plana.
  *
- * 148 fotos (prefixo `fotos/`), todas verificadas (HTTP 200). O bucket tem mais arquivos,
- * mas várias foram removidas a pedido (a lista aqui é a fonte da verdade do que aparece no site).
- * O carrossel da Home usa só fotos desta lista — nenhuma foto removida aparece na Home. O bucket
- * `r2.dev` não permite listagem, então a lista é mantida à mão aqui.
+ * 105 fotos (prefixo `fotos/`), TODAS verificadas como presentes no bucket (HTTP 200) nesta
+ * sincronização. Importante: o bucket `r2.dev` não permite listagem, então esta lista é a fonte da
+ * verdade e é mantida à mão — se arquivos forem apagados/adicionados direto no R2, reavise pra
+ * re-sincronizar (senão viram imagem quebrada). O carrossel da Home (`HOME_FILES`) usa só fotos
+ * desta lista.
  */
 export const R2_PAMELA_BASE = "https://pub-8eeaba32ed6d495293e15b112eb0184b.r2.dev";
 
 /** Arquivos das fotos, dentro do prefixo `fotos/` do bucket, em ordem numérica. */
 const PHOTO_FILES = [
   "1-_MG_0656.jpg",
-  "2-_MG_0652.jpg",
   "3-_MG_0640.jpg",
   "4-_MG_0638.jpg",
   "5-_MG_0632.jpg",
@@ -34,19 +34,8 @@ const PHOTO_FILES = [
   "13-_MG_0587.jpg",
   "14-_MG_0585.jpg",
   "15-_MG_0583.jpg",
-  "16-_MG_0579.jpg",
-  "17-_MG_0578.jpg",
-  "18-_MG_0576.jpg",
-  "19-_MG_0571.jpg",
-  "20-_MG_0568.jpg",
-  "21-_MG_0548.jpg",
   "22-_MG_0541.jpg",
-  "23-_MG_0536.jpg",
-  "24-_MG_0534.jpg",
-  "25-_MG_0533.jpg",
-  "26-_MG_0532.jpg",
   "27-_MG_0530.jpg",
-  "28-_MG_0528.jpg",
   "29-_MG_0526.jpg",
   "30-_MG_0516.jpg",
   "31-_MG_0515.jpg",
@@ -136,47 +125,16 @@ const PHOTO_FILES = [
   "146-_MG_9901.jpg",
   "147-_MG_9900.jpg",
   "148-_MG_9899.jpg",
-  "149-_MG_9893.jpg",
-  "150-_MG_9890.jpg",
-  "151-_MG_9885.jpg",
-  "152-_MG_9883.jpg",
-  "153-_MG_9879.jpg",
-  "154-_MG_9877.jpg",
-  "155-_MG_9873.jpg",
-  "156-_MG_9862.jpg",
-  "157-_MG_9861.jpg",
-  "158-_MG_9855.jpg",
-  "159-_MG_9851.jpg",
-  "160-_MG_9847.jpg",
-  "161-_MG_9829.jpg",
-  "162-_MG_9825.jpg",
-  "163-_MG_9819.jpg",
-  "164-_MG_9818.jpg",
-  "165-_MG_9816.jpg",
-  "166-_MG_9815.jpg",
-  "167-_MG_9813.jpg",
-  "168-_MG_9811.jpg",
-  "169-_MG_9808.jpg",
-  "170-_MG_9807.jpg",
-  "171-_MG_9801.jpg",
-  "172-_MG_9799.jpg",
-  "173-_MG_9783.jpg",
-  "174-_MG_9774.jpg",
-  "175-_MG_9770.jpg",
-  "176-_MG_9758.jpg",
-  "177-_MG_9741.jpg",
-  "178-_MG_9738.jpg",
-  "179-_MG_9728.jpg",
 ];
 
 /** 6 fotos destaque pro carrossel da Home (config.ts), distribuídas ao longo do ensaio. */
 const HOME_FILES = [
   "1-_MG_0656.jpg",
-  "30-_MG_0516.jpg",
-  "60-_MG_0404.jpg",
-  "89-_MG_0255.jpg",
-  "150-_MG_9890.jpg",
-  "179-_MG_9728.jpg",
+  "34-_MG_0512.jpg",
+  "55-_MG_0411.jpg",
+  "75-_MG_0331.jpg",
+  "127-_MG_9965.jpg",
+  "148-_MG_9899.jpg",
 ];
 
 function toPhotos(files: string[]): GalleryPhoto[] {
