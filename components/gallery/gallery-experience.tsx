@@ -271,13 +271,12 @@ function VideoGrid({ videos, onOpen }: { videos: GalleryVideo[]; onOpen: (index:
           <button
             type="button"
             onClick={() => onOpen(index)}
-            className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-gradient-to-t from-black/70 via-black/15 to-black/30 text-white/85 transition-colors group-hover:text-white"
+            className="absolute inset-0 flex items-center justify-center bg-gradient-to-t from-black/60 via-black/10 to-black/20 text-white/85 transition-colors group-hover:text-white"
             aria-label={`Assistir ${video.title}`}
           >
-            <span className="flex size-14 items-center justify-center rounded-full border border-white/40 bg-black/40 backdrop-blur-sm transition-colors group-hover:border-[var(--client-accent)] group-hover:text-[var(--client-accent)]">
-              <Play className="size-6 translate-x-[1px]" />
+            <span className="flex size-16 items-center justify-center rounded-full border border-white/40 bg-black/40 backdrop-blur-sm transition-colors group-hover:border-[var(--client-accent)] group-hover:text-[var(--client-accent)]">
+              <Play className="size-7 translate-x-[1px]" />
             </span>
-            <span className="px-3 text-center font-mono text-[11px] uppercase tracking-wide">{video.title}</span>
           </button>
           <a
             href={`/api/download?src=${encodeURIComponent(video.src)}`}
@@ -405,6 +404,8 @@ export function GalleryExperience({ folders, videos, accessCodes, lockScreenTitl
       {activeFolder && lightboxIndex !== null && activeFolder.photos[lightboxIndex] && (
         <PhotoLightbox
           photo={activeFolder.photos[lightboxIndex]}
+          prevSrc={lightboxIndex > 0 ? activeFolder.photos[lightboxIndex - 1].src : undefined}
+          nextSrc={lightboxIndex < activeFolder.photos.length - 1 ? activeFolder.photos[lightboxIndex + 1].src : undefined}
           hasPrev={lightboxIndex > 0}
           hasNext={lightboxIndex < activeFolder.photos.length - 1}
           onPrev={() => setLightboxIndex((current) => (current !== null ? current - 1 : current))}

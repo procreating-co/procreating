@@ -2,7 +2,7 @@ import type { ClientConfig } from "@/lib/clients/types";
 import { galleryPhotos } from "./gallery";
 
 /**
- * Dra. Pamela — duplicata da arquitetura da Dra. Elenita (`data/elenita/config.ts`), pipeline
+ * Dra. Pâmela — duplicata da arquitetura da Dra. Elenita (`data/elenita/config.ts`), pipeline
  * legado via `lib/clients/registry.ts`.
  *
  * Mídia servida do bucket R2 da Pâmela (`data/drapamela/gallery.ts` + `videos.ts`):
@@ -15,12 +15,12 @@ import { galleryPhotos } from "./gallery";
  */
 export const clientConfig: ClientConfig = {
   slug: "drapamela",
-  brandName: "Dra. Pamela",
+  brandName: "Dra. Pâmela",
   logo: "/placeholder-logo.svg",
 
   metadata: {
-    title: "Dra. Pamela | Posicionamento Digital",
-    description: "Projeto de posicionamento digital e autoridade profissional da Dra. Pamela.",
+    title: "Dra. Pâmela | Posicionamento Digital",
+    description: "Projeto de posicionamento digital e autoridade profissional da Dra. Pâmela.",
   },
 
   theme: {
@@ -40,8 +40,9 @@ export const clientConfig: ClientConfig = {
     atmosphere: true,
     paragraph: "Todos materiais captados estão aqui...",
     stats: {
-      videos: { count: 46, label: "vídeos produzidos" },
-      photos: { count: 105, label: "fotos editadas" },
+      videos: { count: 46, label: "vídeos brutos" },
+      // Número de marketing escolhido pela cliente — independente da quantidade exibida na galeria.
+      photos: { count: 394, label: "fotos editadas" },
     },
   },
 
@@ -63,7 +64,7 @@ export const clientConfig: ClientConfig = {
   // Galeria (`videos.ts` → `galleryVideos`). Sem `videosSection`, a seção some da Home.
 
   footer: {
-    legalLine: "Desenvolvido para Dra. Pamela.",
+    legalLine: "Desenvolvido para Dra. Pâmela.",
   },
 
   gallery: {

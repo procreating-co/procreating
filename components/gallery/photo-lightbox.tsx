@@ -5,8 +5,21 @@ import { ChevronLeft, ChevronRight, Download, Loader2, X } from "lucide-react";
 import { optimizedGallerySrc, type GalleryPhoto } from "@/lib/gallery";
 import { useModalBehavior } from "@/hooks/use-modal-behavior";
 
+/** Versão de alta qualidade (AVIF/WebP q90) servida pelo otimizador, com srcSet por largura —
+ *  o navegador escolhe conforme a resolução da tela. Reutilizada pela imagem visível e pelo
+ *  pré-carregamento das vizinhas, pra garantir cache hit na navegação. */
+function hiRes(src: string) {
+  return {
+    src: optimizedGallerySrc(src, 2048, 90),
+    srcSet: `${optimizedGallerySrc(src, 1200, 90)} 1200w, ${optimizedGallerySrc(src, 1920, 90)} 1920w, ${optimizedGallerySrc(src, 2048, 90)} 2048w, ${optimizedGallerySrc(src, 3840, 90)} 3840w`,
+    sizes: "92vw",
+  };
+}
+
 export function PhotoLightbox({
   photo,
+  prevSrc,
+  nextSrc,
   hasPrev,
   hasNext,
   onPrev,
@@ -14,6 +27,9 @@ export function PhotoLightbox({
   onClose,
 }: {
   photo: GalleryPhoto;
+  /** URLs (R2) das fotos anterior/próxima — pré-carregadas pra navegação instantânea. */
+  prevSrc?: string;
+  nextSrc?: string;
   hasPrev: boolean;
   hasNext: boolean;
   onPrev: () => void;
@@ -31,6 +47,22 @@ export function PhotoLightbox({
   // por cima quando termina de carregar. `loaded` reseta a cada troca de foto (prev/próxima).
   const [loaded, setLoaded] = useState(false);
   useEffect(() => setLoaded(false), [photo.src]);
+
+  // Pré-carrega a foto anterior e a próxima (mesma versão q90 que será exibida) assim que a atual
+  // aparece — ao navegar, a imagem já está no cache e troca instantânea, sem spinner.
+  useEffect(() => {
+    const imgs: HTMLImageElement[] = [];
+    for (const src of [nextSrc, prevSrc]) {
+      if (!src) continue;
+      const img = new Image();
+      const { src: s, srcSet, sizes } = hiRes(src);
+      img.sizes = sizes;
+      img.srcset = srcSet;
+      img.src = s;
+      imgs.push(img);
+    }
+    return () => imgs.forEach((img) => { img.src = ""; img.srcset = ""; });
+  }, [prevSrc, nextSrc]);
 
   return (
     <div
@@ -101,9 +133,7 @@ export function PhotoLightbox({
             a maior. Download continua servindo o arquivo ORIGINAL (botão "Baixar"). */}
         <img
           key={photo.src}
-          src={optimizedGallerySrc(photo.src, 2048, 90)}
-          srcSet={`${optimizedGallerySrc(photo.src, 1200, 90)} 1200w, ${optimizedGallerySrc(photo.src, 1920, 90)} 1920w, ${optimizedGallerySrc(photo.src, 2048, 90)} 2048w, ${optimizedGallerySrc(photo.src, 3840, 90)} 3840w`}
-          sizes="92vw"
+          {...hiRes(photo.src)}
           alt={photo.alt}
           onLoad={() => setLoaded(true)}
           className={`absolute inset-0 m-auto max-h-[90vh] max-w-[92vw] object-contain transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}

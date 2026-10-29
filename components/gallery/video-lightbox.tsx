@@ -86,7 +86,7 @@ export function VideoLightbox({
         </button>
       )}
 
-      <div className="flex max-h-[88vh] max-w-[92vw] flex-col items-center gap-3" onClick={(event) => event.stopPropagation()}>
+      <div className="flex max-h-[88vh] max-w-[92vw] items-center justify-center" onClick={(event) => event.stopPropagation()}>
         <video
           key={video.src}
           src={video.src}
@@ -94,9 +94,8 @@ export function VideoLightbox({
           autoPlay
           playsInline
           preload="metadata"
-          className="max-h-[82vh] max-w-[92vw] bg-black"
+          className="max-h-[86vh] max-w-[92vw] bg-black"
         />
-        <span className="font-mono text-xs uppercase tracking-wide text-white/60">{video.title}</span>
       </div>
     </div>
   );
