@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Metric } from "@/lib/clients/types";
+import { ProposalHeroAtmosphere } from "@/components/proposal/proposal-hero-atmosphere";
 
 const WELCOME_TYPE_MS = 40;
 
@@ -101,6 +102,10 @@ function AnimatedNumber({ value, pad = 0, start, duration = STATS_REVEAL_MS }: {
 export type HeroSectionProps = {
   welcomeLines: [string, string];
   backgroundVideo: string;
+  /** `true` + `atmosphereAccent` → fundo atmosférico animado das propostas no lugar do vídeo. */
+  atmosphere?: boolean;
+  /** Cor (hex) usada pelo fundo atmosférico — o SVG/glows não leem CSS var, então vem o hex direto. */
+  atmosphereAccent?: string;
   paragraph: string;
   /** `photos` é opcional — a Home da Pascoal passa os dois (comportamento de sempre); a versão
    *  de setembro (`/setembro-26`) passa só `videos`, e a métrica de fotos some sem deixar buraco
@@ -109,7 +114,7 @@ export type HeroSectionProps = {
   stats?: { videos: Metric; photos?: Metric };
 };
 
-export function HeroSection({ welcomeLines, backgroundVideo, paragraph, stats }: HeroSectionProps) {
+export function HeroSection({ welcomeLines, backgroundVideo, atmosphere, atmosphereAccent, paragraph, stats }: HeroSectionProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [statsVisible, setStatsVisible] = useState(false);
   const statsRef = useRef<HTMLDivElement>(null);
@@ -146,14 +151,22 @@ export function HeroSection({ welcomeLines, backgroundVideo, paragraph, stats }:
   return (
     <section className="relative min-h-screen overflow-hidden bg-black text-white">
       <div className="absolute inset-0 z-0">
-        {/* Só renderiza o vídeo quando há um arquivo — sem isso um `src` vazio dispara uma
-            requisição inútil (e não mostra nada). Sem vídeo, fica o fundo preto da section. */}
-        {backgroundVideo && (
-          <video ref={videoRef} autoPlay muted loop playsInline preload="auto" aria-hidden="true" className="hero-bg-video h-full w-full object-cover object-center opacity-75">
-            <source src={backgroundVideo} type="video/mp4" />
-          </video>
+        {atmosphere && atmosphereAccent ? (
+          // Fundo atmosférico animado das propostas (grid + glows + trajetória), na cor do cliente —
+          // usado quando não há vídeo de fundo. Já é escuro por natureza, sem overlay extra.
+          <ProposalHeroAtmosphere accent={atmosphereAccent} />
+        ) : (
+          <>
+            {/* Só renderiza o vídeo quando há um arquivo — sem isso um `src` vazio dispara uma
+                requisição inútil (e não mostra nada). Sem vídeo, fica o fundo preto da section. */}
+            {backgroundVideo && (
+              <video ref={videoRef} autoPlay muted loop playsInline preload="auto" aria-hidden="true" className="hero-bg-video h-full w-full object-cover object-center opacity-75">
+                <source src={backgroundVideo} type="video/mp4" />
+              </video>
+            )}
+            <div className="absolute inset-0 bg-black/55" />
+          </>
         )}
-        <div className="absolute inset-0 bg-black/55" />
       </div>
       <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-[1400px] flex-col justify-center px-6 lg:px-12">
         <div className={`max-w-6xl transition-all duration-1000 ${isVisible ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"}`}>

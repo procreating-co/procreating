@@ -119,6 +119,10 @@ export type ClientConfig = {
     /** As duas linhas da animação de boas-vindas digitada. */
     welcomeLines: [string, string];
     backgroundVideo: string;
+    /** Opcional — `true` usa o fundo atmosférico animado das propostas (`ProposalHeroAtmosphere`:
+     *  grid sutil + glows + trajetória SVG na cor do cliente) no lugar do vídeo/preto sólido.
+     *  Usado quando o cliente não tem vídeo de fundo. Ausente (padrão) = vídeo (ou preto) como sempre. */
+    atmosphere?: boolean;
     paragraph: string;
     /** Opcional — as métricas numéricas do Hero (vídeos/fotos). Ausente (padrão: presente) =
      *  Hero mostra só o parágrafo, sem os números (ex.: cliente cujos números ainda não existem). */

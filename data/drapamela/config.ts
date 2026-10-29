@@ -36,8 +36,9 @@ export const clientConfig: ClientConfig = {
 
   hero: {
     welcomeLines: ["Seja bem vinda,", "Dra. Pâmela Lande."],
-    // Vídeo de fundo do Hero ainda não subido — "" esconde o <video> (ver hero-section.tsx).
+    // Sem vídeo de fundo (pedido): usa o fundo atmosférico animado das propostas, na cor do cliente.
     backgroundVideo: "",
+    atmosphere: true,
     paragraph: "Todos materiais captados estão aqui...",
     // `stats` omitido até os números existirem (Hero mostra só o parágrafo).
   },

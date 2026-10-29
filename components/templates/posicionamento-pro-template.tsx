@@ -45,7 +45,7 @@ export function PosicionamentoProTemplate({
         extraLink={config.nav.extraLink}
         showGalleryCta={showGallery}
       />
-      <HeroSection welcomeLines={config.hero.welcomeLines} backgroundVideo={config.hero.backgroundVideo} paragraph={config.hero.paragraph} stats={config.hero.stats} />
+      <HeroSection welcomeLines={config.hero.welcomeLines} backgroundVideo={config.hero.backgroundVideo} atmosphere={config.hero.atmosphere} atmosphereAccent={config.theme.accentColor} paragraph={config.hero.paragraph} stats={config.hero.stats} />
       <FeaturesSection
         eyebrow={config.features.eyebrow}
         heading={config.features.heading}
