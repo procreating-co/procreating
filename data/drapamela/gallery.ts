@@ -10,9 +10,9 @@ import { r2Url } from "@/lib/r2";
  *
  * Pasta ÚNICA, sem categorias (pedido) → a Galeria detecta e mostra tudo numa grade plana.
  *
- * Lista completa do bucket (298 fotos, prefixo `fotos/`), numerada 1..299 (o nº 190 não
- * existe no bucket — lacuna na numeração). Cada nome foi verificado (HTTP 200). O bucket `r2.dev`
- * não permite listagem, então a lista é mantida à mão aqui.
+ * 267 fotos (prefixo `fotos/`), todas verificadas (HTTP 200). O bucket tem mais arquivos,
+ * mas os de prefixo 95..125 foram removidos a pedido. O bucket `r2.dev` não permite listagem,
+ * então a lista é mantida à mão aqui.
  */
 export const R2_PAMELA_BASE = "https://pub-8eeaba32ed6d495293e15b112eb0184b.r2.dev";
 
@@ -112,37 +112,6 @@ const PHOTO_FILES = [
   "92-_MG_0241.jpg",
   "93-_MG_0236.jpg",
   "94-_MG_0231.jpg",
-  "95-_MG_0227.jpg",
-  "96-_MG_0225.jpg",
-  "97-_MG_0219.jpg",
-  "98-_MG_0215.jpg",
-  "99-_MG_0211.jpg",
-  "100-_MG_0209.jpg",
-  "101-_MG_0200.jpg",
-  "102-_MG_0157.jpg",
-  "103-_MG_0155.jpg",
-  "104-_MG_0153.jpg",
-  "105-_MG_0143.jpg",
-  "106-_MG_0142.jpg",
-  "107-_MG_0110.jpg",
-  "108-_MG_0098.jpg",
-  "109-_MG_0089.jpg",
-  "110-_MG_0079.jpg",
-  "111-_MG_0075.jpg",
-  "112-_MG_0065.jpg",
-  "113-_MG_0063.jpg",
-  "114-_MG_0061.jpg",
-  "115-_MG_0055.jpg",
-  "116-_MG_0053.jpg",
-  "117-_MG_0045.jpg",
-  "118-_MG_0044.jpg",
-  "119-_MG_0029.jpg",
-  "120-_MG_0016.jpg",
-  "121-_MG_0010.jpg",
-  "122-_MG_0009.jpg",
-  "123-_MG_0001.jpg",
-  "124-_MG_9981.jpg",
-  "125-_MG_9979.jpg",
   "126-_MG_9972.jpg",
   "127-_MG_9965.jpg",
   "128-_MG_9961.jpg",
@@ -321,10 +290,10 @@ const PHOTO_FILES = [
 /** 6 fotos destaque pro carrossel da Home (config.ts), distribuídas ao longo do ensaio. */
 const HOME_FILES = [
   "1-_MG_0656.jpg",
-  "60-_MG_0404.jpg",
-  "120-_MG_0016.jpg",
-  "179-_MG_9728.jpg",
-  "240-_MG_2434.jpg",
+  "54-_MG_0412.jpg",
+  "138-_MG_9922.jpg",
+  "193-_MG_2994.jpg",
+  "246-_MG_2421.jpg",
   "299-Cópia de _MG_1570.jpg",
 ];
 
