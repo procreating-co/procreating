@@ -87,17 +87,23 @@ export function PhotoLightbox({
       )}
 
       <div className="relative flex items-center justify-center" onClick={(event) => event.stopPropagation()}>
-        {/* Prévia leve (otimizada, q75 — permitido pelo Next 16) enquanto a original não chega. */}
+        {/* Prévia instantânea: a mesma miniatura q75/640 já carregada na grade (cache hit) —
+            aparece na hora enquanto a versão grande chega. */}
         <img
-          src={optimizedGallerySrc(photo.src, 1200)}
+          src={optimizedGallerySrc(photo.src, 640)}
           alt=""
           aria-hidden="true"
           className={`max-h-[90vh] max-w-[92vw] object-contain transition-opacity duration-300 ${loaded ? "opacity-0" : "opacity-100"}`}
         />
-        {/* Foto original em altíssima qualidade, por cima, fade-in ao carregar. */}
+        {/* Versão de alta qualidade servida pelo otimizador (AVIF/WebP, q90): abre bem mais rápido
+            que o JPEG original de 3-5MB e, na tela, é visualmente idêntica ao original. O navegador
+            escolhe a largura certa pela resolução da tela (srcSet), então telas retina/4K recebem
+            a maior. Download continua servindo o arquivo ORIGINAL (botão "Baixar"). */}
         <img
           key={photo.src}
-          src={photo.src}
+          src={optimizedGallerySrc(photo.src, 2048, 90)}
+          srcSet={`${optimizedGallerySrc(photo.src, 1200, 90)} 1200w, ${optimizedGallerySrc(photo.src, 1920, 90)} 1920w, ${optimizedGallerySrc(photo.src, 2048, 90)} 2048w, ${optimizedGallerySrc(photo.src, 3840, 90)} 3840w`}
+          sizes="92vw"
           alt={photo.alt}
           onLoad={() => setLoaded(true)}
           className={`absolute inset-0 m-auto max-h-[90vh] max-w-[92vw] object-contain transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}

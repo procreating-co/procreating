@@ -59,9 +59,10 @@ const VIDEO_FILES = [
   "MVI_0540.MOV",
 ];
 
-const galleryVideos: GalleryVideo[] = VIDEO_FILES.map((file) => ({
+const galleryVideos: GalleryVideo[] = VIDEO_FILES.map((file, i) => ({
   src: r2Url(R2_PAMELA_BASE, `videos/${file}`),
-  title: file.replace(/\.mov$/i, ""),
+  // Rótulo genérico (pedido: não expor o nome "MVI..."). O download mantém o nome real do arquivo.
+  title: `Vídeo ${String(i + 1).padStart(2, "0")}`,
 }));
 
 export const clientVideos: ClientVideos = {

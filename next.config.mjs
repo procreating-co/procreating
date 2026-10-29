@@ -2,6 +2,10 @@
 const nextConfig = {
   images: {
     formats: ["image/avif", "image/webp"],
+    // Qualidades permitidas pelo otimizador (Next 16 aceita só as listadas; padrão era [75]).
+    // 75 = thumbnails da grade; 90 = visualização em tela cheia (lightbox) — AVIF/WebP a 90 abre
+    // muito mais rápido que o JPEG original de 3-5MB e, na tela, é visualmente idêntico ao original.
+    qualities: [75, 90],
     // Buckets públicos do Cloudflare R2 — libera o otimizador do Next a redimensionar as fotos
     // da galeria servidas de lá (ex.: galeria da Dra. Sandra). Sem isso, `/_next/image?url=...`
     // de um host externo retorna 400. Hosts fixos (não wildcard) por segurança.
