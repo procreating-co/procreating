@@ -55,6 +55,7 @@ const CASES: { src: string; label: string; aspect: string; span: string }[] = [
   { src: r2Url(CASES_R2, "Aftermovie Sophia XV.mp4"), label: "Aftermovie — Sophia XV", aspect: "aspect-video", span: "sm:col-span-12" },
   { src: r2Url(CASES_R2, "Fernanda XV.mp4"), label: "Fernanda XV", aspect: "aspect-video", span: "sm:col-span-6" },
   { src: r2Url(CASES_R2, "WhatsApp Video 2026-10-28 at 16.43.29.mp4"), label: "", aspect: "aspect-video", span: "sm:col-span-6" },
+  { src: r2Url(CASES_R2, "Futuro Previdência - After Movie.mp4"), label: "Aftermovie — Futuro Previdência", aspect: "aspect-video", span: "sm:col-span-12" },
 ];
 
 /** Tile de case: 1º frame do vídeo como capa + play; ao clicar, toca inline com controles. */
