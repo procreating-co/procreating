@@ -16,8 +16,8 @@ const serif = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "Bruna Montenegro · Advogada",
-  description: "Assessoria jurídica séria, humana e estratégica.",
+  title: "Bruna Montenegro · Advocacia Trabalhista",
+  description: "Seus direitos no trabalho merecem ser respeitados. Orientação jurídica trabalhista com atendimento humano e próximo.",
   robots: { index: false, follow: false },
 };
 
