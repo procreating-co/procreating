@@ -62,9 +62,9 @@ const HERO_CSS = `
 .blp-root{background:${CREAM};color:${INK};font-family:var(--lp-sans),Arial,sans-serif}
 .blp-hero{position:relative;isolation:isolate;min-height:810px;overflow:hidden;background:radial-gradient(ellipse at 80% 12%,#292321 0%,transparent 48%),#090909}
 .blp-hero::before{content:'';position:absolute;z-index:-2;inset:0;background:linear-gradient(110deg,#060606 20%,#0c0b0a 60%,#14110f)}
-.blp-portrait{position:absolute;z-index:-1;right:2%;bottom:0;height:86%;width:51%;overflow:hidden;-webkit-mask-image:linear-gradient(to right,transparent 0%,black 27%),linear-gradient(to top,black 84%,transparent 100%);-webkit-mask-composite:source-in;mask-image:linear-gradient(to right,transparent 0%,black 27%),linear-gradient(to top,black 84%,transparent 100%);mask-composite:intersect;opacity:.96}
-.blp-portrait img{width:100%;height:100%;object-fit:cover;object-position:center 23%;filter:brightness(.69) saturate(.62) contrast(1.12)}
-.blp-portrait:after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,#090909 0%,transparent 36%),linear-gradient(0deg,#090909 0%,transparent 25%),rgba(0,0,0,.04)}
+.blp-portrait{position:absolute;z-index:-1;inset:0;width:100%;height:100%;overflow:hidden}
+.blp-portrait img{width:100%;height:100%;object-fit:cover;object-position:72% 28%;filter:brightness(.82) saturate(.92) contrast(1.05)}
+.blp-portrait:after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,#070707 0%,rgba(7,7,7,.92) 26%,rgba(7,7,7,.4) 52%,transparent 70%),linear-gradient(0deg,#070707 1%,transparent 34%)}
 .blp-nav{height:78px;width:min(1195px,calc(100% - 56px));margin:12px auto 0;padding:10px 18px;display:flex;align-items:center;justify-content:flex-start;border:1px solid #ffffff0e;border-radius:10px;background:#0b0b0baa;backdrop-filter:blur(18px);position:relative;z-index:5}
 .blp-logo{height:40px;width:auto}
 .blp-hero-body{width:min(1180px,calc(100% - 56px));margin:104px auto 0;position:relative;z-index:2}
@@ -72,8 +72,11 @@ const HERO_CSS = `
 .blp-eyebrow{display:inline-flex;align-items:center;min-height:50px;padding:0 29px;border:1px solid #ffffff16;border-radius:12px;background:#10101092;letter-spacing:4px;font-size:13px;color:#f4efe6}
 .blp-copy h1{font:500 clamp(38px,3.15vw,50px)/1.02 var(--lp-serif),Georgia,serif;letter-spacing:-1.4px;margin:27px 0 24px;max-width:590px;color:#f4efe6}
 .blp-lead{font-size:22px;line-height:1.58;color:#efefef;max-width:570px;margin:0 0 22px}
-.blp-cta{width:min(445px,100%);min-height:80px;display:flex;align-items:center;justify-content:center;gap:15px;padding:12px 18px;border-radius:6px;background:linear-gradient(110deg,#d4ad79,#f0d09e 55%,#ab906d);box-shadow:0 13px 28px #caa06b40;color:#0a0908;font-weight:700;font-size:17px;transition:transform .2s,box-shadow .2s}
+.blp-cta{position:relative;overflow:hidden;width:min(445px,100%);min-height:80px;display:flex;align-items:center;justify-content:center;gap:15px;padding:12px 18px;border-radius:6px;background:linear-gradient(110deg,#d4ad79,#f0d09e 55%,#ab906d);box-shadow:0 13px 28px #caa06b40;color:#0a0908;font-weight:700;font-size:17px;transition:transform .2s,box-shadow .2s}
 .blp-cta:hover{transform:translateY(-2px);box-shadow:0 15px 34px #caa06b55}
+.blp-cta>span{position:relative;z-index:2}
+.blp-cta::before{content:'';position:absolute;z-index:1;top:0;bottom:0;left:-75%;width:48%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.65),transparent);transform:skewX(-20deg);animation:blpShine 5s ease-in-out infinite}
+@keyframes blpShine{0%,100%{left:-75%}16%{left:150%}}
 .blp-bubble{display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:white;color:#8c6a3c}
 .blp-bubble svg{width:22px;height:22px}
 .blp-trust{display:flex;gap:18px;margin-top:23px;align-items:center;flex-wrap:wrap;font-size:14px;color:#e1e1df}
@@ -84,8 +87,8 @@ const HERO_CSS = `
 .blp-float-icon svg{width:25px;height:25px;color:#fff}
 .blp-float-body{background:#f7f7f7;color:#202020;padding:10px 13px;border-radius:28px 3px 3px 28px;font-size:12px}
 .blp-float-body small{display:block;color:#666;margin-top:2px}
-@media(max-width:920px){.blp-hero-body{margin-top:115px}.blp-copy{width:57%}.blp-lead{font-size:18px}.blp-portrait{right:-10%;width:67%;height:83%}}
-@media(max-width:680px){.blp-hero{min-height:960px}.blp-nav{width:calc(100% - 28px);margin-top:10px;height:70px;padding:10px 13px}.blp-logo{height:34px}.blp-hero-body{margin:57px auto 0;width:calc(100% - 38px)}.blp-copy{width:100%}.blp-eyebrow{font-size:10px;letter-spacing:2px;min-height:42px;padding:0 16px}.blp-copy h1{font-size:clamp(36px,8vw,49px);max-width:520px;margin:21px 0}.blp-lead{font-size:16px;line-height:1.5;max-width:520px}.blp-cta{min-height:65px;font-size:13px}.blp-trust{font-size:12px;gap:10px}.blp-portrait{height:48%;width:100%;right:-13%;bottom:0;-webkit-mask-image:linear-gradient(to bottom,transparent 0%,black 23%);mask-image:linear-gradient(to bottom,transparent 0%,black 23%);opacity:.8}.blp-portrait img{object-position:center 31%;filter:brightness(.5) saturate(.62) contrast(1.1)}.blp-portrait:after{background:linear-gradient(0deg,#090909 0%,transparent 19%),linear-gradient(90deg,#09090970,transparent 54%)}.blp-floating{right:12px;bottom:12px}.blp-float-body{display:none}}
+@media(max-width:920px){.blp-hero-body{margin-top:115px}.blp-copy{width:62%}.blp-lead{font-size:18px}.blp-portrait img{object-position:76% 24%}}
+@media(max-width:680px){.blp-hero{min-height:960px}.blp-nav{width:calc(100% - 28px);margin-top:10px;height:70px;padding:10px 13px}.blp-logo{height:34px}.blp-hero-body{margin:57px auto 0;width:calc(100% - 38px)}.blp-copy{width:100%}.blp-eyebrow{font-size:10px;letter-spacing:2px;min-height:42px;padding:0 16px}.blp-copy h1{font-size:clamp(36px,8vw,49px);max-width:520px;margin:21px 0}.blp-lead{font-size:16px;line-height:1.5;max-width:520px}.blp-cta{min-height:65px;font-size:13px}.blp-trust{font-size:12px;gap:10px}.blp-portrait img{object-position:68% 22%;filter:brightness(.62) saturate(.9) contrast(1.05)}.blp-portrait:after{background:linear-gradient(180deg,rgba(7,7,7,.72) 0%,rgba(7,7,7,.38) 38%,rgba(7,7,7,.9) 100%)}.blp-floating{right:12px;bottom:12px}.blp-float-body{display:none}}
 
 /* ── Método (bloco abaixo do hero) ── */
 .blp-method{position:relative;background:radial-gradient(ellipse 60% 48% at 50% -4%,#1b1711 0%,transparent 60%),#0a0a09;color:#f4efe6;padding:94px 24px 112px;overflow:hidden}
@@ -161,7 +164,7 @@ export function BrunaLp() {
       <section className="blp-hero" id="inicio">
         <div className="blp-portrait">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/lp/bruna.jpg" alt="Retrato profissional de Bruna Montenegro" />
+          <img src="/lp/bruna-hero.jpg" alt="Bruna Montenegro — advogada trabalhista" />
         </div>
 
         {/* Header: só o logo (pedido) */}
@@ -173,18 +176,18 @@ export function BrunaLp() {
 
         <div className="blp-hero-body">
           <div className="blp-copy">
-            <div className="blp-eyebrow">ADVOCACIA TRABALHISTA</div>
+            <div className="blp-eyebrow">{LP.oab}</div>
             <h1>Seus direitos no trabalho merecem ser respeitados.</h1>
             <p className="blp-lead">
               Assédio moral, burnout, demissão e outros conflitos trabalhistas. Receba orientação jurídica para
               compreender seus direitos e as medidas cabíveis ao seu caso.
             </p>
             <a className="blp-cta" href={waHref()} {...(external ? { target: "_blank", rel: "noreferrer" } : {})}>
-              <span>FALAR COM A ADVOGADA AGORA</span>
+              <span>DÊ O PRIMEIRO PASSO</span>
               <span className="blp-bubble"><WaGlyph /></span>
             </a>
             <div className="blp-trust">
-              <span><i className="blp-dot" />Atendimento no {LP.state}</span>
+              <span><i className="blp-dot" />Atendimento em todo o Brasil</span>
               <span><i className="blp-dot blp-gold" />Sigilo profissional</span>
             </div>
           </div>
