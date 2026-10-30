@@ -16,7 +16,7 @@ const serif = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "Bruna Machado · Advogada",
+  title: "Bruna Montenegro · Advogada",
   description: "Assessoria jurídica séria, humana e estratégica.",
   robots: { index: false, follow: false },
 };

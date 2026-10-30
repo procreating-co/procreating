@@ -28,7 +28,7 @@ import {
  * na page) — trocar a identidade é só mudar essas vars.
  */
 const LP = {
-  name: "Bruna Machado",
+  name: "Bruna Montenegro",
   role: "Advogada",
   oab: "OAB/UF 000.000", // placeholder — informar
   whatsapp: "", // placeholder — só dígitos com DDI, ex.: "5551999999999"
