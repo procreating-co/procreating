@@ -2,7 +2,7 @@
 
 import { useRef, useState, type ReactNode } from "react";
 import { motion, useScroll, useSpring } from "framer-motion";
-import { Play } from "lucide-react";
+import { ArrowUpRight, Play } from "lucide-react";
 import { ProcreatingMark } from "@/components/dashboard/procreating-mark";
 import { r2Url } from "@/lib/r2";
 
@@ -252,14 +252,28 @@ export function UrbanProposal() {
 
       {/* ───────────────── RODAPÉ ───────────────── */}
       <footer className="bg-black px-6 py-16 lg:px-12 lg:py-20">
-        <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 border-t border-white/10 pt-10 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2.5 text-white/80">
-            <ProcreatingMark className="size-6" />
-            <span className="text-sm font-medium uppercase tracking-[0.3em]">Procreating Co.</span>
+        <div className="mx-auto w-full max-w-[1400px] border-t border-white/10 pt-10">
+          <Reveal>
+            <a
+              href="https://www.procreatingco.com/"
+              target="_blank"
+              rel="noreferrer"
+              className="group inline-flex items-center gap-3 font-display text-2xl font-light tracking-tight text-white transition-colors hover:text-white/60 sm:text-3xl"
+            >
+              Conheça outros cases
+              <ArrowUpRight className="size-6 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 sm:size-7" />
+            </a>
+          </Reveal>
+
+          <div className="mt-10 flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2.5 text-white/80">
+              <ProcreatingMark className="size-6" />
+              <span className="text-sm font-medium uppercase tracking-[0.3em]">Procreating Co.</span>
+            </div>
+            <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-white/40">
+              Proposta Audiovisual · Urban Company · 30.10.2026
+            </p>
           </div>
-          <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-white/40">
-            Proposta Audiovisual · Urban Company · 30.10.2026
-          </p>
         </div>
       </footer>
     </div>
