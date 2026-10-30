@@ -2,43 +2,31 @@
 
 import Image from "next/image";
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
-import {
-  ArrowRight,
-  Check,
-  ChevronDown,
-  Menu,
-  X,
-  MapPin,
-  MessageCircle,
-  Phone,
-  Mail,
-  Instagram,
-  ShieldCheck,
-  Scale,
-} from "lucide-react";
+import { Check, ChevronDown, MessageCircle, Phone, Mail, Instagram, MapPin, Scale } from "lucide-react";
 
 /**
- * `/lp/brunamachado` — Landing page da advogada TRABALHISTA Bruna Montenegro.
+ * `/lp/brunamachado` — Landing page da advogada trabalhista Bruna Montenegro.
  *
- * O HERO recria a COMPOSIÇÃO do template de referência da Fysilab (duas colunas: texto à esquerda,
- * retrato à direita, fundo escuro cinematográfico, CTA dourado, WhatsApp flutuante) — mas com a
- * identidade/ marca PRÓPRIA da Bruna (logo em `public/lp/bruna-logo.png`), foto dela (placeholder —
- * nunca a foto de outra advogada) e copy original de advocacia trabalhista. Nada de conteúdo,
- * credenciais ou depoimentos de terceiros. Dados específicos são placeholders editáveis em `LP`.
+ * O HERO é o design entregue pela equipe (HTML/CSS próprios) portado para o projeto: fundo escuro
+ * cinematográfico, retrato à direita com máscara/gradiente, CTA dourado e WhatsApp flutuante. As
+ * classes do hero são prefixadas `blp-` (CSS no <style> abaixo) pra não colidir com o resto. Marca
+ * e foto são da própria Bruna (`public/lp/bruna-logo.png`, `public/lp/bruna.jpg`).
+ *
+ * Header: só o logo (pedido). Dados de contato ficam em `LP` (placeholders editáveis) — enquanto
+ * `whatsapp` estiver vazio, os CTAs rolam até a seção de contato.
  */
 const LP = {
   name: "Bruna Montenegro",
-  brand: "Advocacia & Consultoria Jurídica",
+  brand: "Advocacia Trabalhista",
   role: "Advogada Trabalhista",
-  oab: "OAB/RS 000.000", // placeholder — informar o número oficial
+  oab: "OAB/RS 100.993",
   state: "Rio Grande do Sul",
-  whatsapp: "", // só dígitos com DDI, ex.: "5551999999999" (vazio → CTAs rolam até contato)
-  phone: "", // ex.: "5551999999999" (vazio → rola até contato)
-  instagram: "", // @handle ou URL
+  whatsapp: "",
   email: "",
-  city: "", // cidade/UF do escritório
+  instagram: "",
+  city: "",
   especialidades: [
-    { title: "Assédio moral e psicológico", desc: "Orientação e defesa diante de situações de humilhação, perseguição e constrangimento no trabalho." },
+    { title: "Assédio moral e psicológico", desc: "Orientação e defesa diante de humilhação, perseguição e constrangimento no trabalho." },
     { title: "Burnout e adoecimento", desc: "Reconhecimento de doenças ocupacionais e dos direitos de quem adoeceu em razão do trabalho." },
     { title: "Demissão e verbas rescisórias", desc: "Conferência da rescisão, verbas devidas e reversão de demissões irregulares." },
     { title: "Horas extras e jornada", desc: "Cobrança de horas extras, intervalos e adicionais não pagos corretamente." },
@@ -53,7 +41,7 @@ const LP = {
   ],
 };
 
-const ACCENT = "#a88c5e"; // dourado da marca da Bruna (amostrado do logo)
+const ACCENT = "#c9a580";
 const INK = "#14110b";
 const CREAM = "#f4efe6";
 const DARK = "#0c0b0a";
@@ -68,10 +56,44 @@ function waHref() {
 function waExternal() {
   return digits(LP.whatsapp).length > 0;
 }
-function telHref() {
-  const d = digits(LP.phone);
-  return d ? `tel:+${d}` : "#contato";
-}
+
+/** CSS do hero (design entregue pela equipe), classes prefixadas `blp-` e fontes via CSS vars. */
+const HERO_CSS = `
+.blp-root{background:${CREAM};color:${INK};font-family:var(--lp-sans),Arial,sans-serif}
+.blp-hero{position:relative;isolation:isolate;min-height:810px;overflow:hidden;background:radial-gradient(ellipse at 80% 12%,#292321 0%,transparent 48%),#090909}
+.blp-hero::before{content:'';position:absolute;z-index:-2;inset:0;background:linear-gradient(110deg,#060606 20%,#0c0b0a 60%,#14110f)}
+.blp-portrait{position:absolute;z-index:-1;right:2%;bottom:0;height:86%;width:51%;overflow:hidden;-webkit-mask-image:linear-gradient(to right,transparent 0%,black 27%),linear-gradient(to top,black 84%,transparent 100%);-webkit-mask-composite:source-in;mask-image:linear-gradient(to right,transparent 0%,black 27%),linear-gradient(to top,black 84%,transparent 100%);mask-composite:intersect;opacity:.96}
+.blp-portrait img{width:100%;height:100%;object-fit:cover;object-position:center 23%;filter:brightness(.69) saturate(.62) contrast(1.12)}
+.blp-portrait:after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,#090909 0%,transparent 36%),linear-gradient(0deg,#090909 0%,transparent 25%),rgba(0,0,0,.04)}
+.blp-nav{height:78px;width:min(1195px,calc(100% - 56px));margin:12px auto 0;padding:10px 18px;display:flex;align-items:center;justify-content:flex-start;border:1px solid #ffffff0e;border-radius:10px;background:#0b0b0baa;backdrop-filter:blur(18px);position:relative;z-index:5}
+.blp-logo{height:40px;width:auto}
+.blp-hero-body{width:min(1180px,calc(100% - 56px));margin:104px auto 0;position:relative;z-index:2}
+.blp-copy{width:min(590px,55%)}
+.blp-eyebrow{display:inline-flex;align-items:center;min-height:50px;padding:0 29px;border:1px solid #ffffff16;border-radius:12px;background:#10101092;letter-spacing:4px;font-size:13px;color:#f4efe6}
+.blp-copy h1{font:500 clamp(38px,3.15vw,50px)/1.02 var(--lp-serif),Georgia,serif;letter-spacing:-1.4px;margin:27px 0 24px;max-width:590px;color:#f4efe6}
+.blp-lead{font-size:22px;line-height:1.58;color:#efefef;max-width:570px;margin:0 0 22px}
+.blp-cta{width:min(445px,100%);min-height:80px;display:flex;align-items:center;justify-content:center;gap:15px;padding:12px 18px;border-radius:6px;background:linear-gradient(110deg,#d4ad79,#f0d09e 55%,#ab906d);box-shadow:0 13px 28px #caa06b40;color:#0a0908;font-weight:700;font-size:17px;transition:transform .2s,box-shadow .2s}
+.blp-cta:hover{transform:translateY(-2px);box-shadow:0 15px 34px #caa06b55}
+.blp-bubble{display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:white;color:#8c6a3c}
+.blp-bubble svg{width:22px;height:22px}
+.blp-trust{display:flex;gap:18px;margin-top:23px;align-items:center;flex-wrap:wrap;font-size:14px;color:#e1e1df}
+.blp-dot{display:inline-block;width:14px;height:14px;border-radius:50%;background:#67e99c;margin-right:7px;vertical-align:-2px}
+.blp-dot.blp-gold{background:#c49b72}
+.blp-floating{position:fixed;z-index:40;right:25px;bottom:26px;display:flex;align-items:center;gap:7px}
+.blp-float-icon{height:48px;width:48px;border:4px solid #4bc15e;background:#33aa4b;border-radius:50%;display:grid;place-items:center}
+.blp-float-icon svg{width:25px;height:25px;color:#fff}
+.blp-float-body{background:#f7f7f7;color:#202020;padding:10px 13px;border-radius:28px 3px 3px 28px;font-size:12px}
+.blp-float-body small{display:block;color:#666;margin-top:2px}
+@media(max-width:920px){.blp-hero-body{margin-top:115px}.blp-copy{width:57%}.blp-lead{font-size:18px}.blp-portrait{right:-10%;width:67%;height:83%}}
+@media(max-width:680px){.blp-hero{min-height:960px}.blp-nav{width:calc(100% - 28px);margin-top:10px;height:70px;padding:10px 13px}.blp-logo{height:34px}.blp-hero-body{margin:57px auto 0;width:calc(100% - 38px)}.blp-copy{width:100%}.blp-eyebrow{font-size:10px;letter-spacing:2px;min-height:42px;padding:0 16px}.blp-copy h1{font-size:clamp(36px,8vw,49px);max-width:520px;margin:21px 0}.blp-lead{font-size:16px;line-height:1.5;max-width:520px}.blp-cta{min-height:65px;font-size:13px}.blp-trust{font-size:12px;gap:10px}.blp-portrait{height:48%;width:100%;right:-13%;bottom:0;-webkit-mask-image:linear-gradient(to bottom,transparent 0%,black 23%);mask-image:linear-gradient(to bottom,transparent 0%,black 23%);opacity:.8}.blp-portrait img{object-position:center 31%;filter:brightness(.5) saturate(.62) contrast(1.1)}.blp-portrait:after{background:linear-gradient(0deg,#090909 0%,transparent 19%),linear-gradient(90deg,#09090970,transparent 54%)}.blp-floating{right:12px;bottom:12px}.blp-float-body{display:none}}
+`;
+
+const WaGlyph = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} aria-hidden="true">
+    <path d="M20.5 11.5a8.5 8.5 0 0 1-12.7 7.4L3 20l1.2-4.7A8.5 8.5 0 1 1 20.5 11.5Z" />
+    <path d="M8 8c0 3.5 4.4 8 7.5 8l1-1.4-3-1.4-1 1a10 10 0 0 1-3-3l1-1L9 7Z" />
+  </svg>
+);
 
 function Reveal({ children, className }: { children: ReactNode; className?: string }) {
   const [ref, setRef] = useState<HTMLDivElement | null>(null);
@@ -89,165 +111,45 @@ function Reveal({ children, className }: { children: ReactNode; className?: stri
   );
 }
 
-const NAV = [
-  { label: "Método", href: "#metodo" },
-  { label: "Especialidades", href: "#especialidades" },
-  { label: "Sobre", href: "#sobre" },
-  { label: "Dúvidas frequentes", href: "#faq" },
-];
-
-/** Logo da Bruna (gold em fundo transparente — funciona no escuro e no claro). */
-function Logo({ className }: { className?: string }) {
-  return (
-    <Image
-      src="/lp/bruna-logo.png"
-      alt={`${LP.name} — ${LP.brand}`}
-      width={1667}
-      height={258}
-      priority
-      className={className}
-    />
-  );
-}
-
 export function BrunaLp() {
-  const [scrolled, setScrolled] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
-
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 24);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
   const serif: CSSProperties = { fontFamily: "var(--lp-serif, Georgia, serif)" };
+  const external = waExternal();
   const firstName = LP.name.split(" ")[0];
 
   return (
-    <div className="min-h-screen scroll-smooth font-sans antialiased" style={{ ["--lp-accent" as string]: ACCENT, backgroundColor: CREAM, color: INK } as CSSProperties}>
-      {/* ───────────────── NAVBAR ───────────────── */}
-      <header className="fixed inset-x-0 top-0 z-50 px-3 pt-3 lg:px-4 lg:pt-4">
-        <div
-          className={`mx-auto flex max-w-[1195px] items-center justify-between gap-4 rounded-2xl border border-white/10 px-4 py-2.5 transition-all duration-300 lg:px-5 ${
-            scrolled ? "bg-black/70 shadow-lg backdrop-blur-xl" : "bg-black/40 backdrop-blur-md"
-          }`}
-        >
-          <a href="#top" aria-label={LP.name} className="flex shrink-0 items-center">
-            <Logo className="h-8 w-auto lg:h-9" />
+    <div className="blp-root min-h-screen scroll-smooth antialiased">
+      <style dangerouslySetInnerHTML={{ __html: HERO_CSS }} />
+
+      {/* ───────────────── HERO (design entregue) ───────────────── */}
+      <section className="blp-hero" id="inicio">
+        <div className="blp-portrait">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/lp/bruna.jpg" alt="Retrato profissional de Bruna Montenegro" />
+        </div>
+
+        {/* Header: só o logo (pedido) */}
+        <header className="blp-nav">
+          <a href="#inicio" aria-label={LP.name}>
+            <Image src="/lp/bruna-logo.png" alt={`${LP.name} — ${LP.brand}`} width={1667} height={258} priority className="blp-logo" />
           </a>
+        </header>
 
-          <nav className="hidden items-center gap-7 lg:flex">
-            {NAV.map((n) => (
-              <a key={n.href} href={n.href} className="text-sm text-white/75 transition-colors hover:text-white">
-                {n.label}
-              </a>
-            ))}
-          </nav>
-
-          <div className="flex items-center gap-2">
-            <a
-              href={telHref()}
-              aria-label="Telefone"
-              className="hidden size-10 items-center justify-center rounded-full border border-white/15 text-white/80 transition-colors hover:border-[var(--lp-accent)] hover:text-[var(--lp-accent)] sm:flex"
-            >
-              <Phone className="size-4" />
+        <div className="blp-hero-body">
+          <div className="blp-copy">
+            <div className="blp-eyebrow">ADVOCACIA TRABALHISTA</div>
+            <h1>Seus direitos no trabalho merecem ser respeitados.</h1>
+            <p className="blp-lead">
+              Assédio moral, burnout, demissão e outros conflitos trabalhistas. Receba orientação jurídica para
+              compreender seus direitos e as medidas cabíveis ao seu caso.
+            </p>
+            <a className="blp-cta" href={waHref()} {...(external ? { target: "_blank", rel: "noreferrer" } : {})}>
+              <span>FALAR COM A ADVOGADA AGORA</span>
+              <span className="blp-bubble"><WaGlyph /></span>
             </a>
-            <a
-              href={waHref()}
-              {...(waExternal() ? { target: "_blank", rel: "noreferrer" } : {})}
-              aria-label="WhatsApp"
-              className="flex size-10 items-center justify-center rounded-full border border-white/15 text-white/80 transition-colors hover:border-[var(--lp-accent)] hover:text-[var(--lp-accent)]"
-            >
-              <MessageCircle className="size-4" />
-            </a>
-            <button
-              type="button"
-              onClick={() => setMenuOpen((v) => !v)}
-              aria-label="Menu"
-              className="flex size-10 items-center justify-center rounded-full border border-white/15 text-white/80 lg:hidden"
-            >
-              {menuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
-            </button>
-          </div>
-        </div>
-
-        {/* Menu mobile */}
-        {menuOpen && (
-          <div className="mx-auto mt-2 max-w-[1195px] overflow-hidden rounded-2xl border border-white/10 bg-black/90 p-2 backdrop-blur-xl lg:hidden">
-            {NAV.map((n) => (
-              <a key={n.href} href={n.href} onClick={() => setMenuOpen(false)} className="block rounded-lg px-4 py-3 text-sm text-white/80 hover:bg-white/5">
-                {n.label}
-              </a>
-            ))}
-          </div>
-        )}
-      </header>
-
-      {/* ───────────────── HERO ───────────────── */}
-      <section id="top" className="relative overflow-hidden" style={{ backgroundColor: DARK }}>
-        {/* Fundo cinematográfico: grafite + glow quente discreto + vinheta */}
-        <div aria-hidden className="pointer-events-none absolute inset-0">
-          <div className="absolute inset-0" style={{ background: "radial-gradient(120% 90% at 78% 30%, rgba(168,140,94,0.18) 0%, rgba(12,11,10,0) 55%)" }} />
-          <div className="absolute inset-0" style={{ background: "linear-gradient(90deg, #0c0b0a 0%, rgba(12,11,10,0.85) 42%, rgba(12,11,10,0.2) 100%)" }} />
-          <div className="absolute inset-0" style={{ boxShadow: "inset 0 0 220px 60px rgba(0,0,0,0.75)" }} />
-        </div>
-
-        <div className="relative mx-auto grid min-h-[100svh] max-w-[1440px] grid-cols-1 items-center gap-10 px-6 pb-16 pt-28 lg:grid-cols-[1fr_0.92fr] lg:gap-6 lg:px-[130px] lg:pb-0 lg:pt-24">
-          {/* COLUNA ESQUERDA */}
-          <div className="relative z-10 max-w-xl text-[#f4efe6]">
-            <Reveal>
-              <span className="inline-flex items-center rounded-full border border-white/20 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.18em] text-[#f4efe6]/85 sm:text-xs">
-                Advocacia Trabalhista&nbsp;&nbsp;|&nbsp;&nbsp;{LP.oab}
-              </span>
-            </Reveal>
-            <Reveal>
-              <h1 className="mt-6 text-[clamp(2.4rem,6vw,4rem)] font-medium leading-[1.04] tracking-tight" style={serif}>
-                Seus direitos no trabalho
-                <br />
-                merecem ser
-                <br />
-                respeitados.
-              </h1>
-            </Reveal>
-            <Reveal>
-              <p className="mt-6 max-w-lg text-base leading-relaxed text-[#f4efe6]/70 sm:text-lg">
-                Assédio moral, burnout, demissão e outros conflitos trabalhistas. Receba orientação jurídica para
-                compreender seus direitos e as medidas cabíveis ao seu caso.
-              </p>
-            </Reveal>
-            <Reveal>
-              <a
-                href={waHref()}
-                {...(waExternal() ? { target: "_blank", rel: "noreferrer" } : {})}
-                className="group mt-8 flex h-[72px] w-full max-w-[445px] items-center justify-between gap-3 rounded-xl bg-[var(--lp-accent)] pl-7 pr-3 text-[#1a1509] shadow-[0_10px_40px_-8px_rgba(168,140,94,0.5)] transition-all hover:brightness-105 active:scale-[0.99] sm:h-[80px]"
-              >
-                <span className="text-sm font-semibold uppercase tracking-wide sm:text-base">Falar com a advogada agora</span>
-                <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#f4efe6]/90 transition-transform group-hover:scale-105 sm:size-14">
-                  <MessageCircle className="size-6 text-[var(--lp-accent)]" />
-                </span>
-              </a>
-            </Reveal>
-            <Reveal>
-              <div className="mt-7 flex flex-wrap items-center gap-x-7 gap-y-3 text-sm text-[#f4efe6]/75">
-                <span className="inline-flex items-center gap-2.5">
-                  <span className="size-2.5 rounded-full bg-emerald-400" /> Atendimento no {LP.state}
-                </span>
-                <span className="inline-flex items-center gap-2.5">
-                  <span className="size-2.5 rounded-full bg-[var(--lp-accent)]" /> Atendimento com sigilo profissional
-                </span>
-              </div>
-            </Reveal>
-          </div>
-
-          {/* COLUNA DIREITA — retrato (placeholder; sem usar foto de terceiros) */}
-          <div className="relative z-10 flex h-full items-end justify-center lg:justify-end">
-            <div className="relative aspect-[4/5] w-full max-w-sm overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.06] to-transparent lg:aspect-auto lg:h-[80vh] lg:max-w-md lg:rounded-none lg:border-0 lg:bg-transparent">
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-[#f4efe6]/25">
-                <Scale className="size-10" />
-                <span className="font-mono text-[11px] uppercase tracking-widest">Foto da Bruna</span>
-              </div>
+            <div className="blp-trust">
+              <span><i className="blp-dot" />Atendimento no {LP.state}</span>
+              <span><i className="blp-dot blp-gold" />Sigilo profissional</span>
             </div>
           </div>
         </div>
@@ -257,7 +159,7 @@ export function BrunaLp() {
       <section id="metodo" className="px-6 py-20 lg:px-8 lg:py-28">
         <div className="mx-auto max-w-6xl">
           <Reveal>
-            <p className="text-xs font-medium uppercase tracking-[0.25em] text-[var(--lp-accent)]">Como funciona</p>
+            <p className="text-xs font-medium uppercase tracking-[0.25em] text-[var(--lp-accent)]" style={{ ["--lp-accent" as string]: ACCENT } as CSSProperties}>Como funciona</p>
             <h2 className="mt-3 max-w-2xl text-3xl font-semibold tracking-tight sm:text-4xl" style={serif}>Um caminho simples e transparente.</h2>
           </Reveal>
           <div className="mt-12 grid gap-8 sm:grid-cols-3">
@@ -268,9 +170,9 @@ export function BrunaLp() {
             ].map((s, i) => (
               <Reveal key={s.t}>
                 <div>
-                  <span className="text-5xl font-light text-[var(--lp-accent)]/50" style={serif}>{String(i + 1).padStart(2, "0")}</span>
+                  <span className="text-5xl font-light" style={{ ...serif, color: `${ACCENT}99` }}>{String(i + 1).padStart(2, "0")}</span>
                   <h3 className="mt-3 text-xl font-semibold" style={serif}>{s.t}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-[#14110b]/65">{s.d}</p>
+                  <p className="mt-2 text-sm leading-relaxed" style={{ color: `${INK}a6` }}>{s.d}</p>
                 </div>
               </Reveal>
             ))}
@@ -282,14 +184,14 @@ export function BrunaLp() {
       <section id="especialidades" className="px-6 py-20 lg:px-8 lg:py-28" style={{ backgroundColor: DARK, color: CREAM }}>
         <div className="mx-auto max-w-6xl">
           <Reveal>
-            <p className="text-xs font-medium uppercase tracking-[0.25em] text-[var(--lp-accent)]">Especialidades</p>
+            <p className="text-xs font-medium uppercase tracking-[0.25em]" style={{ color: ACCENT }}>Especialidades</p>
             <h2 className="mt-3 max-w-2xl text-3xl font-semibold tracking-tight sm:text-4xl" style={serif}>Em que posso te ajudar.</h2>
           </Reveal>
           <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {LP.especialidades.map((a, i) => (
               <Reveal key={a.title}>
-                <div className="group h-full rounded-xl border border-white/10 bg-white/[0.03] p-7 transition-all hover:-translate-y-1 hover:border-[var(--lp-accent)]/40">
-                  <span className="font-mono text-xs text-[var(--lp-accent)]">{String(i + 1).padStart(2, "0")}</span>
+                <div className="group h-full rounded-xl border border-white/10 bg-white/[0.03] p-7 transition-all hover:-translate-y-1" style={{ borderColor: undefined }}>
+                  <span className="font-mono text-xs" style={{ color: ACCENT }}>{String(i + 1).padStart(2, "0")}</span>
                   <h3 className="mt-3 text-xl font-semibold" style={serif}>{a.title}</h3>
                   <p className="mt-3 text-sm leading-relaxed text-[#f4efe6]/60">{a.desc}</p>
                 </div>
@@ -303,41 +205,30 @@ export function BrunaLp() {
       <section id="sobre" className="px-6 py-20 lg:px-8 lg:py-28">
         <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[0.8fr_1.2fr]">
           <Reveal>
-            <div className="relative mx-auto aspect-[4/5] w-full max-w-xs overflow-hidden rounded-2xl border border-black/10 bg-gradient-to-b from-[#ece6dc] to-[#ddd3c4]">
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-[#14110b]/30">
-                <Scale className="size-10" />
-                <span className="font-mono text-[11px] uppercase tracking-widest">Foto / retrato</span>
-              </div>
+            <div className="relative mx-auto aspect-[4/5] w-full max-w-xs overflow-hidden rounded-2xl border border-black/10">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/lp/bruna.jpg" alt="Bruna Montenegro" className="h-full w-full object-cover" style={{ objectPosition: "center 20%" }} />
             </div>
           </Reveal>
           <Reveal>
-            <p className="text-xs font-medium uppercase tracking-[0.25em] text-[var(--lp-accent)]">Sobre</p>
+            <p className="text-xs font-medium uppercase tracking-[0.25em]" style={{ color: ACCENT }}>Sobre</p>
             <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl" style={serif}>{LP.name}</h2>
-            <p className="mt-2 text-sm uppercase tracking-wide text-[#14110b]/50">{LP.role} · {LP.oab}</p>
-            <p className="mt-6 max-w-xl leading-relaxed text-[#14110b]/75">
-              {/* Placeholder — substitua pela bio real da Bruna. */}
+            <p className="mt-2 text-sm uppercase tracking-wide" style={{ color: `${INK}80` }}>{LP.role} · {LP.oab}</p>
+            <p className="mt-6 max-w-xl leading-relaxed" style={{ color: `${INK}bf` }}>
+              {/* Placeholder — substituir pela bio real da Bruna. */}
               Advogada dedicada ao Direito do Trabalho, com atuação próxima, humana e estratégica. Acredito que todo
               trabalhador merece ser ouvido e orientado com clareza — e acompanho cada cliente com seriedade do início
               ao fim.
             </p>
             <ul className="mt-7 grid gap-3 sm:grid-cols-2">
-              {[
-                "Atendimento humano e personalizado",
-                "Comunicação clara, sem juridiquês",
-                "Acompanhamento em todas as etapas",
-                "Sigilo e ética profissional",
-              ].map((c) => (
-                <li key={c} className="flex items-start gap-2.5 text-sm text-[#14110b]/80">
-                  <Check className="mt-0.5 size-4 shrink-0 text-[var(--lp-accent)]" /> {c}
+              {["Atendimento humano e personalizado", "Comunicação clara, sem juridiquês", "Acompanhamento em todas as etapas", "Sigilo e ética profissional"].map((c) => (
+                <li key={c} className="flex items-start gap-2.5 text-sm" style={{ color: `${INK}cc` }}>
+                  <Check className="mt-0.5 size-4 shrink-0" style={{ color: ACCENT }} /> {c}
                 </li>
               ))}
             </ul>
             <div className="mt-8">
-              <a
-                href={waHref()}
-                {...(waExternal() ? { target: "_blank", rel: "noreferrer" } : {})}
-                className="inline-flex items-center gap-2 rounded-full bg-[var(--lp-accent)] px-7 py-3.5 text-sm font-semibold text-[#1a1509] transition-all hover:brightness-105"
-              >
+              <a href={waHref()} {...(external ? { target: "_blank", rel: "noreferrer" } : {})} className="inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-sm font-semibold text-[#1a1509]" style={{ backgroundColor: ACCENT }}>
                 <MessageCircle className="size-4" /> Falar com {firstName}
               </a>
             </div>
@@ -345,11 +236,11 @@ export function BrunaLp() {
         </div>
       </section>
 
-      {/* ───────────────── FAQ (Dúvidas frequentes) ───────────────── */}
+      {/* ───────────────── FAQ ───────────────── */}
       <section id="faq" className="px-6 py-20 lg:px-8 lg:py-28">
         <div className="mx-auto max-w-3xl">
           <Reveal>
-            <p className="text-xs font-medium uppercase tracking-[0.25em] text-[var(--lp-accent)]">Dúvidas frequentes</p>
+            <p className="text-xs font-medium uppercase tracking-[0.25em]" style={{ color: ACCENT }}>Dúvidas frequentes</p>
             <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl" style={serif}>Perguntas comuns.</h2>
           </Reveal>
           <div className="mt-10 divide-y divide-black/10 border-y border-black/10">
@@ -357,10 +248,10 @@ export function BrunaLp() {
               <div key={item.q}>
                 <button type="button" onClick={() => setOpenFaq(openFaq === i ? null : i)} className="flex w-full items-center justify-between gap-4 py-5 text-left" aria-expanded={openFaq === i}>
                   <span className="text-base font-medium sm:text-lg" style={serif}>{item.q}</span>
-                  <ChevronDown className={`size-5 shrink-0 text-[var(--lp-accent)] transition-transform ${openFaq === i ? "rotate-180" : ""}`} />
+                  <ChevronDown className={`size-5 shrink-0 transition-transform ${openFaq === i ? "rotate-180" : ""}`} style={{ color: ACCENT }} />
                 </button>
                 <div className={`grid transition-all duration-300 ${openFaq === i ? "grid-rows-[1fr] pb-5" : "grid-rows-[0fr]"}`}>
-                  <p className="overflow-hidden text-sm leading-relaxed text-[#14110b]/65">{item.a}</p>
+                  <p className="overflow-hidden text-sm leading-relaxed" style={{ color: `${INK}a6` }}>{item.a}</p>
                 </div>
               </div>
             ))}
@@ -377,11 +268,7 @@ export function BrunaLp() {
               O primeiro passo é uma conversa. Me chame no WhatsApp e entenda, sem compromisso, como posso te ajudar.
             </p>
             <div className="mt-8 flex justify-center">
-              <a
-                href={waHref()}
-                {...(waExternal() ? { target: "_blank", rel: "noreferrer" } : {})}
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--lp-accent)] px-8 py-4 text-sm font-semibold text-[#1a1509] transition-transform hover:scale-[1.03]"
-              >
+              <a href={waHref()} {...(external ? { target: "_blank", rel: "noreferrer" } : {})} className="inline-flex items-center justify-center gap-2 rounded-full px-8 py-4 text-sm font-semibold text-[#1a1509] transition-transform hover:scale-[1.03]" style={{ backgroundColor: ACCENT }}>
                 <MessageCircle className="size-5" /> Falar com a advogada agora
               </a>
             </div>
@@ -393,17 +280,13 @@ export function BrunaLp() {
       <footer className="px-6 py-14 lg:px-8" style={{ backgroundColor: DARK, color: "rgba(244,239,230,0.7)" }}>
         <div className="mx-auto flex max-w-6xl flex-col gap-8 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <Logo className="h-10 w-auto" />
-            <p className="mt-3 text-sm uppercase tracking-wide text-[var(--lp-accent)]">{LP.role} · {LP.oab}</p>
+            <Image src="/lp/bruna-logo.png" alt={LP.name} width={1667} height={258} className="h-10 w-auto" />
+            <p className="mt-3 text-sm uppercase tracking-wide" style={{ color: ACCENT }}>{LP.role} · {LP.oab}</p>
           </div>
           <div className="flex flex-col gap-2 text-sm">
-            {LP.whatsapp && (
-              <a className="inline-flex items-center gap-2 hover:text-white" href={waHref()} target="_blank" rel="noreferrer"><Phone className="size-4" /> WhatsApp</a>
-            )}
+            {LP.whatsapp && (<a className="inline-flex items-center gap-2 hover:text-white" href={waHref()} target="_blank" rel="noreferrer"><Phone className="size-4" /> WhatsApp</a>)}
             {LP.email && (<a className="inline-flex items-center gap-2 hover:text-white" href={`mailto:${LP.email}`}><Mail className="size-4" /> {LP.email}</a>)}
-            {LP.instagram && (
-              <a className="inline-flex items-center gap-2 hover:text-white" href={LP.instagram.startsWith("http") ? LP.instagram : `https://instagram.com/${LP.instagram.replace("@", "")}`} target="_blank" rel="noreferrer"><Instagram className="size-4" /> Instagram</a>
-            )}
+            {LP.instagram && (<a className="inline-flex items-center gap-2 hover:text-white" href={LP.instagram.startsWith("http") ? LP.instagram : `https://instagram.com/${LP.instagram.replace("@", "")}`} target="_blank" rel="noreferrer"><Instagram className="size-4" /> Instagram</a>)}
             {LP.city && (<span className="inline-flex items-center gap-2"><MapPin className="size-4" /> {LP.city}</span>)}
           </div>
         </div>
@@ -412,20 +295,10 @@ export function BrunaLp() {
         </div>
       </footer>
 
-      {/* ───────────────── WhatsApp flutuante ───────────────── */}
-      <a
-        href={waHref()}
-        {...(waExternal() ? { target: "_blank", rel: "noreferrer" } : {})}
-        aria-label="Falar no WhatsApp"
-        className="group fixed bottom-5 right-5 z-50 flex items-center gap-3"
-      >
-        <span className="hidden rounded-xl bg-white px-4 py-2 text-left shadow-xl sm:block">
-          <span className="block text-xs font-semibold text-[#14110b]">Fale com {LP.name}</span>
-          <span className="block text-[11px] text-[#14110b]/55">Atendimento jurídico trabalhista</span>
-        </span>
-        <span className="flex size-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg transition-transform group-hover:scale-110">
-          <MessageCircle className="size-7" />
-        </span>
+      {/* ───────────────── WhatsApp flutuante (design entregue) ───────────────── */}
+      <a className="blp-floating" href={waHref()} {...(external ? { target: "_blank", rel: "noreferrer" } : {})} aria-label={`Falar com ${LP.name}`}>
+        <span className="blp-float-icon"><WaGlyph /></span>
+        <span className="blp-float-body">Fale com {LP.name}<small>Atendimento jurídico trabalhista</small></span>
       </a>
     </div>
   );

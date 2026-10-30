@@ -1,29 +1,25 @@
 import type { Metadata } from "next";
-import { Fraunces } from "next/font/google";
+import { DM_Sans, Playfair_Display } from "next/font/google";
 import { BrunaLp } from "@/components/lp-brunamachado/bruna-lp";
 
 /**
- * `/lp/brunamachado` — Landing page de advogada (Bruna Machado), construída no estilo/estrutura de
- * uma LP jurídica de conversão, com conteúdo próprio/placeholder (ver `components/lp-brunamachado`).
- * Fonte serifada carregada aqui (next/font, nível de módulo) e exposta como `--lp-serif` pro
- * componente. Não indexável — é um material de cliente, ainda em preenchimento.
+ * `/lp/brunamachado` — Landing page da advogada trabalhista Bruna Montenegro. O hero reproduz o
+ * design entregue pela equipe (HTML/CSS próprios), portado para o projeto. Fontes DM Sans (corpo)
+ * e Playfair Display (marca/títulos) carregadas aqui (next/font) e expostas como `--lp-sans` /
+ * `--lp-serif`. Não indexável — material de cliente.
  */
-const serif = Fraunces({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--lp-serif",
-  display: "swap",
-});
+const sans = DM_Sans({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--lp-sans", display: "swap" });
+const serif = Playfair_Display({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--lp-serif", display: "swap" });
 
 export const metadata: Metadata = {
-  title: "Bruna Montenegro · Advocacia Trabalhista",
-  description: "Seus direitos no trabalho merecem ser respeitados. Orientação jurídica trabalhista com atendimento humano e próximo.",
+  title: "Bruna Montenegro | Advocacia Trabalhista",
+  description: "Bruna Montenegro — Advocacia Trabalhista. Orientação jurídica em conflitos de trabalho.",
   robots: { index: false, follow: false },
 };
 
 export default function BrunaMachadoLpPage() {
   return (
-    <div className={serif.variable}>
+    <div className={`${sans.variable} ${serif.variable}`}>
       <BrunaLp />
     </div>
   );
