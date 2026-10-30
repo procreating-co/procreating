@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
-import { Check, ChevronDown, MessageCircle, Phone, Mail, Instagram, MapPin, Scale } from "lucide-react";
+import { Check, ChevronDown, MessageCircle, Phone, Mail, Instagram, MapPin, Scale, FileCheck2, MessageSquare, Star, Target } from "lucide-react";
 
 /**
  * `/lp/brunamachado` — Landing page da advogada trabalhista Bruna Montenegro.
@@ -86,6 +86,35 @@ const HERO_CSS = `
 .blp-float-body small{display:block;color:#666;margin-top:2px}
 @media(max-width:920px){.blp-hero-body{margin-top:115px}.blp-copy{width:57%}.blp-lead{font-size:18px}.blp-portrait{right:-10%;width:67%;height:83%}}
 @media(max-width:680px){.blp-hero{min-height:960px}.blp-nav{width:calc(100% - 28px);margin-top:10px;height:70px;padding:10px 13px}.blp-logo{height:34px}.blp-hero-body{margin:57px auto 0;width:calc(100% - 38px)}.blp-copy{width:100%}.blp-eyebrow{font-size:10px;letter-spacing:2px;min-height:42px;padding:0 16px}.blp-copy h1{font-size:clamp(36px,8vw,49px);max-width:520px;margin:21px 0}.blp-lead{font-size:16px;line-height:1.5;max-width:520px}.blp-cta{min-height:65px;font-size:13px}.blp-trust{font-size:12px;gap:10px}.blp-portrait{height:48%;width:100%;right:-13%;bottom:0;-webkit-mask-image:linear-gradient(to bottom,transparent 0%,black 23%);mask-image:linear-gradient(to bottom,transparent 0%,black 23%);opacity:.8}.blp-portrait img{object-position:center 31%;filter:brightness(.5) saturate(.62) contrast(1.1)}.blp-portrait:after{background:linear-gradient(0deg,#090909 0%,transparent 19%),linear-gradient(90deg,#09090970,transparent 54%)}.blp-floating{right:12px;bottom:12px}.blp-float-body{display:none}}
+
+/* ── Método (bloco abaixo do hero) ── */
+.blp-method{position:relative;background:radial-gradient(ellipse 60% 48% at 50% -4%,#1b1711 0%,transparent 60%),#0a0a09;color:#f4efe6;padding:94px 24px 112px;overflow:hidden}
+.blp-method-inner{width:min(1120px,100%);margin:0 auto;text-align:center}
+.blp-m-badge{display:inline-flex;align-items:center;padding:13px 28px;border:1px solid #ffffff14;border-radius:9px;background:#ffffff07;letter-spacing:5px;font-size:12px;color:#e7ddcc}
+.blp-m-title{font:500 clamp(30px,3.6vw,45px)/1.12 var(--lp-serif),Georgia,serif;letter-spacing:-.5px;margin:26px auto 0;color:#f4efe6}
+.blp-m-title span{color:#c9a580}
+.blp-m-sub{font-size:clamp(16px,1.55vw,21px);line-height:1.6;color:#d9d4cb;margin:18px auto 0;max-width:640px}
+.blp-m-div{display:flex;align-items:center;justify-content:center;gap:20px;margin:40px auto 0;max-width:620px}
+.blp-m-div i{height:1px;flex:1;background:linear-gradient(90deg,transparent,#c9a58066 70%,#c9a580)}
+.blp-m-div i:last-child{background:linear-gradient(270deg,transparent,#c9a58066 70%,#c9a580)}
+.blp-m-div b{width:11px;height:11px;flex:none;background:linear-gradient(135deg,#f0dcb6,#b8935f);transform:rotate(45deg);box-shadow:0 0 12px #c9a58066}
+.blp-m-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:26px;margin-top:66px}
+.blp-m-col{display:flex;flex-direction:column;align-items:center}
+.blp-m-orb{position:relative;width:clamp(150px,15vw,210px);aspect-ratio:1;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 50% 30%,#211e19,#0b0a09 72%);box-shadow:inset 0 3px 12px #ffffff0d,inset 0 -14px 34px #000000a0,0 34px 64px #00000075}
+.blp-m-orb::before{content:'';position:absolute;inset:-24px;border-radius:50%;opacity:0;background:conic-gradient(from 175deg,transparent 0deg,#e9d2a8 95deg,#c9a580 205deg,transparent 320deg);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 2px),#000 calc(100% - 2px));mask:radial-gradient(farthest-side,transparent calc(100% - 2px),#000 calc(100% - 2px))}
+.blp-m-orb.mid::before{opacity:1}
+.blp-m-ringwrap{position:relative;width:66%;aspect-ratio:1;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 50% 35%,#16130f,#0a0908)}
+.blp-m-ringwrap::before{content:'';position:absolute;inset:-2px;border-radius:50%;background:conic-gradient(from 210deg,#efd9b2,#9c7b50,#f3e1bd,#8a6d47,#efd9b2);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 2.5px),#000 calc(100% - 2.5px));mask:radial-gradient(farthest-side,transparent calc(100% - 2.5px),#000 calc(100% - 2.5px))}
+.blp-m-ringwrap svg{width:42%;height:42%;color:#f4efe6;stroke-width:1.2}
+.blp-m-ringwrap .blp-m-ic{position:relative;width:46%;aspect-ratio:1}
+.blp-m-ringwrap .blp-m-ic svg{position:absolute;color:#f4efe6}
+.blp-m-ringwrap .blp-m-ic svg:nth-child(1){inset:0;width:100%;height:100%}
+.blp-m-ringwrap .blp-m-ic svg:nth-child(2){width:38%;height:38%;left:31%;top:25%}
+.blp-m-dots{display:flex;flex-direction:column;align-items:center;gap:7px;margin:28px 0 22px}
+.blp-m-dots span{width:4px;height:4px;border-radius:50%;background:#c9a580;opacity:.7}
+.blp-m-col h3{font:500 clamp(24px,2.4vw,32px)/1 var(--lp-serif),Georgia,serif;color:#c9a580}
+.blp-m-col p{font-size:15px;line-height:1.6;color:#b9b4ab;margin:16px auto 0;max-width:290px}
+@media(max-width:760px){.blp-method{padding:68px 22px 82px}.blp-m-grid{grid-template-columns:1fr;gap:50px;margin-top:52px}.blp-m-orb::before{inset:-18px}}
 `;
 
 const WaGlyph = () => (
@@ -95,7 +124,7 @@ const WaGlyph = () => (
   </svg>
 );
 
-function Reveal({ children, className }: { children: ReactNode; className?: string }) {
+function Reveal({ children, className, delay = 0 }: { children: ReactNode; className?: string; delay?: number }) {
   const [ref, setRef] = useState<HTMLDivElement | null>(null);
   const [shown, setShown] = useState(false);
   useEffect(() => {
@@ -105,7 +134,7 @@ function Reveal({ children, className }: { children: ReactNode; className?: stri
     return () => obs.disconnect();
   }, [ref]);
   return (
-    <div ref={setRef} className={`transition-all duration-700 ease-out ${shown ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"} ${className ?? ""}`}>
+    <div ref={setRef} style={{ transitionDelay: shown ? `${delay}ms` : "0ms" }} className={`transition-all duration-700 ease-out ${shown ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"} ${className ?? ""}`}>
       {children}
     </div>
   );
@@ -116,6 +145,13 @@ export function BrunaLp() {
   const serif: CSSProperties = { fontFamily: "var(--lp-serif, Georgia, serif)" };
   const external = waExternal();
   const firstName = LP.name.split(" ")[0];
+
+  // Conteúdo do bloco "Método" — fiel aos anexos entregues pela equipe.
+  const METODO = [
+    { t: "Estudo", d: "O processo é analisado linha por linha, atrás do que a acusação não quer que você veja – nulidades, provas ilícitas e irregularidades processuais não aparecem para quem lê por cima.", icon: <FileCheck2 /> },
+    { t: "Especialização", d: "Atuação exclusiva em defesas criminais, domínio em Lei de Drogas e Execução Penal.", icon: <span className="blp-m-ic"><MessageSquare /><Star /></span> },
+    { t: "Estratégia", d: "Tipificação se discute, laudo se contesta, benefício se calcula.", icon: <Target /> },
+  ];
 
   return (
     <div className="blp-root min-h-screen scroll-smooth antialiased">
@@ -155,24 +191,25 @@ export function BrunaLp() {
         </div>
       </section>
 
-      {/* ───────────────── MÉTODO ───────────────── */}
-      <section id="metodo" className="px-6 py-20 lg:px-8 lg:py-28">
-        <div className="mx-auto max-w-6xl">
-          <Reveal>
-            <p className="text-xs font-medium uppercase tracking-[0.25em] text-[var(--lp-accent)]" style={{ ["--lp-accent" as string]: ACCENT } as CSSProperties}>Como funciona</p>
-            <h2 className="mt-3 max-w-2xl text-3xl font-semibold tracking-tight sm:text-4xl" style={serif}>Um caminho simples e transparente.</h2>
+      {/* ───────────────── MÉTODO (design dos anexos) ───────────────── */}
+      <section id="metodo" className="blp-method">
+        <div className="blp-method-inner">
+          <Reveal><span className="blp-m-badge">CONHEÇA O MÉTODO</span></Reveal>
+          <Reveal delay={90}><h2 className="blp-m-title">O <span>método</span> em três movimentos.</h2></Reveal>
+          <Reveal delay={160}><p className="blp-m-sub">Urgência sem precisão custa caro. Aqui, seu caso tem as duas.</p></Reveal>
+          <Reveal delay={220}>
+            <div className="blp-m-div"><i /><b /><i /></div>
           </Reveal>
-          <div className="mt-12 grid gap-8 sm:grid-cols-3">
-            {[
-              { t: "Contato inicial", d: "Você relata sua situação pelo WhatsApp e entendemos juntos o que precisa ser resolvido." },
-              { t: "Análise do caso", d: "Estudo dos documentos e das possibilidades, com orientação honesta sobre os caminhos." },
-              { t: "Orientação e atuação", d: "Atuação dedicada do início ao fim, com você informado em cada etapa importante." },
-            ].map((s, i) => (
-              <Reveal key={s.t}>
-                <div>
-                  <span className="text-5xl font-light" style={{ ...serif, color: `${ACCENT}99` }}>{String(i + 1).padStart(2, "0")}</span>
-                  <h3 className="mt-3 text-xl font-semibold" style={serif}>{s.t}</h3>
-                  <p className="mt-2 text-sm leading-relaxed" style={{ color: `${INK}a6` }}>{s.d}</p>
+          <div className="blp-m-grid">
+            {METODO.map((m, i) => (
+              <Reveal key={m.t} delay={i * 150}>
+                <div className="blp-m-col">
+                  <div className={`blp-m-orb${i === 1 ? " mid" : ""}`}>
+                    <div className="blp-m-ringwrap">{m.icon}</div>
+                  </div>
+                  <div className="blp-m-dots"><span /><span /><span /><span /></div>
+                  <h3>{m.t}</h3>
+                  <p>{m.d}</p>
                 </div>
               </Reveal>
             ))}
