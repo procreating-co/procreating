@@ -22,7 +22,7 @@ import { r2Url } from "@/lib/r2";
 
 // ── Configuração comercial (ajustável) ──────────────────────────────────────
 // Preço comercial PRELIMINAR por aluno; total é derivado (nunca digitado à mão).
-const PRICE_PER_ALUNO = 529.9;
+const PRICE_PER_ALUNO = 429.9;
 const NUM_ALUNOS = 33;
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const TOTAL = PRICE_PER_ALUNO * NUM_ALUNOS;
@@ -299,10 +299,13 @@ export function FormaturaProposal() {
                 <span className="mt-4 font-display text-[clamp(3.25rem,12vw,7.5rem)] font-light leading-none tracking-tight">
                   {brl(PRICE_PER_ALUNO).replace(/\s/g, " ")}
                 </span>
-                <span className="mt-3 font-mono text-xs uppercase tracking-[0.25em] text-white/55 lg:text-right">
-                  Em até {MAX_PARCELAS}x de {brl(PRICE_PER_ALUNO / MAX_PARCELAS).replace(/\s/g, " ")}
+                <span className="mt-6 font-display text-3xl font-light leading-none tracking-tight text-white sm:text-4xl lg:text-5xl">
+                  Em até {MAX_PARCELAS}x
                 </span>
-                <span className="mt-4 max-w-xs font-mono text-[10px] uppercase leading-relaxed tracking-[0.2em] text-white/35 lg:text-right">
+                <span className="mt-2 font-mono text-[11px] uppercase tracking-[0.25em] text-white/50 lg:text-right">
+                  Condições e taxas sob consulta
+                </span>
+                <span className="mt-5 max-w-xs font-mono text-[10px] uppercase leading-relaxed tracking-[0.2em] text-white/35 lg:text-right">
                   Valor comercial preliminar · sujeito à definição de escopo
                 </span>
               </div>
