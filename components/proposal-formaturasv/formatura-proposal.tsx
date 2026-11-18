@@ -26,6 +26,7 @@ const PRICE_PER_ALUNO = 529.9;
 const NUM_ALUNOS = 33;
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const TOTAL = PRICE_PER_ALUNO * NUM_ALUNOS;
+const MAX_PARCELAS = 12;
 
 /** Revela o conteúdo ao entrar na viewport (uma vez), com leve subida. */
 function Reveal({ children, delay = 0, className }: { children: ReactNode; delay?: number; className?: string }) {
@@ -42,7 +43,7 @@ function Reveal({ children, delay = 0, className }: { children: ReactNode; delay
   );
 }
 
-/** Pilares da cobertura (Seção 04). */
+/** Pilares da cobertura. */
 const PILARES = [
   {
     n: "01",
@@ -59,19 +60,6 @@ const PILARES = [
     titulo: "Pós-produção",
     desc: "Tratamento profissional das fotografias e edição audiovisual, com atenção à estética, à narrativa e à qualidade das entregas.",
   },
-];
-
-/** Itens inclusos na operação (Seção 06). */
-const INCLUSO = [
-  "03 fotógrafos profissionais.",
-  "01 filmmaker.",
-  "Cobertura fotográfica e audiovisual.",
-  "Planejamento e coordenação da produção.",
-  "Edição e tratamento profissional das fotografias.",
-  "Edição e finalização audiovisual.",
-  "Deslocamento da equipe de Porto Alegre para Florianópolis.",
-  "Hospedagem e alimentação da equipe.",
-  "Organização e disponibilização dos materiais finais.",
 ];
 
 /** Acervo (Cases) — mesmos vídeos reais publicados na proposta Urban (bucket R2 da Procreating). */
@@ -117,6 +105,23 @@ function CaseVideo({ src, label, aspect, span }: { src: string; label: string; a
   );
 }
 
+/** Blocos de equipe (captação e pós) — mesmo tamanho visual, número grande + rótulo. */
+function EquipeGrupo({ titulo, itens }: { titulo: string; itens: { n: string; label: string }[] }) {
+  return (
+    <div>
+      <span className="font-mono text-xs uppercase tracking-[0.25em] text-black/45">{titulo}</span>
+      <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:gap-x-12 sm:gap-y-5">
+        {itens.map((it) => (
+          <div key={it.label} className="flex items-baseline gap-3">
+            <span className="font-display text-5xl font-light sm:text-6xl">{it.n}</span>
+            <span className="text-lg text-black/70">{it.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function FormaturaProposal() {
   const containerRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll();
@@ -144,18 +149,11 @@ export function FormaturaProposal() {
             <span className="font-mono text-xs uppercase tracking-[0.3em] text-white/50">18 de Novembro de 2026</span>
           </Reveal>
           <Reveal delay={0.08}>
-            <h1 className="mt-4 font-display text-[clamp(2.5rem,8vw,7rem)] font-light leading-[0.95] tracking-tight">
+            <h1 className="mt-4 font-display text-[clamp(2.75rem,10vw,8.5rem)] font-light leading-[0.95] tracking-tight">
               Proposta de
               <br />
-              Cobertura
-              <br />
-              Audiovisual.
+              Cobertura.
             </h1>
-          </Reveal>
-          <Reveal delay={0.16}>
-            <p className="mt-5 flex items-baseline gap-3 font-display text-[clamp(1.35rem,4.5vw,2.75rem)] font-light tracking-tight text-white/45">
-              <span className="text-white/25">|</span> Formatura · Florianópolis/SC.
-            </p>
           </Reveal>
         </div>
         <Reveal delay={0.3} className="mx-auto mt-16 flex w-full max-w-[1400px] items-center gap-3 text-white/40">
@@ -164,69 +162,7 @@ export function FormaturaProposal() {
         </Reveal>
       </section>
 
-      {/* ───────────────── 02 · BRIEFING (claro) ───────────────── */}
-      <section className="bg-[#f4f3f1] px-6 py-24 text-[#0a0a0a] lg:px-12 lg:py-36">
-        <div className="mx-auto grid w-full max-w-[1400px] gap-12 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-20">
-          <Reveal>
-            <h2 className="font-display text-[clamp(2rem,5vw,3.75rem)] font-light leading-[1.02] tracking-tight">
-              Briefing
-              <br />
-              do Projeto.
-            </h2>
-          </Reveal>
-
-          <div className="flex flex-col">
-            {[
-              { k: "Evento", v: "Formatura" },
-              { k: "Local", v: "Florianópolis/SC" },
-              { k: "Data do evento", v: "A definir." },
-            ].map((row, i) => (
-              <Reveal key={row.k} delay={i * 0.07}>
-                <div className="flex items-baseline gap-5 border-b border-black/10 py-5">
-                  <span className="w-24 shrink-0 font-mono text-xs uppercase tracking-[0.2em] text-black/45 sm:w-40">{row.k}</span>
-                  <span className="font-display text-2xl font-light tracking-tight sm:text-4xl">{row.v}</span>
-                </div>
-              </Reveal>
-            ))}
-
-            {/* Equipe de captação — destaque visual */}
-            <Reveal delay={0.1}>
-              <div className="mt-10">
-                <span className="font-mono text-xs uppercase tracking-[0.25em] text-black/45">Equipe de captação</span>
-                <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:gap-12">
-                  <div className="flex items-baseline gap-3">
-                    <span className="font-display text-5xl font-light sm:text-6xl">03</span>
-                    <span className="text-lg text-black/70">Fotógrafos</span>
-                  </div>
-                  <div className="flex items-baseline gap-3">
-                    <span className="font-display text-5xl font-light sm:text-6xl">01</span>
-                    <span className="text-lg text-black/70">Filmmaker</span>
-                  </div>
-                </div>
-              </div>
-            </Reveal>
-
-            {/* Pós-produção — informação secundária */}
-            <Reveal delay={0.16}>
-              <div className="mt-8 border-t border-black/10 pt-6">
-                <span className="font-mono text-xs uppercase tracking-[0.25em] text-black/45">Pós-produção</span>
-                <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:gap-10">
-                  <div className="flex items-baseline gap-2.5">
-                    <span className="font-display text-2xl font-light sm:text-3xl">01</span>
-                    <span className="text-base text-black/60">Editor de Fotografia</span>
-                  </div>
-                  <div className="flex items-baseline gap-2.5">
-                    <span className="font-display text-2xl font-light sm:text-3xl">01</span>
-                    <span className="text-base text-black/60">Editor de Vídeo</span>
-                  </div>
-                </div>
-              </div>
-            </Reveal>
-          </div>
-        </div>
-      </section>
-
-      {/* ───────────────── 04 · COBERTURA AUDIOVISUAL (preto) ───────────────── */}
+      {/* ───────────────── COBERTURA AUDIOVISUAL (preto) ───────────────── */}
       <section className="bg-black px-6 py-24 lg:px-12 lg:py-36">
         <div className="mx-auto w-full max-w-[1400px]">
           <Reveal>
@@ -252,8 +188,62 @@ export function FormaturaProposal() {
         </div>
       </section>
 
-      {/* ───────────────── 05 · CASES (preto, cinematográfico) ───────────────── */}
-      <section className="bg-black px-6 pb-24 pt-10 lg:px-12 lg:pb-36">
+      {/* ───────────────── BRIEFING (claro) ───────────────── */}
+      <section className="bg-[#f4f3f1] px-6 py-24 text-[#0a0a0a] lg:px-12 lg:py-36">
+        <div className="mx-auto grid w-full max-w-[1400px] gap-12 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-center lg:gap-20">
+          <Reveal>
+            <h2 className="font-display text-[clamp(2rem,5vw,3.75rem)] font-light leading-[1.02] tracking-tight">
+              Briefing
+              <br />
+              do Projeto.
+            </h2>
+          </Reveal>
+
+          <div className="flex flex-col">
+            {[
+              { k: "Local", v: "Florianópolis/SC" },
+              { k: "Data do evento", v: "A definir." },
+            ].map((row, i) => (
+              <Reveal key={row.k} delay={i * 0.07}>
+                <div className="flex items-baseline gap-5 border-b border-black/10 py-5">
+                  <span className="w-24 shrink-0 font-mono text-xs uppercase tracking-[0.2em] text-black/45 sm:w-40">{row.k}</span>
+                  <span className="font-display text-2xl font-light tracking-tight sm:text-4xl">{row.v}</span>
+                </div>
+              </Reveal>
+            ))}
+
+            {/* Equipe de captação — destaque visual */}
+            <Reveal delay={0.1}>
+              <div className="mt-10">
+                <EquipeGrupo
+                  titulo="Equipe de captação"
+                  itens={[
+                    { n: "03", label: "Fotógrafos" },
+                    { n: "01", label: "Filmmaker" },
+                    { n: "01", label: "Operador de Drone" },
+                  ]}
+                />
+              </div>
+            </Reveal>
+
+            {/* Pós-produção — mesmo tamanho da captação */}
+            <Reveal delay={0.16}>
+              <div className="mt-8 border-t border-black/10 pt-8">
+                <EquipeGrupo
+                  titulo="Pós-produção"
+                  itens={[
+                    { n: "01", label: "Editor de Fotografia" },
+                    { n: "01", label: "Editor de Vídeo" },
+                  ]}
+                />
+              </div>
+            </Reveal>
+          </div>
+        </div>
+      </section>
+
+      {/* ───────────────── CASES (preto, cinematográfico) ───────────────── */}
+      <section className="bg-black px-6 py-24 lg:px-12 lg:py-36">
         <div className="mx-auto w-full max-w-[1400px]">
           <Reveal>
             <h2 className="font-display text-[clamp(2rem,6vw,4.5rem)] font-light leading-[1] tracking-tight">Nosso trabalho.</h2>
@@ -275,40 +265,7 @@ export function FormaturaProposal() {
         </div>
       </section>
 
-      {/* ───────────────── 06 · ESTRUTURA DA OPERAÇÃO (claro) ───────────────── */}
-      <section className="bg-[#f4f3f1] px-6 py-24 text-[#0a0a0a] lg:px-12 lg:py-36">
-        <div className="mx-auto grid w-full max-w-[1400px] gap-12 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-20">
-          <Reveal>
-            <h2 className="font-display text-[clamp(2rem,5vw,3.75rem)] font-light leading-[1.02] tracking-tight">
-              Tudo pensado para
-              <br />o grande dia.
-            </h2>
-          </Reveal>
-
-          <div>
-            <Reveal>
-              <span className="font-mono text-xs uppercase tracking-[0.25em] text-black/45">Incluso na proposta</span>
-            </Reveal>
-            <div className="mt-6">
-              {INCLUSO.map((item, i) => (
-                <Reveal key={item} delay={Math.min(i * 0.04, 0.3)}>
-                  <div className="flex items-baseline gap-5 border-b border-black/10 py-4">
-                    <span className="shrink-0 font-mono text-xs tracking-[0.2em] text-black/35">{String(i + 1).padStart(2, "0")}</span>
-                    <span className="text-base text-black/75 sm:text-lg">{item}</span>
-                  </div>
-                </Reveal>
-              ))}
-            </div>
-            <Reveal delay={0.1}>
-              <p className="mt-6 text-sm leading-relaxed text-black/45">
-                A quantidade e os formatos finais das entregas serão detalhados antes da aprovação definitiva.
-              </p>
-            </Reveal>
-          </div>
-        </div>
-      </section>
-
-      {/* ───────────────── 07 · INVESTIMENTO (preto) ───────────────── */}
+      {/* ───────────────── INVESTIMENTO (preto) ───────────────── */}
       <section className="bg-black px-6 py-24 lg:px-12 lg:py-36">
         <div className="mx-auto w-full max-w-[1400px]">
           <Reveal>
@@ -320,7 +277,7 @@ export function FormaturaProposal() {
             </p>
           </Reveal>
 
-          <div className="mt-14 grid gap-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-20 lg:mt-20">
+          <div className="mt-14 grid gap-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:mt-20 lg:gap-20">
             <Reveal>
               <div className="flex h-full flex-col justify-center">
                 <p className="max-w-md text-base leading-relaxed text-white/55 sm:text-lg">
@@ -339,6 +296,9 @@ export function FormaturaProposal() {
                 <span className="mt-4 font-display text-[clamp(3.25rem,12vw,7.5rem)] font-light leading-none tracking-tight">
                   {brl(PRICE_PER_ALUNO).replace(/\s/g, " ")}
                 </span>
+                <span className="mt-3 font-mono text-xs uppercase tracking-[0.25em] text-white/55 lg:text-right">
+                  Em até {MAX_PARCELAS}x de {brl(PRICE_PER_ALUNO / MAX_PARCELAS).replace(/\s/g, " ")}
+                </span>
                 <span className="mt-4 max-w-xs font-mono text-[10px] uppercase leading-relaxed tracking-[0.2em] text-white/35 lg:text-right">
                   Valor comercial preliminar · sujeito à definição de escopo
                 </span>
@@ -348,7 +308,7 @@ export function FormaturaProposal() {
         </div>
       </section>
 
-      {/* ───────────────── 08 · ENCERRAMENTO (preto) ───────────────── */}
+      {/* ───────────────── ENCERRAMENTO (preto) ───────────────── */}
       <section className="bg-black px-6 pb-16 pt-24 lg:px-12 lg:pb-20 lg:pt-36">
         <div className="mx-auto w-full max-w-[1400px]">
           <Reveal>
