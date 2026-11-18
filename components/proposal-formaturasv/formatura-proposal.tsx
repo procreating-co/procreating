@@ -62,10 +62,13 @@ const PILARES = [
   },
 ];
 
-/** Acervo (Cases) — mesmos vídeos reais publicados na proposta Urban (bucket R2 da Procreating). */
+/**
+ * Acervo (Cases). O vídeo principal (tela cheia) é o aftermovie da própria formatura (Famecos
+ * 25.2), em bucket R2 próprio. Os outros dois reaproveitam os cases reais da proposta Urban.
+ */
 const CASES_R2 = "https://pub-f87d83578f1b4ce08acc561c934e7077.r2.dev";
 const CASES: { src: string; label: string; aspect: string; span: string }[] = [
-  { src: r2Url(CASES_R2, "Aftermovie Sophia XV.mp4"), label: "Aftermovie — Sophia XV", aspect: "aspect-video", span: "sm:col-span-12" },
+  { src: "https://pub-78e72cf4dd7043ea99c3b45cf1ae9b00.r2.dev/Melhores%20Momentos%20%20%20Formatura%20Famecos%2025.2%20V1.mp4", label: "Melhores Momentos — Formatura Famecos 25.2", aspect: "aspect-video", span: "sm:col-span-12" },
   { src: r2Url(CASES_R2, "Fernanda XV.mp4"), label: "Fernanda XV", aspect: "aspect-video", span: "sm:col-span-6" },
   { src: r2Url(CASES_R2, "Futuro Previdência - After Movie.mp4"), label: "Aftermovie — Futuro Previdência", aspect: "aspect-video", span: "sm:col-span-6" },
 ];
